@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { usePackingItems, useCreatePackingItem, useUpdatePackingItem, useDeletePackingItem, useBulkCreatePackingItems } from '@/hooks/usePackingItems';
 import { useTrip } from '@/hooks/useTrips';
 import { useTripWeather } from '@/hooks/useWeather';
+import { useTemperatureUnit } from '@/hooks/useTemperatureUnit';
 import { supabase } from '@/integrations/supabase/client';
 import { PackingItem } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Progress } from '@/components/ui/progress';
 import { 
   Plus, Trash2, Sparkles, Copy, Check, Cloud, Sun, 
-  CloudRain, Snowflake, Thermometer, Briefcase, ShoppingBag, Luggage, Waves, RefreshCw, AlertCircle
+  CloudRain, Snowflake, Thermometer, Briefcase, ShoppingBag, Luggage, Waves, RefreshCw, AlertCircle, ToggleLeft, ToggleRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { differenceInDays, parseISO } from 'date-fns';
@@ -82,6 +83,7 @@ export function PackingTab({ tripId }: PackingTabProps) {
   const updateItem = useUpdatePackingItem();
   const deleteItem = useDeletePackingItem();
   const bulkCreate = useBulkCreatePackingItems();
+  const { formatTemp, toggleUnit, unit } = useTemperatureUnit();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -275,10 +277,21 @@ export function PackingTab({ tripId }: PackingTabProps) {
         {/* Weather Summary */}
         <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Thermometer className="w-4 h-4 text-primary" />
-              Weather
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Thermometer className="w-4 h-4 text-primary" />
+                Weather
+              </CardTitle>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={toggleUnit}
+                className="h-7 px-2 text-xs font-medium"
+              >
+                {unit === 'fahrenheit' ? '°F' : '°C'}
+                <span className="ml-1 text-muted-foreground">→ {unit === 'fahrenheit' ? '°C' : '°F'}</span>
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {weatherLoading ? (
@@ -291,7 +304,7 @@ export function PackingTab({ tripId }: PackingTabProps) {
                     <p className="text-xs text-muted-foreground mb-1">Current in {trip?.destination_city?.trim()}</p>
                     <div className="flex items-center gap-3">
                       {getWeatherIcon(currentWeather.condition)}
-                      <span className="text-2xl font-bold">{currentWeather.temperature}°F</span>
+                      <span className="text-2xl font-bold">{formatTemp(currentWeather.temperature)}</span>
                       <div className="text-sm text-muted-foreground">
                         <p>{currentWeather.condition}</p>
                         <p className="text-xs">💧 {currentWeather.humidity}% • 💨 {currentWeather.windSpeed} mph</p>
@@ -307,13 +320,13 @@ export function PackingTab({ tripId }: PackingTabProps) {
                       {weatherAnalysis.avgHigh && (
                         <div className="flex items-center gap-1">
                           <Sun className="w-4 h-4 text-amber-500" />
-                          <span className="text-sm font-medium">{weatherAnalysis.avgHigh}°F high</span>
+                          <span className="text-sm font-medium">{formatTemp(weatherAnalysis.avgHigh)} high</span>
                         </div>
                       )}
                       {weatherAnalysis.avgLow && (
                         <div className="flex items-center gap-1">
                           <Cloud className="w-4 h-4 text-blue-400" />
-                          <span className="text-sm font-medium">{weatherAnalysis.avgLow}°F low</span>
+                          <span className="text-sm font-medium">{formatTemp(weatherAnalysis.avgLow)} low</span>
                         </div>
                       )}
                     </div>
@@ -338,7 +351,7 @@ export function PackingTab({ tripId }: PackingTabProps) {
                             {new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' })}
                           </span>
                           {getWeatherIcon(day.condition)}
-                          <span className="text-xs font-medium">{day.tempHigh}°</span>
+                          <span className="text-xs font-medium">{formatTemp(day.tempHigh, false)}</span>
                         </div>
                       ))}
                     </div>
