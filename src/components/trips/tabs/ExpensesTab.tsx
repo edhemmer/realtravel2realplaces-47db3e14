@@ -28,10 +28,12 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useTripPermission } from '@/pages/TripDetail';
 
 interface ExpensesTabProps {
   tripId: string;
 }
+
 
 const SUB_CATEGORIES: Record<ExpenseCategory, { value: ExpenseSubCategory; label: string }[]> = {
   meals: [
@@ -75,6 +77,7 @@ const SUB_CATEGORIES: Record<ExpenseCategory, { value: ExpenseSubCategory; label
 };
 
 export function ExpensesTab({ tripId }: ExpensesTabProps) {
+  const { canEdit } = useTripPermission();
   const { data: expenses = [], isLoading } = useExpenses(tripId);
   const createExpense = useCreateExpense();
   const deleteExpense = useDeleteExpense();
@@ -357,10 +360,12 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Expenses</h3>
-        <Button onClick={() => setDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90">
-          <Plus className="w-4 h-4 mr-2" />
-          Add Expense
-        </Button>
+        {canEdit && (
+          <Button onClick={() => setDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Expense
+          </Button>
+        )}
       </div>
 
       {/* Summary Cards */}
@@ -437,14 +442,16 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
                             <p className="text-sm text-muted-foreground">My share: ${Number(expense.my_share).toFixed(2)}</p>
                           )}
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => setExpenseToDelete(expense.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        {canEdit && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => setExpenseToDelete(expense.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}

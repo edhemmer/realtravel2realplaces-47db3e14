@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { differenceInDays, parseISO } from 'date-fns';
+import { useTripPermission } from '@/pages/TripDetail';
 
 interface PackingTabProps {
   tripId: string;
@@ -81,6 +82,7 @@ function getLuggageRecommendation(tripDays: number): { type: string; icon: React
 }
 
 export function PackingTab({ tripId }: PackingTabProps) {
+  const { canEdit } = useTripPermission();
   const { data: packingItems = [], isLoading } = usePackingItems(tripId);
   const { data: trip } = useTrip(tripId);
   const createItem = useCreatePackingItem();
@@ -252,29 +254,37 @@ export function PackingTab({ tripId }: PackingTabProps) {
           <h3 className="text-lg font-semibold">Packing List</h3>
           <p className="text-sm text-muted-foreground">{tripNights} night{tripNights !== 1 ? 's' : ''} in {trip?.destination_city}{trip?.destination_state ? `, ${trip.destination_state}` : ''}</p>
         </div>
-        <div className="flex gap-2 flex-wrap">
-          {packingItems.length === 0 ? (
-            <Button onClick={generatePackingList} variant="outline" disabled={isGenerating || weatherLoading}>
-              <Sparkles className="w-4 h-4 mr-2" />
-              {isGenerating ? 'Generating...' : weatherLoading ? 'Checking Weather...' : 'Generate AI Packing List'}
+        {canEdit && (
+          <div className="flex gap-2 flex-wrap">
+            {packingItems.length === 0 ? (
+              <Button onClick={generatePackingList} variant="outline" disabled={isGenerating || weatherLoading}>
+                <Sparkles className="w-4 h-4 mr-2" />
+                {isGenerating ? 'Generating...' : weatherLoading ? 'Checking Weather...' : 'Generate AI Packing List'}
+              </Button>
+            ) : (
+              <>
+                <Button onClick={generatePackingList} variant="ghost" size="sm" disabled={isGenerating}>
+                  <RefreshCw className={`w-4 h-4 mr-1 ${isGenerating ? 'animate-spin' : ''}`} />
+                  Regenerate
+                </Button>
+                <Button onClick={copyToClipboard} variant="outline" size="sm">
+                  {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
+                  Copy
+                </Button>
+              </>
+            )}
+            <Button onClick={() => setDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Item
             </Button>
-          ) : (
-            <>
-              <Button onClick={generatePackingList} variant="ghost" size="sm" disabled={isGenerating}>
-                <RefreshCw className={`w-4 h-4 mr-1 ${isGenerating ? 'animate-spin' : ''}`} />
-                Regenerate
-              </Button>
-              <Button onClick={copyToClipboard} variant="outline" size="sm">
-                {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
-                Copy
-              </Button>
-            </>
-          )}
-          <Button onClick={() => setDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Item
+          </div>
+        )}
+        {!canEdit && packingItems.length > 0 && (
+          <Button onClick={copyToClipboard} variant="outline" size="sm">
+            {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
+            Copy
           </Button>
-        </div>
+        )}
       </div>
 
       {/* Weather & Luggage Cards */}
@@ -465,7 +475,8 @@ export function PackingTab({ tripId }: PackingTabProps) {
                         <div className="flex items-center gap-3">
                           <Checkbox
                             checked={item.is_packed}
-                            onCheckedChange={() => togglePacked(item)}
+                            onCheckedChange={() => canEdit && togglePacked(item)}
+                            disabled={!canEdit}
                             className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
                           />
                           <span className={`text-sm ${item.is_packed ? 'line-through text-muted-foreground' : ''}`}>
@@ -475,14 +486,16 @@ export function PackingTab({ tripId }: PackingTabProps) {
                             )}
                           </span>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDelete(item.id)}
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
+                        {canEdit && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={() => handleDelete(item.id)}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        )}
                       </div>
                     ))}
                   </div>
