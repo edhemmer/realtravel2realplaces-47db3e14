@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { usePackingItems, useCreatePackingItem, useUpdatePackingItem, useDeletePackingItem, useBulkCreatePackingItems } from '@/hooks/usePackingItems';
 import { useTrip } from '@/hooks/useTrips';
 import { useTripWeather } from '@/hooks/useWeather';
+import { supabase } from '@/integrations/supabase/client';
 import { PackingItem } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Progress } from '@/components/ui/progress';
 import { 
   Plus, Trash2, Sparkles, Copy, Check, Cloud, Sun, 
-  CloudRain, Snowflake, Thermometer, Briefcase, ShoppingBag, Luggage
+  CloudRain, Snowflake, Thermometer, Briefcase, ShoppingBag, Luggage, Waves, RefreshCw, AlertCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { differenceInDays, parseISO } from 'date-fns';
@@ -25,6 +26,7 @@ interface PackingTabProps {
 // Icon mapping for categories
 const categoryIcons: Record<string, React.ReactNode> = {
   'Clothing': <ShoppingBag className="w-4 h-4" />,
+  'Swimwear & Beach': <Waves className="w-4 h-4" />,
   'Toiletries & Health': <Plus className="w-4 h-4" />,
   'Electronics': <Sparkles className="w-4 h-4" />,
   'Documents': <Briefcase className="w-4 h-4" />,
@@ -36,124 +38,19 @@ const categoryIcons: Record<string, React.ReactNode> = {
 // Category colors for visual distinction
 const categoryColors: Record<string, string> = {
   'Clothing': 'bg-blue-500/10 text-blue-600 border-blue-200',
+  'Swimwear & Beach': 'bg-cyan-500/10 text-cyan-600 border-cyan-200',
   'Toiletries & Health': 'bg-green-500/10 text-green-600 border-green-200',
   'Electronics': 'bg-purple-500/10 text-purple-600 border-purple-200',
   'Documents': 'bg-amber-500/10 text-amber-600 border-amber-200',
   'Essentials': 'bg-rose-500/10 text-rose-600 border-rose-200',
-  'Weather Gear': 'bg-cyan-500/10 text-cyan-600 border-cyan-200',
+  'Weather Gear': 'bg-sky-500/10 text-sky-600 border-sky-200',
   'Business': 'bg-slate-500/10 text-slate-600 border-slate-200',
 };
 
-function generateSmartPackingList(
-  tripDays: number,
-  tripType: string,
-  weatherAnalysis: {
-    hasRain: boolean;
-    hasCold: boolean;
-    hasHot: boolean;
-    hasSnow: boolean;
-    avgHigh: number | null;
-    avgLow: number | null;
-  }
-) {
-  const items: { category: string; item_name: string; quantity: number }[] = [];
-  
-  // Clothing - based on trip length and weather
-  const tshirtCount = Math.min(tripDays + 1, 7);
-  const underwearCount = Math.min(tripDays + 2, 10);
-  const sockCount = Math.min(tripDays + 2, 10);
-  const sleepwearCount = Math.min(Math.ceil(tripDays / 3), 3);
-  
-  items.push({ category: 'Clothing', item_name: 'T-shirts/Tops', quantity: tshirtCount });
-  items.push({ category: 'Clothing', item_name: 'Underwear', quantity: underwearCount });
-  items.push({ category: 'Clothing', item_name: 'Socks', quantity: sockCount });
-  items.push({ category: 'Clothing', item_name: 'Sleepwear', quantity: sleepwearCount });
-  
-  // Weather-based clothing
-  if (weatherAnalysis.hasHot || (weatherAnalysis.avgHigh && weatherAnalysis.avgHigh > 75)) {
-    items.push({ category: 'Clothing', item_name: 'Shorts', quantity: Math.min(tripDays, 4) });
-    items.push({ category: 'Clothing', item_name: 'Light shirts', quantity: Math.min(tripDays, 4) });
-    items.push({ category: 'Clothing', item_name: 'Sandals', quantity: 1 });
-    items.push({ category: 'Clothing', item_name: 'Swimsuit', quantity: 1 });
-  }
-  
-  if (weatherAnalysis.hasCold || (weatherAnalysis.avgLow && weatherAnalysis.avgLow < 55)) {
-    items.push({ category: 'Clothing', item_name: 'Long pants', quantity: Math.min(tripDays, 3) });
-    items.push({ category: 'Clothing', item_name: 'Sweater/Hoodie', quantity: 2 });
-    items.push({ category: 'Clothing', item_name: 'Jacket', quantity: 1 });
-  } else {
-    items.push({ category: 'Clothing', item_name: 'Pants', quantity: 2 });
-    items.push({ category: 'Clothing', item_name: 'Light jacket', quantity: 1 });
-  }
-  
-  // Shoes
-  items.push({ category: 'Clothing', item_name: 'Comfortable walking shoes', quantity: 1 });
-  
-  // Toiletries & Health - expanded
-  items.push({ category: 'Toiletries & Health', item_name: 'Toothbrush', quantity: 1 });
-  items.push({ category: 'Toiletries & Health', item_name: 'Toothpaste', quantity: 1 });
-  items.push({ category: 'Toiletries & Health', item_name: 'Shampoo/Conditioner', quantity: 1 });
-  items.push({ category: 'Toiletries & Health', item_name: 'Deodorant', quantity: 1 });
-  items.push({ category: 'Toiletries & Health', item_name: 'Skincare products', quantity: 1 });
-  items.push({ category: 'Toiletries & Health', item_name: 'Razor/Shaving supplies', quantity: 1 });
-  items.push({ category: 'Toiletries & Health', item_name: 'Prescription medications', quantity: 1 });
-  items.push({ category: 'Toiletries & Health', item_name: 'Pain relievers (Tylenol/Ibuprofen)', quantity: 1 });
-  items.push({ category: 'Toiletries & Health', item_name: 'Vitamins/Supplements', quantity: 1 });
-  items.push({ category: 'Toiletries & Health', item_name: 'First aid kit', quantity: 1 });
-  items.push({ category: 'Toiletries & Health', item_name: 'Hand sanitizer', quantity: 1 });
-  
-  if (weatherAnalysis.hasHot) {
-    items.push({ category: 'Toiletries & Health', item_name: 'Sunscreen', quantity: 1 });
-    items.push({ category: 'Toiletries & Health', item_name: 'Lip balm with SPF', quantity: 1 });
-    items.push({ category: 'Toiletries & Health', item_name: 'Aloe vera gel', quantity: 1 });
-    items.push({ category: 'Toiletries & Health', item_name: 'Insect repellent', quantity: 1 });
-  }
-  
-  // Electronics
-  items.push({ category: 'Electronics', item_name: 'Phone charger', quantity: 1 });
-  items.push({ category: 'Electronics', item_name: 'Power bank', quantity: 1 });
-  items.push({ category: 'Electronics', item_name: 'Headphones/Earbuds', quantity: 1 });
-  items.push({ category: 'Electronics', item_name: 'Selfie stick/Tripod', quantity: 1 });
-  
-  // Documents
-  items.push({ category: 'Documents', item_name: 'Passport', quantity: 1 });
-  items.push({ category: 'Documents', item_name: 'ID/Driver\'s License', quantity: 1 });
-  items.push({ category: 'Documents', item_name: 'Travel insurance docs', quantity: 1 });
-  items.push({ category: 'Documents', item_name: 'Booking confirmations', quantity: 1 });
-  items.push({ category: 'Documents', item_name: 'Credit cards', quantity: 1 });
-  
-  // Essentials
-  items.push({ category: 'Essentials', item_name: 'Wallet', quantity: 1 });
-  items.push({ category: 'Essentials', item_name: 'Keys', quantity: 1 });
-  items.push({ category: 'Essentials', item_name: 'Glasses/Contacts', quantity: 1 });
-  items.push({ category: 'Essentials', item_name: 'Travel pillow', quantity: 1 });
-  items.push({ category: 'Essentials', item_name: 'Reusable water bottle', quantity: 1 });
-  items.push({ category: 'Essentials', item_name: 'Snacks', quantity: 1 });
-  
-  // Weather gear
-  if (weatherAnalysis.hasRain) {
-    items.push({ category: 'Weather Gear', item_name: 'Rain jacket/Umbrella', quantity: 1 });
-    items.push({ category: 'Weather Gear', item_name: 'Waterproof bag', quantity: 1 });
-  }
-  
-  if (weatherAnalysis.hasSnow) {
-    items.push({ category: 'Weather Gear', item_name: 'Winter coat', quantity: 1 });
-    items.push({ category: 'Weather Gear', item_name: 'Gloves', quantity: 1 });
-    items.push({ category: 'Weather Gear', item_name: 'Winter hat', quantity: 1 });
-    items.push({ category: 'Weather Gear', item_name: 'Warm boots', quantity: 1 });
-    items.push({ category: 'Weather Gear', item_name: 'Thermal underwear', quantity: 2 });
-  }
-  
-  // Business items
-  if (tripType === 'business' || tripType === 'mixed') {
-    items.push({ category: 'Business', item_name: 'Business cards', quantity: 1 });
-    items.push({ category: 'Business', item_name: 'Laptop', quantity: 1 });
-    items.push({ category: 'Business', item_name: 'Laptop charger', quantity: 1 });
-    items.push({ category: 'Business', item_name: 'Professional attire', quantity: 2 });
-    items.push({ category: 'Business', item_name: 'Dress shoes', quantity: 1 });
-  }
-  
-  return items;
+interface AIPackingResponse {
+  items: { category: string; item_name: string; quantity: number }[];
+  luggage_recommendation: { type: string; description: string };
+  special_notes?: string[];
 }
 
 function getLuggageRecommendation(tripDays: number): { type: string; icon: React.ReactNode; description: string } {
@@ -187,6 +84,9 @@ export function PackingTab({ tripId }: PackingTabProps) {
   const bulkCreate = useBulkCreatePackingItems();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [aiLuggageRec, setAiLuggageRec] = useState<{ type: string; description: string } | null>(null);
+  const [specialNotes, setSpecialNotes] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
     category: '',
@@ -200,6 +100,8 @@ export function PackingTab({ tripId }: PackingTabProps) {
     return differenceInDays(parseISO(trip.end_date), parseISO(trip.start_date)) + 1;
   }, [trip]);
 
+  const tripNights = tripDays - 1;
+
   // Get weather data
   const { tripForecast, weatherAnalysis, isLoading: weatherLoading } = useTripWeather(
     trip?.destination_city || '',
@@ -209,6 +111,7 @@ export function PackingTab({ tripId }: PackingTabProps) {
   );
 
   const luggageRec = getLuggageRecommendation(tripDays);
+  const displayLuggageRec = aiLuggageRec || luggageRec;
 
   const resetForm = () => {
     setFormData({ category: '', item_name: '', quantity: '1' });
@@ -241,8 +144,49 @@ export function PackingTab({ tripId }: PackingTabProps) {
   };
 
   const generatePackingList = async () => {
-    const items = generateSmartPackingList(tripDays, trip?.trip_type || 'personal', weatherAnalysis);
-    await bulkCreate.mutateAsync({ trip_id: tripId, items });
+    if (!trip) return;
+    
+    setIsGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke<{ success: boolean; data: AIPackingResponse; error?: string }>('generate-packing-list', {
+        body: {
+          destination_city: trip.destination_city.trim(),
+          destination_state: trip.destination_state || null,
+          destination_country: trip.destination_country,
+          start_date: trip.start_date,
+          end_date: trip.end_date,
+          trip_type: trip.trip_type,
+          weather_forecast: tripForecast.length > 0 ? {
+            avgHigh: weatherAnalysis.avgHigh,
+            avgLow: weatherAnalysis.avgLow,
+            hasRain: weatherAnalysis.hasRain,
+            hasHot: weatherAnalysis.hasHot,
+            hasCold: weatherAnalysis.hasCold,
+            hasSnow: weatherAnalysis.hasSnow,
+          } : null,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success && data.data?.items) {
+        await bulkCreate.mutateAsync({ trip_id: tripId, items: data.data.items });
+        
+        if (data.data.luggage_recommendation) {
+          setAiLuggageRec(data.data.luggage_recommendation);
+        }
+        if (data.data.special_notes) {
+          setSpecialNotes(data.data.special_notes);
+        }
+      } else {
+        throw new Error(data?.error || 'Failed to generate packing list');
+      }
+    } catch (err) {
+      console.error('Error generating packing list:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to generate packing list');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const copyToClipboard = () => {
@@ -299,20 +243,25 @@ export function PackingTab({ tripId }: PackingTabProps) {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h3 className="text-lg font-semibold">Packing List</h3>
-          <p className="text-sm text-muted-foreground">{tripDays} day trip to {trip?.destination_city}</p>
+          <p className="text-sm text-muted-foreground">{tripNights} night{tripNights !== 1 ? 's' : ''} in {trip?.destination_city}{trip?.destination_state ? `, ${trip.destination_state}` : ''}</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {packingItems.length === 0 && (
-            <Button onClick={generatePackingList} variant="outline" disabled={bulkCreate.isPending || weatherLoading}>
+          {packingItems.length === 0 ? (
+            <Button onClick={generatePackingList} variant="outline" disabled={isGenerating || weatherLoading}>
               <Sparkles className="w-4 h-4 mr-2" />
-              {bulkCreate.isPending ? 'Generating...' : weatherLoading ? 'Checking Weather...' : 'Generate Smart List'}
+              {isGenerating ? 'Generating...' : weatherLoading ? 'Checking Weather...' : 'Generate AI Packing List'}
             </Button>
-          )}
-          {packingItems.length > 0 && (
-            <Button onClick={copyToClipboard} variant="outline" size="sm">
-              {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
-              Copy
-            </Button>
+          ) : (
+            <>
+              <Button onClick={generatePackingList} variant="ghost" size="sm" disabled={isGenerating}>
+                <RefreshCw className={`w-4 h-4 mr-1 ${isGenerating ? 'animate-spin' : ''}`} />
+                Regenerate
+              </Button>
+              <Button onClick={copyToClipboard} variant="outline" size="sm">
+                {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
+                Copy
+              </Button>
+            </>
           )}
           <Button onClick={() => setDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90">
             <Plus className="w-4 h-4 mr-2" />
@@ -386,20 +335,41 @@ export function PackingTab({ tripId }: PackingTabProps) {
         <Card className="border-accent/20 bg-gradient-to-br from-accent/5 to-primary/5">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              {luggageRec.icon}
+              {displayLuggageRec.type === 'Checked Bag' ? <Luggage className="w-5 h-5" /> : 
+               displayLuggageRec.type === 'Carry-On' ? <ShoppingBag className="w-5 h-5" /> : 
+               <Briefcase className="w-5 h-5" />}
               Luggage Recommendation
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               <Badge variant="secondary" className="text-base font-semibold px-3 py-1">
-                {luggageRec.type}
+                {displayLuggageRec.type}
               </Badge>
-              <p className="text-sm text-muted-foreground">{luggageRec.description}</p>
+              <p className="text-sm text-muted-foreground">{displayLuggageRec.description}</p>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Special Notes from AI */}
+      {specialNotes.length > 0 && (
+        <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20">
+          <CardContent className="pt-4">
+            <div className="flex gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Packing Tips for {trip?.destination_city}</p>
+                <ul className="text-sm text-amber-700 dark:text-amber-300 space-y-1">
+                  {specialNotes.map((note, idx) => (
+                    <li key={idx}>• {note}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Progress */}
       {packingItems.length > 0 && (
@@ -491,12 +461,12 @@ export function PackingTab({ tripId }: PackingTabProps) {
             </div>
             <h4 className="text-lg font-medium mb-1">No packing list yet</h4>
             <p className="text-muted-foreground text-sm text-center max-w-sm mb-4">
-              Generate a smart list based on your {tripDays}-day trip and weather forecast
+              AI will generate a smart packing list based on your {tripNights}-night trip to {trip?.destination_city}{trip?.destination_state ? `, ${trip.destination_state}` : ''} and current weather
             </p>
             <div className="flex gap-2">
-              <Button onClick={generatePackingList} disabled={bulkCreate.isPending || weatherLoading}>
+              <Button onClick={generatePackingList} disabled={isGenerating || weatherLoading}>
                 <Sparkles className="w-4 h-4 mr-2" />
-                Generate Smart List
+                {isGenerating ? 'Generating...' : 'Generate AI Packing List'}
               </Button>
               <Button onClick={() => setDialogOpen(true)} variant="outline">
                 Add Manually

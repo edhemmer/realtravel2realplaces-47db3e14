@@ -1,0 +1,169 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { destination_city, destination_state, destination_country, start_date, end_date, trip_type, weather_forecast } = await req.json();
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured");
+    }
+
+    // Calculate trip nights and days
+    const startD = new Date(start_date);
+    const endD = new Date(end_date);
+    const tripNights = Math.ceil((endD.getTime() - startD.getTime()) / (1000 * 60 * 60 * 24));
+    const tripDays = tripNights + 1;
+
+    // Get month for seasonality
+    const travelMonth = startD.toLocaleString('en-US', { month: 'long' });
+
+    const systemPrompt = `You are a smart travel packing assistant. Generate a practical, accurate packing list based on the destination, trip duration, time of year, and weather conditions.
+
+CRITICAL RULES for clothing quantities:
+- Trip nights (not days) determine clothing quantities
+- Underwear: exactly ${tripNights} pairs (you can wash if needed)
+- Socks: exactly ${tripNights} pairs
+- Tops/T-shirts: ${tripNights} shirts (one per day)
+- Bottoms: ${Math.ceil(tripNights / 2)} pairs of pants/shorts (can repeat)
+- Sleepwear: 1 set (for trips under 5 nights) or 2 sets
+- Keep total quantity practical - travelers prefer packing light
+
+Location-aware items:
+- Florida/Beach destinations: MUST include swimwear, sunglasses, flip-flops, beach towel
+- Tropical/Coastal: include reef-safe sunscreen, after-sun care
+- Cold destinations: layers, warm jacket, gloves, hat
+- Business trips: add professional attire items
+
+Weather-based adjustments:
+- Rain in forecast: umbrella, rain jacket
+- Hot (>80°F): more shorts, light fabrics, sun protection
+- Cold (<50°F): layers, warm jacket, thermals
+- Variable: versatile pieces that layer
+
+Return a JSON object with categorized items. Each item needs: category, item_name, quantity.
+Categories: Clothing, Swimwear & Beach, Toiletries & Health, Electronics, Documents, Essentials, Weather Gear, Business (if applicable)`;
+
+    const userPrompt = `Generate a packing list for this trip:
+- Destination: ${destination_city}${destination_state ? `, ${destination_state}` : ''}, ${destination_country}
+- Dates: ${start_date} to ${end_date} (${tripNights} nights, ${tripDays} days)
+- Month of travel: ${travelMonth}
+- Trip type: ${trip_type}
+${weather_forecast ? `- Weather forecast: ${JSON.stringify(weather_forecast)}` : ''}
+
+Return a practical packing list. Be accurate with quantities based on trip length.`;
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "generate_packing_list",
+              description: "Generate a categorized packing list for the trip",
+              parameters: {
+                type: "object",
+                properties: {
+                  items: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        category: { 
+                          type: "string", 
+                          description: "Item category",
+                          enum: ["Clothing", "Swimwear & Beach", "Toiletries & Health", "Electronics", "Documents", "Essentials", "Weather Gear", "Business"]
+                        },
+                        item_name: { type: "string", description: "Name of the item" },
+                        quantity: { type: "number", description: "How many to pack" },
+                      },
+                      required: ["category", "item_name", "quantity"],
+                    },
+                  },
+                  luggage_recommendation: {
+                    type: "object",
+                    properties: {
+                      type: { type: "string", enum: ["Personal Item", "Carry-On", "Checked Bag"] },
+                      description: { type: "string" },
+                    },
+                    required: ["type", "description"],
+                  },
+                  special_notes: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Special packing tips for this destination/time of year"
+                  }
+                },
+                required: ["items", "luggage_recommendation"],
+              },
+            },
+          },
+        ],
+        tool_choice: { type: "function", function: { name: "generate_packing_list" } },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("AI gateway error:", response.status, errorText);
+      
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits." }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      
+      return new Response(JSON.stringify({ error: "AI generation failed" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const data = await response.json();
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    
+    if (toolCall?.function?.arguments) {
+      const parsed = JSON.parse(toolCall.function.arguments);
+      return new Response(JSON.stringify({ success: true, data: parsed }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify({ success: false, error: "Could not generate packing list" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("Generate packing list error:", error);
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});
