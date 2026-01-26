@@ -24,7 +24,7 @@ const tripSchema = z.object({
   name: z.string().min(1, 'Trip name is required').max(100),
   destination_city: z.string().min(1, 'City is required').max(100),
   destination_state: z.string().max(100).optional(),
-  destination_country: z.string().min(1, 'Country is required').max(100),
+  destination_country: z.string().max(100).optional(),
   trip_type: z.enum(['business', 'personal', 'mixed']),
 });
 

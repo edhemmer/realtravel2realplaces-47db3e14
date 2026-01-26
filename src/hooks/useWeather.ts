@@ -116,6 +116,7 @@ export function useTripWeather(city: string, country: string, startDate: string,
   
   return {
     ...weatherQuery,
+    current: weatherQuery.data?.current || null,
     tripForecast,
     weatherAnalysis,
   };
