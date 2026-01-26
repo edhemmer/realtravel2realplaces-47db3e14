@@ -28,13 +28,13 @@ serve(async (req) => {
       });
     }
 
-    const systemPrompt = `You are an expert receipt parser with OCR capabilities. Analyze the receipt image and extract expense data.
+    const systemPrompt = `You are an expert receipt parser with OCR capabilities. Analyze the receipt image and extract detailed expense data.
 
 CRITICAL INSTRUCTIONS:
 1. If the image is blurry, unclear, not a receipt, or text is unreadable, respond with: {"readable": false, "reason": "Brief description of why"}
 2. If the image IS readable and IS a receipt, extract the data and respond with: {"readable": true, "data": {...}}
 
-For readable receipts, extract:
+For readable receipts, extract ALL of these fields:
 - date: Date in YYYY-MM-DD format (look for date stamps, if year missing use current year 2026)
 - category: One of: meals, transport, activity, shopping, parking, other
 - sub_category: Be specific! Use these values:
@@ -63,16 +63,22 @@ For readable receipts, extract:
   * For fees: "fees"
   * For insurance: "insurance"
   * Otherwise: "miscellaneous"
-- description: Vendor/store name or brief description
-- amount: Total amount as a number (extract the final total, not subtotals)
-- vendor_name: Name of the business
+- vendor_name: Name of the business/restaurant/store (REQUIRED)
+- location: City, state or address if visible on receipt (optional)
+- subtotal: Subtotal amount BEFORE tax and tip (number)
+- tax: Tax amount as a number (look for "tax", "sales tax", etc.)
+- tip: Tip/gratuity amount as a number (look for "tip", "gratuity", "service charge")
+- amount: FINAL TOTAL amount paid (the bottom-line total including tax and tip)
+- description: Brief description combining vendor name and what was purchased
 - confidence: Your confidence level 0-100 for the extracted data accuracy
 
 ACCURACY RULES:
 - Only return data you can clearly read
 - If a field is uncertain, mark confidence lower
 - If total amount is unclear, do not guess
-- Look for the FINAL TOTAL, not line items or subtotals`;
+- Look for the FINAL TOTAL (grand total, total due, amount paid), not subtotals
+- For restaurants: subtotal is food/drink total, then add tax and tip to get final amount
+- Always try to extract vendor_name - it's usually at the top of the receipt`;
 
     const imageContent = imageBase64 
       ? { type: "image_url", image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
@@ -122,12 +128,16 @@ ACCURACY RULES:
                         type: "string", 
                         enum: ["breakfast", "lunch", "dinner", "snacks", "coffee", "groceries", "alcohol", "beverages", "uber", "taxi", "gas", "tolls", "public_transit", "parking_expense", "rental_car", "tours", "entertainment", "tickets", "sports", "souvenirs", "clothing", "gifts", "tips", "fees", "insurance", "miscellaneous"]
                       },
-                      description: { type: "string" },
-                      amount: { type: "number" },
-                      vendor_name: { type: "string" },
+                      vendor_name: { type: "string", description: "Name of the business/restaurant" },
+                      location: { type: "string", description: "City, state or address if visible" },
+                      subtotal: { type: "number", description: "Subtotal before tax and tip" },
+                      tax: { type: "number", description: "Tax amount" },
+                      tip: { type: "number", description: "Tip/gratuity amount" },
+                      amount: { type: "number", description: "Final total amount paid" },
+                      description: { type: "string", description: "Brief description of the expense" },
                       confidence: { type: "number", description: "Confidence level 0-100" }
                     },
-                    required: ["date", "category", "sub_category", "amount", "confidence"]
+                    required: ["date", "category", "sub_category", "vendor_name", "amount", "confidence"]
                   }
                 },
                 required: ["readable"]
