@@ -50,6 +50,10 @@ interface CreateTripData {
   start_date: string;
   end_date: string;
   trip_type: TripType;
+  transportation_mode?: 'flight' | 'drive' | 'unspecified';
+  destination_type?: 'beach' | 'mountain' | 'city' | 'unspecified';
+  origin_address?: string;
+  destination_address?: string;
   notes?: string;
 }
 

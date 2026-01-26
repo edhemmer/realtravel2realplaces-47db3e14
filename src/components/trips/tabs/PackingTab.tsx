@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Progress } from '@/components/ui/progress';
 import { 
   Plus, Trash2, Sparkles, Copy, Check, Cloud, Sun, 
-  CloudRain, Snowflake, Thermometer, Briefcase, ShoppingBag, Luggage, Waves, RefreshCw, AlertCircle, Mountain
+  CloudRain, Snowflake, Thermometer, Briefcase, ShoppingBag, Luggage, Waves, RefreshCw, AlertCircle, Mountain, Building2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { differenceInDays, parseISO } from 'date-fns';
@@ -29,6 +29,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
   'Clothing': <ShoppingBag className="w-4 h-4" />,
   'Swimwear & Beach': <Waves className="w-4 h-4" />,
   'Hiking & Outdoor': <Mountain className="w-4 h-4" />,
+  'City Essentials': <Building2 className="w-4 h-4" />,
   'Toiletries & Health': <Plus className="w-4 h-4" />,
   'Electronics': <Sparkles className="w-4 h-4" />,
   'Documents': <Briefcase className="w-4 h-4" />,
@@ -42,6 +43,7 @@ const categoryColors: Record<string, string> = {
   'Clothing': 'bg-blue-500/10 text-blue-600 border-blue-200',
   'Swimwear & Beach': 'bg-cyan-500/10 text-cyan-600 border-cyan-200',
   'Hiking & Outdoor': 'bg-emerald-500/10 text-emerald-600 border-emerald-200',
+  'City Essentials': 'bg-slate-500/10 text-slate-600 border-slate-200',
   'Toiletries & Health': 'bg-green-500/10 text-green-600 border-green-200',
   'Electronics': 'bg-purple-500/10 text-purple-600 border-purple-200',
   'Documents': 'bg-amber-500/10 text-amber-600 border-amber-200',
@@ -160,6 +162,7 @@ export function PackingTab({ tripId }: PackingTabProps) {
           start_date: trip.start_date,
           end_date: trip.end_date,
           trip_type: trip.trip_type,
+          destination_type: (trip as any).destination_type || 'unspecified',
           weather_forecast: tripForecast.length > 0 ? {
             avgHigh: weatherAnalysis.avgHigh,
             avgLow: weatherAnalysis.avgLow,

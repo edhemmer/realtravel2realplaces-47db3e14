@@ -4,7 +4,8 @@ export type StayType = 'hotel' | 'airbnb' | 'vrbo' | 'other';
 export type ExpenseCategory = 'meals' | 'transport' | 'activity' | 'shopping' | 'parking' | 'other';
 export type ParkingType = 'airport' | 'beach' | 'city_garage' | 'hotel' | 'other';
 export type ParkingBilling = 'hourly' | 'daily' | 'per_trip' | 'other';
-
+export type TransportationMode = 'flight' | 'drive' | 'unspecified';
+export type DestinationType = 'beach' | 'mountain' | 'city' | 'unspecified';
 export type ExpenseSubCategory = 
   'breakfast' | 'lunch' | 'dinner' | 'snacks' | 'coffee' | 'groceries' | 'alcohol' | 'beverages' |
   'uber' | 'taxi' | 'gas' | 'tolls' | 'public_transit' | 'parking_expense' | 'rental_car' |
@@ -22,6 +23,11 @@ export interface Trip {
   start_date: string;
   end_date: string;
   trip_type: TripType;
+  transportation_mode?: TransportationMode;
+  destination_type?: DestinationType;
+  origin_address?: string;
+  destination_address?: string;
+  estimated_miles?: number;
   notes?: string;
   created_at: string;
   updated_at: string;
