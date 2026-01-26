@@ -31,10 +31,9 @@ export function Layout({ children }: LayoutProps) {
             <div className="w-10 h-10 rounded-lg bg-gradient-ocean flex items-center justify-center shadow-sm">
               <Plane className="w-5 h-5 text-primary-foreground" />
             </div>
-            <div>
-              <h1 className="text-lg font-bold text-gradient-ocean leading-tight">Real Travel 2</h1>
-              <p className="text-xs text-muted-foreground leading-tight">Real Places</p>
-            </div>
+            <h1 className="text-lg font-bold text-gradient-ocean leading-tight">
+              Real Travel 2 <span className="italic">Real Places</span>
+            </h1>
           </Link>
 
           {user && (

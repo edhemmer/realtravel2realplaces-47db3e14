@@ -52,6 +52,9 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
     email: '',
     phone: '',
     notes: '',
+    tsa_precheck_number: '',
+    frequent_flyer_number: '',
+    airline: '',
   });
 
   const [shareFormData, setShareFormData] = useState({
@@ -66,7 +69,7 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
     : '';
 
   const resetForm = () => {
-    setFormData({ name: '', email: '', phone: '', notes: '' });
+    setFormData({ name: '', email: '', phone: '', notes: '', tsa_precheck_number: '', frequent_flyer_number: '', airline: '' });
   };
 
   const resetShareForm = () => {
@@ -82,6 +85,9 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
       email: formData.email || undefined,
       phone: formData.phone || undefined,
       notes: formData.notes || undefined,
+      tsa_precheck_number: formData.tsa_precheck_number || undefined,
+      frequent_flyer_number: formData.frequent_flyer_number || undefined,
+      airline: formData.airline || undefined,
     });
     
     resetForm();
@@ -282,6 +288,28 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
                     {companion.phone}
                   </a>
                 )}
+                
+                {/* Flight info section */}
+                {(companion.airline || companion.tsa_precheck_number || companion.frequent_flyer_number) && (
+                  <div className="pt-2 border-t space-y-1 text-xs">
+                    {companion.airline && (
+                      <div className="text-muted-foreground">
+                        <span className="font-medium">Airline:</span> {companion.airline}
+                      </div>
+                    )}
+                    {companion.tsa_precheck_number && (
+                      <div className="text-muted-foreground">
+                        <span className="font-medium">TSA PreCheck:</span> {companion.tsa_precheck_number}
+                      </div>
+                    )}
+                    {companion.frequent_flyer_number && (
+                      <div className="text-muted-foreground">
+                        <span className="font-medium">Frequent Flyer:</span> {companion.frequent_flyer_number}
+                      </div>
+                    )}
+                  </div>
+                )}
+                
                 {companion.notes && (
                   <p className="text-muted-foreground pt-2 border-t text-xs">
                     {companion.notes}
@@ -362,6 +390,37 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
                 placeholder="Dietary restrictions, preferences, etc."
                 rows={2}
               />
+            </div>
+
+            {/* Flight Info Section */}
+            <div className="pt-2 border-t">
+              <Label className="text-muted-foreground text-xs mb-2 block">Flight Information (Optional)</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-xs">Airline</Label>
+                  <Input
+                    value={formData.airline}
+                    onChange={(e) => setFormData({ ...formData, airline: e.target.value })}
+                    placeholder="United, Delta..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">TSA PreCheck #</Label>
+                  <Input
+                    value={formData.tsa_precheck_number}
+                    onChange={(e) => setFormData({ ...formData, tsa_precheck_number: e.target.value })}
+                    placeholder="123456789"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2 mt-3">
+                <Label className="text-xs">Frequent Flyer #</Label>
+                <Input
+                  value={formData.frequent_flyer_number}
+                  onChange={(e) => setFormData({ ...formData, frequent_flyer_number: e.target.value })}
+                  placeholder="FF123456"
+                />
+              </div>
             </div>
 
             <div className="flex gap-3 pt-4">
