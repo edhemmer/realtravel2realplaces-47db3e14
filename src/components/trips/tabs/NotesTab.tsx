@@ -1,0 +1,135 @@
+import { useState, useEffect } from 'react';
+import { useTripNotes, useUpsertTripNotes } from '@/hooks/useTripNotes';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { FileText, Phone, Link, Save } from 'lucide-react';
+
+interface NotesTabProps {
+  tripId: string;
+}
+
+export function NotesTab({ tripId }: NotesTabProps) {
+  const { data: notes, isLoading } = useTripNotes(tripId);
+  const upsertNotes = useUpsertTripNotes();
+
+  const [formData, setFormData] = useState({
+    general_notes: '',
+    emergency_numbers: '',
+    important_links: '',
+  });
+
+  const [hasChanges, setHasChanges] = useState(false);
+
+  useEffect(() => {
+    if (notes) {
+      setFormData({
+        general_notes: notes.general_notes || '',
+        emergency_numbers: notes.emergency_numbers || '',
+        important_links: notes.important_links || '',
+      });
+    }
+  }, [notes]);
+
+  const handleChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    setHasChanges(true);
+  };
+
+  const handleSave = async () => {
+    await upsertNotes.mutateAsync({
+      trip_id: tripId,
+      ...formData,
+    });
+    setHasChanges(false);
+  };
+
+  if (isLoading) {
+    return <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold">Notes & Safety</h3>
+        <Button
+          onClick={handleSave}
+          disabled={!hasChanges || upsertNotes.isPending}
+          className="bg-gradient-ocean hover:opacity-90"
+        >
+          <Save className="w-4 h-4 mr-2" />
+          {upsertNotes.isPending ? 'Saving...' : 'Save Changes'}
+        </Button>
+      </div>
+
+      <div className="grid gap-6">
+        {/* General Notes */}
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              <CardTitle className="text-base">General Notes</CardTitle>
+            </div>
+            <CardDescription>
+              Trip reminders, to-dos, and general information
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              value={formData.general_notes}
+              onChange={(e) => handleChange('general_notes', e.target.value)}
+              placeholder="Add any notes about your trip..."
+              rows={6}
+              className="resize-none"
+            />
+          </CardContent>
+        </Card>
+
+        {/* Emergency Numbers */}
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <Phone className="w-5 h-5 text-primary" />
+              <CardTitle className="text-base">Emergency Numbers</CardTitle>
+            </div>
+            <CardDescription>
+              Local emergency services, embassy, hotel, etc.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              value={formData.emergency_numbers}
+              onChange={(e) => handleChange('emergency_numbers', e.target.value)}
+              placeholder="Emergency: 911&#10;US Embassy: +1-555-123-4567&#10;Hotel: +1-555-987-6543"
+              rows={4}
+              className="resize-none font-mono text-sm"
+            />
+          </CardContent>
+        </Card>
+
+        {/* Important Links */}
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <Link className="w-5 h-5 text-primary" />
+              <CardTitle className="text-base">Important Links</CardTitle>
+            </div>
+            <CardDescription>
+              Travel guides, restaurant reservations, activity bookings
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              value={formData.important_links}
+              onChange={(e) => handleChange('important_links', e.target.value)}
+              placeholder="https://restaurant-reservation.com/12345&#10;https://museum-tickets.com/booking/abc"
+              rows={4}
+              className="resize-none font-mono text-sm"
+            />
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
