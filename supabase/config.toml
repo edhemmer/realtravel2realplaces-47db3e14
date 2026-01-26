@@ -1,1 +1,7 @@
 project_id = "tlrviwlfckiahhfmeilv"
+
+[functions.parse-booking]
+verify_jwt = false
+
+[functions.parse-receipt-image]
+verify_jwt = false
