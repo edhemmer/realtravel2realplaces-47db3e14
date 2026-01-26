@@ -2,16 +2,20 @@ import { useBookings } from '@/hooks/useBookings';
 import { useParking } from '@/hooks/useParking';
 import { useExpenses } from '@/hooks/useExpenses';
 import { useTripWeather } from '@/hooks/useWeather';
+import { useTravelAlerts } from '@/hooks/useTravelAlerts';
 import { Trip, Booking, Parking } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { TravelAlertsCard } from '@/components/trips/TravelAlertsCard';
+import { generateTripICS, downloadICSFile } from '@/lib/icsGenerator';
 import { 
   Plane, Building2, Car, Calendar, MapPin, DollarSign, 
   AlertTriangle, Download, ExternalLink, Clock, PartyPopper,
-  Cloud, Sun, CloudRain, Snowflake, Thermometer, Info, Globe, Utensils, Camera
+  Cloud, Sun, CloudRain, Snowflake, Thermometer, Info, Globe, Utensils, Camera, Bell
 } from 'lucide-react';
-import { format, parseISO, isAfter, isBefore, addMinutes, differenceInDays } from 'date-fns';
+import { format, parseISO, isAfter, differenceInDays } from 'date-fns';
+import { toast } from 'sonner';
 
 interface SummaryTabProps {
   tripId: string;
@@ -61,6 +65,9 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
     trip.start_date,
     trip.end_date
   );
+  
+  // Travel alerts for weather changes, departure reminders, parking expiry
+  const { alerts, hasAlerts, criticalCount } = useTravelAlerts(trip, bookings, parkingList);
 
   const tripDays = differenceInDays(parseISO(trip.end_date), parseISO(trip.start_date)) + 1;
   const destinationLinks = getDestinationLinks(trip.destination_city, trip.destination_state, trip.destination_country);
@@ -113,18 +120,11 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
     (b: Booking) => b.booking_type === 'flight' && !b.frequent_flyer_number
   );
 
-  // Parking expiration
+  // Parking status for card display
   const now = new Date();
   const upcomingParkingExpiration = parkingList
     .filter((p: Parking) => p.end_datetime && isAfter(parseISO(p.end_datetime), now))
     .sort((a: Parking, b: Parking) => parseISO(a.end_datetime!).getTime() - parseISO(b.end_datetime!).getTime())[0];
-
-  const parkingExpiringsSoon = parkingList.filter((p: Parking) => {
-    if (!p.end_datetime) return false;
-    const expirationTime = parseISO(p.end_datetime);
-    const alertTime = addMinutes(now, 15);
-    return isAfter(expirationTime, now) && isBefore(expirationTime, alertTime);
-  });
 
   const getEventIcon = (type: string) => {
     switch (type) {
@@ -148,51 +148,23 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
   };
 
   const downloadCalendar = () => {
-    const events: string[] = [];
-    
-    events.push(createICSEvent(
-      `Trip: ${trip.name}`,
-      destinationDisplay,
-      parseISO(trip.start_date),
-      parseISO(trip.end_date),
-      true
-    ));
-
-    bookings.forEach((b: Booking) => {
-      events.push(createICSEvent(
-        b.booking_type === 'flight' ? `Flight: ${b.airline || b.vendor_name}` :
-        b.booking_type === 'stay' ? `Stay: ${b.property_name || b.vendor_name}` :
-        `${b.booking_type}: ${b.vendor_name}`,
-        b.address || '',
-        parseISO(b.start_datetime),
-        b.end_datetime ? parseISO(b.end_datetime) : undefined
-      ));
-    });
-
-    parkingList.forEach((p: Parking) => {
-      if (p.end_datetime) {
-        events.push(createICSEvent(
-          `Parking Expires: ${p.label}`,
-          p.address || '',
-          addMinutes(parseISO(p.end_datetime), -15),
-          parseISO(p.end_datetime)
-        ));
-      }
-    });
-
-    const icsContent = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//Real Travel 2 Real Places//EN
-${events.join('\n')}
-END:VCALENDAR`;
-
-    const blob = new Blob([icsContent], { type: 'text/calendar' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${trip.name.replace(/[^a-z0-9]/gi, '_')}.ics`;
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      const icsContent = generateTripICS({
+        trip,
+        bookings,
+        parkingList,
+        includeReminders: true,
+      });
+      
+      const filename = `${trip.name.replace(/[^a-z0-9]/gi, '_')}.ics`;
+      downloadICSFile(icsContent, filename);
+      
+      toast.success('Calendar downloaded with all reminders!', {
+        description: 'Import to your calendar app to receive notifications',
+      });
+    } catch (error) {
+      toast.error('Failed to generate calendar');
+    }
   };
 
   return (
@@ -212,8 +184,13 @@ END:VCALENDAR`;
         </CardContent>
       </Card>
 
-      {/* Alerts */}
-      {(flightsWithoutTSA.length > 0 || flightsWithoutFF.length > 0 || parkingExpiringsSoon.length > 0) && (
+      {/* Travel Alerts - Weather changes, departure reminders, parking expiry */}
+      {hasAlerts && (
+        <TravelAlertsCard alerts={alerts} />
+      )}
+
+      {/* Pre-Flight Checks (TSA, FF numbers) */}
+      {(flightsWithoutTSA.length > 0 || flightsWithoutFF.length > 0) && (
         <Card className="border-warning/50 bg-warning/5">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2 text-warning">
@@ -232,18 +209,6 @@ END:VCALENDAR`;
               <div key={`ff-${f.id}`} className="text-sm flex items-center gap-2">
                 <Badge variant="outline" className="text-muted-foreground text-xs">No FF#</Badge>
                 <span>{f.airline || f.vendor_name}</span>
-              </div>
-            ))}
-            {parkingExpiringsSoon.map((p: Parking) => (
-              <div key={`park-${p.id}`} className="text-sm flex items-center gap-2">
-                <Badge variant="destructive" className="text-xs">Expiring Soon!</Badge>
-                <span>{p.label}</span>
-                {p.address && (
-                  <Button size="sm" variant="link" className="h-auto p-0 text-xs" onClick={() => openInMaps(p.address!)}>
-                    <MapPin className="w-3 h-3 mr-1" />
-                    Maps
-                  </Button>
-                )}
               </div>
             ))}
           </CardContent>
@@ -403,10 +368,16 @@ END:VCALENDAR`;
       </Card>
 
       {/* Calendar Export */}
-      <Button onClick={downloadCalendar} variant="outline" className="w-full sm:w-auto">
-        <Download className="w-4 h-4 mr-2" />
-        Download Trip Calendar (.ics)
-      </Button>
+      <div className="flex flex-col sm:flex-row gap-2 items-start">
+        <Button onClick={downloadCalendar} variant="outline" className="w-full sm:w-auto">
+          <Download className="w-4 h-4 mr-2" />
+          Download Trip Calendar (.ics)
+        </Button>
+        <p className="text-xs text-muted-foreground sm:ml-2 sm:self-center">
+          <Bell className="w-3 h-3 inline mr-1" />
+          Includes 30-min reminders for all events
+        </p>
+      </div>
 
       {/* Timeline */}
       <Card>
@@ -480,28 +451,3 @@ END:VCALENDAR`;
   );
 }
 
-function createICSEvent(
-  title: string,
-  location: string,
-  start: Date,
-  end?: Date,
-  allDay: boolean = false
-): string {
-  const formatDate = (date: Date, allDay: boolean) => {
-    if (allDay) {
-      return format(date, 'yyyyMMdd');
-    }
-    return format(date, "yyyyMMdd'T'HHmmss");
-  };
-
-  const uid = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}@realtravel2realplaces`;
-  
-  return `BEGIN:VEVENT
-UID:${uid}
-DTSTAMP:${formatDate(new Date(), false)}
-DTSTART${allDay ? ';VALUE=DATE' : ''}:${formatDate(start, allDay)}
-${end ? `DTEND${allDay ? ';VALUE=DATE' : ''}:${formatDate(end, allDay)}` : ''}
-SUMMARY:${title}
-${location ? `LOCATION:${location}` : ''}
-END:VEVENT`;
-}
