@@ -102,31 +102,40 @@ export type Database = {
       }
       companions: {
         Row: {
+          airline: string | null
           created_at: string
           email: string | null
+          frequent_flyer_number: string | null
           id: string
           name: string
           notes: string | null
           phone: string | null
           trip_id: string
+          tsa_precheck_number: string | null
         }
         Insert: {
+          airline?: string | null
           created_at?: string
           email?: string | null
+          frequent_flyer_number?: string | null
           id?: string
           name: string
           notes?: string | null
           phone?: string | null
           trip_id: string
+          tsa_precheck_number?: string | null
         }
         Update: {
+          airline?: string | null
           created_at?: string
           email?: string | null
+          frequent_flyer_number?: string | null
           id?: string
           name?: string
           notes?: string | null
           phone?: string | null
           trip_id?: string
+          tsa_precheck_number?: string | null
         }
         Relationships: [
           {

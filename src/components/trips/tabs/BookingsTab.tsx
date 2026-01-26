@@ -300,12 +300,7 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
                   </div>
                 )}
 
-                {booking.booking_type === 'flight' && !booking.tsa_precheck_number && (
-                  <Badge variant="outline" className="text-warning border-warning text-xs">
-                    <AlertTriangle className="w-3 h-3 mr-1" />
-                    Missing TSA PreCheck
-                  </Badge>
-                )}
+                {/* TSA info moved to companion level - no longer displayed here */}
 
                 <div className="flex gap-2 pt-2">
                   {booking.address && (

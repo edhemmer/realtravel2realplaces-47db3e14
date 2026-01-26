@@ -104,6 +104,9 @@ export interface Companion {
   email?: string;
   phone?: string;
   notes?: string;
+  tsa_precheck_number?: string;
+  frequent_flyer_number?: string;
+  airline?: string;
   created_at: string;
 }
 
