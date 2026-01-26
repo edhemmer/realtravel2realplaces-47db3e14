@@ -1,15 +1,17 @@
 import { useBookings } from '@/hooks/useBookings';
 import { useParking } from '@/hooks/useParking';
 import { useExpenses } from '@/hooks/useExpenses';
+import { useTripWeather } from '@/hooks/useWeather';
 import { Trip, Booking, Parking } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
   Plane, Building2, Car, Calendar, MapPin, DollarSign, 
-  AlertTriangle, Download, ExternalLink, Clock, PartyPopper
+  AlertTriangle, Download, ExternalLink, Clock, PartyPopper,
+  Cloud, Sun, CloudRain, Snowflake, Thermometer
 } from 'lucide-react';
-import { format, parseISO, isAfter, isBefore, addMinutes } from 'date-fns';
+import { format, parseISO, isAfter, isBefore, addMinutes, differenceInDays } from 'date-fns';
 
 interface SummaryTabProps {
   tripId: string;
@@ -31,6 +33,14 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
   const { data: bookings = [] } = useBookings(tripId);
   const { data: parkingList = [] } = useParking(tripId);
   const { data: expenses = [] } = useExpenses(tripId);
+  const { tripForecast, weatherAnalysis, isLoading: weatherLoading } = useTripWeather(
+    trip.destination_city,
+    trip.destination_country,
+    trip.start_date,
+    trip.end_date
+  );
+
+  const tripDays = differenceInDays(parseISO(trip.end_date), parseISO(trip.start_date)) + 1;
 
   // Calculate costs
   const bookingsCost = bookings.reduce((sum, b) => sum + Number(b.total_cost || 0), 0);
@@ -100,6 +110,13 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
     }
   };
 
+  const getWeatherIcon = (condition: string) => {
+    if (condition.includes('Rain') || condition.includes('Shower')) return <CloudRain className="w-4 h-4" />;
+    if (condition.includes('Snow')) return <Snowflake className="w-4 h-4" />;
+    if (condition.includes('Clear') || condition.includes('Sunny')) return <Sun className="w-4 h-4" />;
+    return <Cloud className="w-4 h-4" />;
+  };
+
   const openInMaps = (address: string) => {
     window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank');
   };
@@ -161,7 +178,7 @@ END:VCALENDAR`;
       {(flightsWithoutTSA.length > 0 || flightsWithoutFF.length > 0 || parkingExpiringsSoon.length > 0) && (
         <Card className="border-warning/50 bg-warning/5">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2 text-warning">
+            <CardTitle className="text-base flex items-center gap-2 text-warning">
               <AlertTriangle className="w-5 h-5" />
               Pre-Flight Checks
             </CardTitle>
@@ -169,24 +186,24 @@ END:VCALENDAR`;
           <CardContent className="space-y-2">
             {flightsWithoutTSA.map((f: Booking) => (
               <div key={`tsa-${f.id}`} className="text-sm flex items-center gap-2">
-                <Badge variant="outline" className="text-warning border-warning">Missing TSA</Badge>
+                <Badge variant="outline" className="text-warning border-warning text-xs">Missing TSA</Badge>
                 <span>{f.airline || f.vendor_name} - {f.passenger_name || 'Passenger'}</span>
               </div>
             ))}
             {flightsWithoutFF.map((f: Booking) => (
               <div key={`ff-${f.id}`} className="text-sm flex items-center gap-2">
-                <Badge variant="outline" className="text-muted-foreground">No FF#</Badge>
+                <Badge variant="outline" className="text-muted-foreground text-xs">No FF#</Badge>
                 <span>{f.airline || f.vendor_name}</span>
               </div>
             ))}
             {parkingExpiringsSoon.map((p: Parking) => (
               <div key={`park-${p.id}`} className="text-sm flex items-center gap-2">
-                <Badge variant="destructive">Expiring Soon!</Badge>
+                <Badge variant="destructive" className="text-xs">Expiring Soon!</Badge>
                 <span>{p.label}</span>
                 {p.address && (
-                  <Button size="sm" variant="link" className="h-auto p-0" onClick={() => openInMaps(p.address!)}>
+                  <Button size="sm" variant="link" className="h-auto p-0 text-xs" onClick={() => openInMaps(p.address!)}>
                     <MapPin className="w-3 h-3 mr-1" />
-                    Open in Maps
+                    Maps
                   </Button>
                 )}
               </div>
@@ -195,58 +212,96 @@ END:VCALENDAR`;
         </Card>
       )}
 
-      {/* Cost Summary & Parking */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
+      {/* Trip Overview Cards */}
+      <div className="grid gap-4 md:grid-cols-3">
+        {/* Weather */}
+        <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-primary" />
-              Cost Snapshot
+            <CardTitle className="text-base flex items-center gap-2">
+              <Thermometer className="w-4 h-4 text-primary" />
+              Weather
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Trip Total Cost</span>
-                <span className="text-2xl font-bold">${totalCost.toFixed(2)}</span>
+            {weatherLoading ? (
+              <p className="text-sm text-muted-foreground">Loading...</p>
+            ) : tripForecast.length > 0 ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  {weatherAnalysis.avgHigh && (
+                    <span className="text-lg font-bold">{weatherAnalysis.avgHigh}°F</span>
+                  )}
+                  <div className="flex gap-1">
+                    {weatherAnalysis.hasHot && <Badge variant="outline" className="text-xs">☀️ Hot</Badge>}
+                    {weatherAnalysis.hasCold && <Badge variant="outline" className="text-xs">❄️ Cold</Badge>}
+                    {weatherAnalysis.hasRain && <Badge variant="outline" className="text-xs">🌧️ Rain</Badge>}
+                  </div>
+                </div>
+                <div className="flex gap-1 overflow-x-auto">
+                  {tripForecast.slice(0, 5).map((day) => (
+                    <div key={day.date} className="flex flex-col items-center p-1.5 min-w-[2.5rem] rounded bg-background/50 text-center">
+                      <span className="text-[9px] text-muted-foreground">
+                        {new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' })}
+                      </span>
+                      {getWeatherIcon(day.condition)}
+                      <span className="text-[10px] font-medium">{day.tempHigh}°</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="flex justify-between items-center pt-2 border-t">
-                <span className="text-muted-foreground">My Out-of-Pocket</span>
-                <span className="text-xl font-semibold text-primary">${myOutOfPocket.toFixed(2)}</span>
+            ) : (
+              <p className="text-sm text-muted-foreground">No forecast available</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Cost Summary */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-primary" />
+              Cost Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Total</span>
+                <span className="text-xl font-bold">${totalCost.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center pt-1 border-t">
+                <span className="text-sm text-muted-foreground">My Share</span>
+                <span className="text-lg font-semibold text-primary">${myOutOfPocket.toFixed(2)}</span>
               </div>
             </div>
           </CardContent>
         </Card>
 
+        {/* Parking Status */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Car className="w-5 h-5 text-primary" />
-              Parking Status
+            <CardTitle className="text-base flex items-center gap-2">
+              <Car className="w-4 h-4 text-primary" />
+              Parking
             </CardTitle>
           </CardHeader>
           <CardContent>
             {upcomingParkingExpiration ? (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Next Expiration</span>
-                </div>
-                <div>
-                  <p className="font-semibold">{upcomingParkingExpiration.label}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {format(parseISO(upcomingParkingExpiration.end_datetime!), 'PPp')}
-                  </p>
-                </div>
+              <div className="space-y-1">
+                <p className="font-medium text-sm">{upcomingParkingExpiration.label}</p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  Expires {format(parseISO(upcomingParkingExpiration.end_datetime!), 'MMM d, h:mm a')}
+                </p>
                 {upcomingParkingExpiration.address && (
-                  <Button size="sm" variant="outline" onClick={() => openInMaps(upcomingParkingExpiration.address!)}>
+                  <Button size="sm" variant="link" className="h-auto p-0 text-xs" onClick={() => openInMaps(upcomingParkingExpiration.address!)}>
                     <MapPin className="w-3 h-3 mr-1" />
                     Open in Maps
                   </Button>
                 )}
               </div>
             ) : (
-              <p className="text-muted-foreground text-sm">No active parking</p>
+              <p className="text-sm text-muted-foreground">No active parking</p>
             )}
           </CardContent>
         </Card>
@@ -261,11 +316,11 @@ END:VCALENDAR`;
       {/* Timeline */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-primary" />
+          <CardTitle className="text-base flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-primary" />
             Trip Timeline
           </CardTitle>
-          <CardDescription>All events in chronological order</CardDescription>
+          <CardDescription>{tripDays} day{tripDays !== 1 ? 's' : ''} • {timeline.length} event{timeline.length !== 1 ? 's' : ''}</CardDescription>
         </CardHeader>
         <CardContent>
           {timeline.length > 0 ? (
@@ -283,42 +338,44 @@ END:VCALENDAR`;
                   <div className="flex-1 pb-4">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="font-medium">{event.title}</p>
-                        <p className="text-sm text-muted-foreground">{event.subtitle}</p>
+                        <p className="font-medium text-sm">{event.title}</p>
+                        <p className="text-xs text-muted-foreground">{event.subtitle}</p>
                       </div>
-                      <div className="text-right text-sm shrink-0">
+                      <div className="text-right text-xs shrink-0">
                         <p className="font-medium">{format(event.datetime, 'MMM d')}</p>
                         <p className="text-muted-foreground">{format(event.datetime, 'h:mm a')}</p>
                       </div>
                     </div>
-                    {event.address && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="mt-1 h-auto p-1 text-xs"
-                        onClick={() => openInMaps(event.address!)}
-                      >
-                        <MapPin className="w-3 h-3 mr-1" />
-                        {event.address.slice(0, 40)}...
-                      </Button>
-                    )}
-                    {event.linkUrl && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="mt-1 h-auto p-1 text-xs"
-                        onClick={() => window.open(event.linkUrl, '_blank')}
-                      >
-                        <ExternalLink className="w-3 h-3 mr-1" />
-                        View Booking
-                      </Button>
-                    )}
+                    <div className="flex gap-2 mt-1">
+                      {event.address && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => openInMaps(event.address!)}
+                        >
+                          <MapPin className="w-3 h-3 mr-1" />
+                          Maps
+                        </Button>
+                      )}
+                      {event.linkUrl && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => window.open(event.linkUrl, '_blank')}
+                        >
+                          <ExternalLink className="w-3 h-3 mr-1" />
+                          View
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-muted-foreground text-center py-8">
+            <p className="text-muted-foreground text-center py-8 text-sm">
               No events yet. Add bookings and parking to build your timeline.
             </p>
           )}

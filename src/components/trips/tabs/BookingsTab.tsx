@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useBookings, useCreateBooking, useDeleteBooking } from '@/hooks/useBookings';
 import { Booking, BookingType, StayType } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { 
   Plus, Plane, Building2, Car, PartyPopper, Trash2, 
-  ExternalLink, MapPin, AlertTriangle 
+  ExternalLink, MapPin, AlertTriangle, Link2, Upload, FileText
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import {
@@ -24,6 +24,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { getVendorUrl } from '@/lib/vendorUrls';
+import { toast } from 'sonner';
 
 interface BookingsTabProps {
   tripId: string;
@@ -36,6 +38,7 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [bookingToDelete, setBookingToDelete] = useState<string | null>(null);
   const [bookingType, setBookingType] = useState<BookingType>('flight');
+  const [urlAutoFilled, setUrlAutoFilled] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -59,6 +62,23 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
     return_location: '',
   });
 
+  // Auto-populate booking link when vendor/airline name changes
+  useEffect(() => {
+    const nameToCheck = bookingType === 'flight' 
+      ? (formData.airline || formData.vendor_name)
+      : bookingType === 'car_rental'
+      ? (formData.rental_company || formData.vendor_name)
+      : formData.vendor_name;
+    
+    if (nameToCheck && !formData.link_url) {
+      const url = getVendorUrl(nameToCheck, bookingType);
+      if (url) {
+        setFormData(prev => ({ ...prev, link_url: url }));
+        setUrlAutoFilled(true);
+      }
+    }
+  }, [formData.vendor_name, formData.airline, formData.rental_company, bookingType, formData.link_url]);
+
   const resetForm = () => {
     setFormData({
       vendor_name: '',
@@ -81,6 +101,7 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
       return_location: '',
     });
     setBookingType('flight');
+    setUrlAutoFilled(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -120,6 +141,16 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
     }
   };
 
+  const handleVendorChange = (value: string, field: 'vendor_name' | 'airline' | 'rental_company') => {
+    // Clear auto-filled URL when user changes vendor
+    if (urlAutoFilled) {
+      setFormData(prev => ({ ...prev, [field]: value, link_url: '' }));
+      setUrlAutoFilled(false);
+    } else {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    }
+  };
+
   const getBookingIcon = (type: string) => {
     switch (type) {
       case 'flight': return <Plane className="w-5 h-5" />;
@@ -129,8 +160,23 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
     }
   };
 
+  const getBookingColor = (type: string) => {
+    switch (type) {
+      case 'flight': return 'bg-sky-500/10 text-sky-600';
+      case 'stay': return 'bg-purple-500/10 text-purple-600';
+      case 'car_rental': return 'bg-amber-500/10 text-amber-600';
+      default: return 'bg-rose-500/10 text-rose-600';
+    }
+  };
+
   const openInMaps = (address: string) => {
     window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank');
+  };
+
+  const handleFileDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    // Placeholder for future email/PDF parsing functionality
+    toast.info('Email/PDF parsing coming soon! For now, please enter details manually.');
   };
 
   if (isLoading) {
@@ -138,38 +184,48 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Bookings</h3>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h3 className="text-lg font-semibold">Bookings</h3>
+          <p className="text-sm text-muted-foreground">
+            {bookings.length === 0 
+              ? 'Add flights, hotels, car rentals & activities' 
+              : `${bookings.length} booking${bookings.length !== 1 ? 's' : ''}`}
+          </p>
+        </div>
         <Button onClick={() => setDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90">
           <Plus className="w-4 h-4 mr-2" />
           Add Booking
         </Button>
       </div>
 
+      {/* Bookings Grid */}
       {bookings.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2">
           {bookings.map((booking: Booking) => (
-            <Card key={booking.id} className="overflow-hidden">
+            <Card key={booking.id} className="group hover:shadow-md transition-shadow overflow-hidden">
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getBookingColor(booking.booking_type)}`}>
                       {getBookingIcon(booking.booking_type)}
                     </div>
-                    <div>
-                      <CardTitle className="text-base">
+                    <div className="min-w-0">
+                      <CardTitle className="text-base truncate">
                         {booking.booking_type === 'flight' ? booking.airline || booking.vendor_name :
                          booking.booking_type === 'stay' ? booking.property_name || booking.vendor_name :
+                         booking.booking_type === 'car_rental' ? booking.rental_company || booking.vendor_name :
                          booking.vendor_name}
                       </CardTitle>
-                      <CardDescription className="capitalize">{booking.booking_type.replace('_', ' ')}</CardDescription>
+                      <CardDescription className="capitalize text-xs">{booking.booking_type.replace('_', ' ')}</CardDescription>
                     </div>
                   </div>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-destructive hover:text-destructive"
+                    className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive transition-opacity"
                     onClick={() => setBookingToDelete(booking.id)}
                   >
                     <Trash2 className="w-4 h-4" />
@@ -177,39 +233,54 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
                 </div>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Date/Time</span>
-                  <span>{format(parseISO(booking.start_datetime), 'MMM d, yyyy h:mm a')}</span>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-muted-foreground block">Date/Time</span>
+                    <span className="font-medium">{format(parseISO(booking.start_datetime), 'MMM d, h:mm a')}</span>
+                  </div>
+                  {booking.confirmation_number && (
+                    <div>
+                      <span className="text-muted-foreground block">Confirmation</span>
+                      <span className="font-mono font-medium">{booking.confirmation_number}</span>
+                    </div>
+                  )}
                 </div>
-                {booking.confirmation_number && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Confirmation</span>
-                    <span className="font-mono">{booking.confirmation_number}</span>
+                
+                {(booking.total_cost > 0 || booking.my_share > 0) && (
+                  <div className="flex gap-4 pt-2 border-t text-xs">
+                    {booking.total_cost > 0 && (
+                      <div>
+                        <span className="text-muted-foreground">Total: </span>
+                        <span className="font-medium">${booking.total_cost}</span>
+                      </div>
+                    )}
+                    {booking.my_share > 0 && (
+                      <div>
+                        <span className="text-muted-foreground">My Share: </span>
+                        <span className="font-medium text-primary">${booking.my_share}</span>
+                      </div>
+                    )}
                   </div>
                 )}
-                {booking.total_cost > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Cost</span>
-                    <span>${booking.total_cost}</span>
-                  </div>
-                )}
+
                 {booking.booking_type === 'flight' && !booking.tsa_precheck_number && (
-                  <Badge variant="outline" className="text-warning border-warning">
+                  <Badge variant="outline" className="text-warning border-warning text-xs">
                     <AlertTriangle className="w-3 h-3 mr-1" />
                     Missing TSA PreCheck
                   </Badge>
                 )}
+
                 <div className="flex gap-2 pt-2">
                   {booking.address && (
-                    <Button size="sm" variant="outline" onClick={() => openInMaps(booking.address!)}>
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openInMaps(booking.address!)}>
                       <MapPin className="w-3 h-3 mr-1" />
                       Maps
                     </Button>
                   )}
                   {booking.link_url && (
-                    <Button size="sm" variant="outline" onClick={() => window.open(booking.link_url, '_blank')}>
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => window.open(booking.link_url, '_blank')}>
                       <ExternalLink className="w-3 h-3 mr-1" />
-                      View Booking
+                      View
                     </Button>
                   )}
                 </div>
@@ -218,13 +289,29 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
           ))}
         </div>
       ) : (
-        <Card className="border-dashed">
+        <Card 
+          className="border-dashed"
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={handleFileDrop}
+        >
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <Plane className="w-12 h-12 text-muted-foreground/50 mb-4" />
-            <p className="text-muted-foreground">No bookings yet</p>
-            <Button onClick={() => setDialogOpen(true)} variant="link" className="mt-2">
-              Add your first booking
-            </Button>
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Plane className="w-8 h-8 text-primary" />
+            </div>
+            <h4 className="text-lg font-medium mb-1">No bookings yet</h4>
+            <p className="text-muted-foreground text-sm text-center max-w-sm mb-4">
+              Add your flights, hotels, car rentals, and activities
+            </p>
+            <div className="flex gap-2">
+              <Button onClick={() => setDialogOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Booking
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-4">
+              <FileText className="w-3 h-3 inline mr-1" />
+              Drag & drop email/PDF parsing coming soon
+            </p>
           </CardContent>
         </Card>
       )}
@@ -240,15 +327,15 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label>Booking Type</Label>
-              <Select value={bookingType} onValueChange={(v: BookingType) => setBookingType(v)}>
+              <Select value={bookingType} onValueChange={(v: BookingType) => { setBookingType(v); setFormData(prev => ({ ...prev, link_url: '' })); setUrlAutoFilled(false); }}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="flight">Flight</SelectItem>
-                  <SelectItem value="stay">Stay</SelectItem>
-                  <SelectItem value="car_rental">Car Rental</SelectItem>
-                  <SelectItem value="activity">Activity</SelectItem>
+                  <SelectItem value="flight">✈️ Flight</SelectItem>
+                  <SelectItem value="stay">🏨 Stay</SelectItem>
+                  <SelectItem value="car_rental">🚗 Car Rental</SelectItem>
+                  <SelectItem value="activity">🎉 Activity</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -258,7 +345,7 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
               <Label>Vendor Name *</Label>
               <Input
                 value={formData.vendor_name}
-                onChange={(e) => setFormData({ ...formData, vendor_name: e.target.value })}
+                onChange={(e) => handleVendorChange(e.target.value, 'vendor_name')}
                 placeholder={bookingType === 'flight' ? 'Airline name' : 'Vendor name'}
                 required
               />
@@ -292,9 +379,14 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
                     <Label>Airline</Label>
                     <Input
                       value={formData.airline}
-                      onChange={(e) => setFormData({ ...formData, airline: e.target.value })}
-                      placeholder="United Airlines"
+                      onChange={(e) => handleVendorChange(e.target.value, 'airline')}
+                      placeholder="United, Delta, etc."
                     />
+                    {urlAutoFilled && formData.airline && (
+                      <p className="text-xs text-green-600 flex items-center gap-1">
+                        <Link2 className="w-3 h-3" /> Website auto-filled
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label>Passenger Name</Label>
@@ -359,9 +451,14 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
                   <Label>Rental Company</Label>
                   <Input
                     value={formData.rental_company}
-                    onChange={(e) => setFormData({ ...formData, rental_company: e.target.value })}
-                    placeholder="Enterprise"
+                    onChange={(e) => handleVendorChange(e.target.value, 'rental_company')}
+                    placeholder="Enterprise, Hertz, etc."
                   />
+                  {urlAutoFilled && formData.rental_company && (
+                    <p className="text-xs text-green-600 flex items-center gap-1">
+                      <Link2 className="w-3 h-3" /> Website auto-filled
+                    </p>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -402,12 +499,18 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
               </div>
               <div className="space-y-2">
                 <Label>Booking Link</Label>
-                <Input
-                  type="url"
-                  value={formData.link_url}
-                  onChange={(e) => setFormData({ ...formData, link_url: e.target.value })}
-                  placeholder="https://..."
-                />
+                <div className="relative">
+                  <Input
+                    type="url"
+                    value={formData.link_url}
+                    onChange={(e) => { setFormData({ ...formData, link_url: e.target.value }); setUrlAutoFilled(false); }}
+                    placeholder="https://..."
+                    className={urlAutoFilled ? 'pr-8 border-green-300' : ''}
+                  />
+                  {urlAutoFilled && (
+                    <Link2 className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-green-600" />
+                  )}
+                </div>
               </div>
             </div>
 
@@ -441,6 +544,21 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={2}
               />
+            </div>
+
+            {/* Upload placeholder */}
+            <div 
+              className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-muted/50 transition-colors"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={handleFileDrop}
+            >
+              <Upload className="w-6 h-6 mx-auto text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">
+                Drag & drop confirmation email/PDF
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Coming soon - auto-parse booking details
+              </p>
             </div>
 
             <div className="flex gap-3 pt-4">
