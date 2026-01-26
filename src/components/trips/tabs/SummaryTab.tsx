@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useBookings } from '@/hooks/useBookings';
 import { useParking } from '@/hooks/useParking';
 import { useExpenses } from '@/hooks/useExpenses';
@@ -9,8 +10,11 @@ import { Trip, Booking, Parking } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TravelAlertsCard } from '@/components/trips/TravelAlertsCard';
 import { FlightSummaryCard } from '@/components/trips/FlightSummaryCard';
+import { DriveSummaryCard } from '@/components/trips/DriveSummaryCard';
+import { GasExpenseDialog } from '@/components/trips/GasExpenseDialog';
 import { generateTripICS, downloadICSFile } from '@/lib/icsGenerator';
 import { 
   Plane, Building2, Car, Calendar, MapPin, DollarSign, 
@@ -59,6 +63,7 @@ const getDestinationLinks = (city: string, state: string | undefined, country: s
 };
 
 export function SummaryTab({ tripId, trip }: SummaryTabProps) {
+  const [gasDialogOpen, setGasDialogOpen] = useState(false);
   const { data: bookings = [] } = useBookings(tripId);
   const { data: parkingList = [] } = useParking(tripId);
   const { data: expenses = [] } = useExpenses(tripId);
@@ -73,6 +78,12 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
   
   // Travel alerts for weather changes, departure reminders, parking expiry
   const { alerts, hasAlerts, criticalCount } = useTravelAlerts(trip, bookings, parkingList);
+
+  // Determine transportation mode - auto-detect if unspecified
+  const hasFlights = bookings.some(b => b.booking_type === 'flight');
+  const transportationMode = (trip as any).transportation_mode === 'unspecified' 
+    ? (hasFlights ? 'flight' : 'unspecified')
+    : (trip as any).transportation_mode;
 
   const tripDays = differenceInDays(parseISO(trip.end_date), parseISO(trip.start_date)) + 1;
   const destinationLinks = getDestinationLinks(trip.destination_city, trip.destination_state, trip.destination_country);
@@ -220,8 +231,15 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
         </Card>
       )}
 
-      {/* Flight Summary */}
-      <FlightSummaryCard bookings={bookings} companions={companions} bookingCompanions={bookingCompanions} />
+      {/* Flight or Drive Summary based on transportation mode */}
+      {transportationMode === 'drive' ? (
+        <DriveSummaryCard trip={trip as any} onAddGasExpense={() => setGasDialogOpen(true)} />
+      ) : (
+        <FlightSummaryCard bookings={bookings} companions={companions} bookingCompanions={bookingCompanions} />
+      )}
+
+      {/* Gas Expense Dialog for drive trips */}
+      <GasExpenseDialog tripId={tripId} open={gasDialogOpen} onOpenChange={setGasDialogOpen} />
 
       {/* Trip Overview Cards */}
       <div className="grid gap-4 md:grid-cols-3">

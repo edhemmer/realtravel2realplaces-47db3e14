@@ -451,42 +451,54 @@ export type Database = {
       trips: {
         Row: {
           created_at: string
+          destination_address: string | null
           destination_city: string
           destination_country: string
           destination_state: string | null
           end_date: string
+          estimated_miles: number | null
           id: string
           name: string
           notes: string | null
+          origin_address: string | null
           start_date: string
+          transportation_mode: Database["public"]["Enums"]["transportation_mode"]
           trip_type: Database["public"]["Enums"]["trip_type"]
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          destination_address?: string | null
           destination_city: string
           destination_country: string
           destination_state?: string | null
           end_date: string
+          estimated_miles?: number | null
           id?: string
           name: string
           notes?: string | null
+          origin_address?: string | null
           start_date: string
+          transportation_mode?: Database["public"]["Enums"]["transportation_mode"]
           trip_type?: Database["public"]["Enums"]["trip_type"]
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          destination_address?: string | null
           destination_city?: string
           destination_country?: string
           destination_state?: string | null
           end_date?: string
+          estimated_miles?: number | null
           id?: string
           name?: string
           notes?: string | null
+          origin_address?: string | null
           start_date?: string
+          transportation_mode?: Database["public"]["Enums"]["transportation_mode"]
           trip_type?: Database["public"]["Enums"]["trip_type"]
           updated_at?: string
           user_id?: string
@@ -545,6 +557,7 @@ export type Database = {
       parking_billing: "hourly" | "daily" | "per_trip" | "other"
       parking_type: "airport" | "beach" | "city_garage" | "hotel" | "other"
       stay_type: "hotel" | "airbnb" | "vrbo" | "other"
+      transportation_mode: "flight" | "drive" | "unspecified"
       trip_type: "business" | "personal" | "mixed"
     }
     CompositeTypes: {
@@ -713,6 +726,7 @@ export const Constants = {
       parking_billing: ["hourly", "daily", "per_trip", "other"],
       parking_type: ["airport", "beach", "city_garage", "hotel", "other"],
       stay_type: ["hotel", "airbnb", "vrbo", "other"],
+      transportation_mode: ["flight", "drive", "unspecified"],
       trip_type: ["business", "personal", "mixed"],
     },
   },

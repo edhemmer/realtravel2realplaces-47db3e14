@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Upload, FileText, Loader2, X, Check } from 'lucide-react';
+import { CalendarIcon, Upload, FileText, Loader2, X, Check, Plane, Car } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -26,6 +26,9 @@ const tripSchema = z.object({
   destination_state: z.string().max(100).optional(),
   destination_country: z.string().max(100).optional(),
   trip_type: z.enum(['business', 'personal', 'mixed']),
+  transportation_mode: z.enum(['flight', 'drive', 'unspecified']),
+  origin_address: z.string().max(500).optional(),
+  destination_address: z.string().max(500).optional(),
 });
 
 type TripFormData = z.infer<typeof tripSchema>;
@@ -69,10 +72,12 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
     resolver: zodResolver(tripSchema),
     defaultValues: {
       trip_type: 'personal',
+      transportation_mode: 'unspecified',
     },
   });
 
   const tripType = watch('trip_type');
+  const transportationMode = watch('transportation_mode');
 
   const resetAll = () => {
     reset();
@@ -138,6 +143,10 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
               setEndDate(parseISO(parsed.trip.end_date));
             } catch {}
           }
+          // Auto-detect transportation mode from parsed bookings
+          if (parsed.bookings?.some((b: any) => b.booking_type === 'flight')) {
+            setValue('transportation_mode', 'flight');
+          }
         }
 
         // Store parsed bookings
@@ -168,9 +177,12 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
         destination_state: data.destination_state || undefined,
         destination_country: data.destination_country,
         trip_type: data.trip_type,
+        transportation_mode: data.transportation_mode,
+        origin_address: data.origin_address || undefined,
+        destination_address: data.destination_address || undefined,
         start_date: format(startDate, 'yyyy-MM-dd'),
         end_date: format(endDate, 'yyyy-MM-dd'),
-      });
+      } as any);
 
       // Create bookings if any were parsed
       if (parsedBookings.length > 0 && trip?.id) {
@@ -355,19 +367,75 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Trip Type</Label>
-            <Select value={tripType} onValueChange={(value: 'business' | 'personal' | 'mixed') => setValue('trip_type', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select trip type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="personal">Personal</SelectItem>
-                <SelectItem value="business">Business</SelectItem>
-                <SelectItem value="mixed">Mixed</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Trip Type</Label>
+              <Select value={tripType} onValueChange={(value: 'business' | 'personal' | 'mixed') => setValue('trip_type', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select trip type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="personal">Personal</SelectItem>
+                  <SelectItem value="business">Business</SelectItem>
+                  <SelectItem value="mixed">Mixed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Getting There</Label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={transportationMode === 'flight' ? 'default' : 'outline'}
+                  size="sm"
+                  className={cn(
+                    "flex-1",
+                    transportationMode === 'flight' && "bg-primary"
+                  )}
+                  onClick={() => setValue('transportation_mode', 'flight')}
+                >
+                  <Plane className="w-4 h-4 mr-1" />
+                  Flying
+                </Button>
+                <Button
+                  type="button"
+                  variant={transportationMode === 'drive' ? 'default' : 'outline'}
+                  size="sm"
+                  className={cn(
+                    "flex-1",
+                    transportationMode === 'drive' && "bg-primary"
+                  )}
+                  onClick={() => setValue('transportation_mode', 'drive')}
+                >
+                  <Car className="w-4 h-4 mr-1" />
+                  Driving
+                </Button>
+              </div>
+            </div>
           </div>
+
+          {/* Drive-specific fields */}
+          {transportationMode === 'drive' && (
+            <div className="space-y-3 p-3 rounded-lg bg-muted/50 border border-dashed">
+              <div className="space-y-2">
+                <Label htmlFor="origin_address">Starting Address (optional)</Label>
+                <Input
+                  id="origin_address"
+                  placeholder="123 Main St, Your City, State"
+                  {...register('origin_address')}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="destination_address">Destination Address (optional)</Label>
+                <Input
+                  id="destination_address"
+                  placeholder="456 Beach Rd, Orlando, FL"
+                  {...register('destination_address')}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
