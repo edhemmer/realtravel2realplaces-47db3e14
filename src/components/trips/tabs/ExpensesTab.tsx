@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useExpenses, useCreateExpense, useDeleteExpense } from '@/hooks/useExpenses';
 import { Expense, ExpenseCategory, ExpenseSubCategory } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Plus, Trash2, Receipt, Utensils, Car, PartyPopper, ShoppingBag, 
-  ParkingCircle, MoreHorizontal, Upload, Sparkles 
+  ParkingCircle, MoreHorizontal, Upload, Sparkles, Camera, AlertCircle,
+  CheckCircle, RefreshCw, Image as ImageIcon
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import {
@@ -24,6 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -80,6 +82,12 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [parsing, setParsing] = useState(false);
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [parseSuccess, setParseSuccess] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
@@ -89,6 +97,7 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
     amount: '',
     my_share: '',
     notes: '',
+    receipt_url: '',
   });
 
   const resetForm = () => {
@@ -100,7 +109,11 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
       amount: '',
       my_share: '',
       notes: '',
+      receipt_url: '',
     });
+    setPreviewImage(null);
+    setParseError(null);
+    setParseSuccess(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -115,6 +128,7 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
       amount: parseFloat(formData.amount) || 0,
       my_share: formData.my_share ? parseFloat(formData.my_share) : 0,
       notes: formData.notes || undefined,
+      receipt_url: formData.receipt_url || undefined,
     });
     
     resetForm();
@@ -128,8 +142,139 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
     }
   };
 
+  // Handle image file selection (from camera or file picker)
+  const handleImageSelect = useCallback(async (file: File) => {
+    setParseError(null);
+    setParseSuccess(false);
+    setUploadingImage(true);
+    
+    try {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setParseError('Please select an image file');
+        return;
+      }
+
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        setParseError('Image must be less than 10MB');
+        return;
+      }
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreviewImage(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+
+      // Upload to storage
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const fileName = `${user.id}/${Date.now()}_${file.name}`;
+      const { error: uploadError, data: uploadData } = await supabase.storage
+        .from('receipts')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get the URL for the uploaded image
+      const { data: { publicUrl } } = supabase.storage
+        .from('receipts')
+        .getPublicUrl(fileName);
+
+      setFormData(prev => ({ ...prev, receipt_url: publicUrl }));
+
+      // Convert to base64 for AI parsing
+      const base64Reader = new FileReader();
+      base64Reader.onload = async (e) => {
+        const base64Data = (e.target?.result as string).split(',')[1];
+        await parseReceiptImage(base64Data);
+      };
+      base64Reader.readAsDataURL(file);
+
+    } catch (error) {
+      console.error('Image upload error:', error);
+      setParseError('Failed to upload image. Please try again.');
+    } finally {
+      setUploadingImage(false);
+    }
+  }, []);
+
+  // Parse receipt image with AI
+  const parseReceiptImage = async (base64Data: string) => {
+    setParsing(true);
+    setParseError(null);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('parse-receipt-image', {
+        body: { imageBase64: base64Data },
+      });
+
+      if (error) throw error;
+
+      if (!data?.success) {
+        if (data?.readable === false || data?.retryMessage) {
+          setParseError(data.retryMessage || data.error || 'Unable to read receipt');
+          toast.error(data.error || 'Unable to read receipt');
+          return;
+        }
+        
+        if (data?.lowConfidence && data?.data) {
+          // Low confidence - still populate but warn user
+          const parsed = data.data;
+          setFormData(prev => ({
+            ...prev,
+            date: parsed.date || prev.date,
+            category: parsed.category || prev.category,
+            sub_category: parsed.sub_category || '',
+            description: parsed.description || parsed.vendor_name || '',
+            amount: parsed.amount?.toString() || '',
+          }));
+          setParseError('Low confidence in some fields. Please verify the data.');
+          toast.warning('Data extracted with low confidence. Please verify.');
+          return;
+        }
+        
+        throw new Error(data?.error || 'Failed to parse receipt');
+      }
+
+      // Success - populate form
+      const parsed = data.data;
+      setFormData(prev => ({
+        ...prev,
+        date: parsed.date || prev.date,
+        category: parsed.category || prev.category,
+        sub_category: parsed.sub_category || '',
+        description: parsed.description || parsed.vendor_name || '',
+        amount: parsed.amount?.toString() || '',
+      }));
+      
+      setParseSuccess(true);
+      toast.success(`Receipt parsed successfully! (${parsed.confidence || 100}% confidence)`);
+      
+    } catch (error) {
+      console.error('Parse error:', error);
+      setParseError('Failed to parse receipt. Please enter data manually or retake photo.');
+      toast.error('Failed to parse receipt');
+    } finally {
+      setParsing(false);
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleImageSelect(file);
+    }
+    // Reset input so same file can be selected again
+    e.target.value = '';
+  };
+
   const handleReceiptParse = useCallback(async (text: string) => {
     setParsing(true);
+    setParseError(null);
     try {
       const { data, error } = await supabase.functions.invoke('parse-booking', {
         body: { text, type: 'receipt' },
@@ -147,10 +292,12 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
           description: parsed.description || parsed.vendor_name || '',
           amount: parsed.amount?.toString() || '',
         }));
+        setParseSuccess(true);
         toast.success('Receipt parsed successfully!');
       }
     } catch (error) {
       console.error('Parse error:', error);
+      setParseError('Failed to parse receipt text');
       toast.error('Failed to parse receipt');
     } finally {
       setParsing(false);
@@ -159,11 +306,22 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    
+    // Check for files first (images)
+    if (e.dataTransfer.files?.length > 0) {
+      const file = e.dataTransfer.files[0];
+      if (file.type.startsWith('image/')) {
+        handleImageSelect(file);
+        return;
+      }
+    }
+    
+    // Otherwise check for text
     const text = e.dataTransfer.getData('text/plain');
     if (text) {
       handleReceiptParse(text);
     }
-  }, [handleReceiptParse]);
+  }, [handleReceiptParse, handleImageSelect]);
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
@@ -311,28 +469,134 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
 
       {/* Add Expense Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) resetForm(); setDialogOpen(open); }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add Expense</DialogTitle>
-            <DialogDescription>Track your trip spending</DialogDescription>
+            <DialogDescription>Take a photo or drop receipt text to auto-fill</DialogDescription>
           </DialogHeader>
 
-          {/* AI Parse Drop Zone */}
-          <div 
-            className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 transition-colors"
-            onDrop={handleDrop}
-            onDragOver={(e) => e.preventDefault()}
-          >
-            {parsing ? (
-              <div className="flex items-center justify-center gap-2 text-primary">
-                <Sparkles className="w-5 h-5 animate-pulse" />
-                <span>Parsing receipt...</span>
+          {/* Hidden file inputs */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileInputChange}
+          />
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={handleFileInputChange}
+          />
+
+          {/* Receipt Photo/Upload Section */}
+          <div className="space-y-3">
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => cameraInputRef.current?.click()}
+                disabled={parsing || uploadingImage}
+              >
+                <Camera className="w-4 h-4 mr-2" />
+                Take Photo
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={parsing || uploadingImage}
+              >
+                <ImageIcon className="w-4 h-4 mr-2" />
+                Upload Image
+              </Button>
+            </div>
+
+            {/* Drop Zone */}
+            <div 
+              className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
+                parsing || uploadingImage ? 'border-primary bg-primary/5' : 'hover:border-primary/50 cursor-pointer'
+              }`}
+              onDrop={handleDrop}
+              onDragOver={(e) => e.preventDefault()}
+              onClick={() => !parsing && !uploadingImage && fileInputRef.current?.click()}
+            >
+              {parsing ? (
+                <div className="flex items-center justify-center gap-2 text-primary">
+                  <Sparkles className="w-5 h-5 animate-pulse" />
+                  <span>AI is parsing your receipt...</span>
+                </div>
+              ) : uploadingImage ? (
+                <div className="flex items-center justify-center gap-2 text-primary">
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                  <span>Uploading image...</span>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                  <Upload className="w-6 h-6" />
+                  <span className="text-sm">Drop receipt image or text here</span>
+                </div>
+              )}
+            </div>
+
+            {/* Preview Image */}
+            {previewImage && (
+              <div className="relative">
+                <img 
+                  src={previewImage} 
+                  alt="Receipt preview" 
+                  className="w-full h-32 object-cover rounded-lg border"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute top-1 right-1 h-6 w-6 p-0 bg-background/80"
+                  onClick={() => {
+                    setPreviewImage(null);
+                    setFormData(prev => ({ ...prev, receipt_url: '' }));
+                  }}
+                >
+                  <Trash2 className="w-3 h-3" />
+                </Button>
               </div>
-            ) : (
-              <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                <Upload className="w-6 h-6" />
-                <span className="text-sm">Drop receipt text here to auto-fill</span>
-              </div>
+            )}
+
+            {/* Parse Status Messages */}
+            {parseError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <span>{parseError}</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setParseError(null);
+                      cameraInputRef.current?.click();
+                    }}
+                  >
+                    <RefreshCw className="w-3 h-3 mr-1" />
+                    Retry
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {parseSuccess && !parseError && (
+              <Alert className="border-green-500 bg-green-50 dark:bg-green-950">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-700 dark:text-green-300">
+                  Receipt parsed successfully! Please verify the data below.
+                </AlertDescription>
+              </Alert>
             )}
           </div>
 
