@@ -103,8 +103,8 @@ export function PackingTab({ tripId }: PackingTabProps) {
   const tripNights = tripDays - 1;
 
   // Get weather data
-  const { tripForecast, weatherAnalysis, isLoading: weatherLoading } = useTripWeather(
-    trip?.destination_city || '',
+  const { current: currentWeather, tripForecast, weatherAnalysis, isLoading: weatherLoading } = useTripWeather(
+    trip?.destination_city?.trim() || '',
     trip?.destination_country || '',
     trip?.start_date || '',
     trip?.end_date || ''
@@ -277,53 +277,73 @@ export function PackingTab({ tripId }: PackingTabProps) {
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <Thermometer className="w-4 h-4 text-primary" />
-              Weather Forecast
+              Weather
             </CardTitle>
           </CardHeader>
           <CardContent>
             {weatherLoading ? (
               <p className="text-sm text-muted-foreground">Loading weather data...</p>
-            ) : tripForecast.length > 0 ? (
+            ) : currentWeather || tripForecast.length > 0 ? (
               <div className="space-y-3">
-                <div className="flex items-center gap-4">
-                  {weatherAnalysis.avgHigh && (
-                    <div className="flex items-center gap-1">
-                      <Sun className="w-4 h-4 text-amber-500" />
-                      <span className="text-sm font-medium">{weatherAnalysis.avgHigh}°F high</span>
+                {/* Current Conditions */}
+                {currentWeather && (
+                  <div className="p-3 rounded-lg bg-background/60 border border-border/50">
+                    <p className="text-xs text-muted-foreground mb-1">Current in {trip?.destination_city?.trim()}</p>
+                    <div className="flex items-center gap-3">
+                      {getWeatherIcon(currentWeather.condition)}
+                      <span className="text-2xl font-bold">{currentWeather.temperature}°F</span>
+                      <div className="text-sm text-muted-foreground">
+                        <p>{currentWeather.condition}</p>
+                        <p className="text-xs">💧 {currentWeather.humidity}% • 💨 {currentWeather.windSpeed} mph</p>
+                      </div>
                     </div>
-                  )}
-                  {weatherAnalysis.avgLow && (
-                    <div className="flex items-center gap-1">
-                      <Cloud className="w-4 h-4 text-blue-400" />
-                      <span className="text-sm font-medium">{weatherAnalysis.avgLow}°F low</span>
+                  </div>
+                )}
+                
+                {/* Trip forecast summary */}
+                {tripForecast.length > 0 && (
+                  <>
+                    <div className="flex items-center gap-4">
+                      {weatherAnalysis.avgHigh && (
+                        <div className="flex items-center gap-1">
+                          <Sun className="w-4 h-4 text-amber-500" />
+                          <span className="text-sm font-medium">{weatherAnalysis.avgHigh}°F high</span>
+                        </div>
+                      )}
+                      {weatherAnalysis.avgLow && (
+                        <div className="flex items-center gap-1">
+                          <Cloud className="w-4 h-4 text-blue-400" />
+                          <span className="text-sm font-medium">{weatherAnalysis.avgLow}°F low</span>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {weatherAnalysis.hasHot && (
-                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">☀️ Hot</Badge>
-                  )}
-                  {weatherAnalysis.hasCold && (
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">❄️ Cold</Badge>
-                  )}
-                  {weatherAnalysis.hasRain && (
-                    <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200">🌧️ Rain expected</Badge>
-                  )}
-                  {weatherAnalysis.hasSnow && (
-                    <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">🌨️ Snow</Badge>
-                  )}
-                </div>
-                <div className="flex gap-1 overflow-x-auto pb-1">
-                  {tripForecast.slice(0, 7).map((day) => (
-                    <div key={day.date} className="flex flex-col items-center p-2 min-w-[3.5rem] rounded-lg bg-background/50">
-                      <span className="text-[10px] text-muted-foreground">
-                        {new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' })}
-                      </span>
-                      {getWeatherIcon(day.condition)}
-                      <span className="text-xs font-medium">{day.tempHigh}°</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {weatherAnalysis.hasHot && (
+                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">☀️ Hot</Badge>
+                      )}
+                      {weatherAnalysis.hasCold && (
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">❄️ Cold</Badge>
+                      )}
+                      {weatherAnalysis.hasRain && (
+                        <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200">🌧️ Rain expected</Badge>
+                      )}
+                      {weatherAnalysis.hasSnow && (
+                        <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">🌨️ Snow</Badge>
+                      )}
                     </div>
-                  ))}
-                </div>
+                    <div className="flex gap-1 overflow-x-auto pb-1">
+                      {tripForecast.slice(0, 7).map((day) => (
+                        <div key={day.date} className="flex flex-col items-center p-2 min-w-[3.5rem] rounded-lg bg-background/50">
+                          <span className="text-[10px] text-muted-foreground">
+                            {new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' })}
+                          </span>
+                          {getWeatherIcon(day.condition)}
+                          <span className="text-xs font-medium">{day.tempHigh}°</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">Weather data unavailable</p>
