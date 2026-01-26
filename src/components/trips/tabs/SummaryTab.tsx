@@ -1,6 +1,7 @@
 import { useBookings } from '@/hooks/useBookings';
 import { useParking } from '@/hooks/useParking';
 import { useExpenses } from '@/hooks/useExpenses';
+import { useCompanions } from '@/hooks/useCompanions';
 import { useTripWeather } from '@/hooks/useWeather';
 import { useTravelAlerts } from '@/hooks/useTravelAlerts';
 import { Trip, Booking, Parking } from '@/types/database';
@@ -8,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TravelAlertsCard } from '@/components/trips/TravelAlertsCard';
+import { FlightSummaryCard } from '@/components/trips/FlightSummaryCard';
 import { generateTripICS, downloadICSFile } from '@/lib/icsGenerator';
 import { 
   Plane, Building2, Car, Calendar, MapPin, DollarSign, 
@@ -59,6 +61,7 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
   const { data: bookings = [] } = useBookings(tripId);
   const { data: parkingList = [] } = useParking(tripId);
   const { data: expenses = [] } = useExpenses(tripId);
+  const { data: companions = [] } = useCompanions(tripId);
   const { tripForecast, weatherAnalysis, isLoading: weatherLoading } = useTripWeather(
     trip.destination_city,
     trip.destination_country,
@@ -214,6 +217,9 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
           </CardContent>
         </Card>
       )}
+
+      {/* Flight Summary */}
+      <FlightSummaryCard bookings={bookings} companions={companions} />
 
       {/* Trip Overview Cards */}
       <div className="grid gap-4 md:grid-cols-3">
