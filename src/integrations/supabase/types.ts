@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      booking_companions: {
+        Row: {
+          booking_id: string
+          companion_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          booking_id: string
+          companion_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          booking_id?: string
+          companion_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_companions_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_companions_companion_id_fkey"
+            columns: ["companion_id"]
+            isOneToOne: false
+            referencedRelation: "companions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           address: string | null
@@ -462,7 +498,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      user_has_booking_access: {
+        Args: { p_booking_id: string }
+        Returns: boolean
+      }
       user_has_trip_access: { Args: { trip_id: string }; Returns: boolean }
+      user_owns_booking: { Args: { p_booking_id: string }; Returns: boolean }
       user_owns_trip: { Args: { trip_id: string }; Returns: boolean }
     }
     Enums: {
