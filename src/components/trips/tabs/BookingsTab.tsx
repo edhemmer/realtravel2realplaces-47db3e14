@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useBookings, useCreateBooking, useDeleteBooking } from '@/hooks/useBookings';
+import { useBookings, useCreateBooking, useUpdateBooking, useDeleteBooking } from '@/hooks/useBookings';
 import { useCompanions } from '@/hooks/useCompanions';
 import { useBookingCompanionsByTrip, useSetBookingCompanions } from '@/hooks/useBookingCompanions';
 import { Booking, BookingType, StayType, Companion } from '@/types/database';
@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { 
-  Plus, Plane, Building2, Car, PartyPopper, Trash2, 
+  Plus, Plane, Building2, Car, PartyPopper, Trash2, Pencil,
   ExternalLink, MapPin, AlertTriangle, Link2, Upload, FileText, Users
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
@@ -40,9 +40,11 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
   const { data: companions = [] } = useCompanions(tripId);
   const { data: bookingCompanions = [] } = useBookingCompanionsByTrip(tripId);
   const createBooking = useCreateBooking();
+  const updateBooking = useUpdateBooking();
   const deleteBooking = useDeleteBooking();
   const setBookingCompanions = useSetBookingCompanions();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [bookingToDelete, setBookingToDelete] = useState<string | null>(null);
   const [bookingType, setBookingType] = useState<BookingType>('flight');
   const [urlAutoFilled, setUrlAutoFilled] = useState(false);
@@ -111,41 +113,94 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
     setBookingType('flight');
     setUrlAutoFilled(false);
     setSelectedCompanions([]);
+    setEditingBooking(null);
+  };
+
+  const openEditDialog = (booking: Booking) => {
+    setEditingBooking(booking);
+    setBookingType(booking.booking_type);
+    setFormData({
+      vendor_name: booking.vendor_name || '',
+      start_datetime: booking.start_datetime ? new Date(booking.start_datetime).toISOString().slice(0, 16) : '',
+      end_datetime: booking.end_datetime ? new Date(booking.end_datetime).toISOString().slice(0, 16) : '',
+      address: booking.address || '',
+      confirmation_number: booking.confirmation_number || '',
+      total_cost: booking.total_cost?.toString() || '',
+      my_share: booking.my_share?.toString() || '',
+      link_url: booking.link_url || '',
+      notes: booking.notes || '',
+      passenger_name: booking.passenger_name || '',
+      airline: booking.airline || '',
+      tsa_precheck_number: booking.tsa_precheck_number || '',
+      frequent_flyer_number: booking.frequent_flyer_number || '',
+      stay_type: (booking.stay_type as StayType) || 'hotel',
+      property_name: booking.property_name || '',
+      rental_company: booking.rental_company || '',
+      pickup_location: booking.pickup_location || '',
+      return_location: booking.return_location || '',
+    });
+    // Load existing companions for this booking
+    const existingCompanionIds = bookingCompanions
+      .filter(bc => bc.booking_id === booking.id)
+      .map(bc => bc.companion_id);
+    setSelectedCompanions(existingCompanionIds);
+    setDialogOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const newBooking = await createBooking.mutateAsync({
-      trip_id: tripId,
+    const bookingData = {
       booking_type: bookingType,
       vendor_name: formData.vendor_name,
       start_datetime: new Date(formData.start_datetime).toISOString(),
-      end_datetime: formData.end_datetime ? new Date(formData.end_datetime).toISOString() : undefined,
-      address: formData.address || undefined,
-      confirmation_number: formData.confirmation_number || undefined,
+      end_datetime: formData.end_datetime ? new Date(formData.end_datetime).toISOString() : null,
+      address: formData.address || null,
+      confirmation_number: formData.confirmation_number || null,
       total_cost: formData.total_cost ? parseFloat(formData.total_cost) : 0,
       my_share: formData.my_share ? parseFloat(formData.my_share) : 0,
-      link_url: formData.link_url || undefined,
-      notes: formData.notes || undefined,
-      passenger_name: formData.passenger_name || undefined,
-      airline: formData.airline || undefined,
-      tsa_precheck_number: formData.tsa_precheck_number || undefined,
-      frequent_flyer_number: formData.frequent_flyer_number || undefined,
-      stay_type: bookingType === 'stay' ? formData.stay_type : undefined,
-      property_name: formData.property_name || undefined,
-      rental_company: formData.rental_company || undefined,
-      pickup_location: formData.pickup_location || undefined,
-      return_location: formData.return_location || undefined,
-    });
+      link_url: formData.link_url || null,
+      notes: formData.notes || null,
+      passenger_name: formData.passenger_name || null,
+      airline: formData.airline || null,
+      tsa_precheck_number: formData.tsa_precheck_number || null,
+      frequent_flyer_number: formData.frequent_flyer_number || null,
+      stay_type: bookingType === 'stay' ? formData.stay_type : null,
+      property_name: formData.property_name || null,
+      rental_company: formData.rental_company || null,
+      pickup_location: formData.pickup_location || null,
+      return_location: formData.return_location || null,
+    };
 
-    // Link selected companions to the new booking
-    if (newBooking && selectedCompanions.length > 0) {
+    if (editingBooking) {
+      // Update existing booking
+      await updateBooking.mutateAsync({
+        id: editingBooking.id,
+        trip_id: tripId,
+        ...bookingData,
+      });
+
+      // Update companions
       await setBookingCompanions.mutateAsync({
-        bookingId: newBooking.id,
+        bookingId: editingBooking.id,
         companionIds: selectedCompanions,
         tripId,
       });
+    } else {
+      // Create new booking
+      const newBooking = await createBooking.mutateAsync({
+        trip_id: tripId,
+        ...bookingData,
+      });
+
+      // Link selected companions to the new booking
+      if (newBooking && selectedCompanions.length > 0) {
+        await setBookingCompanions.mutateAsync({
+          bookingId: newBooking.id,
+          companionIds: selectedCompanions,
+          tripId,
+        });
+      }
     }
     
     resetForm();
@@ -292,14 +347,24 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
                       <CardDescription className="capitalize text-xs">{booking.booking_type.replace('_', ' ')}</CardDescription>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive transition-opacity"
-                    onClick={() => setBookingToDelete(booking.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => openEditDialog(booking)}
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive transition-opacity"
+                      onClick={() => setBookingToDelete(booking.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
@@ -400,8 +465,10 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
       <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) resetForm(); setDialogOpen(open); }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add Booking</DialogTitle>
-            <DialogDescription>Add a flight, stay, car rental, or activity</DialogDescription>
+            <DialogTitle>{editingBooking ? 'Edit Booking' : 'Add Booking'}</DialogTitle>
+            <DialogDescription>
+              {editingBooking ? 'Update booking details and linked travelers' : 'Add a flight, stay, car rental, or activity'}
+            </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -678,8 +745,15 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
               <Button type="button" variant="outline" onClick={() => { resetForm(); setDialogOpen(false); }} className="flex-1">
                 Cancel
               </Button>
-              <Button type="submit" className="flex-1 bg-gradient-ocean hover:opacity-90" disabled={createBooking.isPending}>
-                {createBooking.isPending ? 'Adding...' : 'Add Booking'}
+              <Button 
+                type="submit" 
+                className="flex-1 bg-gradient-ocean hover:opacity-90" 
+                disabled={createBooking.isPending || updateBooking.isPending}
+              >
+                {createBooking.isPending || updateBooking.isPending 
+                  ? (editingBooking ? 'Saving...' : 'Adding...') 
+                  : (editingBooking ? 'Save Changes' : 'Add Booking')
+                }
               </Button>
             </div>
           </form>
