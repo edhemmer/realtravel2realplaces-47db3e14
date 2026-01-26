@@ -39,6 +39,8 @@ const SUB_CATEGORIES: Record<ExpenseCategory, { value: ExpenseSubCategory; label
     { value: 'snacks', label: 'Snacks' },
     { value: 'coffee', label: 'Coffee' },
     { value: 'groceries', label: 'Groceries' },
+    { value: 'alcohol', label: 'Alcohol' },
+    { value: 'beverages', label: 'Beverages' },
   ],
   transport: [
     { value: 'uber', label: 'Uber/Lyft' },
@@ -46,6 +48,7 @@ const SUB_CATEGORIES: Record<ExpenseCategory, { value: ExpenseSubCategory; label
     { value: 'gas', label: 'Gas' },
     { value: 'tolls', label: 'Tolls' },
     { value: 'public_transit', label: 'Public Transit' },
+    { value: 'rental_car', label: 'Rental Car' },
   ],
   activity: [
     { value: 'tours', label: 'Tours' },

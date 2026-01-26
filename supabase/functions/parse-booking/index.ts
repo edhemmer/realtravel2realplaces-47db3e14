@@ -19,15 +19,27 @@ serve(async (req) => {
     }
 
     const systemPrompt = type === 'receipt' 
-      ? `You are an expense receipt parser. Extract the following from the receipt text:
+      ? `You are an expense receipt parser for travel expense tracking. Extract and categorize items from the receipt.
+
+IMPORTANT: Identify specific items for detailed reporting. For example:
+- Wine, beer, cocktails, spirits → sub_category: "alcohol"
+- Soda, juice, water, tea → sub_category: "beverages"  
+- Breakfast items, eggs, pancakes → sub_category: "breakfast"
+- Lunch/dinner meals → sub_category: "lunch" or "dinner" based on time
+- Grocery store items → sub_category: "groceries"
+- Coffee, espresso, lattes → sub_category: "coffee"
+- Rental car charges → sub_category: "rental_car"
+
+Extract:
 - date (YYYY-MM-DD format)
 - category (meals, transport, activity, shopping, parking, other)
-- sub_category (breakfast, lunch, dinner, snacks, coffee, groceries, uber, taxi, gas, tolls, public_transit, parking_expense, tours, entertainment, tickets, sports, souvenirs, clothing, gifts, tips, fees, insurance, miscellaneous)
-- description (brief description)
-- amount (number only)
+- sub_category (breakfast, lunch, dinner, snacks, coffee, groceries, alcohol, beverages, uber, taxi, gas, tolls, public_transit, parking_expense, rental_car, tours, entertainment, tickets, sports, souvenirs, clothing, gifts, tips, fees, insurance, miscellaneous)
+- description (brief description of the main item or vendor)
+- amount (total number only)
 - vendor_name
 
-Return a JSON object with these fields. Use null for any fields you cannot determine.`
+Return a JSON object with these fields. Use null for any fields you cannot determine.
+Be precise with sub_category for future reporting (e.g., tracking alcohol spend across trips).`
       : `You are a travel booking confirmation parser. Extract the following from the booking text:
 - booking_type (flight, stay, car_rental, activity)
 - vendor_name
@@ -78,12 +90,16 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
                 properties: {
                   date: { type: "string", description: "Date in YYYY-MM-DD format" },
                   category: { type: "string", enum: ["meals", "transport", "activity", "shopping", "parking", "other"] },
-                  sub_category: { type: "string" },
+                  sub_category: { 
+                    type: "string", 
+                    enum: ["breakfast", "lunch", "dinner", "snacks", "coffee", "groceries", "alcohol", "beverages", "uber", "taxi", "gas", "tolls", "public_transit", "parking_expense", "rental_car", "tours", "entertainment", "tickets", "sports", "souvenirs", "clothing", "gifts", "tips", "fees", "insurance", "miscellaneous"],
+                    description: "Specific sub-category for detailed reporting. Use 'alcohol' for wine/beer/spirits, 'groceries' for grocery store items, 'beverages' for non-alcoholic drinks"
+                  },
                   description: { type: "string" },
                   amount: { type: "number" },
                   vendor_name: { type: "string" },
                 },
-                required: ["date", "category", "amount"],
+                required: ["date", "category", "amount", "sub_category"],
               } : {
                 type: "object",
                 properties: {
