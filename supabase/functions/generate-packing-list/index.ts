@@ -31,6 +31,10 @@ serve(async (req) => {
     const beachDestinations = ['florida', 'miami', 'orlando', 'tampa', 'key west', 'fort lauderdale', 'clearwater', 'naples', 'sarasota', 'destin', 'panama city', 'jacksonville beach', 'daytona', 'hawaii', 'maui', 'honolulu', 'cancun', 'cabo', 'puerto rico', 'virgin islands', 'bahamas', 'caribbean', 'aruba', 'jamaica', 'turks', 'caicos', 'bermuda', 'maldives', 'bali', 'phuket', 'thailand beach', 'costa rica', 'san diego', 'los angeles', 'santa monica', 'malibu', 'galveston', 'south padre', 'gulf shores', 'myrtle beach', 'outer banks', 'hilton head', 'charleston'];
     const beachStates = ['florida', 'fl', 'hawaii', 'hi'];
     
+    // Detect mountain destinations
+    const mountainDestinations = ['aspen', 'vail', 'breckenridge', 'telluride', 'park city', 'jackson hole', 'big sky', 'lake tahoe', 'mammoth', 'whistler', 'banff', 'jasper', 'zermatt', 'chamonix', 'innsbruck', 'st moritz', 'courchevel', 'verbier', 'denver', 'boulder', 'colorado springs', 'flagstaff', 'sedona', 'grand canyon', 'yellowstone', 'yosemite', 'glacier', 'rocky mountain', 'gatlinburg', 'pigeon forge', 'asheville', 'lake placid', 'stowe', 'killington', 'salt lake city', 'reno', 'santa fe', 'taos', 'durango', 'steamboat', 'keystone', 'copper mountain', 'winter park', 'crested butte', 'sun valley', 'bend', 'mount rainier', 'swiss alps', 'austrian alps', 'italian alps', 'dolomites', 'pyrenees', 'scottish highlands', 'patagonia', 'queenstown', 'interlaken'];
+    const mountainStates = ['colorado', 'co', 'utah', 'ut', 'wyoming', 'wy', 'montana', 'mt', 'idaho', 'id', 'vermont', 'vt', 'new hampshire', 'nh'];
+    
     const cityLower = destination_city?.toLowerCase() || '';
     const stateLower = destination_state?.toLowerCase() || '';
     const countryLower = destination_country?.toLowerCase() || '';
@@ -38,6 +42,10 @@ serve(async (req) => {
     const isBeachDestination = beachDestinations.some(beach => 
       cityLower.includes(beach) || stateLower.includes(beach) || countryLower.includes(beach)
     ) || beachStates.some(state => stateLower === state || stateLower.includes(state));
+
+    const isMountainDestination = mountainDestinations.some(mountain => 
+      cityLower.includes(mountain) || stateLower.includes(mountain) || countryLower.includes(mountain)
+    ) || mountainStates.some(state => stateLower === state || stateLower.includes(state));
 
     const beachItemsInstruction = isBeachDestination ? `
 MANDATORY BEACH ITEMS (YOU MUST INCLUDE ALL OF THESE):
@@ -50,6 +58,21 @@ MANDATORY BEACH ITEMS (YOU MUST INCLUDE ALL OF THESE):
 - After-sun lotion/Aloe vera: 1
 These items are REQUIRED for this destination. Do not skip any of them.` : '';
 
+    const mountainItemsInstruction = isMountainDestination ? `
+MANDATORY MOUNTAIN/HIKING ITEMS (YOU MUST INCLUDE ALL OF THESE):
+- Hiking boots or sturdy trail shoes: 1 pair
+- Warm hat/Beanie: 1
+- Layering base layer top: 1
+- Fleece or insulated mid-layer jacket: 1
+- Waterproof/windproof outer layer jacket: 1
+- Hiking socks (wool or synthetic): 2 pairs
+- Sunglasses (UV protection for altitude): 1
+- Sunscreen SPF 30+ (UV is stronger at altitude): 1
+- Reusable water bottle: 1
+- Daypack/Backpack for hikes: 1
+- Gloves (lightweight or insulated based on season): 1 pair
+These items are REQUIRED for mountain destinations. Do not skip any of them.` : '';
+
     const systemPrompt = `You are a smart travel packing assistant. Generate a practical, accurate packing list based on the destination, trip duration, time of year, and weather conditions.
 
 CRITICAL RULES for clothing quantities:
@@ -61,9 +84,11 @@ CRITICAL RULES for clothing quantities:
 - Sleepwear: 1 set (for trips under 5 nights) or 2 sets
 - Keep total quantity practical - travelers prefer packing light
 ${beachItemsInstruction}
+${mountainItemsInstruction}
 
 Location-aware items:
 - Florida/Beach/Tropical destinations: ALWAYS include swimsuit, sunscreen, sunglasses, sun hat, flip-flops, beach towel, after-sun care
+- Mountain/Hiking destinations: ALWAYS include hiking boots, warm hat, layers, fleece jacket, waterproof jacket, hiking socks, gloves, daypack
 - Cold destinations: layers, warm jacket, gloves, hat
 - Business trips: add professional attire items
 
@@ -71,10 +96,11 @@ Weather-based adjustments:
 - Rain in forecast: umbrella, rain jacket
 - Hot (>80°F): more shorts, light fabrics, sun protection
 - Cold (<50°F): layers, warm jacket, thermals
+- Snow in forecast: snow boots, insulated jacket, warm gloves, thermal layers
 - Variable: versatile pieces that layer
 
 Return a JSON object with categorized items. Each item needs: category, item_name, quantity.
-Categories: Clothing, Swimwear & Beach, Toiletries & Health, Electronics, Documents, Essentials, Weather Gear, Business (if applicable)`;
+Categories: Clothing, Swimwear & Beach, Hiking & Outdoor, Toiletries & Health, Electronics, Documents, Essentials, Weather Gear, Business (if applicable)`;
 
     const userPrompt = `Generate a packing list for this trip:
 - Destination: ${destination_city}${destination_state ? `, ${destination_state}` : ''}, ${destination_country}
@@ -114,7 +140,7 @@ Return a practical packing list. Be accurate with quantities based on trip lengt
                         category: { 
                           type: "string", 
                           description: "Item category",
-                          enum: ["Clothing", "Swimwear & Beach", "Toiletries & Health", "Electronics", "Documents", "Essentials", "Weather Gear", "Business"]
+                          enum: ["Clothing", "Swimwear & Beach", "Hiking & Outdoor", "Toiletries & Health", "Electronics", "Documents", "Essentials", "Weather Gear", "Business"]
                         },
                         item_name: { type: "string", description: "Name of the item" },
                         quantity: { type: "number", description: "How many to pack" },
