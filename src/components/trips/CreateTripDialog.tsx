@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
 import { useCreateTrip } from '@/hooks/useTrips';
 import { useCreateBooking } from '@/hooks/useBookings';
+import { useCreateCompanion } from '@/hooks/useCompanions';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,40 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { getVendorUrl } from '@/lib/vendorUrls';
 import { BookingType, StayType } from '@/types/database';
+
+// Helper to parse passenger names and extract frequent flyer info
+function parsePassengers(passengerString: string | undefined, airline: string | undefined): Array<{
+  name: string;
+  frequent_flyer_number?: string;
+  airline?: string;
+}> {
+  if (!passengerString) return [];
+  
+  // Split by comma or numbered list patterns
+  const passengers = passengerString
+    .split(/,|\d+\s*[-–]\s*/)
+    .map(p => p.trim())
+    .filter(p => p.length > 0);
+  
+  return passengers.map(passenger => {
+    // Extract frequent flyer number if present (e.g., "Frontier Miles #90095266888")
+    const ffMatch = passenger.match(/(?:miles?|member|#)\s*[#:]?\s*(\d{5,})/i);
+    const frequentFlyerNumber = ffMatch ? ffMatch[1] : undefined;
+    
+    // Clean the name by removing frequent flyer info
+    const cleanName = passenger
+      .replace(/(?:frontier|delta|united|american|southwest|jetblue)?\s*miles?\s*[#:]?\s*\d+/gi, '')
+      .replace(/not a .* member\??.*$/i, '')
+      .replace(/sign up!?/gi, '')
+      .trim();
+    
+    return {
+      name: cleanName,
+      frequent_flyer_number: frequentFlyerNumber,
+      airline: frequentFlyerNumber ? airline : undefined,
+    };
+  }).filter(p => p.name.length > 0);
+}
 
 const tripSchema = z.object({
   name: z.string().min(1, 'Trip name is required').max(100),
@@ -61,6 +96,7 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
   const navigate = useNavigate();
   const createTrip = useCreateTrip();
   const createBooking = useCreateBooking();
+  const createCompanion = useCreateCompanion();
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
   const [isDragging, setIsDragging] = useState(false);
@@ -188,11 +224,17 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
         end_date: format(endDate, 'yyyy-MM-dd'),
       } as any);
 
-      // Create bookings if any were parsed
+      // Create bookings and companions if any were parsed
       if (parsedBookings.length > 0 && trip?.id) {
+        // Track created companions to avoid duplicates and for linking
+        const createdCompanions: Map<string, string> = new Map(); // name -> id
+        let totalCompanionsCreated = 0;
+        
         for (const booking of parsedBookings) {
           const vendorUrl = getVendorUrl(booking.vendor_name, booking.booking_type);
-          await createBooking.mutateAsync({
+          
+          // Create the booking first
+          const createdBooking = await createBooking.mutateAsync({
             trip_id: trip.id,
             booking_type: booking.booking_type,
             vendor_name: booking.vendor_name,
@@ -211,8 +253,53 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
             notes: booking.notes,
             link_url: vendorUrl || undefined,
           });
+          
+          // Parse passengers from the booking and create companions
+          if (booking.passenger_name && booking.booking_type === 'flight') {
+            const passengers = parsePassengers(booking.passenger_name, booking.airline);
+            
+            for (const passenger of passengers) {
+              // Check if we already created this companion
+              const normalizedName = passenger.name.toLowerCase().trim();
+              
+              if (!createdCompanions.has(normalizedName)) {
+                try {
+                  const companion = await createCompanion.mutateAsync({
+                    trip_id: trip.id,
+                    name: passenger.name,
+                    frequent_flyer_number: passenger.frequent_flyer_number,
+                    airline: passenger.airline,
+                  });
+                  
+                  if (companion?.id) {
+                    createdCompanions.set(normalizedName, companion.id);
+                    totalCompanionsCreated++;
+                  }
+                } catch (err) {
+                  console.error('Failed to create companion:', err);
+                }
+              }
+              
+              // Link companion to booking
+              const companionId = createdCompanions.get(normalizedName);
+              if (companionId && createdBooking?.id) {
+                try {
+                  await supabase.from('booking_companions').insert({
+                    booking_id: createdBooking.id,
+                    companion_id: companionId,
+                  });
+                } catch (err) {
+                  console.error('Failed to link companion to booking:', err);
+                }
+              }
+            }
+          }
         }
-        toast.success(`Created trip with ${parsedBookings.length} booking(s)!`);
+        
+        const companionMsg = totalCompanionsCreated > 0 
+          ? ` and ${totalCompanionsCreated} companion(s)` 
+          : '';
+        toast.success(`Created trip with ${parsedBookings.length} booking(s)${companionMsg}!`);
       }
 
       resetAll();
