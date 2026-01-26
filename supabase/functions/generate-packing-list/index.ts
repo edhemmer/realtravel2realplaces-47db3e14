@@ -27,6 +27,29 @@ serve(async (req) => {
     // Get month for seasonality
     const travelMonth = startD.toLocaleString('en-US', { month: 'long' });
 
+    // Detect beach/tropical destinations
+    const beachDestinations = ['florida', 'miami', 'orlando', 'tampa', 'key west', 'fort lauderdale', 'clearwater', 'naples', 'sarasota', 'destin', 'panama city', 'jacksonville beach', 'daytona', 'hawaii', 'maui', 'honolulu', 'cancun', 'cabo', 'puerto rico', 'virgin islands', 'bahamas', 'caribbean', 'aruba', 'jamaica', 'turks', 'caicos', 'bermuda', 'maldives', 'bali', 'phuket', 'thailand beach', 'costa rica', 'san diego', 'los angeles', 'santa monica', 'malibu', 'galveston', 'south padre', 'gulf shores', 'myrtle beach', 'outer banks', 'hilton head', 'charleston'];
+    const beachStates = ['florida', 'fl', 'hawaii', 'hi'];
+    
+    const cityLower = destination_city?.toLowerCase() || '';
+    const stateLower = destination_state?.toLowerCase() || '';
+    const countryLower = destination_country?.toLowerCase() || '';
+    
+    const isBeachDestination = beachDestinations.some(beach => 
+      cityLower.includes(beach) || stateLower.includes(beach) || countryLower.includes(beach)
+    ) || beachStates.some(state => stateLower === state || stateLower.includes(state));
+
+    const beachItemsInstruction = isBeachDestination ? `
+MANDATORY BEACH ITEMS (YOU MUST INCLUDE ALL OF THESE):
+- Swimsuit/Swimwear: 2 (one to wear, one drying)
+- Sunscreen SPF 30+: 1
+- Sunglasses: 1
+- Sun hat/Baseball cap: 1
+- Flip-flops/Sandals: 1 pair
+- Beach towel: 1
+- After-sun lotion/Aloe vera: 1
+These items are REQUIRED for this destination. Do not skip any of them.` : '';
+
     const systemPrompt = `You are a smart travel packing assistant. Generate a practical, accurate packing list based on the destination, trip duration, time of year, and weather conditions.
 
 CRITICAL RULES for clothing quantities:
@@ -37,10 +60,10 @@ CRITICAL RULES for clothing quantities:
 - Bottoms: ${Math.ceil(tripNights / 2)} pairs of pants/shorts (can repeat)
 - Sleepwear: 1 set (for trips under 5 nights) or 2 sets
 - Keep total quantity practical - travelers prefer packing light
+${beachItemsInstruction}
 
 Location-aware items:
-- Florida/Beach destinations: MUST include swimwear, sunglasses, flip-flops, beach towel
-- Tropical/Coastal: include reef-safe sunscreen, after-sun care
+- Florida/Beach/Tropical destinations: ALWAYS include swimsuit, sunscreen, sunglasses, sun hat, flip-flops, beach towel, after-sun care
 - Cold destinations: layers, warm jacket, gloves, hat
 - Business trips: add professional attire items
 
