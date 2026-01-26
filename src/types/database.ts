@@ -6,8 +6,8 @@ export type ParkingType = 'airport' | 'beach' | 'city_garage' | 'hotel' | 'other
 export type ParkingBilling = 'hourly' | 'daily' | 'per_trip' | 'other';
 
 export type ExpenseSubCategory = 
-  'breakfast' | 'lunch' | 'dinner' | 'snacks' | 'coffee' | 'groceries' |
-  'uber' | 'taxi' | 'gas' | 'tolls' | 'public_transit' | 'parking_expense' |
+  'breakfast' | 'lunch' | 'dinner' | 'snacks' | 'coffee' | 'groceries' | 'alcohol' | 'beverages' |
+  'uber' | 'taxi' | 'gas' | 'tolls' | 'public_transit' | 'parking_expense' | 'rental_car' |
   'tours' | 'entertainment' | 'tickets' | 'sports' |
   'souvenirs' | 'clothing' | 'gifts' |
   'tips' | 'fees' | 'insurance' | 'miscellaneous';

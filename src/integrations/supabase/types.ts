@@ -489,6 +489,9 @@ export type Database = {
         | "fees"
         | "insurance"
         | "miscellaneous"
+        | "alcohol"
+        | "beverages"
+        | "rental_car"
       parking_billing: "hourly" | "daily" | "per_trip" | "other"
       parking_type: "airport" | "beach" | "city_garage" | "hotel" | "other"
       stay_type: "hotel" | "airbnb" | "vrbo" | "other"
@@ -653,6 +656,9 @@ export const Constants = {
         "fees",
         "insurance",
         "miscellaneous",
+        "alcohol",
+        "beverages",
+        "rental_car",
       ],
       parking_billing: ["hourly", "daily", "per_trip", "other"],
       parking_type: ["airport", "beach", "city_garage", "hotel", "other"],
