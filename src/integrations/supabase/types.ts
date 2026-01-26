@@ -48,6 +48,13 @@ export type Database = {
             referencedRelation: "companions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "booking_companions_companion_id_fkey"
+            columns: ["companion_id"]
+            isOneToOne: false
+            referencedRelation: "companions_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       bookings: {
@@ -510,7 +517,97 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      companions_safe: {
+        Row: {
+          airline: string | null
+          created_at: string | null
+          email: string | null
+          frequent_flyer_number: string | null
+          id: string | null
+          name: string | null
+          notes: string | null
+          phone: string | null
+          trip_id: string | null
+          tsa_precheck_number: string | null
+        }
+        Insert: {
+          airline?: string | null
+          created_at?: string | null
+          email?: never
+          frequent_flyer_number?: string | null
+          id?: string | null
+          name?: string | null
+          notes?: string | null
+          phone?: never
+          trip_id?: string | null
+          tsa_precheck_number?: string | null
+        }
+        Update: {
+          airline?: string | null
+          created_at?: string | null
+          email?: never
+          frequent_flyer_number?: string | null
+          id?: string | null
+          name?: string | null
+          notes?: string | null
+          phone?: never
+          trip_id?: string | null
+          tsa_precheck_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "companions_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trip_shares_safe: {
+        Row: {
+          accepted_at: string | null
+          created_at: string | null
+          id: string | null
+          permission: string | null
+          share_token: string | null
+          shared_with_email: string | null
+          shared_with_user_id: string | null
+          trip_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string | null
+          id?: string | null
+          permission?: string | null
+          share_token?: never
+          shared_with_email?: string | null
+          shared_with_user_id?: string | null
+          trip_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string | null
+          id?: string | null
+          permission?: string | null
+          share_token?: never
+          shared_with_email?: string | null
+          shared_with_user_id?: string | null
+          trip_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_shares_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       user_has_booking_access: {
@@ -519,6 +616,10 @@ export type Database = {
       }
       user_has_trip_access: { Args: { trip_id: string }; Returns: boolean }
       user_owns_booking: { Args: { p_booking_id: string }; Returns: boolean }
+      user_owns_companion_trip: {
+        Args: { p_trip_id: string }
+        Returns: boolean
+      }
       user_owns_trip: { Args: { trip_id: string }; Returns: boolean }
     }
     Enums: {
