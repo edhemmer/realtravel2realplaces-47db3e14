@@ -62,9 +62,9 @@ export default function Auth() {
           <div className="w-12 h-12 rounded-xl bg-gradient-ocean flex items-center justify-center shadow-glow">
             <Plane className="w-6 h-6 text-primary-foreground" />
           </div>
-          <h1 className="text-3xl font-bold text-gradient-ocean">Real Travel</h1>
+          <h1 className="text-3xl font-bold text-gradient-ocean">Real Travel 2</h1>
         </div>
-        <p className="text-muted-foreground">to Real Places</p>
+        <p className="text-muted-foreground">Real Places</p>
       </div>
 
       {/* Auth Card */}

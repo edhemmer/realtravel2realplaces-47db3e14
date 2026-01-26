@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Plane, Building2, Car, Calendar, MapPin, DollarSign, 
   AlertTriangle, Download, ExternalLink, Clock, PartyPopper,
-  Cloud, Sun, CloudRain, Snowflake, Thermometer
+  Cloud, Sun, CloudRain, Snowflake, Thermometer, Info, Globe, Utensils, Camera
 } from 'lucide-react';
 import { format, parseISO, isAfter, isBefore, addMinutes, differenceInDays } from 'date-fns';
 
@@ -29,6 +29,28 @@ interface TimelineEvent {
   linkUrl?: string;
 }
 
+// Destination info links by country/region
+const getDestinationLinks = (city: string, state: string | undefined, country: string) => {
+  const searchQuery = encodeURIComponent(`${city}${state ? ` ${state}` : ''} ${country}`);
+  const yelpQuery = encodeURIComponent(`${city}${state ? `, ${state}` : ''}`);
+  
+  return {
+    generalInfo: [
+      { label: 'Travel Guide', url: `https://www.tripadvisor.com/Search?q=${searchQuery}`, icon: Globe },
+      { label: 'Weather', url: `https://www.weather.com/weather/today/l/${searchQuery}`, icon: Cloud },
+      { label: 'Local Events', url: `https://www.eventbrite.com/d/${searchQuery.toLowerCase().replace(/\s+/g, '-')}/events/`, icon: Calendar },
+    ],
+    dining: [
+      { label: 'Yelp Restaurants', url: `https://www.yelp.com/search?find_desc=Restaurants&find_loc=${yelpQuery}&attrs=RestaurantsPriceRange2.1,RestaurantsPriceRange2.2`, icon: Utensils },
+      { label: 'Google Maps Dining', url: `https://www.google.com/maps/search/restaurants+${searchQuery}`, icon: MapPin },
+    ],
+    attractions: [
+      { label: 'Top Attractions', url: `https://www.tripadvisor.com/Attractions-${searchQuery}`, icon: Camera },
+      { label: 'Things to Do', url: `https://www.google.com/search?q=things+to+do+${searchQuery}`, icon: PartyPopper },
+    ],
+  };
+};
+
 export function SummaryTab({ tripId, trip }: SummaryTabProps) {
   const { data: bookings = [] } = useBookings(tripId);
   const { data: parkingList = [] } = useParking(tripId);
@@ -41,6 +63,10 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
   );
 
   const tripDays = differenceInDays(parseISO(trip.end_date), parseISO(trip.start_date)) + 1;
+  const destinationLinks = getDestinationLinks(trip.destination_city, trip.destination_state, trip.destination_country);
+  const destinationDisplay = trip.destination_state 
+    ? `${trip.destination_city}, ${trip.destination_state}, ${trip.destination_country}`
+    : `${trip.destination_city}, ${trip.destination_country}`;
 
   // Calculate costs
   const bookingsCost = bookings.reduce((sum, b) => sum + Number(b.total_cost || 0), 0);
@@ -124,16 +150,14 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
   const downloadCalendar = () => {
     const events: string[] = [];
     
-    // Add trip dates
     events.push(createICSEvent(
       `Trip: ${trip.name}`,
-      `${trip.destination_city}, ${trip.destination_country}`,
+      destinationDisplay,
       parseISO(trip.start_date),
       parseISO(trip.end_date),
       true
     ));
 
-    // Add bookings
     bookings.forEach((b: Booking) => {
       events.push(createICSEvent(
         b.booking_type === 'flight' ? `Flight: ${b.airline || b.vendor_name}` :
@@ -145,7 +169,6 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
       ));
     });
 
-    // Add parking with expiration
     parkingList.forEach((p: Parking) => {
       if (p.end_datetime) {
         events.push(createICSEvent(
@@ -159,7 +182,7 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
 
     const icsContent = `BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//Real Travel//EN
+PRODID:-//Real Travel 2 Real Places//EN
 ${events.join('\n')}
 END:VCALENDAR`;
 
@@ -174,6 +197,21 @@ END:VCALENDAR`;
 
   return (
     <div className="space-y-6">
+      {/* Destination Header */}
+      <Card className="bg-gradient-to-br from-primary/10 via-accent/5 to-background border-primary/20">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-3 mb-4">
+            <MapPin className="w-6 h-6 text-primary" />
+            <div>
+              <h2 className="text-xl font-bold">{destinationDisplay}</h2>
+              <p className="text-sm text-muted-foreground">
+                {format(parseISO(trip.start_date), 'MMM d')} - {format(parseISO(trip.end_date), 'MMM d, yyyy')} • {tripDays} day{tripDays !== 1 ? 's' : ''}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Alerts */}
       {(flightsWithoutTSA.length > 0 || flightsWithoutFF.length > 0 || parkingExpiringsSoon.length > 0) && (
         <Card className="border-warning/50 bg-warning/5">
@@ -307,6 +345,63 @@ END:VCALENDAR`;
         </Card>
       </div>
 
+      {/* Destination Info & Recommendations */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Info className="w-4 h-4 text-primary" />
+            Destination Info & Recommendations
+          </CardTitle>
+          <CardDescription>Local links, dining (4+ stars, $-$$), and attractions</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div>
+              <h4 className="text-sm font-medium mb-2 flex items-center gap-1">
+                <Globe className="w-4 h-4" /> General Info
+              </h4>
+              <div className="space-y-1">
+                {destinationLinks.generalInfo.map((link) => (
+                  <Button key={link.label} variant="ghost" size="sm" className="w-full justify-start h-8 text-xs" onClick={() => window.open(link.url, '_blank')}>
+                    <link.icon className="w-3 h-3 mr-2" />
+                    {link.label}
+                    <ExternalLink className="w-3 h-3 ml-auto" />
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium mb-2 flex items-center gap-1">
+                <Utensils className="w-4 h-4" /> Dining (4+ ⭐, $-$$)
+              </h4>
+              <div className="space-y-1">
+                {destinationLinks.dining.map((link) => (
+                  <Button key={link.label} variant="ghost" size="sm" className="w-full justify-start h-8 text-xs" onClick={() => window.open(link.url, '_blank')}>
+                    <link.icon className="w-3 h-3 mr-2" />
+                    {link.label}
+                    <ExternalLink className="w-3 h-3 ml-auto" />
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium mb-2 flex items-center gap-1">
+                <Camera className="w-4 h-4" /> Attractions
+              </h4>
+              <div className="space-y-1">
+                {destinationLinks.attractions.map((link) => (
+                  <Button key={link.label} variant="ghost" size="sm" className="w-full justify-start h-8 text-xs" onClick={() => window.open(link.url, '_blank')}>
+                    <link.icon className="w-3 h-3 mr-2" />
+                    {link.label}
+                    <ExternalLink className="w-3 h-3 ml-auto" />
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Calendar Export */}
       <Button onClick={downloadCalendar} variant="outline" className="w-full sm:w-auto">
         <Download className="w-4 h-4 mr-2" />
@@ -399,7 +494,7 @@ function createICSEvent(
     return format(date, "yyyyMMdd'T'HHmmss");
   };
 
-  const uid = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}@realtravel`;
+  const uid = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}@realtravel2realplaces`;
   
   return `BEGIN:VEVENT
 UID:${uid}
