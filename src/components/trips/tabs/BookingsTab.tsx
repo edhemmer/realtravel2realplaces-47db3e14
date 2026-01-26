@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useBookings, useCreateBooking, useDeleteBooking } from '@/hooks/useBookings';
-import { Booking, BookingType, StayType } from '@/types/database';
+import { useCompanions } from '@/hooks/useCompanions';
+import { useBookingCompanionsByTrip, useSetBookingCompanions } from '@/hooks/useBookingCompanions';
+import { Booking, BookingType, StayType, Companion } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,10 +10,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { 
   Plus, Plane, Building2, Car, PartyPopper, Trash2, 
-  ExternalLink, MapPin, AlertTriangle, Link2, Upload, FileText
+  ExternalLink, MapPin, AlertTriangle, Link2, Upload, FileText, Users
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import {
@@ -34,12 +37,16 @@ interface BookingsTabProps {
 
 export function BookingsTab({ tripId }: BookingsTabProps) {
   const { data: bookings = [], isLoading } = useBookings(tripId);
+  const { data: companions = [] } = useCompanions(tripId);
+  const { data: bookingCompanions = [] } = useBookingCompanionsByTrip(tripId);
   const createBooking = useCreateBooking();
   const deleteBooking = useDeleteBooking();
+  const setBookingCompanions = useSetBookingCompanions();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [bookingToDelete, setBookingToDelete] = useState<string | null>(null);
   const [bookingType, setBookingType] = useState<BookingType>('flight');
   const [urlAutoFilled, setUrlAutoFilled] = useState(false);
+  const [selectedCompanions, setSelectedCompanions] = useState<string[]>([]);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -103,12 +110,13 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
     });
     setBookingType('flight');
     setUrlAutoFilled(false);
+    setSelectedCompanions([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    await createBooking.mutateAsync({
+    const newBooking = await createBooking.mutateAsync({
       trip_id: tripId,
       booking_type: bookingType,
       vendor_name: formData.vendor_name,
@@ -130,9 +138,34 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
       pickup_location: formData.pickup_location || undefined,
       return_location: formData.return_location || undefined,
     });
+
+    // Link selected companions to the new booking
+    if (newBooking && selectedCompanions.length > 0) {
+      await setBookingCompanions.mutateAsync({
+        bookingId: newBooking.id,
+        companionIds: selectedCompanions,
+        tripId,
+      });
+    }
     
     resetForm();
     setDialogOpen(false);
+  };
+
+  // Helper to get companions for a specific booking
+  const getCompanionsForBooking = (bookingId: string): Companion[] => {
+    const linkedIds = bookingCompanions
+      .filter(bc => bc.booking_id === bookingId)
+      .map(bc => bc.companion_id);
+    return companions.filter(c => linkedIds.includes(c.id));
+  };
+
+  const toggleCompanion = (companionId: string) => {
+    setSelectedCompanions(prev => 
+      prev.includes(companionId)
+        ? prev.filter(id => id !== companionId)
+        : [...prev, companionId]
+    );
   };
 
   const handleDelete = () => {
@@ -300,7 +333,22 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
                   </div>
                 )}
 
-                {/* TSA info moved to companion level - no longer displayed here */}
+                {/* Linked Companions */}
+                {getCompanionsForBooking(booking.id).length > 0 && (
+                  <div className="pt-2 border-t">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                      <Users className="w-3 h-3" />
+                      Travelers
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {getCompanionsForBooking(booking.id).map((companion) => (
+                        <Badge key={companion.id} variant="secondary" className="text-xs">
+                          {companion.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex gap-2 pt-2">
                   {booking.address && (
@@ -568,6 +616,39 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
                 />
               </div>
             </div>
+
+            {/* Companion Selection */}
+            {companions.length > 0 && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  Who's on this booking?
+                </Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {companions.map((companion) => (
+                    <div
+                      key={companion.id}
+                      className="flex items-center space-x-2"
+                    >
+                      <Checkbox
+                        id={`companion-${companion.id}`}
+                        checked={selectedCompanions.includes(companion.id)}
+                        onCheckedChange={() => toggleCompanion(companion.id)}
+                      />
+                      <label
+                        htmlFor={`companion-${companion.id}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        {companion.name}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Select travelers to link them to this booking
+                </p>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label>Notes</Label>

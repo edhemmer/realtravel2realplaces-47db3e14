@@ -5,12 +5,20 @@ import { Plane, Users, Clock, ExternalLink } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
 
+interface BookingCompanion {
+  id: string;
+  booking_id: string;
+  companion_id: string;
+  created_at: string;
+}
+
 interface FlightSummaryCardProps {
   bookings: Booking[];
   companions: Companion[];
+  bookingCompanions: BookingCompanion[];
 }
 
-export function FlightSummaryCard({ bookings, companions }: FlightSummaryCardProps) {
+export function FlightSummaryCard({ bookings, companions, bookingCompanions }: FlightSummaryCardProps) {
   const flights = bookings
     .filter((b) => b.booking_type === 'flight')
     .sort((a, b) => parseISO(a.start_datetime).getTime() - parseISO(b.start_datetime).getTime());
@@ -18,6 +26,14 @@ export function FlightSummaryCard({ bookings, companions }: FlightSummaryCardPro
   if (flights.length === 0) {
     return null;
   }
+
+  // Helper to get companions for a specific flight
+  const getCompanionsForFlight = (bookingId: string): Companion[] => {
+    const linkedIds = bookingCompanions
+      .filter(bc => bc.booking_id === bookingId)
+      .map(bc => bc.companion_id);
+    return companions.filter(c => linkedIds.includes(c.id));
+  };
 
   // Total travelers = companions + 1 (the trip owner)
   const totalTravelers = companions.length + 1;
@@ -38,49 +54,69 @@ export function FlightSummaryCard({ bookings, companions }: FlightSummaryCardPro
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {flights.map((flight) => (
-            <div
-              key={flight.id}
-              className="flex items-start justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-medium text-sm">
-                    {flight.airline || flight.vendor_name}
-                  </span>
-                  {flight.confirmation_number && (
-                    <Badge variant="outline" className="text-xs">
-                      {flight.confirmation_number}
-                    </Badge>
+          {flights.map((flight) => {
+            const flightCompanions = getCompanionsForFlight(flight.id);
+            const hasLinkedTravelers = flightCompanions.length > 0;
+            
+            return (
+              <div
+                key={flight.id}
+                className="p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-sm">
+                        {flight.airline || flight.vendor_name}
+                      </span>
+                      {flight.confirmation_number && (
+                        <Badge variant="outline" className="text-xs">
+                          {flight.confirmation_number}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {format(parseISO(flight.start_datetime), 'MMM d, h:mm a')}
+                      </span>
+                      {flight.passenger_name && (
+                        <span className="truncate">• {flight.passenger_name}</span>
+                      )}
+                    </div>
+                  </div>
+                  {flight.link_url && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 shrink-0"
+                      onClick={() => window.open(flight.link_url!, '_blank')}
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </Button>
                   )}
                 </div>
-                <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {format(parseISO(flight.start_datetime), 'MMM d, h:mm a')}
-                  </span>
-                  {flight.passenger_name && (
-                    <span className="truncate">• {flight.passenger_name}</span>
-                  )}
-                </div>
+                
+                {/* Per-flight travelers */}
+                {hasLinkedTravelers && (
+                  <div className="mt-2 pt-2 border-t border-muted">
+                    <div className="flex flex-wrap gap-1">
+                      {flightCompanions.map((companion) => (
+                        <Badge key={companion.id} variant="secondary" className="text-xs">
+                          {companion.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-              {flight.link_url && (
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8 shrink-0"
-                  onClick={() => window.open(flight.link_url!, '_blank')}
-                >
-                  <ExternalLink className="w-4 h-4" />
-                </Button>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {companions.length > 0 && (
           <div className="mt-3 pt-3 border-t">
-            <p className="text-xs text-muted-foreground mb-2">Travelers on this trip:</p>
+            <p className="text-xs text-muted-foreground mb-2">All trip travelers:</p>
             <div className="flex flex-wrap gap-1">
               <Badge variant="secondary" className="text-xs">You</Badge>
               {companions.map((companion) => (
