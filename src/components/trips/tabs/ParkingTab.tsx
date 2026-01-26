@@ -20,12 +20,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useTripPermission } from '@/pages/TripDetail';
 
 interface ParkingTabProps {
   tripId: string;
 }
 
 export function ParkingTab({ tripId }: ParkingTabProps) {
+  const { canEdit } = useTripPermission();
   const { data: parkingList = [], isLoading } = useParking(tripId);
   const createParking = useCreateParking();
   const deleteParking = useDeleteParking();
@@ -111,10 +113,12 @@ export function ParkingTab({ tripId }: ParkingTabProps) {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Parking</h3>
-        <Button onClick={() => setDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90">
-          <Plus className="w-4 h-4 mr-2" />
-          Add Parking
-        </Button>
+        {canEdit && (
+          <Button onClick={() => setDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Parking
+          </Button>
+        )}
       </div>
 
       {/* Summary */}
@@ -153,14 +157,16 @@ export function ParkingTab({ tripId }: ParkingTabProps) {
                       {status === 'expired' && (
                         <Badge variant="secondary">Expired</Badge>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => setParkingToDelete(parking.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      {canEdit && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => setParkingToDelete(parking.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardHeader>

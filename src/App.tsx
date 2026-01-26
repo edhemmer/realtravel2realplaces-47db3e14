@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import TripDetail from "./pages/TripDetail";
+import AcceptShare from "./pages/AcceptShare";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +49,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <TripDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/shared/:token"
+        element={
+          <ProtectedRoute>
+            <AcceptShare />
           </ProtectedRoute>
         }
       />

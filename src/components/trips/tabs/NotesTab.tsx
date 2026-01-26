@@ -5,12 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { FileText, Phone, Link, Save } from 'lucide-react';
+import { useTripPermission } from '@/pages/TripDetail';
 
 interface NotesTabProps {
   tripId: string;
 }
 
 export function NotesTab({ tripId }: NotesTabProps) {
+  const { canEdit } = useTripPermission();
   const { data: notes, isLoading } = useTripNotes(tripId);
   const upsertNotes = useUpsertTripNotes();
 
@@ -53,14 +55,16 @@ export function NotesTab({ tripId }: NotesTabProps) {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Notes & Safety</h3>
-        <Button
-          onClick={handleSave}
-          disabled={!hasChanges || upsertNotes.isPending}
-          className="bg-gradient-ocean hover:opacity-90"
-        >
-          <Save className="w-4 h-4 mr-2" />
-          {upsertNotes.isPending ? 'Saving...' : 'Save Changes'}
-        </Button>
+        {canEdit && (
+          <Button
+            onClick={handleSave}
+            disabled={!hasChanges || upsertNotes.isPending}
+            className="bg-gradient-ocean hover:opacity-90"
+          >
+            <Save className="w-4 h-4 mr-2" />
+            {upsertNotes.isPending ? 'Saving...' : 'Save Changes'}
+          </Button>
+        )}
       </div>
 
       <div className="grid gap-6">
@@ -82,6 +86,7 @@ export function NotesTab({ tripId }: NotesTabProps) {
               placeholder="Add any notes about your trip..."
               rows={6}
               className="resize-none"
+              disabled={!canEdit}
             />
           </CardContent>
         </Card>
@@ -104,6 +109,7 @@ export function NotesTab({ tripId }: NotesTabProps) {
               placeholder="Emergency: 911&#10;US Embassy: +1-555-123-4567&#10;Hotel: +1-555-987-6543"
               rows={4}
               className="resize-none font-mono text-sm"
+              disabled={!canEdit}
             />
           </CardContent>
         </Card>
@@ -126,6 +132,7 @@ export function NotesTab({ tripId }: NotesTabProps) {
               placeholder="https://restaurant-reservation.com/12345&#10;https://museum-tickets.com/booking/abc"
               rows={4}
               className="resize-none font-mono text-sm"
+              disabled={!canEdit}
             />
           </CardContent>
         </Card>

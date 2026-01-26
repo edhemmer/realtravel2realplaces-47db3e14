@@ -30,12 +30,14 @@ import {
 import { getVendorUrl } from '@/lib/vendorUrls';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useTripPermission } from '@/pages/TripDetail';
 
 interface BookingsTabProps {
   tripId: string;
 }
 
 export function BookingsTab({ tripId }: BookingsTabProps) {
+  const { canEdit } = useTripPermission();
   const { data: bookings = [], isLoading } = useBookings(tripId);
   const { data: companions = [] } = useCompanions(tripId);
   const { data: bookingCompanions = [] } = useBookingCompanionsByTrip(tripId);
@@ -320,10 +322,12 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
               : `${bookings.length} booking${bookings.length !== 1 ? 's' : ''}`}
           </p>
         </div>
-        <Button onClick={() => setDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90">
-          <Plus className="w-4 h-4 mr-2" />
-          Add Booking
-        </Button>
+        {canEdit && (
+          <Button onClick={() => setDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Booking
+          </Button>
+        )}
       </div>
 
       {/* Bookings Grid */}
@@ -347,24 +351,26 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
                       <CardDescription className="capitalize text-xs">{booking.booking_type.replace('_', ' ')}</CardDescription>
                     </div>
                   </div>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => openEditDialog(booking)}
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive transition-opacity"
-                      onClick={() => setBookingToDelete(booking.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  {canEdit && (
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => openEditDialog(booking)}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive transition-opacity"
+                        onClick={() => setBookingToDelete(booking.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">

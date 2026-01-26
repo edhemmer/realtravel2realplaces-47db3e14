@@ -28,12 +28,14 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
+import { useTripPermission } from '@/pages/TripDetail';
 
 interface CompanionsTabProps {
   tripId: string;
 }
 
 export function CompanionsTab({ tripId }: CompanionsTabProps) {
+  const { isOwner, canEdit } = useTripPermission();
   const { data: companions = [], isLoading } = useCompanions(tripId);
   const { data: shares = [], isLoading: sharesLoading } = useTripShares(tripId);
   const { data: trip } = useTrip(tripId);
@@ -174,16 +176,20 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
               : `${companions.length} companion${companions.length !== 1 ? 's' : ''}`}
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => setShareDialogOpen(true)} variant="outline">
-            <Share2 className="w-4 h-4 mr-2" />
-            Share Trip
-          </Button>
-          <Button onClick={() => setDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Companion
-          </Button>
-        </div>
+        {canEdit && (
+          <div className="flex gap-2">
+            {isOwner && (
+              <Button onClick={() => setShareDialogOpen(true)} variant="outline">
+                <Share2 className="w-4 h-4 mr-2" />
+                Share Trip
+              </Button>
+            )}
+            <Button onClick={() => setDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Companion
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Active Shares */}
@@ -222,14 +228,16 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
                       </div>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => setShareToDelete(share.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  {isOwner && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => setShareToDelete(share.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>
@@ -259,14 +267,16 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
                     </div>
                     <CardTitle className="text-base">{companion.name}</CardTitle>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive transition-opacity"
-                    onClick={() => setCompanionToDelete(companion.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  {canEdit && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive transition-opacity"
+                      onClick={() => setCompanionToDelete(companion.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
