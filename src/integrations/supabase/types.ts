@@ -453,7 +453,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      user_has_trip_access: { Args: { trip_id: string }; Returns: boolean }
+      user_owns_trip: { Args: { trip_id: string }; Returns: boolean }
     }
     Enums: {
       booking_type: "flight" | "stay" | "car_rental" | "activity"
