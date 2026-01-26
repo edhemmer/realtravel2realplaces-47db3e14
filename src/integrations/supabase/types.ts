@@ -455,6 +455,7 @@ export type Database = {
           destination_city: string
           destination_country: string
           destination_state: string | null
+          destination_type: Database["public"]["Enums"]["destination_type"]
           end_date: string
           estimated_miles: number | null
           id: string
@@ -473,6 +474,7 @@ export type Database = {
           destination_city: string
           destination_country: string
           destination_state?: string | null
+          destination_type?: Database["public"]["Enums"]["destination_type"]
           end_date: string
           estimated_miles?: number | null
           id?: string
@@ -491,6 +493,7 @@ export type Database = {
           destination_city?: string
           destination_country?: string
           destination_state?: string | null
+          destination_type?: Database["public"]["Enums"]["destination_type"]
           end_date?: string
           estimated_miles?: number | null
           id?: string
@@ -520,6 +523,7 @@ export type Database = {
     }
     Enums: {
       booking_type: "flight" | "stay" | "car_rental" | "activity"
+      destination_type: "beach" | "mountain" | "city" | "unspecified"
       expense_category:
         | "meals"
         | "transport"
@@ -687,6 +691,7 @@ export const Constants = {
   public: {
     Enums: {
       booking_type: ["flight", "stay", "car_rental", "activity"],
+      destination_type: ["beach", "mountain", "city", "unspecified"],
       expense_category: [
         "meals",
         "transport",

@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Upload, FileText, Loader2, X, Check, Plane, Car } from 'lucide-react';
+import { CalendarIcon, Upload, FileText, Loader2, X, Check, Plane, Car, Palmtree, Mountain, Building2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -27,6 +27,7 @@ const tripSchema = z.object({
   destination_country: z.string().max(100).optional(),
   trip_type: z.enum(['business', 'personal', 'mixed']),
   transportation_mode: z.enum(['flight', 'drive', 'unspecified']),
+  destination_type: z.enum(['beach', 'mountain', 'city', 'unspecified']),
   origin_address: z.string().max(500).optional(),
   destination_address: z.string().max(500).optional(),
 });
@@ -73,11 +74,13 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
     defaultValues: {
       trip_type: 'personal',
       transportation_mode: 'unspecified',
+      destination_type: 'unspecified',
     },
   });
 
   const tripType = watch('trip_type');
   const transportationMode = watch('transportation_mode');
+  const destinationType = watch('destination_type');
 
   const resetAll = () => {
     reset();
@@ -178,6 +181,7 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
         destination_country: data.destination_country,
         trip_type: data.trip_type,
         transportation_mode: data.transportation_mode,
+        destination_type: data.destination_type,
         origin_address: data.origin_address || undefined,
         destination_address: data.destination_address || undefined,
         start_date: format(startDate, 'yyyy-MM-dd'),
@@ -413,6 +417,55 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
                 </Button>
               </div>
             </div>
+          </div>
+
+          {/* Destination Type Selector */}
+          <div className="space-y-2">
+            <Label>Destination Type (for packing suggestions)</Label>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={destinationType === 'beach' ? 'default' : 'outline'}
+                size="sm"
+                className={cn(
+                  "flex-1",
+                  destinationType === 'beach' && "bg-cyan-600 hover:bg-cyan-700"
+                )}
+                onClick={() => setValue('destination_type', 'beach')}
+              >
+                <Palmtree className="w-4 h-4 mr-1" />
+                Beach
+              </Button>
+              <Button
+                type="button"
+                variant={destinationType === 'mountain' ? 'default' : 'outline'}
+                size="sm"
+                className={cn(
+                  "flex-1",
+                  destinationType === 'mountain' && "bg-emerald-600 hover:bg-emerald-700"
+                )}
+                onClick={() => setValue('destination_type', 'mountain')}
+              >
+                <Mountain className="w-4 h-4 mr-1" />
+                Mountain
+              </Button>
+              <Button
+                type="button"
+                variant={destinationType === 'city' ? 'default' : 'outline'}
+                size="sm"
+                className={cn(
+                  "flex-1",
+                  destinationType === 'city' && "bg-slate-600 hover:bg-slate-700"
+                )}
+                onClick={() => setValue('destination_type', 'city')}
+              >
+                <Building2 className="w-4 h-4 mr-1" />
+                City
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Optional: Override auto-detection for packing list recommendations
+            </p>
           </div>
 
           {/* Drive-specific fields */}

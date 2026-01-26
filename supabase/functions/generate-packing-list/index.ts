@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { destination_city, destination_state, destination_country, start_date, end_date, trip_type, weather_forecast } = await req.json();
+    const { destination_city, destination_state, destination_country, start_date, end_date, trip_type, weather_forecast, destination_type } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
@@ -39,13 +39,21 @@ serve(async (req) => {
     const stateLower = destination_state?.toLowerCase() || '';
     const countryLower = destination_country?.toLowerCase() || '';
     
-    const isBeachDestination = beachDestinations.some(beach => 
+    // Manual destination type overrides auto-detection
+    const manualDestinationType = destination_type && destination_type !== 'unspecified' ? destination_type : null;
+    
+    const autoDetectedBeach = beachDestinations.some(beach => 
       cityLower.includes(beach) || stateLower.includes(beach) || countryLower.includes(beach)
     ) || beachStates.some(state => stateLower === state || stateLower.includes(state));
 
-    const isMountainDestination = mountainDestinations.some(mountain => 
+    const autoDetectedMountain = mountainDestinations.some(mountain => 
       cityLower.includes(mountain) || stateLower.includes(mountain) || countryLower.includes(mountain)
     ) || mountainStates.some(state => stateLower === state || stateLower.includes(state));
+
+    // Use manual setting if provided, otherwise use auto-detection
+    const isBeachDestination = manualDestinationType === 'beach' || (!manualDestinationType && autoDetectedBeach);
+    const isMountainDestination = manualDestinationType === 'mountain' || (!manualDestinationType && autoDetectedMountain);
+    const isCityDestination = manualDestinationType === 'city';
 
     const beachItemsInstruction = isBeachDestination ? `
 MANDATORY BEACH ITEMS (YOU MUST INCLUDE ALL OF THESE):
@@ -73,6 +81,16 @@ MANDATORY MOUNTAIN/HIKING ITEMS (YOU MUST INCLUDE ALL OF THESE):
 - Gloves (lightweight or insulated based on season): 1 pair
 These items are REQUIRED for mountain destinations. Do not skip any of them.` : '';
 
+    const cityItemsInstruction = isCityDestination ? `
+MANDATORY CITY/URBAN ITEMS (YOU MUST INCLUDE ALL OF THESE):
+- Comfortable walking shoes: 1 pair
+- Daypack or crossbody bag for sightseeing: 1
+- Portable phone charger/power bank: 1
+- Umbrella (compact): 1
+- Light jacket or cardigan for AC/evening: 1
+- Smart casual outfit for dining: 1 set
+These items are RECOMMENDED for city destinations.` : '';
+
     const systemPrompt = `You are a smart travel packing assistant. Generate a practical, accurate packing list based on the destination, trip duration, time of year, and weather conditions.
 
 CRITICAL RULES for clothing quantities:
@@ -85,10 +103,12 @@ CRITICAL RULES for clothing quantities:
 - Keep total quantity practical - travelers prefer packing light
 ${beachItemsInstruction}
 ${mountainItemsInstruction}
+${cityItemsInstruction}
 
 Location-aware items:
 - Florida/Beach/Tropical destinations: ALWAYS include swimsuit, sunscreen, sunglasses, sun hat, flip-flops, beach towel, after-sun care
 - Mountain/Hiking destinations: ALWAYS include hiking boots, warm hat, layers, fleece jacket, waterproof jacket, hiking socks, gloves, daypack
+- City/Urban destinations: comfortable walking shoes, daypack, portable charger, umbrella, smart casual outfit
 - Cold destinations: layers, warm jacket, gloves, hat
 - Business trips: add professional attire items
 
@@ -100,7 +120,7 @@ Weather-based adjustments:
 - Variable: versatile pieces that layer
 
 Return a JSON object with categorized items. Each item needs: category, item_name, quantity.
-Categories: Clothing, Swimwear & Beach, Hiking & Outdoor, Toiletries & Health, Electronics, Documents, Essentials, Weather Gear, Business (if applicable)`;
+Categories: Clothing, Swimwear & Beach, Hiking & Outdoor, City Essentials, Toiletries & Health, Electronics, Documents, Essentials, Weather Gear, Business (if applicable)`;
 
     const userPrompt = `Generate a packing list for this trip:
 - Destination: ${destination_city}${destination_state ? `, ${destination_state}` : ''}, ${destination_country}
