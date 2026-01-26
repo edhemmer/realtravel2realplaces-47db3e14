@@ -14,7 +14,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Upload, FileText, Loader2, X, Check, Plane, Car, Palmtree, Mountain, Building2 } from 'lucide-react';
+import { CalendarIcon, Upload, FileText, Loader2, X, Check, Plane, Car, Palmtree, Mountain, Building2, ClipboardPaste, Scan } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -103,7 +104,10 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
   const [isParsing, setIsParsing] = useState(false);
   const [parsedBookings, setParsedBookings] = useState<ParsedBooking[]>([]);
   const [parseError, setParseError] = useState<string | null>(null);
+  const [pastedText, setPastedText] = useState('');
+  const [showPasteInput, setShowPasteInput] = useState(false);
   const dropZoneRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<TripFormData>({
     resolver: zodResolver(tripSchema),
@@ -124,35 +128,19 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
     setEndDate(undefined);
     setParsedBookings([]);
     setParseError(null);
+    setPastedText('');
+    setShowPasteInput(false);
   };
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (dropZoneRef.current && !dropZoneRef.current.contains(e.relatedTarget as Node)) {
-      setIsDragging(false);
-    }
-  }, []);
-
-  const handleDrop = useCallback(async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-    setParseError(null);
-
-    const text = e.dataTransfer.getData('text/plain');
-    if (!text) {
-      setParseError('No text content found. Please drag and drop text from your confirmation email or document.');
+  // Shared parsing logic for both drag-drop and paste
+  const parseItineraryText = useCallback(async (text: string) => {
+    if (!text.trim()) {
+      setParseError('Please paste your confirmation text first.');
       return;
     }
 
     setIsParsing(true);
+    setParseError(null);
     toast.info('Parsing itinerary...');
 
     try {
@@ -182,17 +170,18 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
               setEndDate(parseISO(parsed.trip.end_date));
             } catch {}
           }
-          // Auto-detect transportation mode from parsed bookings
           if (parsed.bookings?.some((b: any) => b.booking_type === 'flight')) {
             setValue('transportation_mode', 'flight');
           }
         }
 
-        // Store parsed bookings
         if (parsed.bookings && Array.isArray(parsed.bookings)) {
           setParsedBookings(parsed.bookings);
         }
 
+        // Clear paste input on success and collapse
+        setPastedText('');
+        setShowPasteInput(false);
         toast.success(`Parsed ${parsed.bookings?.length || 0} booking(s) from itinerary`);
       } else {
         throw new Error(data?.error || 'Failed to parse itinerary');
@@ -205,6 +194,53 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
       setIsParsing(false);
     }
   }, [setValue]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (dropZoneRef.current && !dropZoneRef.current.contains(e.relatedTarget as Node)) {
+      setIsDragging(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const text = e.dataTransfer.getData('text/plain');
+    if (!text) {
+      setParseError('No text content found. Please drag and drop text from your confirmation email or document.');
+      return;
+    }
+
+    await parseItineraryText(text);
+  }, [parseItineraryText]);
+
+  const handlePasteAndScan = useCallback(async () => {
+    await parseItineraryText(pastedText);
+  }, [pastedText, parseItineraryText]);
+
+  const handlePasteFromClipboard = useCallback(async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        setPastedText(text);
+        // Auto-scan after paste on mobile for convenience
+        await parseItineraryText(text);
+      }
+    } catch {
+      // Clipboard API failed, just show the textarea
+      setShowPasteInput(true);
+      toast.info('Paste your confirmation text below');
+    }
+  }, [parseItineraryText]);
 
   const onSubmit = async (data: TripFormData) => {
     if (!startDate || !endDate) return;
@@ -343,37 +379,99 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
           </DialogDescription>
         </DialogHeader>
 
-        {/* Drop Zone */}
-        <div
-          ref={dropZoneRef}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          className={cn(
-            'relative border-2 border-dashed rounded-lg p-6 transition-all duration-200 text-center',
-            isDragging 
-              ? 'border-primary bg-primary/5 scale-[1.02]' 
-              : 'border-muted-foreground/25 hover:border-muted-foreground/50',
-            isParsing && 'pointer-events-none opacity-60'
+        {/* Import Options */}
+        <div className="space-y-3">
+          {/* Drop Zone - Desktop optimized */}
+          <div
+            ref={dropZoneRef}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={cn(
+              'relative border-2 border-dashed rounded-lg p-4 transition-all duration-200 text-center hidden sm:block',
+              isDragging 
+                ? 'border-primary bg-primary/5 scale-[1.02]' 
+                : 'border-muted-foreground/25 hover:border-muted-foreground/50',
+              isParsing && 'pointer-events-none opacity-60'
+            )}
+          >
+            {isParsing ? (
+              <div className="flex flex-col items-center gap-2">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Parsing...</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-1">
+                <Upload className={cn(
+                  "w-6 h-6 transition-colors",
+                  isDragging ? "text-primary" : "text-muted-foreground"
+                )} />
+                <p className="text-sm font-medium">
+                  {isDragging ? 'Drop to parse!' : 'Drag & drop confirmation'}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Paste Button - Always visible, mobile-first */}
+          {!showPasteInput && !isParsing && (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full flex items-center justify-center gap-2 h-12 sm:h-10"
+              onClick={() => setShowPasteInput(true)}
+            >
+              <ClipboardPaste className="w-5 h-5" />
+              <span>Paste Confirmation Text</span>
+            </Button>
           )}
-        >
-          {isParsing ? (
-            <div className="flex flex-col items-center gap-2">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">Parsing your itinerary...</p>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-2">
-              <Upload className={cn(
-                "w-8 h-8 transition-colors",
-                isDragging ? "text-primary" : "text-muted-foreground"
-              )} />
-              <p className="text-sm font-medium">
-                {isDragging ? 'Drop to parse!' : 'Drag & drop itinerary or confirmation'}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Drop text from emails or documents to auto-fill trip details
-              </p>
+
+          {/* Paste Input Area */}
+          {showPasteInput && (
+            <div className="space-y-2">
+              <Textarea
+                ref={textareaRef}
+                value={pastedText}
+                onChange={(e) => setPastedText(e.target.value)}
+                placeholder="Paste your booking confirmation, itinerary, or email text here..."
+                className="min-h-[120px] text-base"
+                autoFocus
+                disabled={isParsing}
+              />
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => {
+                    setPastedText('');
+                    setShowPasteInput(false);
+                  }}
+                  disabled={isParsing}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="flex-1 flex items-center justify-center gap-2"
+                  onClick={handlePasteAndScan}
+                  disabled={isParsing || !pastedText.trim()}
+                >
+                  {isParsing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Scanning...
+                    </>
+                  ) : (
+                    <>
+                      <Scan className="w-4 h-4" />
+                      Scan & Import
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           )}
         </div>
