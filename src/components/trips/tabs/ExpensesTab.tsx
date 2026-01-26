@@ -227,13 +227,22 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
         if (data?.lowConfidence && data?.data) {
           // Low confidence - still populate but warn user
           const parsed = data.data;
+          
+          // Build notes from breakdown even for low confidence
+          const noteParts: string[] = [];
+          if (parsed.location) noteParts.push(`📍 ${parsed.location}`);
+          if (parsed.subtotal) noteParts.push(`Subtotal: $${parsed.subtotal.toFixed(2)}`);
+          if (parsed.tax) noteParts.push(`Tax: $${parsed.tax.toFixed(2)}`);
+          if (parsed.tip) noteParts.push(`Tip: $${parsed.tip.toFixed(2)}`);
+          
           setFormData(prev => ({
             ...prev,
             date: parsed.date || prev.date,
             category: parsed.category || prev.category,
             sub_category: parsed.sub_category || '',
-            description: parsed.description || parsed.vendor_name || '',
+            description: parsed.vendor_name || parsed.description || '',
             amount: parsed.amount?.toString() || '',
+            notes: noteParts.length > 0 ? noteParts.join(' | ') : '',
           }));
           setParseError('Low confidence in some fields. Please verify the data.');
           toast.warning('Data extracted with low confidence. Please verify.');
@@ -243,19 +252,28 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
         throw new Error(data?.error || 'Failed to parse receipt');
       }
 
-      // Success - populate form
+      // Success - populate form with all extracted data
       const parsed = data.data;
+      
+      // Build detailed notes from extracted breakdown
+      const noteParts: string[] = [];
+      if (parsed.location) noteParts.push(`📍 ${parsed.location}`);
+      if (parsed.subtotal) noteParts.push(`Subtotal: $${parsed.subtotal.toFixed(2)}`);
+      if (parsed.tax) noteParts.push(`Tax: $${parsed.tax.toFixed(2)}`);
+      if (parsed.tip) noteParts.push(`Tip: $${parsed.tip.toFixed(2)}`);
+      
       setFormData(prev => ({
         ...prev,
         date: parsed.date || prev.date,
         category: parsed.category || prev.category,
         sub_category: parsed.sub_category || '',
-        description: parsed.description || parsed.vendor_name || '',
+        description: parsed.vendor_name || parsed.description || '',
         amount: parsed.amount?.toString() || '',
+        notes: noteParts.length > 0 ? noteParts.join(' | ') : '',
       }));
       
       setParseSuccess(true);
-      toast.success(`Receipt parsed successfully! (${parsed.confidence || 100}% confidence)`);
+      toast.success(`Receipt parsed: ${parsed.vendor_name || 'Receipt'} - $${parsed.amount?.toFixed(2) || '0.00'} (${parsed.confidence || 100}% confidence)`);
       
     } catch (error) {
       console.error('Parse error:', error);
