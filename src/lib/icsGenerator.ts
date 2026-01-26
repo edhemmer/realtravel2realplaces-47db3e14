@@ -1,7 +1,8 @@
-import { format, addMinutes, parseISO } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { Booking, Parking, Trip } from '@/types/database';
 
 interface ICSEventOptions {
+  uid: string; // Unique ID for preventing duplicates on re-import
   title: string;
   location?: string;
   description?: string;
@@ -9,6 +10,7 @@ interface ICSEventOptions {
   end?: Date;
   allDay?: boolean;
   alarms?: { minutesBefore: number; description?: string }[];
+  sequence?: number; // Increment when event is updated
 }
 
 function escapeICSText(text: string): string {
@@ -26,16 +28,18 @@ function formatICSDate(date: Date, allDay: boolean): string {
   return format(date, "yyyyMMdd'T'HHmmss");
 }
 
-function generateUID(): string {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}@realtravel2realplaces`;
+// Generate consistent UID based on entity ID to prevent duplicates
+function generateUID(entityType: string, entityId: string, suffix?: string): string {
+  const base = `${entityType}-${entityId}${suffix ? `-${suffix}` : ''}`;
+  return `${base}@realtravel2realplaces.app`;
 }
 
 function createICSEvent(options: ICSEventOptions): string {
-  const { title, location, description, start, end, allDay = false, alarms = [] } = options;
-  const uid = generateUID();
+  const { uid, title, location, description, start, end, allDay = false, alarms = [], sequence = 0 } = options;
   
   let event = `BEGIN:VEVENT
 UID:${uid}
+SEQUENCE:${sequence}
 DTSTAMP:${formatICSDate(new Date(), false)}
 DTSTART${allDay ? ';VALUE=DATE' : ''}:${formatICSDate(start, allDay)}`;
 
@@ -83,8 +87,9 @@ export function generateTripICS(options: GenerateICSOptions): string {
     ? `${trip.destination_city}, ${trip.destination_state}, ${trip.destination_country}`
     : `${trip.destination_city}, ${trip.destination_country}`;
 
-  // Trip overview event (all day)
+  // Trip overview event (all day) - uses trip ID for consistent UID
   events.push(createICSEvent({
+    uid: generateUID('trip', trip.id),
     title: `🌍 Trip: ${trip.name}`,
     location: destinationDisplay,
     description: `Trip to ${destinationDisplay}${trip.notes ? `\\n\\nNotes: ${trip.notes}` : ''}`,
@@ -92,8 +97,8 @@ export function generateTripICS(options: GenerateICSOptions): string {
     end: parseISO(trip.end_date),
     allDay: true,
     alarms: includeReminders ? [
-      { minutesBefore: 60 * 24 * 2, description: `2 days until ${trip.name} - start packing!` }, // 2 days before
-      { minutesBefore: 60 * 24, description: `Tomorrow: ${trip.name} begins` }, // 1 day before
+      { minutesBefore: 60 * 24 * 2, description: `2 days until ${trip.name} - start packing!` },
+      { minutesBefore: 60 * 24, description: `Tomorrow: ${trip.name} begins` },
     ] : [],
   }));
 
@@ -181,6 +186,7 @@ export function generateTripICS(options: GenerateICSOptions): string {
     }
 
     events.push(createICSEvent({
+      uid: generateUID('booking', booking.id),
       title,
       location: booking.address,
       description,
@@ -192,6 +198,7 @@ export function generateTripICS(options: GenerateICSOptions): string {
     // Add car rental return event if applicable
     if (booking.booking_type === 'car_rental' && endTime) {
       events.push(createICSEvent({
+        uid: generateUID('booking', booking.id, 'return'),
         title: `🚗 Return Car: ${booking.rental_company || booking.vendor_name}`,
         location: booking.return_location,
         description: `Return rental car${booking.confirmation_number ? `\\nConfirmation: ${booking.confirmation_number}` : ''}`,
@@ -206,6 +213,7 @@ export function generateTripICS(options: GenerateICSOptions): string {
     // Add checkout reminder for stays
     if (booking.booking_type === 'stay' && endTime) {
       events.push(createICSEvent({
+        uid: generateUID('booking', booking.id, 'checkout'),
         title: `🏨 Check-out: ${booking.property_name || booking.vendor_name}`,
         location: booking.address,
         description: 'Hotel check-out',
@@ -225,6 +233,7 @@ export function generateTripICS(options: GenerateICSOptions): string {
 
     // Parking start event
     events.push(createICSEvent({
+      uid: generateUID('parking', parking.id),
       title: `🅿️ Parking: ${parking.label}`,
       location: parking.address,
       description: [
@@ -239,6 +248,7 @@ export function generateTripICS(options: GenerateICSOptions): string {
     // Parking expiration reminder
     if (endTime) {
       events.push(createICSEvent({
+        uid: generateUID('parking', parking.id, 'expiry'),
         title: `⚠️ Parking Expires: ${parking.label}`,
         location: parking.address,
         description: `Your parking at ${parking.label} is expiring${parking.level_section_space ? ` (Space: ${parking.level_section_space})` : ''}`,

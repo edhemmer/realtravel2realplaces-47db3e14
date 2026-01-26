@@ -269,13 +269,24 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
           <CardContent>
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Total</span>
+                <span className="text-sm text-muted-foreground">Total Trip Cost</span>
                 <span className="text-xl font-bold">${totalCost.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between items-center pt-1 border-t">
+              <div className="flex justify-between items-center text-xs text-muted-foreground">
+                <span>Bookings: ${bookingsCost.toFixed(2)}</span>
+                <span>Parking: ${parkingCost.toFixed(2)}</span>
+                <span>Expenses: ${expensesCost.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t">
                 <span className="text-sm text-muted-foreground">My Share</span>
                 <span className="text-lg font-semibold text-primary">${myOutOfPocket.toFixed(2)}</span>
               </div>
+              {totalCost > 0 && myOutOfPocket < totalCost && (
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-muted-foreground">Shared/Covered</span>
+                  <span className="text-green-600">${(totalCost - myOutOfPocket).toFixed(2)}</span>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
