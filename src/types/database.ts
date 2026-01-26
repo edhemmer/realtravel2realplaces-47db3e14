@@ -5,11 +5,19 @@ export type ExpenseCategory = 'meals' | 'transport' | 'activity' | 'shopping' | 
 export type ParkingType = 'airport' | 'beach' | 'city_garage' | 'hotel' | 'other';
 export type ParkingBilling = 'hourly' | 'daily' | 'per_trip' | 'other';
 
+export type ExpenseSubCategory = 
+  'breakfast' | 'lunch' | 'dinner' | 'snacks' | 'coffee' | 'groceries' |
+  'uber' | 'taxi' | 'gas' | 'tolls' | 'public_transit' | 'parking_expense' |
+  'tours' | 'entertainment' | 'tickets' | 'sports' |
+  'souvenirs' | 'clothing' | 'gifts' |
+  'tips' | 'fees' | 'insurance' | 'miscellaneous';
+
 export interface Trip {
   id: string;
   user_id: string;
   name: string;
   destination_city: string;
+  destination_state?: string;
   destination_country: string;
   start_date: string;
   end_date: string;
@@ -53,6 +61,7 @@ export interface Expense {
   trip_id: string;
   date: string;
   category: ExpenseCategory;
+  sub_category?: ExpenseSubCategory;
   description?: string;
   amount: number;
   my_share: number;

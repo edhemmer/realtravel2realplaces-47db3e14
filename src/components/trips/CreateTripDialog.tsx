@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 const tripSchema = z.object({
   name: z.string().min(1, 'Trip name is required').max(100),
   destination_city: z.string().min(1, 'City is required').max(100),
+  destination_state: z.string().max(100).optional(),
   destination_country: z.string().min(1, 'Country is required').max(100),
   trip_type: z.enum(['business', 'personal', 'mixed']),
 });
@@ -48,6 +49,7 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
     await createTrip.mutateAsync({
       name: data.name,
       destination_city: data.destination_city,
+      destination_state: data.destination_state || undefined,
       destination_country: data.destination_country,
       trip_type: data.trip_type,
       start_date: format(startDate, 'yyyy-MM-dd'),
@@ -88,21 +90,29 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
             {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-3">
             <div className="space-y-2">
               <Label htmlFor="city">City</Label>
               <Input
                 id="city"
-                placeholder="Paris"
+                placeholder="Orlando"
                 {...register('destination_city')}
               />
               {errors.destination_city && <p className="text-sm text-destructive">{errors.destination_city.message}</p>}
             </div>
             <div className="space-y-2">
+              <Label htmlFor="state">State</Label>
+              <Input
+                id="state"
+                placeholder="FL"
+                {...register('destination_state')}
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="country">Country</Label>
               <Input
                 id="country"
-                placeholder="France"
+                placeholder="USA"
                 {...register('destination_country')}
               />
               {errors.destination_country && <p className="text-sm text-destructive">{errors.destination_country.message}</p>}

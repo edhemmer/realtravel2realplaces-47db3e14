@@ -24,6 +24,7 @@ interface CreateExpenseData {
   trip_id: string;
   date: string;
   category: ExpenseCategory;
+  sub_category?: string;
   description?: string;
   amount: number;
   my_share?: number;
@@ -36,9 +37,22 @@ export function useCreateExpense() {
 
   return useMutation({
     mutationFn: async (data: CreateExpenseData) => {
+      const insertData: Record<string, unknown> = {
+        trip_id: data.trip_id,
+        date: data.date,
+        category: data.category,
+        amount: data.amount,
+      };
+      
+      if (data.sub_category) insertData.sub_category = data.sub_category;
+      if (data.description) insertData.description = data.description;
+      if (data.my_share !== undefined) insertData.my_share = data.my_share;
+      if (data.notes) insertData.notes = data.notes;
+      if (data.receipt_url) insertData.receipt_url = data.receipt_url;
+
       const { data: expense, error } = await supabase
         .from('expenses')
-        .insert(data)
+        .insert(insertData as never)
         .select()
         .single();
       
@@ -62,7 +76,7 @@ export function useUpdateExpense() {
     mutationFn: async ({ id, trip_id, ...data }: Partial<Expense> & { id: string; trip_id: string }) => {
       const { error } = await supabase
         .from('expenses')
-        .update(data)
+        .update(data as never)
         .eq('id', id);
       
       if (error) throw error;

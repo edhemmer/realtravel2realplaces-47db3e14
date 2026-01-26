@@ -149,6 +149,9 @@ export type Database = {
           my_share: number | null
           notes: string | null
           receipt_url: string | null
+          sub_category:
+            | Database["public"]["Enums"]["expense_sub_category"]
+            | null
           trip_id: string
           updated_at: string
         }
@@ -162,6 +165,9 @@ export type Database = {
           my_share?: number | null
           notes?: string | null
           receipt_url?: string | null
+          sub_category?:
+            | Database["public"]["Enums"]["expense_sub_category"]
+            | null
           trip_id: string
           updated_at?: string
         }
@@ -175,6 +181,9 @@ export type Database = {
           my_share?: number | null
           notes?: string | null
           receipt_url?: string | null
+          sub_category?:
+            | Database["public"]["Enums"]["expense_sub_category"]
+            | null
           trip_id?: string
           updated_at?: string
         }
@@ -350,11 +359,56 @@ export type Database = {
           },
         ]
       }
+      trip_shares: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          id: string
+          permission: string
+          share_token: string | null
+          shared_with_email: string | null
+          shared_with_user_id: string | null
+          trip_id: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          id?: string
+          permission?: string
+          share_token?: string | null
+          shared_with_email?: string | null
+          shared_with_user_id?: string | null
+          trip_id: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          id?: string
+          permission?: string
+          share_token?: string | null
+          shared_with_email?: string | null
+          shared_with_user_id?: string | null
+          trip_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_shares_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trips: {
         Row: {
           created_at: string
           destination_city: string
           destination_country: string
+          destination_state: string | null
           end_date: string
           id: string
           name: string
@@ -368,6 +422,7 @@ export type Database = {
           created_at?: string
           destination_city: string
           destination_country: string
+          destination_state?: string | null
           end_date: string
           id?: string
           name: string
@@ -381,6 +436,7 @@ export type Database = {
           created_at?: string
           destination_city?: string
           destination_country?: string
+          destination_state?: string | null
           end_date?: string
           id?: string
           name?: string
@@ -408,6 +464,30 @@ export type Database = {
         | "shopping"
         | "parking"
         | "other"
+      expense_sub_category:
+        | "breakfast"
+        | "lunch"
+        | "dinner"
+        | "snacks"
+        | "coffee"
+        | "groceries"
+        | "uber"
+        | "taxi"
+        | "gas"
+        | "tolls"
+        | "public_transit"
+        | "parking_expense"
+        | "tours"
+        | "entertainment"
+        | "tickets"
+        | "sports"
+        | "souvenirs"
+        | "clothing"
+        | "gifts"
+        | "tips"
+        | "fees"
+        | "insurance"
+        | "miscellaneous"
       parking_billing: "hourly" | "daily" | "per_trip" | "other"
       parking_type: "airport" | "beach" | "city_garage" | "hotel" | "other"
       stay_type: "hotel" | "airbnb" | "vrbo" | "other"
@@ -547,6 +627,31 @@ export const Constants = {
         "shopping",
         "parking",
         "other",
+      ],
+      expense_sub_category: [
+        "breakfast",
+        "lunch",
+        "dinner",
+        "snacks",
+        "coffee",
+        "groceries",
+        "uber",
+        "taxi",
+        "gas",
+        "tolls",
+        "public_transit",
+        "parking_expense",
+        "tours",
+        "entertainment",
+        "tickets",
+        "sports",
+        "souvenirs",
+        "clothing",
+        "gifts",
+        "tips",
+        "fees",
+        "insurance",
+        "miscellaneous",
       ],
       parking_billing: ["hourly", "daily", "per_trip", "other"],
       parking_type: ["airport", "beach", "city_garage", "hotel", "other"],

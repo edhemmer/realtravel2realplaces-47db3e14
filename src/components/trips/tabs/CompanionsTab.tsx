@@ -1,17 +1,20 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useCompanions, useCreateCompanion, useDeleteCompanion } from '@/hooks/useCompanions';
+import { useTripShares, useCreateTripShare, useDeleteTripShare } from '@/hooks/useTripShares';
 import { useTrip } from '@/hooks/useTrips';
 import { Companion } from '@/types/database';
+import { TripShare } from '@/types/tripShare';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Plus, Trash2, Users, Mail, Phone, Share2, Link2, Copy, Check, 
-  Send, UserPlus, ExternalLink
+  Send, UserPlus, Clock, CheckCircle2
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -24,6 +27,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { format, parseISO } from 'date-fns';
 
 interface CompanionsTabProps {
   tripId: string;
@@ -31,14 +35,17 @@ interface CompanionsTabProps {
 
 export function CompanionsTab({ tripId }: CompanionsTabProps) {
   const { data: companions = [], isLoading } = useCompanions(tripId);
+  const { data: shares = [], isLoading: sharesLoading } = useTripShares(tripId);
   const { data: trip } = useTrip(tripId);
   const createCompanion = useCreateCompanion();
   const deleteCompanion = useDeleteCompanion();
+  const createShare = useCreateTripShare();
+  const deleteShare = useDeleteTripShare();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [companionToDelete, setCompanionToDelete] = useState<string | null>(null);
+  const [shareToDelete, setShareToDelete] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [emailSending, setEmailSending] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -52,9 +59,10 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
     message: '',
   });
 
-  // Generate a share link (for now, just a formatted link to share trip details)
-  const shareLink = typeof window !== 'undefined' 
-    ? `${window.location.origin}/trip/${tripId}` 
+  // Generate a share link using the first available share token
+  const activeShare = shares.find(s => s.share_token);
+  const shareLink = activeShare 
+    ? `${window.location.origin}/shared/${activeShare.share_token}`
     : '';
 
   const resetForm = () => {
@@ -87,47 +95,64 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
     }
   };
 
+  const handleDeleteShare = () => {
+    if (shareToDelete) {
+      deleteShare.mutate({ id: shareToDelete, trip_id: tripId });
+      setShareToDelete(null);
+    }
+  };
+
   const copyShareLink = async () => {
-    await navigator.clipboard.writeText(shareLink);
-    setCopied(true);
-    toast.success('Link copied to clipboard!');
-    setTimeout(() => setCopied(false), 2000);
+    if (shareLink) {
+      await navigator.clipboard.writeText(shareLink);
+      setCopied(true);
+      toast.success('Link copied to clipboard!');
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const handleEmailInvite = async (e: React.FormEvent) => {
     e.preventDefault();
-    setEmailSending(true);
     
-    // For now, open mailto link. In production, this would send an actual email
+    // Create a share in the database
+    await createShare.mutateAsync({
+      trip_id: tripId,
+      shared_with_email: shareFormData.email,
+      permission: 'view',
+    });
+    
+    // Open mailto for the email
     const subject = encodeURIComponent(`Join my trip: ${trip?.name || 'Trip'}`);
+    const destination = trip?.destination_state 
+      ? `${trip?.destination_city}, ${trip?.destination_state}, ${trip?.destination_country}`
+      : `${trip?.destination_city}, ${trip?.destination_country}`;
     const body = encodeURIComponent(
       `Hi!\n\nI'd like to share my trip "${trip?.name}" with you.\n\n` +
-      `Destination: ${trip?.destination_city}, ${trip?.destination_country}\n` +
+      `Destination: ${destination}\n` +
       `Dates: ${trip?.start_date} to ${trip?.end_date}\n\n` +
       (shareFormData.message ? `${shareFormData.message}\n\n` : '') +
-      `View trip details: ${shareLink}\n\n` +
+      `You'll be able to view all the trip details once you sign in.\n\n` +
       `Looking forward to traveling with you!`
     );
     
     window.open(`mailto:${shareFormData.email}?subject=${subject}&body=${body}`, '_blank');
     
-    // Add companion if not already added
+    // Add as companion if not already
     const existingCompanion = companions.find(c => c.email?.toLowerCase() === shareFormData.email.toLowerCase());
     if (!existingCompanion && shareFormData.email) {
       await createCompanion.mutateAsync({
         trip_id: tripId,
-        name: shareFormData.email.split('@')[0], // Use email prefix as name
+        name: shareFormData.email.split('@')[0],
         email: shareFormData.email,
       });
     }
     
-    setEmailSending(false);
     resetShareForm();
     setShareDialogOpen(false);
-    toast.success('Invitation ready to send!');
+    toast.success('Invitation created and email prepared!');
   };
 
-  if (isLoading) {
+  if (isLoading || sharesLoading) {
     return <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>;
   }
 
@@ -155,36 +180,65 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
         </div>
       </div>
 
-      {/* Share Trip Card */}
-      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Share2 className="w-4 h-4 text-primary" />
-            Share This Trip
-          </CardTitle>
-          <CardDescription>
-            Invite companions via email or share a link
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1 flex items-center gap-2 p-2 bg-background rounded-lg border">
-              <Link2 className="w-4 h-4 text-muted-foreground shrink-0" />
-              <span className="text-sm text-muted-foreground truncate flex-1">{shareLink}</span>
+      {/* Active Shares */}
+      {shares.length > 0 && (
+        <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Share2 className="w-4 h-4 text-primary" />
+              Shared With
+            </CardTitle>
+            <CardDescription>
+              People who have access to this trip
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {shares.map((share: TripShare) => (
+                <div key={share.id} className="flex items-center justify-between p-2 bg-background rounded-lg border">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-semibold">
+                      {share.shared_with_email?.charAt(0).toUpperCase() || '?'}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{share.shared_with_email}</p>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {share.accepted_at ? (
+                          <span className="flex items-center gap-1 text-green-600">
+                            <CheckCircle2 className="w-3 h-3" /> Accepted
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" /> Pending
+                          </span>
+                        )}
+                        <span>• {share.permission}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => setShareToDelete(share.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
             </div>
-            <div className="flex gap-2">
-              <Button onClick={copyShareLink} variant="outline" size="sm">
-                {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
-                {copied ? 'Copied!' : 'Copy Link'}
-              </Button>
-              <Button onClick={() => setShareDialogOpen(true)} size="sm">
-                <Mail className="w-4 h-4 mr-1" />
-                Email Invite
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            {shareLink && (
+              <div className="flex items-center gap-2 mt-4 p-2 bg-background rounded-lg border">
+                <Link2 className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="text-sm text-muted-foreground truncate flex-1">{shareLink}</span>
+                <Button onClick={copyShareLink} variant="ghost" size="sm">
+                  {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Companions Grid */}
       {companions.length > 0 ? (
@@ -328,7 +382,7 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
           <DialogHeader>
             <DialogTitle>Share Trip</DialogTitle>
             <DialogDescription>
-              Invite someone to view your trip details
+              Invite someone to view your trip details (requires them to sign in)
             </DialogDescription>
           </DialogHeader>
 
@@ -338,7 +392,7 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
                 <Mail className="w-4 h-4 mr-2" />
                 Email
               </TabsTrigger>
-              <TabsTrigger value="link">
+              <TabsTrigger value="link" disabled={!shareLink}>
                 <Link2 className="w-4 h-4 mr-2" />
                 Link
               </TabsTrigger>
@@ -365,9 +419,9 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
                     rows={2}
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={emailSending}>
+                <Button type="submit" className="w-full" disabled={createShare.isPending}>
                   <Send className="w-4 h-4 mr-2" />
-                  {emailSending ? 'Preparing...' : 'Send Email Invitation'}
+                  {createShare.isPending ? 'Sending...' : 'Send Invitation'}
                 </Button>
               </form>
             </TabsContent>
@@ -377,14 +431,18 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
                 <Label>Share Link</Label>
                 <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
                   <Link2 className="w-4 h-4 text-muted-foreground shrink-0" />
-                  <span className="text-sm text-muted-foreground truncate flex-1">{shareLink}</span>
+                  <span className="text-sm text-muted-foreground truncate flex-1">
+                    {shareLink || 'Send an email invitation first to generate a share link'}
+                  </span>
                 </div>
-                <Button onClick={copyShareLink} className="w-full" variant="outline">
-                  {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-                  {copied ? 'Copied to Clipboard!' : 'Copy Link'}
-                </Button>
+                {shareLink && (
+                  <Button onClick={copyShareLink} className="w-full" variant="outline">
+                    {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+                    {copied ? 'Copied to Clipboard!' : 'Copy Link'}
+                  </Button>
+                )}
                 <p className="text-xs text-muted-foreground text-center">
-                  Anyone with this link can view your trip details
+                  Recipients must sign in to view shared trip details
                 </p>
               </div>
             </TabsContent>
@@ -404,6 +462,23 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!shareToDelete} onOpenChange={() => setShareToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revoke Access</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to revoke this person's access to the trip?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteShare} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Revoke
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

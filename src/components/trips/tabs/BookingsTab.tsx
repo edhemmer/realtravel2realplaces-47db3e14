@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { getVendorUrl } from '@/lib/vendorUrls';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface BookingsTabProps {
   tripId: string;
@@ -173,10 +174,46 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
     window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank');
   };
 
-  const handleFileDrop = (e: React.DragEvent) => {
+  const handleFileDrop = async (e: React.DragEvent) => {
     e.preventDefault();
-    // Placeholder for future email/PDF parsing functionality
-    toast.info('Email/PDF parsing coming soon! For now, please enter details manually.');
+    const text = e.dataTransfer.getData('text/plain');
+    if (text) {
+      toast.info('Parsing booking confirmation...');
+      try {
+        const { data, error } = await supabase.functions.invoke('parse-booking', {
+          body: { text, type: 'booking' },
+        });
+        if (error) throw error;
+        if (data?.success && data?.data) {
+          const parsed = data.data;
+          setBookingType(parsed.booking_type || 'flight');
+          setFormData(prev => ({
+            ...prev,
+            vendor_name: parsed.vendor_name || '',
+            start_datetime: parsed.start_datetime ? new Date(parsed.start_datetime).toISOString().slice(0, 16) : '',
+            end_datetime: parsed.end_datetime ? new Date(parsed.end_datetime).toISOString().slice(0, 16) : '',
+            confirmation_number: parsed.confirmation_number || '',
+            total_cost: parsed.total_cost?.toString() || '',
+            address: parsed.address || '',
+            airline: parsed.airline || '',
+            passenger_name: parsed.passenger_name || '',
+            property_name: parsed.property_name || '',
+            stay_type: parsed.stay_type || 'hotel',
+            rental_company: parsed.rental_company || '',
+            pickup_location: parsed.pickup_location || '',
+            return_location: parsed.return_location || '',
+            notes: parsed.notes || '',
+          }));
+          setDialogOpen(true);
+          toast.success('Booking parsed! Review and save.');
+        }
+      } catch (err) {
+        console.error('Parse error:', err);
+        toast.error('Failed to parse. Please enter manually.');
+      }
+    } else {
+      toast.info('Drop email/confirmation text to auto-fill booking details.');
+    }
   };
 
   if (isLoading) {

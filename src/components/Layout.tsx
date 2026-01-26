@@ -32,8 +32,8 @@ export function Layout({ children }: LayoutProps) {
               <Plane className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gradient-ocean leading-tight">Real Travel</h1>
-              <p className="text-xs text-muted-foreground leading-tight">to Real Places</p>
+              <h1 className="text-lg font-bold text-gradient-ocean leading-tight">Real Travel 2</h1>
+              <p className="text-xs text-muted-foreground leading-tight">Real Places</p>
             </div>
           </Link>
 
