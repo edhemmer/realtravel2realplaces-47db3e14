@@ -122,14 +122,20 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    const amount = parseFloat(formData.amount) || 0;
+    // Default my_share to total amount if not specified or empty
+    const myShare = formData.my_share && formData.my_share.trim() !== '' 
+      ? parseFloat(formData.my_share) 
+      : amount;
+    
     await createExpense.mutateAsync({
       trip_id: tripId,
       date: formData.date,
       category: formData.category,
-      sub_category: formData.sub_category || undefined,
+      sub_category: formData.sub_category || 'miscellaneous',
       description: formData.description || undefined,
-      amount: parseFloat(formData.amount) || 0,
-      my_share: formData.my_share ? parseFloat(formData.my_share) : 0,
+      amount: amount,
+      my_share: myShare,
       notes: formData.notes || undefined,
       receipt_url: formData.receipt_url || undefined,
     });
@@ -215,41 +221,53 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
         body: { imageBase64: base64Data },
       });
 
-      if (error) throw error;
+      // Handle network-level errors
+      if (error) {
+        console.error('Network error:', error);
+        setParseError('Unable to connect. Please check your connection and try again.');
+        toast.error('Connection error');
+        return;
+      }
 
+      // Handle unreadable receipts
+      if (data?.readable === false) {
+        const message = data.retryMessage || data.message || 'Unable to read receipt';
+        setParseError(message);
+        toast.error(data.message || 'Unable to read receipt');
+        return;
+      }
+      
+      // Handle low confidence - still populate but warn user
+      if (data?.lowConfidence && data?.data) {
+        const parsed = data.data;
+        
+        // Build notes from breakdown even for low confidence
+        const noteParts: string[] = [];
+        if (parsed.location) noteParts.push(`📍 ${parsed.location}`);
+        if (parsed.subtotal) noteParts.push(`Subtotal: $${parsed.subtotal.toFixed(2)}`);
+        if (parsed.tax) noteParts.push(`Tax: $${parsed.tax.toFixed(2)}`);
+        if (parsed.tip) noteParts.push(`Tip: $${parsed.tip.toFixed(2)}`);
+        
+        setFormData(prev => ({
+          ...prev,
+          date: parsed.date || prev.date,
+          category: parsed.category || prev.category,
+          sub_category: parsed.sub_category || 'miscellaneous',
+          description: parsed.vendor_name || parsed.description || '',
+          amount: parsed.amount?.toString() || '',
+          notes: noteParts.length > 0 ? noteParts.join(' | ') : '',
+        }));
+        setParseError('Low confidence in some fields. Please verify the data.');
+        toast.warning('Data extracted with low confidence. Please verify.');
+        return;
+      }
+
+      // Check for success
       if (!data?.success) {
-        if (data?.readable === false || data?.retryMessage) {
-          setParseError(data.retryMessage || data.error || 'Unable to read receipt');
-          toast.error(data.error || 'Unable to read receipt');
-          return;
-        }
-        
-        if (data?.lowConfidence && data?.data) {
-          // Low confidence - still populate but warn user
-          const parsed = data.data;
-          
-          // Build notes from breakdown even for low confidence
-          const noteParts: string[] = [];
-          if (parsed.location) noteParts.push(`📍 ${parsed.location}`);
-          if (parsed.subtotal) noteParts.push(`Subtotal: $${parsed.subtotal.toFixed(2)}`);
-          if (parsed.tax) noteParts.push(`Tax: $${parsed.tax.toFixed(2)}`);
-          if (parsed.tip) noteParts.push(`Tip: $${parsed.tip.toFixed(2)}`);
-          
-          setFormData(prev => ({
-            ...prev,
-            date: parsed.date || prev.date,
-            category: parsed.category || prev.category,
-            sub_category: parsed.sub_category || '',
-            description: parsed.vendor_name || parsed.description || '',
-            amount: parsed.amount?.toString() || '',
-            notes: noteParts.length > 0 ? noteParts.join(' | ') : '',
-          }));
-          setParseError('Low confidence in some fields. Please verify the data.');
-          toast.warning('Data extracted with low confidence. Please verify.');
-          return;
-        }
-        
-        throw new Error(data?.error || 'Failed to parse receipt');
+        const message = data?.message || 'We couldn\'t parse this receipt. Please enter details manually.';
+        setParseError(message);
+        toast.warning(message);
+        return;
       }
 
       // Success - populate form with all extracted data
@@ -266,19 +284,19 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
         ...prev,
         date: parsed.date || prev.date,
         category: parsed.category || prev.category,
-        sub_category: parsed.sub_category || '',
+        sub_category: parsed.sub_category || 'miscellaneous',
         description: parsed.vendor_name || parsed.description || '',
         amount: parsed.amount?.toString() || '',
         notes: noteParts.length > 0 ? noteParts.join(' | ') : '',
       }));
       
       setParseSuccess(true);
-      toast.success(`Receipt parsed: ${parsed.vendor_name || 'Receipt'} - $${parsed.amount?.toFixed(2) || '0.00'} (${parsed.confidence || 100}% confidence)`);
+      toast.success(data.message || `Receipt parsed: ${parsed.vendor_name || 'Receipt'}`);
       
     } catch (error) {
       console.error('Parse error:', error);
-      setParseError('Failed to parse receipt. Please enter data manually or retake photo.');
-      toast.error('Failed to parse receipt');
+      setParseError('An unexpected error occurred. Please enter data manually or retake photo.');
+      toast.error('Something went wrong');
     } finally {
       setParsing(false);
     }
@@ -301,7 +319,13 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
         body: { text, type: 'receipt' },
       });
 
-      if (error) throw error;
+      // Handle network-level errors
+      if (error) {
+        console.error('Network error:', error);
+        setParseError('Unable to connect. Please check your connection.');
+        toast.error('Connection error');
+        return;
+      }
       
       if (data?.success && data?.data) {
         const parsed = data.data;
@@ -309,17 +333,21 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
           ...prev,
           date: parsed.date || prev.date,
           category: parsed.category || prev.category,
-          sub_category: parsed.sub_category || '',
+          sub_category: parsed.sub_category || 'miscellaneous',
           description: parsed.description || parsed.vendor_name || '',
           amount: parsed.amount?.toString() || '',
         }));
         setParseSuccess(true);
-        toast.success('Receipt parsed successfully!');
+        toast.success(data.message || 'Receipt parsed successfully!');
+      } else {
+        const message = data?.message || 'We couldn\'t parse this text. Please enter details manually.';
+        setParseError(message);
+        toast.warning(message);
       }
     } catch (error) {
       console.error('Parse error:', error);
-      setParseError('Failed to parse receipt text');
-      toast.error('Failed to parse receipt');
+      setParseError('An unexpected error occurred. Please try again.');
+      toast.error('Something went wrong');
     } finally {
       setParsing(false);
     }

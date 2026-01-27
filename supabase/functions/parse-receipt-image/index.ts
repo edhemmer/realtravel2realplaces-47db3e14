@@ -16,10 +16,11 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ 
-        success: false, 
-        error: "Authentication required" 
+        success: false,
+        data: {},
+        message: "Please sign in to use this feature." 
       }), {
-        status: 401,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -33,27 +34,54 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
     if (authError || !user) {
       return new Response(JSON.stringify({ 
-        success: false, 
-        error: "Invalid or expired token" 
+        success: false,
+        data: {},
+        message: "Your session has expired. Please sign in again." 
       }), {
-        status: 401,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { imageBase64, imageUrl } = await req.json();
+    let imageBase64: string | undefined;
+    let imageUrl: string | undefined;
+    
+    try {
+      const body = await req.json();
+      imageBase64 = body.imageBase64;
+      imageUrl = body.imageUrl;
+    } catch {
+      return new Response(JSON.stringify({ 
+        success: false,
+        data: {},
+        message: "Invalid request format. Please try again." 
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+      console.error("LOVABLE_API_KEY is not configured");
+      return new Response(JSON.stringify({ 
+        success: false,
+        data: {},
+        message: "AI parsing is temporarily unavailable. Please enter details manually." 
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     if (!imageBase64 && !imageUrl) {
       return new Response(JSON.stringify({ 
-        success: false, 
-        error: "No image provided" 
+        success: false,
+        data: {},
+        message: "No image provided. Please upload or take a photo of a receipt." 
       }), {
-        status: 400,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -114,114 +142,145 @@ ACCURACY RULES:
       ? { type: "image_url", image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
       : { type: "image_url", image_url: { url: imageUrl } };
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { 
-            role: "user", 
-            content: [
-              { type: "text", text: "Please analyze this receipt image and extract the expense data. If the image is not clear or not a receipt, let me know." },
-              imageContent
-            ]
-          },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "extract_receipt_data",
-              description: "Extract expense data from a receipt image",
-              parameters: {
-                type: "object",
-                properties: {
-                  readable: { 
-                    type: "boolean", 
-                    description: "Whether the image is readable and is a receipt" 
-                  },
-                  reason: { 
-                    type: "string", 
-                    description: "If not readable, why (e.g., 'Image is blurry', 'Not a receipt', 'Text is cut off')" 
-                  },
-                  data: {
-                    type: "object",
-                    properties: {
-                      date: { type: "string", description: "Date in YYYY-MM-DD format" },
-                      category: { type: "string", enum: ["meals", "transport", "activity", "shopping", "parking", "other"] },
-                      sub_category: { 
-                        type: "string", 
-                        enum: ["breakfast", "lunch", "dinner", "snacks", "coffee", "groceries", "alcohol", "beverages", "uber", "taxi", "gas", "tolls", "public_transit", "parking_expense", "rental_car", "tours", "entertainment", "tickets", "sports", "souvenirs", "clothing", "gifts", "tips", "fees", "insurance", "miscellaneous"]
-                      },
-                      vendor_name: { type: "string", description: "Name of the business/restaurant" },
-                      location: { type: "string", description: "City, state or address if visible" },
-                      subtotal: { type: "number", description: "Subtotal before tax and tip" },
-                      tax: { type: "number", description: "Tax amount" },
-                      tip: { type: "number", description: "Tip/gratuity amount" },
-                      amount: { type: "number", description: "Final total amount paid" },
-                      description: { type: "string", description: "Brief description of the expense" },
-                      confidence: { type: "number", description: "Confidence level 0-100" }
+    let response;
+    try {
+      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { 
+              role: "user", 
+              content: [
+                { type: "text", text: "Please analyze this receipt image and extract the expense data. If the image is not clear or not a receipt, let me know." },
+                imageContent
+              ]
+            },
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "extract_receipt_data",
+                description: "Extract expense data from a receipt image",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    readable: { 
+                      type: "boolean", 
+                      description: "Whether the image is readable and is a receipt" 
                     },
-                    required: ["date", "category", "sub_category", "vendor_name", "amount", "confidence"]
-                  }
-                },
-                required: ["readable"]
+                    reason: { 
+                      type: "string", 
+                      description: "If not readable, why (e.g., 'Image is blurry', 'Not a receipt', 'Text is cut off')" 
+                    },
+                    data: {
+                      type: "object",
+                      properties: {
+                        date: { type: "string", description: "Date in YYYY-MM-DD format" },
+                        category: { type: "string", enum: ["meals", "transport", "activity", "shopping", "parking", "other"] },
+                        sub_category: { 
+                          type: "string", 
+                          enum: ["breakfast", "lunch", "dinner", "snacks", "coffee", "groceries", "alcohol", "beverages", "uber", "taxi", "gas", "tolls", "public_transit", "parking_expense", "rental_car", "tours", "entertainment", "tickets", "sports", "souvenirs", "clothing", "gifts", "tips", "fees", "insurance", "miscellaneous"]
+                        },
+                        vendor_name: { type: "string", description: "Name of the business/restaurant" },
+                        location: { type: "string", description: "City, state or address if visible" },
+                        subtotal: { type: "number", description: "Subtotal before tax and tip" },
+                        tax: { type: "number", description: "Tax amount" },
+                        tip: { type: "number", description: "Tip/gratuity amount" },
+                        amount: { type: "number", description: "Final total amount paid" },
+                        description: { type: "string", description: "Brief description of the expense" },
+                        confidence: { type: "number", description: "Confidence level 0-100" }
+                      },
+                      required: ["date", "category", "sub_category", "vendor_name", "amount", "confidence"]
+                    }
+                  },
+                  required: ["readable"]
+                }
               }
             }
-          }
-        ],
-        tool_choice: { type: "function", function: { name: "extract_receipt_data" } },
-      }),
-    });
+          ],
+          tool_choice: { type: "function", function: { name: "extract_receipt_data" } },
+        }),
+      });
+    } catch (fetchError) {
+      console.error("AI gateway fetch error:", fetchError);
+      return new Response(JSON.stringify({ 
+        success: false,
+        data: {},
+        message: "Unable to connect to AI service. Please try again or enter details manually." 
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
       
+      let userMessage = "We couldn't parse this receipt. Please enter details manually.";
+      
       if (response.status === 429) {
-        return new Response(JSON.stringify({ 
-          success: false, 
-          error: "Rate limit exceeded. Please try again later." 
-        }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ 
-          success: false, 
-          error: "AI credits exhausted. Please add credits." 
-        }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        userMessage = "AI service is busy. Please wait a moment and try again.";
+      } else if (response.status === 402) {
+        userMessage = "AI parsing limit reached. Please enter details manually.";
       }
       
       return new Response(JSON.stringify({ 
-        success: false, 
-        error: "AI parsing failed. Please try again." 
+        success: false,
+        data: {},
+        message: userMessage 
       }), {
-        status: 500,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const aiResponse = await response.json();
+    let aiResponse;
+    try {
+      aiResponse = await response.json();
+    } catch {
+      console.error("Failed to parse AI response JSON");
+      return new Response(JSON.stringify({ 
+        success: false,
+        data: {},
+        message: "Received an invalid response from AI. Please enter details manually." 
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
     
     if (toolCall?.function?.arguments) {
-      const parsed = JSON.parse(toolCall.function.arguments);
+      let parsed;
+      try {
+        parsed = JSON.parse(toolCall.function.arguments);
+      } catch {
+        console.error("Failed to parse tool call arguments");
+        return new Response(JSON.stringify({ 
+          success: false,
+          data: {},
+          message: "AI returned incomplete data. Please enter details manually." 
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       
       if (!parsed.readable) {
         return new Response(JSON.stringify({ 
           success: false, 
           readable: false,
-          error: parsed.reason || "Unable to read the receipt. Please take a clearer photo.",
+          data: {},
+          message: parsed.reason || "Unable to read the receipt. Please take a clearer photo.",
           retryMessage: "Please retake the photo with better lighting and ensure the entire receipt is visible."
         }), {
           status: 200,
@@ -229,14 +288,14 @@ ACCURACY RULES:
         });
       }
 
-      // Validate confidence level - require at least 60% confidence
+      // Validate confidence level - warn if below 60%
       if (parsed.data?.confidence && parsed.data.confidence < 60) {
         return new Response(JSON.stringify({ 
-          success: false, 
+          success: true, 
           readable: true,
           lowConfidence: true,
-          error: "Low confidence in extracted data. Some fields may be inaccurate.",
-          data: parsed.data,
+          data: parsed.data || {},
+          message: "Low confidence in extracted data. Please verify the information.",
           retryMessage: "Consider retaking the photo or verify the extracted data carefully."
         }), {
           status: 200,
@@ -249,7 +308,8 @@ ACCURACY RULES:
         return new Response(JSON.stringify({ 
           success: false, 
           readable: true,
-          error: "Could not extract a valid amount from the receipt.",
+          data: parsed.data || {},
+          message: "Could not extract a valid amount from the receipt.",
           retryMessage: "Please ensure the total amount is clearly visible in the photo."
         }), {
           status: 200,
@@ -260,17 +320,20 @@ ACCURACY RULES:
       return new Response(JSON.stringify({ 
         success: true, 
         readable: true,
-        data: parsed.data 
+        data: parsed.data,
+        message: `Receipt parsed: ${parsed.data.vendor_name || 'Receipt'} - $${parsed.data.amount?.toFixed(2) || '0.00'}`
       }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     return new Response(JSON.stringify({ 
-      success: false, 
-      error: "Could not parse the receipt. Please try again or enter data manually." 
+      success: false,
+      data: {},
+      message: "We couldn't extract details from this receipt. Please enter the information manually." 
     }), {
-      status: 400,
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
@@ -278,9 +341,10 @@ ACCURACY RULES:
     console.error("Parse receipt image error:", error);
     return new Response(JSON.stringify({ 
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred" 
+      data: {},
+      message: "An unexpected error occurred. Please enter details manually." 
     }), {
-      status: 500,
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

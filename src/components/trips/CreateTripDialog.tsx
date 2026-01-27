@@ -148,8 +148,15 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
         body: { text },
       });
 
-      if (error) throw error;
+      // Handle network-level errors
+      if (error) {
+        console.error('Network error:', error);
+        setParseError('Unable to connect. Please check your connection and try again.');
+        toast.error('Connection error');
+        return;
+      }
 
+      // Handle successful response (always 200 now)
       if (data?.success && data?.data) {
         const parsed = data.data;
         
@@ -182,14 +189,17 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
         // Clear paste input on success and collapse
         setPastedText('');
         setShowPasteInput(false);
-        toast.success(`Parsed ${parsed.bookings?.length || 0} booking(s) from itinerary`);
+        toast.success(data.message || `Parsed ${parsed.bookings?.length || 0} booking(s) from itinerary`);
       } else {
-        throw new Error(data?.error || 'Failed to parse itinerary');
+        // Parsing failed gracefully - show friendly message
+        const message = data?.message || 'We couldn\'t parse this text. Please fill in the details manually.';
+        setParseError(message);
+        toast.warning(message);
       }
     } catch (err) {
       console.error('Parse error:', err);
-      setParseError(err instanceof Error ? err.message : 'Failed to parse itinerary');
-      toast.error('Failed to parse itinerary');
+      setParseError('An unexpected error occurred. Please try again or enter details manually.');
+      toast.error('Something went wrong');
     } finally {
       setIsParsing(false);
     }
