@@ -15,6 +15,8 @@ import { TravelAlertsCard } from '@/components/trips/TravelAlertsCard';
 import { FlightSummaryCard } from '@/components/trips/FlightSummaryCard';
 import { DriveSummaryCard } from '@/components/trips/DriveSummaryCard';
 import { GasExpenseDialog } from '@/components/trips/GasExpenseDialog';
+import { ExpenseReminderBanner } from '@/components/trips/ExpenseReminderBanner';
+import { TsaWarningCard } from '@/components/trips/TsaWarningCard';
 import { generateTripICS, downloadICSFile } from '@/lib/icsGenerator';
 import { 
   Plane, Building2, Car, Calendar, MapPin, DollarSign, 
@@ -128,14 +130,6 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
     })),
   ].sort((a, b) => a.datetime.getTime() - b.datetime.getTime());
 
-  // Preflight checks
-  const flightsWithoutTSA = bookings.filter(
-    (b: Booking) => b.booking_type === 'flight' && !b.tsa_precheck_number
-  );
-  const flightsWithoutFF = bookings.filter(
-    (b: Booking) => b.booking_type === 'flight' && !b.frequent_flyer_number
-  );
-
   // Parking status for card display
   const now = new Date();
   const upcomingParkingExpiration = parkingList
@@ -200,35 +194,21 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
         </CardContent>
       </Card>
 
+      {/* Daily Expense Reminder Banner */}
+      <ExpenseReminderBanner trip={trip} expenses={expenses} />
+
       {/* Travel Alerts - Weather changes, departure reminders, parking expiry */}
       {hasAlerts && (
         <TravelAlertsCard alerts={alerts} />
       )}
 
-      {/* Pre-Flight Checks (TSA, FF numbers) */}
-      {(flightsWithoutTSA.length > 0 || flightsWithoutFF.length > 0) && (
-        <Card className="border-warning/50 bg-warning/5">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2 text-warning">
-              <AlertTriangle className="w-5 h-5" />
-              Pre-Flight Checks
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {flightsWithoutTSA.map((f: Booking) => (
-              <div key={`tsa-${f.id}`} className="text-sm flex items-center gap-2">
-                <Badge variant="outline" className="text-warning border-warning text-xs">Missing TSA</Badge>
-                <span>{f.airline || f.vendor_name} - {f.passenger_name || 'Passenger'}</span>
-              </div>
-            ))}
-            {flightsWithoutFF.map((f: Booking) => (
-              <div key={`ff-${f.id}`} className="text-sm flex items-center gap-2">
-                <Badge variant="outline" className="text-muted-foreground text-xs">No FF#</Badge>
-                <span>{f.airline || f.vendor_name}</span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+      {/* TSA/Companion Warnings - Enhanced component with companion checks */}
+      {transportationMode !== 'drive' && (
+        <TsaWarningCard 
+          bookings={bookings} 
+          companions={companions} 
+          bookingCompanions={bookingCompanions} 
+        />
       )}
 
       {/* Flight or Drive Summary based on transportation mode */}

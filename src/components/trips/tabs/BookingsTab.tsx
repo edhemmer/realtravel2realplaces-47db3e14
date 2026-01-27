@@ -273,7 +273,14 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
         const { data, error } = await supabase.functions.invoke('parse-booking', {
           body: { text, type: 'booking' },
         });
-        if (error) throw error;
+        
+        // Handle network-level errors
+        if (error) {
+          console.error('Network error:', error);
+          toast.error('Connection error. Please try again.');
+          return;
+        }
+        
         if (data?.success && data?.data) {
           const parsed = data.data;
           setBookingType(parsed.booking_type || 'flight');
@@ -295,11 +302,17 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
             notes: parsed.notes || '',
           }));
           setDialogOpen(true);
-          toast.success('Booking parsed! Review and save.');
+          toast.success(data.message || 'Booking parsed! Review and save.');
+        } else {
+          // Show warning but still open dialog for manual entry
+          const message = data?.message || 'We couldn\'t parse this text. Please enter details manually.';
+          toast.warning(message);
+          setDialogOpen(true);
         }
       } catch (err) {
         console.error('Parse error:', err);
-        toast.error('Failed to parse. Please enter manually.');
+        toast.error('Something went wrong. Please enter details manually.');
+        setDialogOpen(true);
       }
     } else {
       toast.info('Drop email/confirmation text to auto-fill booking details.');

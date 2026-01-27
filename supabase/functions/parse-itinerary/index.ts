@@ -15,8 +15,12 @@ serve(async (req) => {
     // Verify authentication
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Authentication required" }), {
-        status: 401,
+      return new Response(JSON.stringify({ 
+        success: false,
+        data: {},
+        message: "Please sign in to use this feature." 
+      }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -29,17 +33,55 @@ serve(async (req) => {
 
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
-        status: 401,
+      return new Response(JSON.stringify({ 
+        success: false,
+        data: {},
+        message: "Your session has expired. Please sign in again." 
+      }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { text } = await req.json();
+    let text: string;
+    
+    try {
+      const body = await req.json();
+      text = body.text;
+    } catch {
+      return new Response(JSON.stringify({ 
+        success: false,
+        data: {},
+        message: "Invalid request format. Please try again." 
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!text || typeof text !== 'string' || text.trim().length === 0) {
+      return new Response(JSON.stringify({ 
+        success: false,
+        data: {},
+        message: "No text provided to parse. Please paste or drop an itinerary." 
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+      console.error("LOVABLE_API_KEY is not configured");
+      return new Response(JSON.stringify({ 
+        success: false,
+        data: {},
+        message: "AI parsing is temporarily unavailable. Please enter details manually." 
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const systemPrompt = `You are a travel itinerary and booking confirmation parser. Your job is to extract TRIP-LEVEL information from booking confirmations, itineraries, or travel documents.
@@ -78,115 +120,166 @@ For car rentals also extract:
 
 Return a JSON object with trip info and an array of bookings. Use null for any fields you cannot determine.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: text },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "extract_itinerary",
-              description: "Extract trip details and all bookings from travel documents",
-              parameters: {
-                type: "object",
-                properties: {
-                  trip: {
-                    type: "object",
-                    properties: {
-                      trip_name: { type: "string", description: "Descriptive trip name" },
-                      destination_city: { type: "string" },
-                      destination_state: { type: "string" },
-                      destination_country: { type: "string" },
-                      start_date: { type: "string", description: "YYYY-MM-DD format" },
-                      end_date: { type: "string", description: "YYYY-MM-DD format" },
-                      trip_type: { type: "string", enum: ["business", "personal", "mixed"] },
-                    },
-                    required: ["trip_name", "destination_city", "destination_country", "start_date", "end_date"],
-                  },
-                  bookings: {
-                    type: "array",
-                    items: {
+    let response;
+    try {
+      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: text },
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "extract_itinerary",
+                description: "Extract trip details and all bookings from travel documents",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    trip: {
                       type: "object",
                       properties: {
-                        booking_type: { type: "string", enum: ["flight", "stay", "car_rental", "activity"] },
-                        vendor_name: { type: "string" },
-                        start_datetime: { type: "string" },
-                        end_datetime: { type: "string" },
-                        confirmation_number: { type: "string" },
-                        total_cost: { type: "number" },
-                        address: { type: "string" },
-                        airline: { type: "string" },
-                        passenger_name: { type: "string" },
-                        property_name: { type: "string" },
-                        stay_type: { type: "string", enum: ["hotel", "airbnb", "vrbo", "other"] },
-                        rental_company: { type: "string" },
-                        pickup_location: { type: "string" },
-                        return_location: { type: "string" },
-                        notes: { type: "string" },
+                        trip_name: { type: "string", description: "Descriptive trip name" },
+                        destination_city: { type: "string" },
+                        destination_state: { type: "string" },
+                        destination_country: { type: "string" },
+                        start_date: { type: "string", description: "YYYY-MM-DD format" },
+                        end_date: { type: "string", description: "YYYY-MM-DD format" },
+                        trip_type: { type: "string", enum: ["business", "personal", "mixed"] },
                       },
-                      required: ["booking_type", "vendor_name", "start_datetime"],
+                      required: ["trip_name", "destination_city", "destination_country", "start_date", "end_date"],
+                    },
+                    bookings: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          booking_type: { type: "string", enum: ["flight", "stay", "car_rental", "activity"] },
+                          vendor_name: { type: "string" },
+                          start_datetime: { type: "string" },
+                          end_datetime: { type: "string" },
+                          confirmation_number: { type: "string" },
+                          total_cost: { type: "number" },
+                          address: { type: "string" },
+                          airline: { type: "string" },
+                          passenger_name: { type: "string" },
+                          property_name: { type: "string" },
+                          stay_type: { type: "string", enum: ["hotel", "airbnb", "vrbo", "other"] },
+                          rental_company: { type: "string" },
+                          pickup_location: { type: "string" },
+                          return_location: { type: "string" },
+                          notes: { type: "string" },
+                        },
+                        required: ["booking_type", "vendor_name", "start_datetime"],
+                      },
                     },
                   },
+                  required: ["trip", "bookings"],
                 },
-                required: ["trip", "bookings"],
               },
             },
-          },
-        ],
-        tool_choice: { type: "function", function: { name: "extract_itinerary" } },
-      }),
-    });
+          ],
+          tool_choice: { type: "function", function: { name: "extract_itinerary" } },
+        }),
+      });
+    } catch (fetchError) {
+      console.error("AI gateway fetch error:", fetchError);
+      return new Response(JSON.stringify({ 
+        success: false,
+        data: {},
+        message: "Unable to connect to AI service. Please try again or enter details manually." 
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
       
+      let userMessage = "We couldn't fully parse this itinerary. Please review and complete the details manually.";
+      
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        userMessage = "AI service is busy. Please wait a moment and try again.";
+      } else if (response.status === 402) {
+        userMessage = "AI parsing limit reached. Please enter details manually.";
       }
       
-      return new Response(JSON.stringify({ error: "AI parsing failed" }), {
-        status: 500,
+      return new Response(JSON.stringify({ 
+        success: false,
+        data: {},
+        message: userMessage 
+      }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch {
+      console.error("Failed to parse AI response JSON");
+      return new Response(JSON.stringify({ 
+        success: false,
+        data: {},
+        message: "Received an invalid response from AI. Please enter details manually." 
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     
     if (toolCall?.function?.arguments) {
-      const parsed = JSON.parse(toolCall.function.arguments);
-      return new Response(JSON.stringify({ success: true, data: parsed }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      try {
+        const parsed = JSON.parse(toolCall.function.arguments);
+        return new Response(JSON.stringify({ 
+          success: true, 
+          data: parsed,
+          message: `Successfully parsed ${parsed.bookings?.length || 0} booking(s).` 
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch {
+        console.error("Failed to parse tool call arguments");
+        return new Response(JSON.stringify({ 
+          success: false,
+          data: {},
+          message: "AI returned incomplete data. Please review and complete the details manually." 
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
-    return new Response(JSON.stringify({ success: false, error: "Could not parse itinerary" }), {
-      status: 400,
+    return new Response(JSON.stringify({ 
+      success: false, 
+      data: {},
+      message: "We couldn't extract details from this text. Please enter the information manually." 
+    }), {
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
     console.error("Parse itinerary error:", error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
-      status: 500,
+    return new Response(JSON.stringify({ 
+      success: false,
+      data: {},
+      message: "An unexpected error occurred. Please enter details manually." 
+    }), {
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
