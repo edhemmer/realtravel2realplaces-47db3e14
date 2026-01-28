@@ -113,6 +113,9 @@ export interface Companion {
   tsa_precheck_number?: string;
   frequent_flyer_number?: string;
   airline?: string;
+  flight_number?: string;
+  seat_number?: string;
+  portion_owed?: number;
   created_at: string;
 }
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useBookings, useCreateBooking, useUpdateBooking, useDeleteBooking } from '@/hooks/useBookings';
 import { useCompanions } from '@/hooks/useCompanions';
 import { useBookingCompanionsByTrip, useSetBookingCompanions } from '@/hooks/useBookingCompanions';
+import { useTrip } from '@/hooks/useTrips';
 import { Booking, BookingType, StayType, Companion } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,7 @@ import { getVendorUrl } from '@/lib/vendorUrls';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useTripPermission } from '@/pages/TripDetail';
+import { CompanionDetailDialog } from '@/components/trips/CompanionDetailDialog';
 
 interface BookingsTabProps {
   tripId: string;
@@ -40,6 +42,7 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
   const { canEdit } = useTripPermission();
   const { data: bookings = [], isLoading } = useBookings(tripId);
   const { data: companions = [] } = useCompanions(tripId);
+  const { data: trip } = useTrip(tripId);
   const { data: bookingCompanions = [] } = useBookingCompanionsByTrip(tripId);
   const createBooking = useCreateBooking();
   const updateBooking = useUpdateBooking();
@@ -51,6 +54,10 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
   const [bookingType, setBookingType] = useState<BookingType>('flight');
   const [urlAutoFilled, setUrlAutoFilled] = useState(false);
   const [selectedCompanions, setSelectedCompanions] = useState<string[]>([]);
+  
+  // Companion detail dialog state
+  const [selectedCompanion, setSelectedCompanion] = useState<Companion | null>(null);
+  const [companionDialogOpen, setCompanionDialogOpen] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -426,7 +433,15 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
                     </div>
                     <div className="flex flex-wrap gap-1">
                       {getCompanionsForBooking(booking.id).map((companion) => (
-                        <Badge key={companion.id} variant="secondary" className="text-xs">
+                        <Badge 
+                          key={companion.id} 
+                          variant="secondary" 
+                          className="text-xs cursor-pointer hover:bg-secondary/80 transition-colors"
+                          onClick={() => {
+                            setSelectedCompanion(companion);
+                            setCompanionDialogOpen(true);
+                          }}
+                        >
                           {companion.name}
                         </Badge>
                       ))}
@@ -795,6 +810,15 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Companion Detail Dialog */}
+      <CompanionDetailDialog
+        companion={selectedCompanion}
+        trip={trip || null}
+        open={companionDialogOpen}
+        onOpenChange={setCompanionDialogOpen}
+        canEdit={canEdit}
+      />
     </div>
   );
 }
