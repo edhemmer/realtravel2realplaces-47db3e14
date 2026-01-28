@@ -515,30 +515,28 @@ export function PackingTab({ tripId }: PackingTabProps) {
                           </span>
                         </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
-                          {/* Quantity Stepper */}
+                          {/* Quantity Stepper - Compact & Elegant */}
                           {canEdit ? (
-                            <div className="flex items-center gap-0.5 bg-muted/50 rounded-md">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
+                            <div className="inline-flex items-center h-5 rounded-full border border-border/60 bg-muted/30 overflow-hidden">
+                              <button
+                                type="button"
+                                className="flex items-center justify-center w-5 h-5 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                                 onClick={() => updateQuantity(item, item.quantity - 1)}
                                 disabled={item.quantity <= 1}
                               >
-                                <Minus className="w-3 h-3" />
-                              </Button>
-                              <span className="text-xs font-medium w-5 text-center">{item.quantity}</span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
+                                <Minus className="w-2.5 h-2.5" />
+                              </button>
+                              <span className="text-[11px] font-medium w-4 text-center tabular-nums">{item.quantity}</span>
+                              <button
+                                type="button"
+                                className="flex items-center justify-center w-5 h-5 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
                                 onClick={() => updateQuantity(item, item.quantity + 1)}
                               >
-                                <Plus className="w-3 h-3" />
-                              </Button>
+                                <Plus className="w-2.5 h-2.5" />
+                              </button>
                             </div>
                           ) : (
-                            <span className="text-xs text-muted-foreground">×{item.quantity}</span>
+                            <span className="text-[11px] text-muted-foreground tabular-nums">×{item.quantity}</span>
                           )}
                           {canEdit && (
                             <Button
