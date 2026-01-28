@@ -513,6 +513,34 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_bookings_safe: {
+        Args: { p_trip_id: string }
+        Returns: {
+          address: string
+          airline: string
+          booking_type: string
+          confirmation_number: string
+          created_at: string
+          end_datetime: string
+          frequent_flyer_number: string
+          id: string
+          link_url: string
+          my_share: number
+          notes: string
+          passenger_name: string
+          pickup_location: string
+          property_name: string
+          rental_company: string
+          return_location: string
+          start_datetime: string
+          stay_type: string
+          total_cost: number
+          trip_id: string
+          tsa_precheck_number: string
+          updated_at: string
+          vendor_name: string
+        }[]
+      }
       get_companions_safe: {
         Args: { p_trip_id: string }
         Returns: {
