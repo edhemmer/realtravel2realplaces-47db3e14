@@ -158,6 +158,7 @@ export default function Auth() {
                       className="pl-10"
                       required
                       disabled={loading}
+                      autoComplete="email"
                     />
                   </div>
                 </div>
@@ -174,6 +175,7 @@ export default function Auth() {
                       className="pl-10 pr-10"
                       required
                       disabled={loading}
+                      autoComplete="current-password"
                     />
                     <button
                       type="button"
@@ -240,6 +242,7 @@ export default function Auth() {
                       className="pl-10"
                       required
                       disabled={loading}
+                      autoComplete="email"
                     />
                   </div>
                 </div>
@@ -257,6 +260,7 @@ export default function Auth() {
                       required
                       minLength={6}
                       disabled={loading}
+                      autoComplete="new-password"
                     />
                     <button
                       type="button"
