@@ -116,6 +116,7 @@ export interface Companion {
   flight_number?: string;
   seat_number?: string;
   portion_owed?: number;
+  tsa_reviewed?: boolean;
   created_at: string;
 }
 

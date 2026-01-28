@@ -63,6 +63,7 @@ export function CompanionDetailDialog({
         flight_number: formData.flight_number || null,
         seat_number: formData.seat_number || null,
         portion_owed: formData.portion_owed ? parseFloat(formData.portion_owed) : null,
+        tsa_reviewed: true, // Mark as reviewed when saved
       });
       onOpenChange(false);
     } catch (error) {
@@ -90,7 +91,6 @@ export function CompanionDetailDialog({
               id="name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Full name"
               required
               disabled={!canEdit}
             />
@@ -104,7 +104,6 @@ export function CompanionDetailDialog({
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="Email address"
               disabled={!canEdit}
             />
           </div>
@@ -117,7 +116,6 @@ export function CompanionDetailDialog({
                 id="tsa"
                 value={formData.tsa_precheck_number}
                 onChange={(e) => setFormData({ ...formData, tsa_precheck_number: e.target.value })}
-                placeholder="Known Traveler Number"
                 disabled={!canEdit}
               />
             </div>
@@ -127,7 +125,6 @@ export function CompanionDetailDialog({
                 id="ff"
                 value={formData.frequent_flyer_number}
                 onChange={(e) => setFormData({ ...formData, frequent_flyer_number: e.target.value })}
-                placeholder="Frequent Flyer Number"
                 disabled={!canEdit}
               />
             </div>
@@ -141,7 +138,6 @@ export function CompanionDetailDialog({
                 id="flight"
                 value={formData.flight_number}
                 onChange={(e) => setFormData({ ...formData, flight_number: e.target.value })}
-                placeholder="Flight number"
                 disabled={!canEdit}
               />
             </div>
@@ -151,7 +147,6 @@ export function CompanionDetailDialog({
                 id="seat"
                 value={formData.seat_number}
                 onChange={(e) => setFormData({ ...formData, seat_number: e.target.value })}
-                placeholder="Seat number"
                 disabled={!canEdit}
               />
             </div>
@@ -166,7 +161,6 @@ export function CompanionDetailDialog({
               step="0.01"
               value={formData.portion_owed}
               onChange={(e) => setFormData({ ...formData, portion_owed: e.target.value })}
-              placeholder="0.00"
               disabled={!canEdit}
             />
             <p className="text-xs text-muted-foreground">

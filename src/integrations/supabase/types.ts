@@ -569,6 +569,7 @@ export type Database = {
           seat_number: string
           trip_id: string
           tsa_precheck_number: string
+          tsa_reviewed: boolean
         }[]
       }
       get_trip_shares_safe: {
