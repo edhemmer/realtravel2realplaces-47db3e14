@@ -7,14 +7,12 @@ export function useBookings(tripId: string) {
   return useQuery({
     queryKey: ['bookings', tripId],
     queryFn: async () => {
+      // Use secure function that masks sensitive fields for non-owners
       const { data, error } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('trip_id', tripId)
-        .order('start_datetime', { ascending: true });
+        .rpc('get_bookings_safe', { p_trip_id: tripId });
       
       if (error) throw error;
-      return data as Booking[];
+      return (data || []) as Booking[];
     },
     enabled: !!tripId,
   });
