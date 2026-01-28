@@ -104,7 +104,7 @@ export function CompanionDetailDialog({
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="email@example.com"
+              placeholder="Email address"
               disabled={!canEdit}
             />
           </div>
@@ -117,7 +117,7 @@ export function CompanionDetailDialog({
                 id="tsa"
                 value={formData.tsa_precheck_number}
                 onChange={(e) => setFormData({ ...formData, tsa_precheck_number: e.target.value })}
-                placeholder="123456789"
+                placeholder="Known Traveler Number"
                 disabled={!canEdit}
               />
             </div>
@@ -127,7 +127,7 @@ export function CompanionDetailDialog({
                 id="ff"
                 value={formData.frequent_flyer_number}
                 onChange={(e) => setFormData({ ...formData, frequent_flyer_number: e.target.value })}
-                placeholder="FF123456"
+                placeholder="Frequent Flyer Number"
                 disabled={!canEdit}
               />
             </div>
@@ -141,7 +141,7 @@ export function CompanionDetailDialog({
                 id="flight"
                 value={formData.flight_number}
                 onChange={(e) => setFormData({ ...formData, flight_number: e.target.value })}
-                placeholder="UA1234"
+                placeholder="Flight number"
                 disabled={!canEdit}
               />
             </div>
@@ -151,7 +151,7 @@ export function CompanionDetailDialog({
                 id="seat"
                 value={formData.seat_number}
                 onChange={(e) => setFormData({ ...formData, seat_number: e.target.value })}
-                placeholder="12A"
+                placeholder="Seat number"
                 disabled={!canEdit}
               />
             </div>

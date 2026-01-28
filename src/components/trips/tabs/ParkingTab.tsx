@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParking, useCreateParking, useDeleteParking } from '@/hooks/useParking';
+import { useParking, useCreateParking, useUpdateParking, useDeleteParking } from '@/hooks/useParking';
 import { Parking, ParkingType, ParkingBilling } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Plus, Trash2, Car, MapPin, Clock, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, Car, MapPin, Clock, AlertTriangle, Pencil } from 'lucide-react';
 import { format, parseISO, isAfter, isBefore, addMinutes } from 'date-fns';
 import {
   AlertDialog,
@@ -30,8 +30,10 @@ export function ParkingTab({ tripId }: ParkingTabProps) {
   const { canEdit } = useTripPermission();
   const { data: parkingList = [], isLoading } = useParking(tripId);
   const createParking = useCreateParking();
+  const updateParking = useUpdateParking();
   const deleteParking = useDeleteParking();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingParking, setEditingParking] = useState<Parking | null>(null);
   const [parkingToDelete, setParkingToDelete] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
@@ -58,13 +60,29 @@ export function ParkingTab({ tripId }: ParkingTabProps) {
       total_cost: '',
       my_share: '',
     });
+    setEditingParking(null);
+  };
+
+  const openEditDialog = (parking: Parking) => {
+    setEditingParking(parking);
+    setFormData({
+      parking_type: parking.parking_type,
+      label: parking.label,
+      start_datetime: parking.start_datetime ? format(parseISO(parking.start_datetime), "yyyy-MM-dd'T'HH:mm") : '',
+      end_datetime: parking.end_datetime ? format(parseISO(parking.end_datetime), "yyyy-MM-dd'T'HH:mm") : '',
+      billing_type: parking.billing_type,
+      address: parking.address || '',
+      level_section_space: parking.level_section_space || '',
+      total_cost: parking.total_cost?.toString() || '',
+      my_share: parking.my_share?.toString() || '',
+    });
+    setDialogOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    await createParking.mutateAsync({
-      trip_id: tripId,
+    const parkingData = {
       parking_type: formData.parking_type,
       label: formData.label,
       start_datetime: new Date(formData.start_datetime).toISOString(),
@@ -74,7 +92,20 @@ export function ParkingTab({ tripId }: ParkingTabProps) {
       level_section_space: formData.level_section_space || undefined,
       total_cost: formData.total_cost ? parseFloat(formData.total_cost) : 0,
       my_share: formData.my_share ? parseFloat(formData.my_share) : 0,
-    });
+    };
+
+    if (editingParking) {
+      await updateParking.mutateAsync({
+        id: editingParking.id,
+        trip_id: tripId,
+        ...parkingData,
+      });
+    } else {
+      await createParking.mutateAsync({
+        trip_id: tripId,
+        ...parkingData,
+      });
+    }
     
     resetForm();
     setDialogOpen(false);
@@ -114,7 +145,7 @@ export function ParkingTab({ tripId }: ParkingTabProps) {
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">Parking</h3>
         {canEdit && (
-          <Button onClick={() => setDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90">
+          <Button onClick={() => { resetForm(); setDialogOpen(true); }} className="bg-gradient-ocean hover:opacity-90">
             <Plus className="w-4 h-4 mr-2" />
             Add Parking
           </Button>
@@ -158,14 +189,23 @@ export function ParkingTab({ tripId }: ParkingTabProps) {
                         <Badge variant="secondary">Expired</Badge>
                       )}
                       {canEdit && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => setParkingToDelete(parking.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditDialog(parking)}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => setParkingToDelete(parking.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </>
                       )}
                     </div>
                   </div>
@@ -202,18 +242,18 @@ export function ParkingTab({ tripId }: ParkingTabProps) {
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Car className="w-12 h-12 text-muted-foreground/50 mb-4" />
             <p className="text-muted-foreground">No parking added</p>
-            <Button onClick={() => setDialogOpen(true)} variant="link" className="mt-2">
+            <Button onClick={() => { resetForm(); setDialogOpen(true); }} variant="link" className="mt-2">
               Add parking location
             </Button>
           </CardContent>
         </Card>
       )}
 
-      {/* Add Parking Dialog */}
+      {/* Add/Edit Parking Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) resetForm(); setDialogOpen(open); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Parking</DialogTitle>
+            <DialogTitle>{editingParking ? 'Edit Parking' : 'Add Parking'}</DialogTitle>
             <DialogDescription>Track your parking locations and expirations</DialogDescription>
           </DialogHeader>
 
@@ -255,7 +295,7 @@ export function ParkingTab({ tripId }: ParkingTabProps) {
               <Input
                 value={formData.label}
                 onChange={(e) => setFormData({ ...formData, label: e.target.value })}
-                placeholder="Airport Long-Term Lot"
+                placeholder="Parking location name"
                 required
               />
             </div>
@@ -285,7 +325,7 @@ export function ParkingTab({ tripId }: ParkingTabProps) {
               <Input
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                placeholder="123 Airport Rd"
+                placeholder="Address"
               />
             </div>
 
@@ -294,7 +334,7 @@ export function ParkingTab({ tripId }: ParkingTabProps) {
               <Input
                 value={formData.level_section_space}
                 onChange={(e) => setFormData({ ...formData, level_section_space: e.target.value })}
-                placeholder="Level 3, Section B, Space 42"
+                placeholder="Level, Section, Space"
               />
             </div>
 
@@ -325,8 +365,8 @@ export function ParkingTab({ tripId }: ParkingTabProps) {
               <Button type="button" variant="outline" onClick={() => { resetForm(); setDialogOpen(false); }} className="flex-1">
                 Cancel
               </Button>
-              <Button type="submit" className="flex-1 bg-gradient-ocean hover:opacity-90" disabled={createParking.isPending}>
-                {createParking.isPending ? 'Adding...' : 'Add Parking'}
+              <Button type="submit" className="flex-1 bg-gradient-ocean hover:opacity-90" disabled={createParking.isPending || updateParking.isPending}>
+                {createParking.isPending || updateParking.isPending ? 'Saving...' : editingParking ? 'Save Changes' : 'Add Parking'}
               </Button>
             </div>
           </form>

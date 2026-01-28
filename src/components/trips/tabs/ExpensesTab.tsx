@@ -122,6 +122,24 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
     setParseSuccess(false);
   };
 
+  // Quick-add opens dialog with pre-selected category/subcategory
+  const openQuickAdd = (category: ExpenseCategory, subCategory: ExpenseSubCategory) => {
+    setFormData({
+      date: format(new Date(), 'yyyy-MM-dd'),
+      category,
+      sub_category: subCategory,
+      description: '',
+      amount: '',
+      my_share: '',
+      notes: '',
+      receipt_url: '',
+    });
+    setPreviewImage(null);
+    setParseError(null);
+    setParseSuccess(false);
+    setDialogOpen(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -407,17 +425,43 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Expenses</h3>
-        {canEdit && (
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setGasDialogOpen(true)}>
-              <Fuel className="w-4 h-4 mr-2" />
-              Add Gas
-            </Button>
+      <div className="flex flex-col gap-3">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-semibold">Expenses</h3>
+          {canEdit && (
             <Button onClick={() => setDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90">
               <Plus className="w-4 h-4 mr-2" />
               Add Expense
+            </Button>
+          )}
+        </div>
+        
+        {/* Quick-Add Buttons */}
+        {canEdit && (
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => setGasDialogOpen(true)}>
+              <Fuel className="w-4 h-4 mr-1" />
+              Gas
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => openQuickAdd('meals', 'groceries')}>
+              <ShoppingBag className="w-4 h-4 mr-1" />
+              Groceries
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => openQuickAdd('meals', 'breakfast')}>
+              <Utensils className="w-4 h-4 mr-1" />
+              Breakfast
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => openQuickAdd('meals', 'lunch')}>
+              <Utensils className="w-4 h-4 mr-1" />
+              Lunch
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => openQuickAdd('meals', 'dinner')}>
+              <Utensils className="w-4 h-4 mr-1" />
+              Dinner
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => openQuickAdd('other', 'miscellaneous')}>
+              <MoreHorizontal className="w-4 h-4 mr-1" />
+              Other
             </Button>
           </div>
         )}
@@ -728,7 +772,7 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
               <Input
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Dinner at restaurant"
+                placeholder="Description"
               />
             </div>
 

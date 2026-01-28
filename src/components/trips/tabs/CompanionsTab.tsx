@@ -367,7 +367,7 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
               <Input
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Jane Doe"
+                placeholder="Full name"
                 required
               />
             </div>
@@ -378,7 +378,7 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="jane@example.com"
+                placeholder="Email address"
               />
             </div>
 
@@ -388,7 +388,7 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="+1 (555) 123-4567"
+                placeholder="Phone number"
               />
             </div>
 
@@ -397,7 +397,7 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
               <Textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Dietary restrictions, preferences, etc."
+                placeholder="Notes"
                 rows={2}
               />
             </div>
@@ -411,7 +411,7 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
                   <Input
                     value={formData.airline}
                     onChange={(e) => setFormData({ ...formData, airline: e.target.value })}
-                    placeholder="United, Delta..."
+                    placeholder="Airline"
                   />
                 </div>
                 <div className="space-y-2">
@@ -419,7 +419,7 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
                   <Input
                     value={formData.tsa_precheck_number}
                     onChange={(e) => setFormData({ ...formData, tsa_precheck_number: e.target.value })}
-                    placeholder="123456789"
+                    placeholder="Known Traveler Number"
                   />
                 </div>
               </div>
@@ -428,7 +428,7 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
                 <Input
                   value={formData.frequent_flyer_number}
                   onChange={(e) => setFormData({ ...formData, frequent_flyer_number: e.target.value })}
-                  placeholder="FF123456"
+                  placeholder="Frequent Flyer Number"
                 />
               </div>
             </div>
@@ -475,7 +475,7 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
                     type="email"
                     value={shareFormData.email}
                     onChange={(e) => setShareFormData({ ...shareFormData, email: e.target.value })}
-                    placeholder="friend@example.com"
+                    placeholder="Email address"
                     required
                   />
                 </div>
