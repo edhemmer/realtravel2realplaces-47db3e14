@@ -554,7 +554,7 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
             <Label htmlFor="name">Trip Name</Label>
             <Input
               id="name"
-              placeholder="Summer Vacation 2024"
+              placeholder="Trip name"
               {...register('name')}
             />
             {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
@@ -565,7 +565,7 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
               <Label htmlFor="city">City</Label>
               <Input
                 id="city"
-                placeholder="Orlando"
+                placeholder="City"
                 {...register('destination_city')}
               />
               {errors.destination_city && <p className="text-sm text-destructive">{errors.destination_city.message}</p>}
@@ -574,7 +574,7 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
               <Label htmlFor="state">State</Label>
               <Input
                 id="state"
-                placeholder="FL"
+                placeholder="State"
                 {...register('destination_state')}
               />
             </div>
@@ -582,7 +582,7 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
               <Label htmlFor="country">Country</Label>
               <Input
                 id="country"
-                placeholder="USA"
+                placeholder="Country"
                 {...register('destination_country')}
               />
               {errors.destination_country && <p className="text-sm text-destructive">{errors.destination_country.message}</p>}
