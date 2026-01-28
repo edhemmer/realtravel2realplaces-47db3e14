@@ -411,7 +411,7 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
 
   // Calculate totals
   const totalAmount = filteredExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
-  const totalMyShare = filteredExpenses.reduce((sum, e) => sum + Number(e.my_share || 0), 0);
+  const totalMyShare = filteredExpenses.reduce((sum, e) => sum + Number(e.my_share ?? e.amount ?? 0), 0);
 
   // Group by category for summary
   const byCategory = expenses.reduce((acc, e) => {
@@ -547,8 +547,8 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
                       <div className="flex items-center gap-4">
                         <div className="text-right">
                           <p className="font-semibold">${Number(expense.amount).toFixed(2)}</p>
-                          {expense.my_share > 0 && (
-                            <p className="text-sm text-muted-foreground">My share: ${Number(expense.my_share).toFixed(2)}</p>
+                          {Number(expense.my_share || expense.amount) > 0 && (
+                            <p className="text-sm text-muted-foreground">My share: ${Number(expense.my_share ?? expense.amount).toFixed(2)}</p>
                           )}
                         </div>
                         {canEdit && (
