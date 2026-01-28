@@ -36,21 +36,44 @@ const weatherCodeToCondition = (code: number): string => {
   return 'Unknown';
 };
 
-async function geocodeCity(city: string, country: string): Promise<GeocodingResult | null> {
-  const query = `${city}, ${country}`.trim();
-  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`;
+async function geocodeCity(city: string, country: string, state?: string): Promise<GeocodingResult | null> {
+  // Try city + state first for US locations, then fallback to city alone
+  const queries = state && country === 'USA' 
+    ? [`${city}, ${state}`, city]
+    : [`${city}, ${country}`, city];
   
-  const response = await fetch(url);
-  if (!response.ok) return null;
+  for (const query of queries) {
+    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json`;
+    
+    const response = await fetch(url);
+    if (!response.ok) continue;
+    
+    const data = await response.json();
+    if (data.results && data.results.length > 0) {
+      // For US locations with state, try to match the state
+      if (state && country === 'USA') {
+        const match = data.results.find((r: any) => 
+          r.admin1?.toLowerCase() === state.toLowerCase() || 
+          r.country_code === 'US'
+        );
+        if (match) {
+          return {
+            latitude: match.latitude,
+            longitude: match.longitude,
+            name: match.name,
+          };
+        }
+      }
+      // Return first result as fallback
+      return {
+        latitude: data.results[0].latitude,
+        longitude: data.results[0].longitude,
+        name: data.results[0].name,
+      };
+    }
+  }
   
-  const data = await response.json();
-  if (!data.results || data.results.length === 0) return null;
-  
-  return {
-    latitude: data.results[0].latitude,
-    longitude: data.results[0].longitude,
-    name: data.results[0].name,
-  };
+  return null;
 }
 
 async function fetchWeather(lat: number, lon: number): Promise<WeatherData | null> {
@@ -78,11 +101,11 @@ async function fetchWeather(lat: number, lon: number): Promise<WeatherData | nul
   };
 }
 
-export function useWeather(city: string, country: string, enabled = true) {
+export function useWeather(city: string, country: string, state?: string, enabled = true) {
   return useQuery({
-    queryKey: ['weather', city, country],
+    queryKey: ['weather', city, country, state],
     queryFn: async () => {
-      const geo = await geocodeCity(city, country);
+      const geo = await geocodeCity(city, country, state);
       if (!geo) return null;
       return fetchWeather(geo.latitude, geo.longitude);
     },
@@ -92,8 +115,8 @@ export function useWeather(city: string, country: string, enabled = true) {
   });
 }
 
-export function useTripWeather(city: string, country: string, startDate: string, endDate: string) {
-  const weatherQuery = useWeather(city, country);
+export function useTripWeather(city: string, country: string, startDate: string, endDate: string, state?: string) {
+  const weatherQuery = useWeather(city, country, state);
   
   // Filter forecast to trip dates
   const tripForecast = weatherQuery.data?.forecast.filter(day => {
