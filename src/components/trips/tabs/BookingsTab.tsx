@@ -666,7 +666,7 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
               <Input
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                placeholder="123 Main St, City, Country"
+                placeholder="Address"
               />
             </div>
 

@@ -106,7 +106,7 @@ export function NotesTab({ tripId }: NotesTabProps) {
             <Textarea
               value={formData.emergency_numbers}
               onChange={(e) => handleChange('emergency_numbers', e.target.value)}
-              placeholder="Emergency: 911&#10;US Embassy: +1-555-123-4567&#10;Hotel: +1-555-987-6543"
+              placeholder="Emergency contacts and phone numbers"
               rows={4}
               className="resize-none font-mono text-sm"
               disabled={!canEdit}
@@ -129,7 +129,7 @@ export function NotesTab({ tripId }: NotesTabProps) {
             <Textarea
               value={formData.important_links}
               onChange={(e) => handleChange('important_links', e.target.value)}
-              placeholder="https://restaurant-reservation.com/12345&#10;https://museum-tickets.com/booking/abc"
+              placeholder="Paste your important URLs here"
               rows={4}
               className="resize-none font-mono text-sm"
               disabled={!canEdit}

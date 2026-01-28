@@ -140,7 +140,7 @@ export function GasExpenseDialog({ tripId, open, onOpenChange }: GasExpenseDialo
                 id="amount"
                 type="number"
                 step="0.01"
-                placeholder="45.00"
+                placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 required
@@ -152,7 +152,7 @@ export function GasExpenseDialog({ tripId, open, onOpenChange }: GasExpenseDialo
                 id="gallons"
                 type="number"
                 step="0.001"
-                placeholder="12.5"
+                placeholder="Gallons"
                 value={gallons}
                 onChange={(e) => setGallons(e.target.value)}
               />
@@ -163,7 +163,7 @@ export function GasExpenseDialog({ tripId, open, onOpenChange }: GasExpenseDialo
             <Label htmlFor="location">Station/Location (optional)</Label>
             <Input
               id="location"
-              placeholder="Shell, I-95 Exit 42"
+              placeholder="Station or location"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
             />
@@ -173,7 +173,7 @@ export function GasExpenseDialog({ tripId, open, onOpenChange }: GasExpenseDialo
             <Label htmlFor="notes">Notes (optional)</Label>
             <Textarea
               id="notes"
-              placeholder="Premium fuel, etc."
+              placeholder="Notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}

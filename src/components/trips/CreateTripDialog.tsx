@@ -693,7 +693,7 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
                 <Label htmlFor="origin_address">Starting Address (optional)</Label>
                 <Input
                   id="origin_address"
-                  placeholder="123 Main St, Your City, State"
+                  placeholder="Starting address"
                   {...register('origin_address')}
                 />
               </div>
@@ -701,7 +701,7 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
                 <Label htmlFor="destination_address">Destination Address (optional)</Label>
                 <Input
                   id="destination_address"
-                  placeholder="456 Beach Rd, Orlando, FL"
+                  placeholder="Destination address"
                   {...register('destination_address')}
                 />
               </div>
