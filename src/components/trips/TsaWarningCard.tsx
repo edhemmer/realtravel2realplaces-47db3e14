@@ -48,9 +48,9 @@ export function TsaWarningCard({
     
     const flightCompanions = companions.filter(c => linkedIds.includes(c.id));
     
-    // Check each companion
+    // Check each companion - only include if TSA is missing AND not yet reviewed
     flightCompanions.forEach((companion) => {
-      if (!companion.tsa_precheck_number && !missingTsaCompanions.has(companion.id)) {
+      if (!companion.tsa_precheck_number && !companion.tsa_reviewed && !missingTsaCompanions.has(companion.id)) {
         missingTsaCompanions.set(companion.id, companion);
       }
     });
