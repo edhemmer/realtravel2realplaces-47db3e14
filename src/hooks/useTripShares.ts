@@ -7,14 +7,12 @@ export function useTripShares(tripId: string) {
   return useQuery({
     queryKey: ['trip-shares', tripId],
     queryFn: async () => {
+      // Use secure function that masks share_token and email for non-owners
       const { data, error } = await supabase
-        .from('trip_shares')
-        .select('*')
-        .eq('trip_id', tripId)
-        .order('created_at', { ascending: false });
+        .rpc('get_trip_shares_safe', { p_trip_id: tripId });
       
       if (error) throw error;
-      return data as TripShare[];
+      return (data || []) as TripShare[];
     },
     enabled: !!tripId,
   });

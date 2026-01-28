@@ -556,6 +556,20 @@ export type Database = {
           tsa_precheck_number: string
         }[]
       }
+      get_trip_shares_safe: {
+        Args: { p_trip_id: string }
+        Returns: {
+          accepted_at: string
+          created_at: string
+          id: string
+          permission: string
+          share_token: string
+          shared_with_email: string
+          shared_with_user_id: string
+          trip_id: string
+          updated_at: string
+        }[]
+      }
       user_has_booking_access: {
         Args: { p_booking_id: string }
         Returns: boolean
