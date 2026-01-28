@@ -151,6 +151,7 @@ export type Database = {
           seat_number: string | null
           trip_id: string
           tsa_precheck_number: string | null
+          tsa_reviewed: boolean
         }
         Insert: {
           airline?: string | null
@@ -166,6 +167,7 @@ export type Database = {
           seat_number?: string | null
           trip_id: string
           tsa_precheck_number?: string | null
+          tsa_reviewed?: boolean
         }
         Update: {
           airline?: string | null
@@ -181,6 +183,7 @@ export type Database = {
           seat_number?: string | null
           trip_id?: string
           tsa_precheck_number?: string | null
+          tsa_reviewed?: boolean
         }
         Relationships: [
           {
