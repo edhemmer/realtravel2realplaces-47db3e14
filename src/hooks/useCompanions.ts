@@ -27,6 +27,9 @@ interface CreateCompanionData {
   tsa_precheck_number?: string;
   frequent_flyer_number?: string;
   airline?: string;
+  flight_number?: string;
+  seat_number?: string;
+  portion_owed?: number;
 }
 
 export function useCreateCompanion() {

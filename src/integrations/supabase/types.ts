@@ -141,11 +141,14 @@ export type Database = {
           airline: string | null
           created_at: string
           email: string | null
+          flight_number: string | null
           frequent_flyer_number: string | null
           id: string
           name: string
           notes: string | null
           phone: string | null
+          portion_owed: number | null
+          seat_number: string | null
           trip_id: string
           tsa_precheck_number: string | null
         }
@@ -153,11 +156,14 @@ export type Database = {
           airline?: string | null
           created_at?: string
           email?: string | null
+          flight_number?: string | null
           frequent_flyer_number?: string | null
           id?: string
           name: string
           notes?: string | null
           phone?: string | null
+          portion_owed?: number | null
+          seat_number?: string | null
           trip_id: string
           tsa_precheck_number?: string | null
         }
@@ -165,11 +171,14 @@ export type Database = {
           airline?: string | null
           created_at?: string
           email?: string | null
+          flight_number?: string | null
           frequent_flyer_number?: string | null
           id?: string
           name?: string
           notes?: string | null
           phone?: string | null
+          portion_owed?: number | null
+          seat_number?: string | null
           trip_id?: string
           tsa_precheck_number?: string | null
         }
@@ -547,11 +556,14 @@ export type Database = {
           airline: string
           created_at: string
           email: string
+          flight_number: string
           frequent_flyer_number: string
           id: string
           name: string
           notes: string
           phone: string
+          portion_owed: number
+          seat_number: string
           trip_id: string
           tsa_precheck_number: string
         }[]
