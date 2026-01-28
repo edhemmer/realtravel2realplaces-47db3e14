@@ -567,7 +567,7 @@ Return a practical packing list. Be accurate with quantities based on trip lengt
             "category": { 
               "type": "string", 
               "description": "Item category",
-              "enum": ["Clothing", "Swimwear & Beach", "Hiking & Outdoor", 
+              "enum": ["Clothing", "Swimwear & Beach", "Hiking & Outdoor", "City Essentials",
                        "Toiletries & Health", "Electronics", "Documents", 
                        "Essentials", "Weather Gear", "Business"]
             },
@@ -783,6 +783,8 @@ type trip_type = "business" | "personal" | "mixed";
 | 1.0 | 2026-01-26 | Initial documentation of all AI prompts |
 | 1.1 | 2026-01-28 | Added Gas expense dedicated flow documentation |
 | 1.1 | 2026-01-28 | Added Packing list per-category add buttons and quantity stepper documentation |
+| 1.2 | 2026-01-28 | Added "City Essentials" to packing list categories |
+| 1.2 | 2026-01-28 | Security: get_companions_safe now masks TSA PreCheck, Frequent Flyer, email, and phone for non-owners |
 
 ---
 
