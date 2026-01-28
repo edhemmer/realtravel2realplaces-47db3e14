@@ -92,9 +92,12 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
+// Virtual category type that includes 'gas' as a top-level option
+  type VirtualCategory = ExpenseCategory | 'gas';
+  
   const [formData, setFormData] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
-    category: 'meals' as ExpenseCategory,
+    category: 'meals' as VirtualCategory,
     sub_category: '' as ExpenseSubCategory | '',
     description: '',
     amount: '',
@@ -106,7 +109,7 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
   const resetForm = () => {
     setFormData({
       date: format(new Date(), 'yyyy-MM-dd'),
-      category: 'meals',
+      category: 'meals' as VirtualCategory,
       sub_category: '',
       description: '',
       amount: '',
@@ -128,11 +131,15 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
       ? parseFloat(formData.my_share) 
       : amount;
     
+    // Handle 'gas' as a virtual category - map to transport/gas
+    const actualCategory: ExpenseCategory = formData.category === 'gas' ? 'transport' : formData.category;
+    const actualSubCategory = formData.category === 'gas' ? 'gas' : (formData.sub_category || 'miscellaneous');
+    
     await createExpense.mutateAsync({
       trip_id: tripId,
       date: formData.date,
-      category: formData.category,
-      sub_category: formData.sub_category || 'miscellaneous',
+      category: actualCategory,
+      sub_category: actualSubCategory,
       description: formData.description || undefined,
       amount: amount,
       my_share: myShare,
@@ -474,10 +481,13 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
                           {getCategoryIcon(expense.category)}
                         </div>
                         <div>
-                          <p className="font-medium">{expense.description || expense.category}</p>
+                          <p className="font-medium">
+                            {expense.description || (expense.category === 'transport' && expense.sub_category === 'gas' ? 'Gas' : expense.category)}
+                          </p>
                           <p className="text-sm text-muted-foreground">
-                            {format(parseISO(expense.date), 'MMM d, yyyy')} 
-                            {expense.sub_category && ` • ${expense.sub_category.replace('_', ' ')}`}
+                            {format(parseISO(expense.date), 'MMM d, yyyy')}
+                            {/* Don't show sub-category for gas since 'Gas' is already displayed as the category */}
+                            {expense.sub_category && expense.sub_category !== 'gas' && ` • ${expense.sub_category.replace('_', ' ')}`}
                           </p>
                         </div>
                       </div>
@@ -668,7 +678,7 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
                 <Label>Category *</Label>
                 <Select 
                   value={formData.category} 
-                  onValueChange={(v: ExpenseCategory) => setFormData({ ...formData, category: v, sub_category: '' })}
+                  onValueChange={(v: VirtualCategory) => setFormData({ ...formData, category: v, sub_category: '' })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -676,6 +686,7 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
                   <SelectContent>
                     <SelectItem value="meals">Meals</SelectItem>
                     <SelectItem value="transport">Transport</SelectItem>
+                    <SelectItem value="gas">Gas</SelectItem>
                     <SelectItem value="activity">Activity</SelectItem>
                     <SelectItem value="shopping">Shopping</SelectItem>
                     <SelectItem value="parking">Parking</SelectItem>
@@ -685,7 +696,8 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
               </div>
             </div>
 
-            {SUB_CATEGORIES[formData.category]?.length > 0 && (
+            {/* Hide sub-category for 'gas' since it IS the sub-category */}
+            {formData.category !== 'gas' && SUB_CATEGORIES[formData.category as ExpenseCategory]?.length > 0 && (
               <div className="space-y-2">
                 <Label>Sub-Category</Label>
                 <Select 
@@ -696,7 +708,7 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
                     <SelectValue placeholder="Select sub-category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {SUB_CATEGORIES[formData.category].map(sub => (
+                    {SUB_CATEGORIES[formData.category as ExpenseCategory].map(sub => (
                       <SelectItem key={sub.value} value={sub.value}>{sub.label}</SelectItem>
                     ))}
                   </SelectContent>
