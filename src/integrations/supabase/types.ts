@@ -48,6 +48,13 @@ export type Database = {
             referencedRelation: "companions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "booking_companions_companion_id_fkey"
+            columns: ["companion_id"]
+            isOneToOne: false
+            referencedRelation: "companions_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       bookings: {
@@ -510,7 +517,53 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      companions_safe: {
+        Row: {
+          airline: string | null
+          created_at: string | null
+          email: string | null
+          frequent_flyer_number: string | null
+          id: string | null
+          name: string | null
+          notes: string | null
+          phone: string | null
+          trip_id: string | null
+          tsa_precheck_number: string | null
+        }
+        Insert: {
+          airline?: string | null
+          created_at?: string | null
+          email?: never
+          frequent_flyer_number?: string | null
+          id?: string | null
+          name?: string | null
+          notes?: string | null
+          phone?: never
+          trip_id?: string | null
+          tsa_precheck_number?: string | null
+        }
+        Update: {
+          airline?: string | null
+          created_at?: string | null
+          email?: never
+          frequent_flyer_number?: string | null
+          id?: string | null
+          name?: string | null
+          notes?: string | null
+          phone?: never
+          trip_id?: string | null
+          tsa_precheck_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "companions_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       user_has_booking_access: {
