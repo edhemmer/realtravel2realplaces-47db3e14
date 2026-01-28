@@ -6,7 +6,7 @@ import { useCompanions } from '@/hooks/useCompanions';
 import { useBookingCompanionsByTrip } from '@/hooks/useBookingCompanions';
 import { useTripWeather } from '@/hooks/useWeather';
 import { useTravelAlerts } from '@/hooks/useTravelAlerts';
-import { Trip, Booking, Parking } from '@/types/database';
+import { Trip, Booking, Parking, Companion } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,7 @@ import { DriveSummaryCard } from '@/components/trips/DriveSummaryCard';
 import { GasExpenseDialog } from '@/components/trips/GasExpenseDialog';
 import { ExpenseReminderBanner } from '@/components/trips/ExpenseReminderBanner';
 import { TsaWarningCard } from '@/components/trips/TsaWarningCard';
+import { CompanionDetailDialog } from '@/components/trips/CompanionDetailDialog';
 import { generateTripICS, downloadICSFile } from '@/lib/icsGenerator';
 import { 
   Plane, Building2, Car, Calendar, MapPin, DollarSign, 
@@ -66,6 +67,8 @@ const getDestinationLinks = (city: string, state: string | undefined, country: s
 
 export function SummaryTab({ tripId, trip }: SummaryTabProps) {
   const [gasDialogOpen, setGasDialogOpen] = useState(false);
+  const [selectedCompanion, setSelectedCompanion] = useState<Companion | null>(null);
+  const [companionDialogOpen, setCompanionDialogOpen] = useState(false);
   const { data: bookings = [] } = useBookings(tripId);
   const { data: parkingList = [] } = useParking(tripId);
   const { data: expenses = [] } = useExpenses(tripId);
@@ -207,7 +210,11 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
         <TsaWarningCard 
           bookings={bookings} 
           companions={companions} 
-          bookingCompanions={bookingCompanions} 
+          bookingCompanions={bookingCompanions}
+          onCompanionClick={(companion) => {
+            setSelectedCompanion(companion);
+            setCompanionDialogOpen(true);
+          }}
         />
       )}
 
@@ -220,6 +227,15 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
 
       {/* Gas Expense Dialog for drive trips */}
       <GasExpenseDialog tripId={tripId} open={gasDialogOpen} onOpenChange={setGasDialogOpen} />
+
+      {/* Companion Detail Dialog for TSA warning clicks */}
+      <CompanionDetailDialog
+        companion={selectedCompanion}
+        trip={trip}
+        open={companionDialogOpen}
+        onOpenChange={setCompanionDialogOpen}
+        canEdit={true}
+      />
 
       {/* Trip Overview Cards */}
       <div className="grid gap-4 md:grid-cols-3">
