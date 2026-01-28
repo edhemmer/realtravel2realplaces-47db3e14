@@ -29,6 +29,7 @@ import {
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { useTripPermission } from '@/pages/TripDetail';
+import { CompanionDetailDialog } from '@/components/trips/CompanionDetailDialog';
 
 interface CompanionsTabProps {
   tripId: string;
@@ -48,6 +49,7 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
   const [companionToDelete, setCompanionToDelete] = useState<string | null>(null);
   const [shareToDelete, setShareToDelete] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [selectedCompanion, setSelectedCompanion] = useState<Companion | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -258,7 +260,11 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
       {companions.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {companions.map((companion: Companion) => (
-            <Card key={companion.id} className="group hover:shadow-md transition-shadow">
+            <Card 
+              key={companion.id} 
+              className="group hover:shadow-md transition-all cursor-pointer hover:border-primary/30"
+              onClick={() => setSelectedCompanion(companion)}
+            >
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
@@ -272,7 +278,10 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
                       variant="ghost"
                       size="icon"
                       className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive transition-opacity"
-                      onClick={() => setCompanionToDelete(companion.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCompanionToDelete(companion.id);
+                      }}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -281,22 +290,28 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
                 {companion.email && (
-                  <a
-                    href={`mailto:${companion.email}`}
+                  <span
                     className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.location.href = `mailto:${companion.email}`;
+                    }}
                   >
                     <Mail className="w-4 h-4" />
                     <span className="truncate">{companion.email}</span>
-                  </a>
+                  </span>
                 )}
                 {companion.phone && (
-                  <a
-                    href={`tel:${companion.phone}`}
+                  <span
                     className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.location.href = `tel:${companion.phone}`;
+                    }}
                   >
                     <Phone className="w-4 h-4" />
                     {companion.phone}
-                  </a>
+                  </span>
                 )}
                 
                 {/* Flight info section */}
@@ -552,6 +567,17 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Companion Detail Dialog */}
+      <CompanionDetailDialog
+        trip={trip || null}
+        companion={selectedCompanion}
+        open={!!selectedCompanion}
+        onOpenChange={(open) => {
+          if (!open) setSelectedCompanion(null);
+        }}
+        canEdit={canEdit}
+      />
     </div>
   );
 }
