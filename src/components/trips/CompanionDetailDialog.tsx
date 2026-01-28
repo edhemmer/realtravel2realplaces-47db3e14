@@ -5,9 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Companion, Trip } from '@/types/database';
 import { useUpdateCompanion } from '@/hooks/useCompanions';
-import { toast } from 'sonner';
-import { Mail, Save, X, Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { Save, X, Loader2 } from 'lucide-react';
 
 interface CompanionDetailDialogProps {
   companion: Companion | null;
@@ -25,7 +23,6 @@ export function CompanionDetailDialog({
   canEdit 
 }: CompanionDetailDialogProps) {
   const updateCompanion = useUpdateCompanion();
-  const [isSendingEmail, setIsSendingEmail] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -70,48 +67,6 @@ export function CompanionDetailDialog({
       onOpenChange(false);
     } catch (error) {
       // Error toast handled by hook
-    }
-  };
-
-  const handleSendEmail = async () => {
-    if (!companion || !trip) return;
-    
-    if (!formData.email) {
-      toast.error('Please enter an email address first');
-      return;
-    }
-
-    setIsSendingEmail(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('send-companion-summary', {
-        body: {
-          companionName: formData.name,
-          companionEmail: formData.email,
-          tripName: trip.name,
-          flightNumber: formData.flight_number || null,
-          seatNumber: formData.seat_number || null,
-          tsaNumber: formData.tsa_precheck_number || null,
-          frequentFlyerNumber: formData.frequent_flyer_number || null,
-          portionOwed: formData.portion_owed ? parseFloat(formData.portion_owed) : null,
-        },
-      });
-
-      if (error) {
-        console.error('Email error:', error);
-        toast.error('Failed to send email. Please try again.');
-        return;
-      }
-
-      if (data?.success) {
-        toast.success(`Summary sent to ${formData.email}!`);
-      } else {
-        toast.error(data?.message || 'Failed to send email');
-      }
-    } catch (err) {
-      console.error('Email error:', err);
-      toast.error('Failed to send email. Please try again.');
-    } finally {
-      setIsSendingEmail(false);
     }
   };
 
@@ -247,25 +202,15 @@ export function CompanionDetailDialog({
                 </Button>
               </div>
             )}
-            
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handleSendEmail}
-              disabled={!formData.email || isSendingEmail}
-              className="w-full"
-            >
-              {isSendingEmail ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Mail className="w-4 h-4 mr-2" />
-              )}
-              {isSendingEmail ? 'Sending...' : 'Email Summary to Traveler'}
-            </Button>
-            {!formData.email && (
-              <p className="text-xs text-muted-foreground text-center">
-                Add an email address to send a summary
-              </p>
+            {!canEdit && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                className="w-full"
+              >
+                Close
+              </Button>
             )}
           </div>
         </div>
