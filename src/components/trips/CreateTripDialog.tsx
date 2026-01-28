@@ -749,7 +749,7 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
                       !endDate && 'text-muted-foreground'
                     )}
                   >
-                    <CalendarIcon className="mr-2 h--4 w-4" />
+                    <CalendarIcon className="mr-2 h-4 w-4" />
                     {endDate ? format(endDate, 'PPP') : 'Pick a date'}
                   </Button>
                 </PopoverTrigger>
