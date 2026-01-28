@@ -598,6 +598,103 @@ Return a practical packing list. Be accurate with quantities based on trip lengt
 
 ---
 
+## UI Feature Documentation
+
+### Gas Expense Entry (Dedicated Flow)
+
+**Purpose:** Provide a streamlined, dedicated entry point for gas expenses without category/subcategory selection.
+
+**UI Implementation:**
+- A dedicated "Add Gas" button with fuel icon appears in the Expenses tab header
+- Clicking opens `GasExpenseDialog` - a simplified dialog with only:
+  - Amount field (required)
+  - Date field (defaults to today)
+  - Notes field (optional)
+- No category or subcategory dropdowns are shown
+
+**Data Storage:**
+```typescript
+// Gas expenses are stored in the database as:
+{
+  category: "transport",
+  sub_category: "gas",
+  // ... other expense fields
+}
+```
+
+**Display Rules:**
+- In expense lists, gas expenses display as simply "Gas"
+- No subcategory text is shown for gas entries
+- Gas expenses are included in "Transport" category totals
+
+---
+
+### Packing List UI Features
+
+**Purpose:** Enhanced packing list management with per-category add controls and quantity adjustment.
+
+#### Per-Category Add Buttons
+
+**Implementation:**
+- Each category card/section includes a "+" button in the header
+- Clicking the "+" opens the Add Item dialog with:
+  - Category field pre-filled and read-only
+  - Focus on item name input
+- New items appear immediately in that category after saving
+
+**UI Pattern:**
+```tsx
+// Category header with add button
+<div className="flex items-center justify-between">
+  <h3>{category}</h3>
+  <Button 
+    variant="ghost" 
+    size="sm"
+    onClick={() => openAddDialogForCategory(category)}
+  >
+    <Plus className="h-4 w-4" />
+  </Button>
+</div>
+```
+
+#### Quantity Stepper Controls
+
+**Implementation:**
+- Every packing item displays a quantity stepper: `[ - ] quantity [ + ]`
+- Minimum quantity is 1 (prevents deletion via stepper)
+- Changes persist immediately to the database
+- Works for both AI-generated and manually added items
+
+**UI Pattern:**
+```tsx
+// Quantity stepper component pattern
+<div className="flex items-center gap-1">
+  <Button 
+    variant="ghost" 
+    size="sm"
+    onClick={() => updateQuantity(item, item.quantity - 1)}
+    disabled={item.quantity <= 1}
+  >
+    <Minus className="h-3 w-3" />
+  </Button>
+  <span className="w-6 text-center text-sm">{item.quantity}</span>
+  <Button 
+    variant="ghost" 
+    size="sm"
+    onClick={() => updateQuantity(item, item.quantity + 1)}
+  >
+    <Plus className="h-3 w-3" />
+  </Button>
+</div>
+```
+
+**Data Persistence:**
+- Quantity changes call the `updateItem` mutation
+- Updates are saved per-trip and persist across sessions
+- AI-generated quantities can be overridden by user adjustments
+
+---
+
 ## Supporting Configurations
 
 ### API Configuration
@@ -650,7 +747,7 @@ if (authError || !user) {
 ### Category Enums
 
 ```typescript
-// Expense Categories
+// Expense Categories (database)
 type expense_category = "meals" | "transport" | "activity" | "shopping" | "parking" | "other";
 
 // Expense Sub-Categories
@@ -660,6 +757,9 @@ type expense_sub_category =
   | "public_transit" | "parking_expense" | "rental_car" | "tours" 
   | "entertainment" | "tickets" | "sports" | "souvenirs" | "clothing" 
   | "gifts" | "tips" | "fees" | "insurance" | "miscellaneous";
+
+// UI Virtual Categories (for simplified entry)
+// "Gas" appears as a top-level option in UI but maps to transport/gas in database
 
 // Booking Types
 type booking_type = "flight" | "stay" | "car_rental" | "activity";
@@ -681,7 +781,9 @@ type trip_type = "business" | "personal" | "mixed";
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | 2026-01-26 | Initial documentation of all AI prompts |
+| 1.1 | 2026-01-28 | Added Gas expense dedicated flow documentation |
+| 1.1 | 2026-01-28 | Added Packing list per-category add buttons and quantity stepper documentation |
 
 ---
 
-*This document is auto-generated based on the current state of the application's edge functions.*
+*This document is auto-generated based on the current state of the application's edge functions and UI components.*
