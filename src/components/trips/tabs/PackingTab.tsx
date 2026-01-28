@@ -15,7 +15,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Progress } from '@/components/ui/progress';
 import { 
   Plus, Trash2, Sparkles, Copy, Check, Cloud, Sun, 
-  CloudRain, Snowflake, Thermometer, Briefcase, ShoppingBag, Luggage, Waves, RefreshCw, AlertCircle, Mountain, Building2
+  CloudRain, Snowflake, Thermometer, Briefcase, ShoppingBag, Luggage, Waves, RefreshCw, AlertCircle, Mountain, Building2,
+  Minus
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { differenceInDays, parseISO } from 'date-fns';
@@ -91,10 +92,12 @@ export function PackingTab({ tripId }: PackingTabProps) {
   const bulkCreate = useBulkCreatePackingItems();
   const { formatTemp, toggleUnit, unit } = useTemperatureUnit();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiLuggageRec, setAiLuggageRec] = useState<{ type: string; description: string } | null>(null);
   const [specialNotes, setSpecialNotes] = useState<string[]>([]);
+  const [preselectedCategory, setPreselectedCategory] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     category: '',
@@ -123,6 +126,13 @@ export function PackingTab({ tripId }: PackingTabProps) {
 
   const resetForm = () => {
     setFormData({ category: '', item_name: '', quantity: '1' });
+    setPreselectedCategory(null);
+  };
+
+  const openAddDialogForCategory = (category: string) => {
+    setPreselectedCategory(category);
+    setFormData({ category, item_name: '', quantity: '1' });
+    setDialogOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -144,6 +154,15 @@ export function PackingTab({ tripId }: PackingTabProps) {
       id: item.id,
       trip_id: tripId,
       is_packed: !item.is_packed,
+    });
+  };
+
+  const updateQuantity = async (item: PackingItem, newQuantity: number) => {
+    if (newQuantity < 1) return;
+    await updateItem.mutateAsync({
+      id: item.id,
+      trip_id: tripId,
+      quantity: newQuantity,
     });
   };
 
@@ -455,9 +474,21 @@ export function PackingTab({ tripId }: PackingTabProps) {
                       {categoryIcons[category]}
                       {category}
                     </CardTitle>
-                    <Badge variant="outline" className={colorClass}>
-                      {categoryPacked}/{items.length}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className={colorClass}>
+                        {categoryPacked}/{items.length}
+                      </Badge>
+                      {canEdit && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => openAddDialogForCategory(category)}
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   <Progress value={categoryProgress} className="h-1 mt-2" />
                 </CardHeader>
@@ -472,30 +503,54 @@ export function PackingTab({ tripId }: PackingTabProps) {
                             : 'hover:bg-muted/50'
                         }`}
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
                           <Checkbox
                             checked={item.is_packed}
                             onCheckedChange={() => canEdit && togglePacked(item)}
                             disabled={!canEdit}
-                            className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+                            className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 flex-shrink-0"
                           />
-                          <span className={`text-sm ${item.is_packed ? 'line-through text-muted-foreground' : ''}`}>
+                          <span className={`text-sm truncate ${item.is_packed ? 'line-through text-muted-foreground' : ''}`}>
                             {item.item_name}
-                            {item.quantity > 1 && (
-                              <span className="text-muted-foreground ml-1 text-xs">(×{item.quantity})</span>
-                            )}
                           </span>
                         </div>
-                        {canEdit && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                            onClick={() => handleDelete(item.id)}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        )}
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          {/* Quantity Stepper */}
+                          {canEdit ? (
+                            <div className="flex items-center gap-0.5 bg-muted/50 rounded-md">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => updateQuantity(item, item.quantity - 1)}
+                                disabled={item.quantity <= 1}
+                              >
+                                <Minus className="w-3 h-3" />
+                              </Button>
+                              <span className="text-xs font-medium w-5 text-center">{item.quantity}</span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => updateQuantity(item, item.quantity + 1)}
+                              >
+                                <Plus className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">×{item.quantity}</span>
+                          )}
+                          {canEdit && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                              onClick={() => handleDelete(item.id)}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -531,20 +586,32 @@ export function PackingTab({ tripId }: PackingTabProps) {
       <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) resetForm(); setDialogOpen(open); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Packing Item</DialogTitle>
+            <DialogTitle>
+              {preselectedCategory ? `Add Item to ${preselectedCategory}` : 'Add Packing Item'}
+            </DialogTitle>
             <DialogDescription>Add an item to your packing list</DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Category *</Label>
-              <Input
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                placeholder="Clothing, Toiletries, Electronics..."
-                required
-              />
-            </div>
+            {preselectedCategory ? (
+              <div className="space-y-2">
+                <Label>Category</Label>
+                <div className="flex items-center gap-2 p-2 rounded-md bg-muted">
+                  {categoryIcons[preselectedCategory]}
+                  <span className="font-medium">{preselectedCategory}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>Category *</Label>
+                <Input
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  placeholder="Clothing, Toiletries, Electronics..."
+                  required
+                />
+              </div>
+            )}
 
             <div className="grid grid-cols-3 gap-4">
               <div className="col-span-2 space-y-2">
