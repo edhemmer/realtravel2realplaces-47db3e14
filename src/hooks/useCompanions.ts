@@ -7,8 +7,9 @@ export function useCompanions(tripId: string) {
   return useQuery({
     queryKey: ['companions', tripId],
     queryFn: async () => {
+      // Use the secure view that masks email/phone for non-owners
       const { data, error } = await supabase
-        .from('companions')
+        .from('companions_safe' as 'companions')
         .select('*')
         .eq('trip_id', tripId)
         .order('name', { ascending: true });
