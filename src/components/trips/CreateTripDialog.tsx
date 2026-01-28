@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -112,9 +112,15 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
   const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<TripFormData>({
     resolver: zodResolver(tripSchema),
     defaultValues: {
+      name: '',
+      destination_city: '',
+      destination_state: '',
+      destination_country: '',
       trip_type: 'personal',
       transportation_mode: 'unspecified',
       destination_type: 'unspecified',
+      origin_address: '',
+      destination_address: '',
     },
   });
 
@@ -122,15 +128,32 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
   const transportationMode = watch('transportation_mode');
   const destinationType = watch('destination_type');
 
-  const resetAll = () => {
-    reset();
+  const resetAll = useCallback(() => {
+    reset({
+      name: '',
+      destination_city: '',
+      destination_state: '',
+      destination_country: '',
+      trip_type: 'personal',
+      transportation_mode: 'unspecified',
+      destination_type: 'unspecified',
+      origin_address: '',
+      destination_address: '',
+    });
     setStartDate(undefined);
     setEndDate(undefined);
     setParsedBookings([]);
     setParseError(null);
     setPastedText('');
     setShowPasteInput(false);
-  };
+  }, [reset]);
+
+  // Reset form when dialog opens to ensure clean state for new trips
+  useEffect(() => {
+    if (open) {
+      resetAll();
+    }
+  }, [open, resetAll]);
 
   // Shared parsing logic for both drag-drop and paste
   const parseItineraryText = useCallback(async (text: string) => {
