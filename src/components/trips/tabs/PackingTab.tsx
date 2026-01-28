@@ -113,12 +113,13 @@ export function PackingTab({ tripId }: PackingTabProps) {
 
   const tripNights = tripDays - 1;
 
-  // Get weather data
+  // Get weather data (include state for better US geocoding)
   const { current: currentWeather, tripForecast, weatherAnalysis, isLoading: weatherLoading } = useTripWeather(
     trip?.destination_city?.trim() || '',
     trip?.destination_country || '',
     trip?.start_date || '',
-    trip?.end_date || ''
+    trip?.end_date || '',
+    trip?.destination_state || undefined
   );
 
   const luggageRec = getLuggageRecommendation(tripDays);
