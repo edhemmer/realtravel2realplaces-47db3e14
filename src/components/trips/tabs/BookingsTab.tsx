@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useBookings, useCreateBooking, useUpdateBooking, useDeleteBooking } from '@/hooks/useBookings';
 import { useCompanions } from '@/hooks/useCompanions';
 import { useBookingCompanionsByTrip, useSetBookingCompanions } from '@/hooks/useBookingCompanions';
@@ -15,8 +15,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { 
   Plus, Plane, Building2, Car, PartyPopper, Trash2, Pencil,
-  ExternalLink, MapPin, AlertTriangle, Link2, Upload, FileText, Users
+  ExternalLink, MapPin, AlertTriangle, Link2, Upload, FileText, Users,
+  ClipboardPaste, Loader2, Scan
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import {
   AlertDialog,
@@ -54,6 +56,14 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
   const [bookingType, setBookingType] = useState<BookingType>('flight');
   const [urlAutoFilled, setUrlAutoFilled] = useState(false);
   const [selectedCompanions, setSelectedCompanions] = useState<string[]>([]);
+  
+  // Parsing state (like Create Trip)
+  const [isDragging, setIsDragging] = useState(false);
+  const [isParsing, setIsParsing] = useState(false);
+  const [showPasteInput, setShowPasteInput] = useState(false);
+  const [pastedText, setPastedText] = useState('');
+  const dropZoneRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   // Companion detail dialog state
   const [selectedCompanion, setSelectedCompanion] = useState<Companion | null>(null);
@@ -123,7 +133,106 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
     setUrlAutoFilled(false);
     setSelectedCompanions([]);
     setEditingBooking(null);
+    // Reset parsing state
+    setIsDragging(false);
+    setIsParsing(false);
+    setShowPasteInput(false);
+    setPastedText('');
   };
+
+  // Shared parsing logic for both drag-drop and paste (mirrors Create Trip)
+  const parseBookingText = useCallback(async (text: string) => {
+    if (!text.trim()) {
+      toast.warning('Please paste your confirmation text first.');
+      return;
+    }
+
+    setIsParsing(true);
+    toast.info('Parsing booking confirmation...');
+
+    try {
+      const { data, error } = await supabase.functions.invoke('parse-booking', {
+        body: { text, type: 'booking' },
+      });
+
+      // Handle network-level errors
+      if (error) {
+        console.error('Network error:', error);
+        toast.error('Connection error. Please try again.');
+        setIsParsing(false);
+        return;
+      }
+
+      if (data?.success && data?.data) {
+        const parsed = data.data;
+        setBookingType(parsed.booking_type || 'flight');
+        setFormData(prev => ({
+          ...prev,
+          vendor_name: parsed.vendor_name || '',
+          start_datetime: parsed.start_datetime ? new Date(parsed.start_datetime).toISOString().slice(0, 16) : '',
+          end_datetime: parsed.end_datetime ? new Date(parsed.end_datetime).toISOString().slice(0, 16) : '',
+          confirmation_number: parsed.confirmation_number || '',
+          total_cost: parsed.total_cost?.toString() || '',
+          address: parsed.address || '',
+          airline: parsed.airline || '',
+          passenger_name: parsed.passenger_name || '',
+          property_name: parsed.property_name || '',
+          stay_type: parsed.stay_type || 'hotel',
+          rental_company: parsed.rental_company || '',
+          pickup_location: parsed.pickup_location || '',
+          return_location: parsed.return_location || '',
+          notes: parsed.notes || '',
+        }));
+        // Clear paste input and collapse on success
+        setPastedText('');
+        setShowPasteInput(false);
+        toast.success(data.message || 'Booking parsed! Review and save.');
+      } else {
+        // Show warning but keep dialog open for manual entry
+        const message = data?.message || 'We couldn\'t parse this text. Please enter details manually.';
+        toast.warning(message);
+      }
+    } catch (err) {
+      console.error('Parse error:', err);
+      toast.error('Something went wrong. Please enter details manually.');
+    } finally {
+      setIsParsing(false);
+    }
+  }, []);
+
+  // Drag-and-drop handlers (mirrors Create Trip)
+  const handleDialogDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDialogDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (dropZoneRef.current && !dropZoneRef.current.contains(e.relatedTarget as Node)) {
+      setIsDragging(false);
+    }
+  }, []);
+
+  const handleDialogDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const text = e.dataTransfer.getData('text/plain');
+    if (!text) {
+      toast.info('No text content found. Please drag and drop text from your confirmation email.');
+      return;
+    }
+
+    await parseBookingText(text);
+  }, [parseBookingText]);
+
+  // Paste handlers (mirrors Create Trip)
+  const handlePasteAndScan = useCallback(async () => {
+    await parseBookingText(pastedText);
+  }, [pastedText, parseBookingText]);
 
   const openEditDialog = (booking: Booking) => {
     setEditingBooking(booking);
@@ -271,56 +380,15 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
     window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank');
   };
 
+  // Legacy handler for external drop zone (outside dialog)
   const handleFileDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     const text = e.dataTransfer.getData('text/plain');
     if (text) {
-      toast.info('Parsing booking confirmation...');
-      try {
-        const { data, error } = await supabase.functions.invoke('parse-booking', {
-          body: { text, type: 'booking' },
-        });
-        
-        // Handle network-level errors
-        if (error) {
-          console.error('Network error:', error);
-          toast.error('Connection error. Please try again.');
-          return;
-        }
-        
-        if (data?.success && data?.data) {
-          const parsed = data.data;
-          setBookingType(parsed.booking_type || 'flight');
-          setFormData(prev => ({
-            ...prev,
-            vendor_name: parsed.vendor_name || '',
-            start_datetime: parsed.start_datetime ? new Date(parsed.start_datetime).toISOString().slice(0, 16) : '',
-            end_datetime: parsed.end_datetime ? new Date(parsed.end_datetime).toISOString().slice(0, 16) : '',
-            confirmation_number: parsed.confirmation_number || '',
-            total_cost: parsed.total_cost?.toString() || '',
-            address: parsed.address || '',
-            airline: parsed.airline || '',
-            passenger_name: parsed.passenger_name || '',
-            property_name: parsed.property_name || '',
-            stay_type: parsed.stay_type || 'hotel',
-            rental_company: parsed.rental_company || '',
-            pickup_location: parsed.pickup_location || '',
-            return_location: parsed.return_location || '',
-            notes: parsed.notes || '',
-          }));
-          setDialogOpen(true);
-          toast.success(data.message || 'Booking parsed! Review and save.');
-        } else {
-          // Show warning but still open dialog for manual entry
-          const message = data?.message || 'We couldn\'t parse this text. Please enter details manually.';
-          toast.warning(message);
-          setDialogOpen(true);
-        }
-      } catch (err) {
-        console.error('Parse error:', err);
-        toast.error('Something went wrong. Please enter details manually.');
-        setDialogOpen(true);
-      }
+      // Open dialog and trigger parsing
+      setDialogOpen(true);
+      // Small delay to ensure dialog is open before parsing
+      setTimeout(() => parseBookingText(text), 100);
     } else {
       toast.info('Drop email/confirmation text to auto-fill booking details.');
     }
@@ -501,9 +569,112 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
           <DialogHeader>
             <DialogTitle>{editingBooking ? 'Edit Booking' : 'Add Booking'}</DialogTitle>
             <DialogDescription>
-              {editingBooking ? 'Update booking details and linked travelers' : 'Add a flight, stay, car rental, or activity'}
+              {editingBooking 
+                ? 'Update booking details and linked travelers' 
+                : 'Drag & drop or paste confirmation text, or fill in manually'}
             </DialogDescription>
           </DialogHeader>
+
+          {/* Parsing Zone - Only show for new bookings (mirrors Create Trip) */}
+          {!editingBooking && (
+            <div className="space-y-3">
+              {/* Drop Zone - Desktop optimized */}
+              <div
+                ref={dropZoneRef}
+                onDragOver={handleDialogDragOver}
+                onDragLeave={handleDialogDragLeave}
+                onDrop={handleDialogDrop}
+                className={cn(
+                  'relative border-2 border-dashed rounded-lg p-4 transition-all duration-200 text-center hidden sm:block',
+                  isDragging 
+                    ? 'border-primary bg-primary/5 scale-[1.02]' 
+                    : 'border-muted-foreground/25 hover:border-muted-foreground/50',
+                  isParsing && 'pointer-events-none opacity-60'
+                )}
+              >
+                {isParsing ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground">Parsing...</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-1">
+                    <Upload className={cn(
+                      "w-6 h-6 transition-colors",
+                      isDragging ? "text-primary" : "text-muted-foreground"
+                    )} />
+                    <p className="text-sm font-medium">
+                      {isDragging ? 'Drop to parse!' : 'Drag & drop confirmation'}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Paste Button - Always visible, mobile-first */}
+              {!showPasteInput && !isParsing && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full flex items-center justify-center gap-2 h-12 sm:h-10"
+                  onClick={() => setShowPasteInput(true)}
+                >
+                  <ClipboardPaste className="w-5 h-5" />
+                  <span>Paste Confirmation Text</span>
+                </Button>
+              )}
+
+              {/* Paste Input Area */}
+              {showPasteInput && (
+                <div className="space-y-2">
+                  <Textarea
+                    ref={textareaRef}
+                    value={pastedText}
+                    onChange={(e) => setPastedText(e.target.value)}
+                    placeholder="Paste your booking confirmation or email text here..."
+                    className="min-h-[100px] text-base"
+                    autoFocus
+                    disabled={isParsing}
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="default"
+                      className="flex-1 flex items-center justify-center gap-2"
+                      onClick={handlePasteAndScan}
+                      disabled={isParsing || !pastedText.trim()}
+                    >
+                      {isParsing ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Scan className="w-4 h-4" />
+                      )}
+                      <span>{isParsing ? 'Parsing...' : 'Scan & Fill'}</span>
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => { setShowPasteInput(false); setPastedText(''); }}
+                      disabled={isParsing}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Separator between parsing and manual entry */}
+              {!showPasteInput && !isParsing && (
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">or enter manually</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
