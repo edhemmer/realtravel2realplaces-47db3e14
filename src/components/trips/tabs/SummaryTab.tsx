@@ -43,6 +43,16 @@ interface TimelineEvent {
   linkUrl?: string;
 }
 
+// Helper to safely open external URLs in new tab
+const openExternalUrl = (url: string | null | undefined) => {
+  if (!url) return;
+  // Ensure URL has protocol
+  const safeUrl = url.startsWith('http://') || url.startsWith('https://') 
+    ? url 
+    : `https://${url}`;
+  window.open(safeUrl, '_blank', 'noopener,noreferrer');
+};
+
 // Destination info links by country/region
 const getDestinationLinks = (city: string, state: string | undefined, country: string) => {
   const searchQuery = encodeURIComponent(`${city}${state ? ` ${state}` : ''} ${country}`);
@@ -157,7 +167,7 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
   };
 
   const openInMaps = (address: string) => {
-    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank');
+    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank', 'noopener,noreferrer');
   };
 
   const downloadCalendar = () => {
@@ -360,7 +370,7 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
               </h4>
               <div className="space-y-1">
                 {destinationLinks.generalInfo.map((link) => (
-                  <Button key={link.label} variant="ghost" size="sm" className="w-full justify-start h-8 text-xs" onClick={() => window.open(link.url, '_blank')}>
+                  <Button key={link.label} variant="ghost" size="sm" className="w-full justify-start h-8 text-xs" onClick={() => openExternalUrl(link.url)}>
                     <link.icon className="w-3 h-3 mr-2" />
                     {link.label}
                     <ExternalLink className="w-3 h-3 ml-auto" />
@@ -374,7 +384,7 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
               </h4>
               <div className="space-y-1">
                 {destinationLinks.dining.map((link) => (
-                  <Button key={link.label} variant="ghost" size="sm" className="w-full justify-start h-8 text-xs" onClick={() => window.open(link.url, '_blank')}>
+                  <Button key={link.label} variant="ghost" size="sm" className="w-full justify-start h-8 text-xs" onClick={() => openExternalUrl(link.url)}>
                     <link.icon className="w-3 h-3 mr-2" />
                     {link.label}
                     <ExternalLink className="w-3 h-3 ml-auto" />
@@ -388,7 +398,7 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
               </h4>
               <div className="space-y-1">
                 {destinationLinks.attractions.map((link) => (
-                  <Button key={link.label} variant="ghost" size="sm" className="w-full justify-start h-8 text-xs" onClick={() => window.open(link.url, '_blank')}>
+                  <Button key={link.label} variant="ghost" size="sm" className="w-full justify-start h-8 text-xs" onClick={() => openExternalUrl(link.url)}>
                     <link.icon className="w-3 h-3 mr-2" />
                     {link.label}
                     <ExternalLink className="w-3 h-3 ml-auto" />
@@ -462,7 +472,7 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
                           size="sm"
                           variant="ghost"
                           className="h-6 px-2 text-xs"
-                          onClick={() => window.open(event.linkUrl, '_blank')}
+                          onClick={() => openExternalUrl(event.linkUrl)}
                         >
                           <ExternalLink className="w-3 h-3 mr-1" />
                           View

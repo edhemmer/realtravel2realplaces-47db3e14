@@ -19,7 +19,7 @@ import {
   ClipboardPaste, Loader2, Scan
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isBefore, isAfter, startOfDay } from 'date-fns';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,6 +35,16 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useTripPermission } from '@/pages/TripDetail';
 import { CompanionDetailDialog } from '@/components/trips/CompanionDetailDialog';
+
+// Helper to safely open external URLs in new tab
+const openExternalUrl = (url: string | null | undefined) => {
+  if (!url) return;
+  // Ensure URL has protocol
+  const safeUrl = url.startsWith('http://') || url.startsWith('https://') 
+    ? url 
+    : `https://${url}`;
+  window.open(safeUrl, '_blank', 'noopener,noreferrer');
+};
 
 interface BookingsTabProps {
   tripId: string;
@@ -68,6 +78,11 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
   // Companion detail dialog state
   const [selectedCompanion, setSelectedCompanion] = useState<Companion | null>(null);
   const [companionDialogOpen, setCompanionDialogOpen] = useState(false);
+  
+  // Date warning confirmation state
+  const [showDateWarning, setShowDateWarning] = useState(false);
+  const [dateWarningMessage, setDateWarningMessage] = useState('');
+  const [pendingSubmit, setPendingSubmit] = useState(false);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -140,6 +155,21 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
     setPastedText('');
   };
 
+  // Helper to validate parsed dates before applying to form
+  const validateBookingDates = (startDatetime: string | null, endDatetime: string | null): { valid: boolean; startDt?: string; endDt?: string } => {
+    if (!startDatetime) return { valid: true };
+    
+    const startDt = new Date(startDatetime).toISOString().slice(0, 16);
+    const endDt = endDatetime ? new Date(endDatetime).toISOString().slice(0, 16) : '';
+    
+    // Check if end is before start (invalid)
+    if (endDt && new Date(endDt) < new Date(startDt)) {
+      return { valid: false };
+    }
+    
+    return { valid: true, startDt, endDt };
+  };
+
   // Shared parsing logic for both drag-drop and paste (mirrors Create Trip)
   const parseBookingText = useCallback(async (text: string) => {
     if (!text.trim()) {
@@ -165,12 +195,44 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
 
       if (data?.success && data?.data) {
         const parsed = data.data;
+        
+        // Validate dates before applying
+        const dateValidation = validateBookingDates(parsed.start_datetime, parsed.end_datetime);
+        
+        if (!dateValidation.valid) {
+          // Dates are invalid (end before start) - don't auto-fill date fields
+          toast.warning('We couldn\'t validate these dates. Please check the start and end times before saving.');
+          // Still fill other fields that are valid
+          setBookingType(parsed.booking_type || 'flight');
+          setFormData(prev => ({
+            ...prev,
+            vendor_name: parsed.vendor_name || '',
+            // Leave dates empty for manual entry
+            start_datetime: '',
+            end_datetime: '',
+            confirmation_number: parsed.confirmation_number || '',
+            total_cost: parsed.total_cost?.toString() || '',
+            address: parsed.address || '',
+            airline: parsed.airline || '',
+            passenger_name: parsed.passenger_name || '',
+            property_name: parsed.property_name || '',
+            stay_type: parsed.stay_type || 'hotel',
+            rental_company: parsed.rental_company || '',
+            pickup_location: parsed.pickup_location || '',
+            return_location: parsed.return_location || '',
+            notes: parsed.notes || '',
+          }));
+          setPastedText('');
+          setShowPasteInput(false);
+          return;
+        }
+        
         setBookingType(parsed.booking_type || 'flight');
         setFormData(prev => ({
           ...prev,
           vendor_name: parsed.vendor_name || '',
-          start_datetime: parsed.start_datetime ? new Date(parsed.start_datetime).toISOString().slice(0, 16) : '',
-          end_datetime: parsed.end_datetime ? new Date(parsed.end_datetime).toISOString().slice(0, 16) : '',
+          start_datetime: dateValidation.startDt || '',
+          end_datetime: dateValidation.endDt || '',
           confirmation_number: parsed.confirmation_number || '',
           total_cost: parsed.total_cost?.toString() || '',
           address: parsed.address || '',
@@ -189,7 +251,7 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
         toast.success(data.message || 'Booking parsed! Review and save.');
       } else {
         // Show warning but keep dialog open for manual entry
-        const message = data?.message || 'We couldn\'t parse this text. Please enter details manually.';
+        const message = data?.message || 'We couldn\'t confidently parse this booking. Please review and enter details manually.';
         toast.warning(message);
       }
     } catch (err) {
@@ -265,9 +327,8 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
     setDialogOpen(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  // Actual save logic (called after validation or confirmation)
+  const performSubmit = async () => {
     const bookingData = {
       booking_type: bookingType,
       vendor_name: formData.vendor_name,
@@ -325,6 +386,61 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
     setDialogOpen(false);
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // 1. Validate start/end date order
+    if (formData.start_datetime && formData.end_datetime) {
+      const startDt = new Date(formData.start_datetime);
+      const endDt = new Date(formData.end_datetime);
+      
+      if (endDt < startDt) {
+        toast.error('End date/time cannot be before start date/time. Please correct the dates.');
+        return;
+      }
+    }
+    
+    // 2. Check if booking dates fall outside trip dates (warning, not blocking)
+    if (trip && formData.start_datetime) {
+      const tripStart = startOfDay(parseISO(trip.start_date));
+      const tripEnd = startOfDay(parseISO(trip.end_date));
+      const bookingStart = startOfDay(new Date(formData.start_datetime));
+      const bookingEnd = formData.end_datetime 
+        ? startOfDay(new Date(formData.end_datetime)) 
+        : bookingStart;
+      
+      const isOutsideTripDates = isBefore(bookingStart, tripStart) || 
+                                  isAfter(bookingEnd, tripEnd) ||
+                                  isBefore(bookingEnd, tripStart) ||
+                                  isAfter(bookingStart, tripEnd);
+      
+      if (isOutsideTripDates) {
+        // Show warning dialog instead of blocking
+        setDateWarningMessage(
+          `These booking dates (${format(bookingStart, 'MMM d')}${formData.end_datetime ? ` - ${format(bookingEnd, 'MMM d')}` : ''}) are outside the current trip dates (${format(tripStart, 'MMM d')} - ${format(tripEnd, 'MMM d')}). Are you sure this booking belongs to this trip?`
+        );
+        setPendingSubmit(true);
+        setShowDateWarning(true);
+        return;
+      }
+    }
+    
+    // All validations passed, proceed with save
+    await performSubmit();
+  };
+  
+  // Handler for confirming save despite date warning
+  const handleConfirmDateWarning = async () => {
+    setShowDateWarning(false);
+    setPendingSubmit(false);
+    await performSubmit();
+  };
+  
+  const handleCancelDateWarning = () => {
+    setShowDateWarning(false);
+    setPendingSubmit(false);
+  };
+
   // Helper to get companions for a specific booking
   const getCompanionsForBooking = (bookingId: string): Companion[] => {
     const linkedIds = bookingCompanions
@@ -377,7 +493,7 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
   };
 
   const openInMaps = (address: string) => {
-    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank');
+    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank', 'noopener,noreferrer');
   };
 
   // Legacy handler for external drop zone (outside dialog)
@@ -525,7 +641,7 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
                     </Button>
                   )}
                   {booking.link_url && (
-                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => window.open(booking.link_url, '_blank')}>
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openExternalUrl(booking.link_url)}>
                       <ExternalLink className="w-3 h-3 mr-1" />
                       View
                     </Button>
@@ -977,6 +1093,27 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Date Warning Dialog - booking dates outside trip range */}
+      <AlertDialog open={showDateWarning} onOpenChange={setShowDateWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              Booking Dates Outside Trip Range
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {dateWarningMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelDateWarning}>Review Dates</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDateWarning}>
+              Save Anyway
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

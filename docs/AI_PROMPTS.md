@@ -785,6 +785,9 @@ type trip_type = "business" | "personal" | "mixed";
 | 1.1 | 2026-01-28 | Added Packing list per-category add buttons and quantity stepper documentation |
 | 1.2 | 2026-01-28 | Added "City Essentials" to packing list categories |
 | 1.2 | 2026-01-28 | Security: get_companions_safe now masks TSA PreCheck, Frequent Flyer, email, and phone for non-owners |
+| 1.3 | 2026-01-29 | External links: All external URLs now open in new tab with noopener,noreferrer for security |
+| 1.3 | 2026-01-29 | Booking date validation: Start/end order validated; trip date range warnings with user confirmation |
+| 1.3 | 2026-01-29 | Parsing validation: Booking dates validated before populating form fields |
 
 ---
 
