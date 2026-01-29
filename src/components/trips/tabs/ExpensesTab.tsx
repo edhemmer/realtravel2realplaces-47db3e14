@@ -1,7 +1,14 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useExpenses, useCreateExpense, useDeleteExpense } from '@/hooks/useExpenses';
 import { Expense, ExpenseCategory, ExpenseSubCategory } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  calculateExpenseTotals, 
+  calculateCategorySummary,
+  getExpenseMyShare,
+  logExpenseDebug,
+  calculateTripCostSummary
+} from '@/lib/expenseCalculations';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -409,15 +416,28 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
     ? expenses 
     : expenses.filter(e => e.category === activeCategory);
 
-  // Calculate totals
-  const totalAmount = filteredExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
-  const totalMyShare = filteredExpenses.reduce((sum, e) => sum + Number(e.my_share ?? e.amount ?? 0), 0);
+  // Calculate totals using shared utility (single source of truth)
+  const allExpenseTotals = calculateExpenseTotals(expenses);
+  const filteredTotals = calculateExpenseTotals(filteredExpenses);
+  
+  // Use filtered totals for display when filtering, all totals when showing all
+  const displayTotalAmount = activeCategory === 'all' 
+    ? allExpenseTotals.totalAmount 
+    : filteredTotals.totalAmount;
+  const displayTotalMyShare = activeCategory === 'all' 
+    ? allExpenseTotals.totalMyShare 
+    : filteredTotals.totalMyShare;
 
-  // Group by category for summary
-  const byCategory = expenses.reduce((acc, e) => {
-    acc[e.category] = (acc[e.category] || 0) + Number(e.amount || 0);
-    return acc;
-  }, {} as Record<string, number>);
+  // Group by category for summary (always from all expenses)
+  const byCategory = calculateCategorySummary(expenses);
+
+  // Debug logging - runs on every render when expenses change
+  useEffect(() => {
+    if (expenses.length > 0) {
+      const summary = calculateTripCostSummary(expenses, [], []);
+      logExpenseDebug(tripId, expenses, summary);
+    }
+  }, [tripId, expenses]);
 
   if (isLoading) {
     return <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>;
@@ -479,20 +499,22 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Total Expenses</CardDescription>
-            <CardTitle className="text-2xl">${totalAmount.toFixed(2)}</CardTitle>
+            <CardTitle className="text-2xl">${displayTotalAmount.toFixed(2)}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>My Share</CardDescription>
-            <CardTitle className="text-2xl text-primary">${totalMyShare.toFixed(2)}</CardTitle>
+            <CardTitle className="text-2xl text-primary">${displayTotalMyShare.toFixed(2)}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Top Category</CardDescription>
             <CardTitle className="text-lg capitalize">
-              {Object.entries(byCategory).sort((a, b) => b[1] - a[1])[0]?.[0] || 'None'}
+              {Object.entries(byCategory)
+                .filter(([_, value]) => value > 0)
+                .sort((a, b) => b[1] - a[1])[0]?.[0] || 'None'}
             </CardTitle>
           </CardHeader>
         </Card>

@@ -37,13 +37,15 @@ export function GasExpenseDialog({ tripId, open, onOpenChange }: GasExpenseDialo
     if (!amount) return;
 
     try {
+      const expenseAmount = parseFloat(amount);
       const description = gallons 
         ? `Gas - ${gallons} gallons${location ? ` at ${location}` : ''}`
         : `Gas${location ? ` at ${location}` : ''}`;
 
       await createExpense.mutateAsync({
         trip_id: tripId,
-        amount: parseFloat(amount),
+        amount: expenseAmount,
+        my_share: expenseAmount, // Default my_share to full amount for gas
         category: 'transport',
         sub_category: 'gas',
         date: format(new Date(), 'yyyy-MM-dd'),

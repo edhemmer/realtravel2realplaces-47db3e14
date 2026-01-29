@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useBookings } from '@/hooks/useBookings';
 import { useParking } from '@/hooks/useParking';
 import { useExpenses } from '@/hooks/useExpenses';
@@ -19,6 +19,7 @@ import { ExpenseReminderBanner } from '@/components/trips/ExpenseReminderBanner'
 import { TsaWarningCard } from '@/components/trips/TsaWarningCard';
 import { CompanionDetailDialog } from '@/components/trips/CompanionDetailDialog';
 import { generateTripICS, downloadICSFile } from '@/lib/icsGenerator';
+import { calculateTripCostSummary, logExpenseDebug } from '@/lib/expenseCalculations';
 import { 
   Plane, Building2, Car, Calendar, MapPin, DollarSign, 
   AlertTriangle, Download, ExternalLink, Clock, PartyPopper,
@@ -106,16 +107,27 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
     ? `${trip.destination_city}, ${trip.destination_state}, ${trip.destination_country}`
     : `${trip.destination_city}, ${trip.destination_country}`;
 
-  // Calculate costs
-  const bookingsCost = bookings.reduce((sum, b) => sum + Number(b.total_cost || 0), 0);
-  const parkingCost = parkingList.reduce((sum, p) => sum + Number(p.total_cost || 0), 0);
-  const expensesCost = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
-  const totalCost = bookingsCost + parkingCost + expensesCost;
+  // Calculate costs using shared utility (single source of truth)
+  const costSummary = calculateTripCostSummary(expenses, bookings, parkingList);
+  
+  // Destructure for easier use in template
+  const { 
+    bookingsTotal: bookingsCost, 
+    parkingTotal: parkingCost, 
+    expensesTotal: expensesCost,
+    totalCost,
+    bookingsMyShare,
+    parkingMyShare,
+    expensesMyShare,
+    totalMyShare: myOutOfPocket 
+  } = costSummary;
 
-  const bookingsMyShare = bookings.reduce((sum, b) => sum + Number(b.my_share || 0), 0);
-  const parkingMyShare = parkingList.reduce((sum, p) => sum + Number(p.my_share || 0), 0);
-  const expensesMyShare = expenses.reduce((sum, e) => sum + Number(e.my_share || 0), 0);
-  const myOutOfPocket = bookingsMyShare + parkingMyShare + expensesMyShare;
+  // Debug logging - runs when any cost data changes
+  useEffect(() => {
+    if (expenses.length > 0 || bookings.length > 0 || parkingList.length > 0) {
+      logExpenseDebug(tripId, expenses, costSummary);
+    }
+  }, [tripId, expenses, bookings, parkingList, costSummary]);
 
   // Build timeline
   const timeline: TimelineEvent[] = [
