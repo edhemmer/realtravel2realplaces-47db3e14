@@ -23,7 +23,7 @@ export function DriveSummaryCard({ trip, onAddGasExpense }: DriveSummaryCardProp
       trip.destination_address || 
       `${trip.destination_city}, ${trip.destination_state || ''} ${trip.destination_country || ''}`
     );
-    window.open(`https://www.google.com/maps/dir/${origin}/${destination}`, '_blank');
+    window.open(`https://www.google.com/maps/dir/${origin}/${destination}`, '_blank', 'noopener,noreferrer');
   };
 
   return (

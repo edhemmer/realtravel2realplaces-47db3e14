@@ -140,7 +140,12 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                       size="sm"
                       variant="outline"
                       className="shrink-0 h-9"
-                      onClick={() => window.open(flight.link_url!, '_blank')}
+                      onClick={() => {
+                        const url = flight.link_url!.startsWith('http') 
+                          ? flight.link_url! 
+                          : `https://${flight.link_url}`;
+                        window.open(url, '_blank', 'noopener,noreferrer');
+                      }}
                     >
                       <ExternalLink className="w-4 h-4 mr-1" />
                       Manage

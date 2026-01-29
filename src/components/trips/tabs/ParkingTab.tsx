@@ -119,7 +119,7 @@ export function ParkingTab({ tripId }: ParkingTabProps) {
   };
 
   const openInMaps = (address: string) => {
-    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank');
+    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank', 'noopener,noreferrer');
   };
 
   const now = new Date();

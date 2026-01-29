@@ -101,7 +101,12 @@ export function TravelAlertsCard({ alerts, className }: TravelAlertsCardProps) {
                   size="sm"
                   variant="ghost"
                   className="h-7 px-2 mt-2 text-xs gap-1"
-                  onClick={() => window.open(alert.actionUrl, '_blank')}
+                  onClick={() => {
+                    const url = alert.actionUrl!.startsWith('http') 
+                      ? alert.actionUrl! 
+                      : `https://${alert.actionUrl}`;
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                  }}
                 >
                   <MapPin className="w-3 h-3" />
                   {alert.actionLabel}
