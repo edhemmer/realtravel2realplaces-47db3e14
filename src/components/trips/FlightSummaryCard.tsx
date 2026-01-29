@@ -108,10 +108,11 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                       )}
                     </div>
                     
-                    {/* Date/Time Row */}
+                    {/* Date/Time Row - Shows DEPARTURE time as primary */}
                     <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
                       <span className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5" />
+                        <span className="text-xs text-muted-foreground mr-1">Departs</span>
                         <span className="font-medium text-foreground">
                           {format(parseISO(flight.start_datetime), 'EEE, MMM d')}
                         </span>
@@ -121,7 +122,7 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                       </span>
                       {flight.end_datetime && (
                         <span className="text-xs">
-                          → {format(parseISO(flight.end_datetime), 'h:mm a')}
+                          → Arrives {format(parseISO(flight.end_datetime), 'h:mm a')}
                         </span>
                       )}
                     </div>

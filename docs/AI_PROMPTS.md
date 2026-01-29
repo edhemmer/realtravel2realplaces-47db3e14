@@ -788,6 +788,11 @@ type trip_type = "business" | "personal" | "mixed";
 | 1.3 | 2026-01-29 | External links: All external URLs now open in new tab with noopener,noreferrer for security |
 | 1.3 | 2026-01-29 | Booking date validation: Start/end order validated; trip date range warnings with user confirmation |
 | 1.3 | 2026-01-29 | Parsing validation: Booking dates validated before populating form fields |
+| 1.4 | 2026-01-29 | Timeline: Flights now show DEPARTURE time, stays show CHECK-IN time, rentals show PICKUP time |
+| 1.4 | 2026-01-29 | Timeline: Stays now appear twice - on check-in day AND check-out day with appropriate times |
+| 1.4 | 2026-01-29 | Timeline: Rentals now appear twice - on pickup day AND drop-off day |
+| 1.4 | 2026-01-29 | Trip dates: When flights exist, trip date range is anchored to flight dates (stays/rentals cannot extend) |
+| 1.4 | 2026-01-29 | Added src/lib/tripDateCalculations.ts utility for flight-anchored date range calculations |
 
 ---
 

@@ -20,6 +20,7 @@ import { TsaWarningCard } from '@/components/trips/TsaWarningCard';
 import { CompanionDetailDialog } from '@/components/trips/CompanionDetailDialog';
 import { generateTripICS, downloadICSFile } from '@/lib/icsGenerator';
 import { calculateTripCostSummary, logExpenseDebug } from '@/lib/expenseCalculations';
+import { calculateTripDateRange } from '@/lib/tripDateCalculations';
 import { 
   Plane, Building2, Car, Calendar, MapPin, DollarSign, 
   AlertTriangle, Download, ExternalLink, Clock, PartyPopper,
@@ -36,6 +37,7 @@ interface SummaryTabProps {
 interface TimelineEvent {
   id: string;
   type: 'flight' | 'stay' | 'car_rental' | 'activity' | 'parking';
+  eventType?: 'check-in' | 'check-out' | 'departure' | 'pickup' | 'dropoff';
   title: string;
   subtitle: string;
   datetime: Date;
@@ -129,31 +131,109 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
     }
   }, [tripId, expenses, bookings, parkingList, costSummary]);
 
-  // Build timeline
-  const timeline: TimelineEvent[] = [
-    ...bookings.map((b: Booking) => ({
-      id: b.id,
-      type: b.booking_type as TimelineEvent['type'],
-      title: b.booking_type === 'flight' ? `${b.airline || b.vendor_name}` : b.property_name || b.vendor_name,
-      subtitle: b.booking_type === 'flight' ? `Flight - ${b.confirmation_number || 'No confirmation'}` : 
-               b.booking_type === 'stay' ? `${b.stay_type || 'Stay'} - ${b.confirmation_number || ''}` :
-               b.booking_type === 'car_rental' ? `Car Rental - ${b.rental_company || b.vendor_name}` :
-               `Activity - ${b.vendor_name}`,
-      datetime: parseISO(b.start_datetime),
-      endDatetime: b.end_datetime ? parseISO(b.end_datetime) : undefined,
-      address: b.address,
-      linkUrl: b.link_url,
-    })),
-    ...parkingList.map((p: Parking) => ({
-      id: p.id,
-      type: 'parking' as const,
-      title: p.label,
-      subtitle: `Parking - ${p.parking_type}`,
-      datetime: parseISO(p.start_datetime),
-      endDatetime: p.end_datetime ? parseISO(p.end_datetime) : undefined,
-      address: p.address,
-    })),
-  ].sort((a, b) => a.datetime.getTime() - b.datetime.getTime());
+  // Build timeline with correct "key times" per booking type
+  // - Flights: show DEPARTURE time (start_datetime)
+  // - Stays: show CHECK-IN time (start_datetime) AND CHECK-OUT (end_datetime as separate event)
+  // - Rentals: show PICKUP time (start_datetime)
+  const buildTimelineEvents = (): TimelineEvent[] => {
+    const events: TimelineEvent[] = [];
+    
+    bookings.forEach((b: Booking) => {
+      if (b.booking_type === 'flight') {
+        // Flight: show departure time
+        events.push({
+          id: b.id,
+          type: 'flight',
+          eventType: 'departure',
+          title: b.airline || b.vendor_name,
+          subtitle: `Flight Departure - ${b.confirmation_number || 'No confirmation'}`,
+          datetime: parseISO(b.start_datetime),
+          endDatetime: b.end_datetime ? parseISO(b.end_datetime) : undefined,
+          address: b.address,
+          linkUrl: b.link_url,
+        });
+      } else if (b.booking_type === 'stay') {
+        // Stay: show check-in event
+        events.push({
+          id: `${b.id}-checkin`,
+          type: 'stay',
+          eventType: 'check-in',
+          title: b.property_name || b.vendor_name,
+          subtitle: `Check In - ${b.stay_type || 'Stay'}${b.confirmation_number ? ` - ${b.confirmation_number}` : ''}`,
+          datetime: parseISO(b.start_datetime),
+          address: b.address,
+          linkUrl: b.link_url,
+        });
+        // Stay: show check-out event on end date (if available)
+        if (b.end_datetime) {
+          events.push({
+            id: `${b.id}-checkout`,
+            type: 'stay',
+            eventType: 'check-out',
+            title: b.property_name || b.vendor_name,
+            subtitle: `Check Out - ${b.stay_type || 'Stay'}`,
+            datetime: parseISO(b.end_datetime),
+            address: b.address,
+            linkUrl: b.link_url,
+          });
+        }
+      } else if (b.booking_type === 'car_rental') {
+        // Rental: show pickup time
+        events.push({
+          id: `${b.id}-pickup`,
+          type: 'car_rental',
+          eventType: 'pickup',
+          title: b.rental_company || b.vendor_name,
+          subtitle: `Car Pickup${b.confirmation_number ? ` - ${b.confirmation_number}` : ''}`,
+          datetime: parseISO(b.start_datetime),
+          address: b.pickup_location || b.address,
+          linkUrl: b.link_url,
+        });
+        // Rental: show drop-off event on end date (if available)
+        if (b.end_datetime) {
+          events.push({
+            id: `${b.id}-dropoff`,
+            type: 'car_rental',
+            eventType: 'dropoff',
+            title: b.rental_company || b.vendor_name,
+            subtitle: `Car Drop-off`,
+            datetime: parseISO(b.end_datetime),
+            address: b.return_location || b.pickup_location || b.address,
+            linkUrl: b.link_url,
+          });
+        }
+      } else {
+        // Activity: use start time
+        events.push({
+          id: b.id,
+          type: 'activity',
+          title: b.vendor_name,
+          subtitle: `Activity - ${b.confirmation_number || 'No confirmation'}`,
+          datetime: parseISO(b.start_datetime),
+          endDatetime: b.end_datetime ? parseISO(b.end_datetime) : undefined,
+          address: b.address,
+          linkUrl: b.link_url,
+        });
+      }
+    });
+    
+    // Add parking events
+    parkingList.forEach((p: Parking) => {
+      events.push({
+        id: p.id,
+        type: 'parking',
+        title: p.label,
+        subtitle: `Parking - ${p.parking_type}`,
+        datetime: parseISO(p.start_datetime),
+        endDatetime: p.end_datetime ? parseISO(p.end_datetime) : undefined,
+        address: p.address,
+      });
+    });
+    
+    return events.sort((a, b) => a.datetime.getTime() - b.datetime.getTime());
+  };
+  
+  const timeline = buildTimelineEvents();
 
   // Parking status for card display
   const now = new Date();
