@@ -761,8 +761,8 @@ type expense_sub_category =
 // UI Virtual Categories (for simplified entry)
 // "Gas" appears as a top-level option in UI but maps to transport/gas in database
 
-// Booking Types
-type booking_type = "flight" | "stay" | "car_rental" | "activity";
+// Booking Types (includes parking as parseable type - routes to Parking tab)
+type booking_type = "flight" | "stay" | "car_rental" | "activity" | "parking";
 
 // Stay Types
 type stay_type = "hotel" | "airbnb" | "vrbo" | "other";
@@ -793,6 +793,10 @@ type trip_type = "business" | "personal" | "mixed";
 | 1.4 | 2026-01-29 | Timeline: Rentals now appear twice - on pickup day AND drop-off day |
 | 1.4 | 2026-01-29 | Trip dates: When flights exist, trip date range is anchored to flight dates (stays/rentals cannot extend) |
 | 1.4 | 2026-01-29 | Added src/lib/tripDateCalculations.ts utility for flight-anchored date range calculations |
+| 1.5 | 2026-01-30 | Icons: Parking now uses dedicated CircleParking icon instead of Car icon |
+| 1.5 | 2026-01-30 | Parsing: AI now detects parking reservations (SpotHero, WallyPark, etc.) and routes to Parking tab |
+| 1.5 | 2026-01-30 | Parsing: Stay dates now explicitly use check-in/check-out dates (not reservation/payment dates) |
+| 1.5 | 2026-01-30 | Parsing: Airline costs with single total now placed on first/outbound leg only (no duplication) |
 
 ---
 

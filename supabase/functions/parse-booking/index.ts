@@ -113,12 +113,13 @@ Extract:
 Return a JSON object with these fields. Use null for any fields you cannot determine.
 Be precise with sub_category for future reporting (e.g., tracking alcohol spend across trips).`
       : `You are a travel booking confirmation parser. Extract the following from the booking text:
-- booking_type (flight, stay, car_rental, activity)
+- booking_type (flight, stay, car_rental, activity, parking)
+  - IMPORTANT: If the text mentions parking services (SpotHero, WallyPark, ParkWhiz, The Parking Spot, PreFlight, airport parking, garage parking, lot parking), classify as "parking" NOT "activity"
 - vendor_name
-- start_datetime (ISO 8601 format)
-- end_datetime (ISO 8601 format, if applicable)
+- start_datetime (ISO 8601 format) - For flights: use DEPARTURE time. For stays: use CHECK-IN date/time. For car rentals: use PICKUP time. For parking: use entry/start time.
+- end_datetime (ISO 8601 format, if applicable) - For flights: use ARRIVAL time. For stays: use CHECK-OUT date (NOT reservation/booking date). For car rentals: use DROP-OFF time. For parking: use exit/end time.
 - confirmation_number
-- total_cost (number only)
+- total_cost (number only) - For multi-leg flights with a single total, put the FULL cost on the FIRST/OUTBOUND leg only. Do NOT duplicate the same total across return flights.
 - address
 
 For flights also extract:
@@ -129,13 +130,18 @@ For flights also extract:
 For stays also extract:
 - property_name
 - stay_type (hotel, airbnb, vrbo, other)
-- check_in_time
-- check_out_time
+- check_in_time (the actual CHECK-IN time, not reservation/booking time)
+- check_out_time (the actual CHECK-OUT time)
+- IMPORTANT: start_datetime must be the CHECK-IN date, end_datetime must be the CHECK-OUT date. Never use reservation date, payment date, or booking creation date.
 
 For car rentals also extract:
 - rental_company
 - pickup_location
 - return_location
+
+For parking also extract:
+- parking_type (airport, hotel, city_garage, beach, other)
+- address (facility address)
 
 Return a JSON object with these fields. Use null for any fields you cannot determine.`;
 
@@ -177,12 +183,12 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
                 } : {
                   type: "object",
                   properties: {
-                    booking_type: { type: "string", enum: ["flight", "stay", "car_rental", "activity"] },
+                    booking_type: { type: "string", enum: ["flight", "stay", "car_rental", "activity", "parking"] },
                     vendor_name: { type: "string" },
-                    start_datetime: { type: "string" },
-                    end_datetime: { type: "string" },
+                    start_datetime: { type: "string", description: "For stays: check-in date. For flights: departure. For rentals: pickup. For parking: start time." },
+                    end_datetime: { type: "string", description: "For stays: check-out date. For flights: arrival. For rentals: drop-off. For parking: end time." },
                     confirmation_number: { type: "string" },
-                    total_cost: { type: "number" },
+                    total_cost: { type: "number", description: "For multi-leg flights with single total, put full cost on first/outbound leg only" },
                     address: { type: "string" },
                     airline: { type: "string" },
                     passenger_name: { type: "string" },
@@ -191,6 +197,7 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
                     rental_company: { type: "string" },
                     pickup_location: { type: "string" },
                     return_location: { type: "string" },
+                    parking_type: { type: "string", enum: ["airport", "hotel", "city_garage", "beach", "other"] },
                     notes: { type: "string" },
                   },
                   required: ["booking_type", "vendor_name", "start_datetime"],

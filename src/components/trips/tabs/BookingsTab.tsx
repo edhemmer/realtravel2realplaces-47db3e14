@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { 
   Plus, Plane, Building2, Car, PartyPopper, Trash2, Pencil,
   ExternalLink, MapPin, AlertTriangle, Link2, Upload, FileText, Users,
-  ClipboardPaste, Loader2, Scan
+  ClipboardPaste, Loader2, Scan, CircleParking
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isBefore, isAfter, startOfDay } from 'date-fns';
@@ -195,6 +195,18 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
 
       if (data?.success && data?.data) {
         const parsed = data.data;
+        
+        // Check if this is a parking confirmation - redirect to Parking tab
+        if (parsed.booking_type === 'parking') {
+          toast.info('This looks like a parking reservation. Please add it in the Parking tab.', {
+            description: `${parsed.vendor_name || 'Parking'} - ${parsed.confirmation_number || ''}`,
+            duration: 5000,
+          });
+          setPastedText('');
+          setShowPasteInput(false);
+          setDialogOpen(false);
+          return;
+        }
         
         // Validate dates before applying
         const dateValidation = validateBookingDates(parsed.start_datetime, parsed.end_datetime);
