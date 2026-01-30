@@ -24,7 +24,8 @@ import { calculateTripDateRange } from '@/lib/tripDateCalculations';
 import { 
   Plane, Building2, Car, Calendar, MapPin, DollarSign, 
   AlertTriangle, Download, ExternalLink, Clock, PartyPopper,
-  Cloud, Sun, CloudRain, Snowflake, Thermometer, Info, Globe, Utensils, Camera, Bell
+  Cloud, Sun, CloudRain, Snowflake, Thermometer, Info, Globe, Utensils, Camera, Bell,
+  CircleParking
 } from 'lucide-react';
 import { format, parseISO, isAfter, differenceInDays } from 'date-fns';
 import { toast } from 'sonner';
@@ -246,7 +247,7 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
       case 'flight': return <Plane className="w-4 h-4" />;
       case 'stay': return <Building2 className="w-4 h-4" />;
       case 'car_rental': return <Car className="w-4 h-4" />;
-      case 'parking': return <Car className="w-4 h-4" />;
+      case 'parking': return <CircleParking className="w-4 h-4" />;
       default: return <PartyPopper className="w-4 h-4" />;
     }
   };
@@ -419,7 +420,7 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <Car className="w-4 h-4 text-primary" />
+              <CircleParking className="w-4 h-4 text-primary" />
               Parking
             </CardTitle>
           </CardHeader>

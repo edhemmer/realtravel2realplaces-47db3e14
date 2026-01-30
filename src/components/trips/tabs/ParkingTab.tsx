@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Plus, Trash2, Car, MapPin, Clock, AlertTriangle, Pencil } from 'lucide-react';
+import { Plus, Trash2, CircleParking, MapPin, Clock, AlertTriangle, Pencil } from 'lucide-react';
 import { format, parseISO, isAfter, isBefore, addMinutes } from 'date-fns';
 import {
   AlertDialog,
@@ -171,7 +171,7 @@ export function ParkingTab({ tripId }: ParkingTabProps) {
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
                       <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                        <Car className="w-5 h-5" />
+                        <CircleParking className="w-5 h-5" />
                       </div>
                       <div>
                         <CardTitle className="text-base">{parking.label}</CardTitle>
@@ -240,7 +240,7 @@ export function ParkingTab({ tripId }: ParkingTabProps) {
       ) : (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <Car className="w-12 h-12 text-muted-foreground/50 mb-4" />
+            <CircleParking className="w-12 h-12 text-muted-foreground/50 mb-4" />
             <p className="text-muted-foreground">No parking added</p>
             <Button onClick={() => { resetForm(); setDialogOpen(true); }} variant="link" className="mt-2">
               Add parking location
