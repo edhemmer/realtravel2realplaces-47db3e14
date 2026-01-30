@@ -115,24 +115,36 @@ Be precise with sub_category for future reporting (e.g., tracking alcohol spend 
       : `You are a travel booking confirmation parser. Extract the following from the booking text:
 - booking_type (flight, stay, car_rental, activity, parking)
   - IMPORTANT: If the text mentions parking services (SpotHero, WallyPark, ParkWhiz, The Parking Spot, PreFlight, airport parking, garage parking, lot parking), classify as "parking" NOT "activity"
-- vendor_name
-- start_datetime (ISO 8601 format) - For flights: use DEPARTURE time. For stays: use CHECK-IN date/time. For car rentals: use PICKUP time. For parking: use entry/start time.
-- end_datetime (ISO 8601 format, if applicable) - For flights: use ARRIVAL time. For stays: use CHECK-OUT date (NOT reservation/booking date). For car rentals: use DROP-OFF time. For parking: use exit/end time.
+- vendor_name (the actual company name, e.g., "Frontier Airlines", "Alamo", "Marriott" - NEVER return "null" as a string)
+- start_datetime (ISO 8601 format) - For flights: use DEPARTURE time of FIRST/OUTBOUND flight. For stays: use CHECK-IN date/time. For car rentals: use PICKUP time. For parking: use entry/start time.
+- end_datetime (ISO 8601 format, if applicable) - For flights: use ARRIVAL time of LAST/RETURN flight. For stays: use CHECK-OUT date. For car rentals: use DROP-OFF time. For parking: use exit/end time.
 - confirmation_number
 - total_cost (number only) - For multi-leg flights with a single total, put the FULL cost on the FIRST/OUTBOUND leg only. Do NOT duplicate the same total across return flights.
 - address
 
+CRITICAL FOR FLIGHTS WITH MULTIPLE LEGS (round trips):
+- start_datetime = DEPARTURE time of the FIRST/OUTBOUND flight
+- end_datetime = ARRIVAL time of the LAST/RETURN flight (NOT the outbound arrival)
+- This ensures the flight booking spans the entire trip duration
+- Example: If outbound departs Jan 30 6:13 PM and return arrives Feb 1 9:46 PM, use start_datetime=2026-01-30T18:13:00 and end_datetime=2026-02-01T21:46:00
+
 For flights also extract:
-- airline
+- airline (the actual airline name like "Frontier Airlines", "Delta", "United" - extract from the confirmation text)
 - passenger_name
-- flight_number (put in notes)
+- flight_number (put in notes, format as "Outbound: XXXX, Return: XXXX" for round trips)
+
+CRITICAL FOR STAYS - DATE VALIDATION:
+- ONLY extract stays if you can identify ACTUAL CHECK-IN and CHECK-OUT dates
+- start_datetime must be the CHECK-IN date, end_datetime must be the CHECK-OUT date
+- NEVER use: reservation date, payment date, booking creation date, or transaction date
+- If the confirmation only shows a payment/transaction date without explicit check-in/check-out dates, set success to false and return partial data with a warning
+- A "Payment successful" email is NOT a booking confirmation - it lacks check-in/check-out dates
 
 For stays also extract:
 - property_name
 - stay_type (hotel, airbnb, vrbo, other)
 - check_in_time (the actual CHECK-IN time, not reservation/booking time)
 - check_out_time (the actual CHECK-OUT time)
-- IMPORTANT: start_datetime must be the CHECK-IN date, end_datetime must be the CHECK-OUT date. Never use reservation date, payment date, or booking creation date.
 
 For car rentals also extract:
 - rental_company
@@ -143,7 +155,7 @@ For parking also extract:
 - parking_type (airport, hotel, city_garage, beach, other)
 - address (facility address)
 
-Return a JSON object with these fields. Use null for any fields you cannot determine.`;
+Return a JSON object with these fields. Use null for any fields you cannot determine. Never return the string "null" - use actual null or omit the field.`;
 
     let response;
     try {
@@ -262,6 +274,29 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
     if (toolCall?.function?.arguments) {
       try {
         const parsed = JSON.parse(toolCall.function.arguments);
+        
+        // Post-process: Clean up "null" strings to actual null values
+        for (const key of Object.keys(parsed)) {
+          if (parsed[key] === "null" || parsed[key] === "NULL") {
+            parsed[key] = null;
+          }
+        }
+        
+        // Validate stay bookings have actual check-in/check-out dates (not just payment dates)
+        if (parsed.booking_type === 'stay') {
+          const hasValidDates = parsed.start_datetime && parsed.end_datetime;
+          if (!hasValidDates) {
+            return new Response(JSON.stringify({ 
+              success: false, 
+              data: parsed,
+              message: "This appears to be a payment confirmation, not a booking confirmation. Please provide the full booking details with check-in and check-out dates." 
+            }), {
+              status: 200,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
+        
         return new Response(JSON.stringify({ 
           success: true, 
           data: parsed,
