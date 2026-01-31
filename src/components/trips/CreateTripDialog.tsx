@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { getVendorUrl } from '@/lib/vendorUrls';
 import { BookingType, StayType } from '@/types/database';
+import { getSuggestedTripDates } from '@/hooks/useTripDateSync';
 
 // Helper to parse passenger names and extract frequent flyer info
 function parsePassengers(passengerString: string | undefined, airline: string | undefined): Array<{
@@ -190,16 +191,7 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
           if (parsed.trip.destination_state) setValue('destination_state', parsed.trip.destination_state);
           if (parsed.trip.destination_country) setValue('destination_country', parsed.trip.destination_country);
           if (parsed.trip.trip_type) setValue('trip_type', parsed.trip.trip_type);
-          if (parsed.trip.start_date) {
-            try {
-              setStartDate(parseISO(parsed.trip.start_date));
-            } catch {}
-          }
-          if (parsed.trip.end_date) {
-            try {
-              setEndDate(parseISO(parsed.trip.end_date));
-            } catch {}
-          }
+          
           if (parsed.bookings?.some((b: any) => b.booking_type === 'flight')) {
             setValue('transportation_mode', 'flight');
           }
@@ -207,6 +199,33 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
 
         if (parsed.bookings && Array.isArray(parsed.bookings)) {
           setParsedBookings(parsed.bookings);
+          
+          // RULE: Flight dates are the source of truth for trip dates
+          // Use getSuggestedTripDates which prioritizes flights over other bookings
+          const suggestedDates = getSuggestedTripDates(parsed.bookings);
+          
+          if (suggestedDates.start_date) {
+            try {
+              setStartDate(parseISO(suggestedDates.start_date));
+            } catch {}
+          }
+          if (suggestedDates.end_date) {
+            try {
+              setEndDate(parseISO(suggestedDates.end_date));
+            } catch {}
+          }
+        } else {
+          // No bookings parsed - fall back to trip-level dates if available
+          if (parsed.trip?.start_date) {
+            try {
+              setStartDate(parseISO(parsed.trip.start_date));
+            } catch {}
+          }
+          if (parsed.trip?.end_date) {
+            try {
+              setEndDate(parseISO(parsed.trip.end_date));
+            } catch {}
+          }
         }
 
         // Clear paste input on success and collapse
