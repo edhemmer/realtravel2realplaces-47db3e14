@@ -112,7 +112,25 @@ Extract:
 
 Return a JSON object with these fields. Use null for any fields you cannot determine.
 Be precise with sub_category for future reporting (e.g., tracking alcohol spend across trips).`
-      : `You are a travel booking confirmation parser. Extract the following from the booking text:
+      : `You are a travel booking confirmation parser. Your job is to determine if a document is:
+1. A FULL BOOKING CONFIRMATION with service dates (flight times, check-in/out dates, pickup/dropoff times), OR
+2. A RECEIPT ONLY (payment record) without service dates
+
+CRITICAL DISTINCTION:
+- BOOKING CONFIRMATION: Contains actual service dates like departure/arrival times, check-in/check-out dates, pickup/dropoff times, parking entry/exit times
+- RECEIPT ONLY: Contains only payment info (amount, vendor, card details, transaction date) but NO service dates
+
+First, determine which type this is by setting:
+- is_receipt_only: true if this is just a payment receipt WITHOUT service dates
+- is_receipt_only: false if this contains actual service dates (flight times, check-in/out, pickup/dropoff, etc.)
+
+For RECEIPT ONLY documents (is_receipt_only: true), extract:
+- vendor_name
+- total_cost (amount paid)
+- receipt_date (payment/transaction date in YYYY-MM-DD format)
+- Set booking_type based on context if determinable (flight, stay, car_rental, parking, activity, other)
+
+For FULL BOOKING CONFIRMATIONS (is_receipt_only: false), extract all fields:
 - booking_type (flight, stay, car_rental, activity, parking)
   - IMPORTANT: If the text mentions parking services (SpotHero, WallyPark, ParkWhiz, The Parking Spot, PreFlight, airport parking, garage parking, lot parking), classify as "parking" NOT "activity"
 - vendor_name (the actual company name, e.g., "Frontier Airlines", "Alamo", "Marriott" - NEVER return "null" as a string)
@@ -137,7 +155,7 @@ CRITICAL FOR STAYS - DATE VALIDATION:
 - ONLY extract stays if you can identify ACTUAL CHECK-IN and CHECK-OUT dates
 - start_datetime must be the CHECK-IN date, end_datetime must be the CHECK-OUT date
 - NEVER use: reservation date, payment date, booking creation date, or transaction date
-- If the confirmation only shows a payment/transaction date without explicit check-in/check-out dates, set success to false and return partial data with a warning
+- If the confirmation only shows a payment/transaction date without explicit check-in/check-out dates, set is_receipt_only to true
 - A "Payment successful" email is NOT a booking confirmation - it lacks check-in/check-out dates
 
 For stays also extract:
@@ -195,10 +213,12 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
                 } : {
                   type: "object",
                   properties: {
-                    booking_type: { type: "string", enum: ["flight", "stay", "car_rental", "activity", "parking"] },
+                    is_receipt_only: { type: "boolean", description: "True if this is a payment receipt without service dates (no flight times, no check-in/out, no pickup/dropoff)" },
+                    booking_type: { type: "string", enum: ["flight", "stay", "car_rental", "activity", "parking", "other"] },
                     vendor_name: { type: "string" },
-                    start_datetime: { type: "string", description: "For stays: check-in date. For flights: departure. For rentals: pickup. For parking: start time." },
-                    end_datetime: { type: "string", description: "For stays: check-out date. For flights: arrival. For rentals: drop-off. For parking: end time." },
+                    start_datetime: { type: "string", description: "For stays: check-in date. For flights: departure. For rentals: pickup. For parking: start time. NULL for receipts." },
+                    end_datetime: { type: "string", description: "For stays: check-out date. For flights: arrival. For rentals: drop-off. For parking: end time. NULL for receipts." },
+                    receipt_date: { type: "string", description: "For receipts only: the payment/transaction date in YYYY-MM-DD format" },
                     confirmation_number: { type: "string" },
                     total_cost: { type: "number", description: "For multi-leg flights with single total, put full cost on first/outbound leg only" },
                     address: { type: "string" },
@@ -212,7 +232,7 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
                     parking_type: { type: "string", enum: ["airport", "hotel", "city_garage", "beach", "other"] },
                     notes: { type: "string" },
                   },
-                  required: ["booking_type", "vendor_name", "start_datetime"],
+                  required: ["is_receipt_only", "vendor_name"],
                 },
               },
             },
@@ -282,14 +302,45 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
           }
         }
         
+        // Check if this is a receipt-only document
+        if (parsed.is_receipt_only === true) {
+          return new Response(JSON.stringify({ 
+            success: true, 
+            data: parsed,
+            is_receipt_only: true,
+            message: "This appears to be a payment receipt without booking details. An expense will be created instead." 
+          }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        
+        // For non-receipt bookings, validate that we have service dates
+        // If booking_type is set but no start_datetime, treat as receipt
+        if (!parsed.start_datetime && parsed.total_cost) {
+          parsed.is_receipt_only = true;
+          return new Response(JSON.stringify({ 
+            success: true, 
+            data: parsed,
+            is_receipt_only: true,
+            message: "This appears to be a payment receipt without service dates. An expense will be created instead." 
+          }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        
         // Validate stay bookings have actual check-in/check-out dates (not just payment dates)
         if (parsed.booking_type === 'stay') {
           const hasValidDates = parsed.start_datetime && parsed.end_datetime;
           if (!hasValidDates) {
+            // Treat as receipt if missing dates
+            parsed.is_receipt_only = true;
             return new Response(JSON.stringify({ 
-              success: false, 
+              success: true, 
               data: parsed,
-              message: "This appears to be a payment confirmation, not a booking confirmation. Please provide the full booking details with check-in and check-out dates." 
+              is_receipt_only: true,
+              message: "This appears to be a payment confirmation without check-in/check-out dates. An expense will be created. To add timeline entries, please upload the full booking confirmation." 
             }), {
               status: 200,
               headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -300,6 +351,7 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
         return new Response(JSON.stringify({ 
           success: true, 
           data: parsed,
+          is_receipt_only: false,
           message: "Successfully parsed booking details." 
         }), {
           status: 200,

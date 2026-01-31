@@ -4,6 +4,7 @@ import { useCompanions } from '@/hooks/useCompanions';
 import { useBookingCompanionsByTrip, useSetBookingCompanions } from '@/hooks/useBookingCompanions';
 import { useTrip, useUpdateTrip } from '@/hooks/useTrips';
 import { useTripDateSync, calculateFlightDateRange, calculateNonFlightDateRange } from '@/hooks/useTripDateSync';
+import { useCreateExpense } from '@/hooks/useExpenses';
 import { Booking, BookingType, StayType, Companion } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -62,6 +63,7 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
   const deleteBooking = useDeleteBooking();
   const updateTrip = useUpdateTrip();
   const setBookingCompanions = useSetBookingCompanions();
+  const createExpense = useCreateExpense();
   
   // Hook to sync trip dates when bookings are added
   const { syncTripDates } = useTripDateSync(tripId, bookings, trip, canEdit);
@@ -175,6 +177,50 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
     return { valid: true, startDt, endDt };
   };
 
+  // Helper to map booking type to expense category
+  const getExpenseCategoryFromBookingType = (bookingType: string): 'transport' | 'parking' | 'activity' | 'other' => {
+    switch (bookingType) {
+      case 'flight':
+      case 'car_rental':
+        return 'transport';
+      case 'parking':
+        return 'parking';
+      case 'activity':
+        return 'activity';
+      case 'stay':
+      default:
+        return 'other';
+    }
+  };
+
+  // Helper to create expense from receipt-only data
+  const createExpenseFromReceipt = async (parsed: {
+    vendor_name?: string;
+    total_cost?: number;
+    receipt_date?: string;
+    booking_type?: string;
+  }) => {
+    const category = getExpenseCategoryFromBookingType(parsed.booking_type || 'other');
+    
+    // Use receipt_date if available, otherwise use today's date
+    const expenseDate = parsed.receipt_date || new Date().toISOString().split('T')[0];
+    
+    try {
+      await createExpense.mutateAsync({
+        trip_id: tripId,
+        date: expenseDate,
+        category,
+        description: parsed.vendor_name || 'Receipt upload',
+        amount: parsed.total_cost || 0,
+        notes: `Created from receipt upload. Vendor: ${parsed.vendor_name || 'Unknown'}`,
+      });
+      return true;
+    } catch (err) {
+      console.error('Failed to create expense from receipt:', err);
+      return false;
+    }
+  };
+
   // Shared parsing logic for both drag-drop and paste (mirrors Create Trip)
   const parseBookingText = useCallback(async (text: string) => {
     if (!text.trim()) {
@@ -200,6 +246,27 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
 
       if (data?.success && data?.data) {
         const parsed = data.data;
+        
+        // Check if this is a receipt-only upload (no service dates)
+        if (data.is_receipt_only === true) {
+          // Create expense instead of booking
+          const expenseCreated = await createExpenseFromReceipt(parsed);
+          
+          if (expenseCreated) {
+            toast.info('Receipt processed successfully!', {
+              description: `This was treated as a receipt only. $${parsed.total_cost?.toFixed(2) || '0.00'} expense created for ${parsed.vendor_name || 'Unknown vendor'}. No booking was added to your timeline. To add dates and timeline entries, please upload the full booking confirmation.`,
+              duration: 8000,
+            });
+          } else {
+            toast.warning('Could not create expense from receipt. Please add it manually in the Expenses tab.');
+          }
+          
+          setPastedText('');
+          setShowPasteInput(false);
+          setDialogOpen(false);
+          setIsParsing(false);
+          return;
+        }
         
         // Check if this is a parking confirmation - redirect to Parking tab
         if (parsed.booking_type === 'parking') {
@@ -277,7 +344,7 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
     } finally {
       setIsParsing(false);
     }
-  }, []);
+  }, [tripId, createExpense]);
 
   // Drag-and-drop handlers (mirrors Create Trip)
   const handleDialogDragOver = useCallback((e: React.DragEvent) => {

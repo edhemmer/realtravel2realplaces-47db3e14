@@ -163,13 +163,46 @@ you cannot determine.
 
 **Function:** `parse-booking`  
 **Model:** `google/gemini-3-flash-preview`  
-**Purpose:** Extract single booking confirmations OR text-based expense receipts
+**Purpose:** Extract single booking confirmations OR text-based expense receipts. Distinguishes between full confirmations with service dates and receipt-only documents.
+
+### Receipt vs Confirmation Detection (v1.2.4)
+
+The parser now intelligently distinguishes between:
+
+1. **FULL BOOKING CONFIRMATION**: Contains actual service dates (flight times, check-in/out dates, pickup/dropoff times, parking entry/exit times)
+2. **RECEIPT ONLY**: Contains only payment info (amount, vendor, card details, transaction date) but NO service dates
+
+For receipt-only documents:
+- `is_receipt_only: true` is returned
+- NO booking is created
+- An Expense is created instead
+- Trip start/end dates are NOT modified
+- Timeline is NOT updated
+- User receives clear feedback explaining this behavior
 
 ### System Prompt - Booking Mode
 
 ```
-You are a travel booking confirmation parser. Extract the following from the booking text:
-- booking_type (flight, stay, car_rental, activity)
+You are a travel booking confirmation parser. Your job is to determine if a document is:
+1. A FULL BOOKING CONFIRMATION with service dates (flight times, check-in/out dates, pickup/dropoff times), OR
+2. A RECEIPT ONLY (payment record) without service dates
+
+CRITICAL DISTINCTION:
+- BOOKING CONFIRMATION: Contains actual service dates like departure/arrival times, check-in/check-out dates, pickup/dropoff times, parking entry/exit times
+- RECEIPT ONLY: Contains only payment info (amount, vendor, card details, transaction date) but NO service dates
+
+First, determine which type this is by setting:
+- is_receipt_only: true if this is just a payment receipt WITHOUT service dates
+- is_receipt_only: false if this contains actual service dates
+
+For RECEIPT ONLY documents (is_receipt_only: true), extract:
+- vendor_name
+- total_cost (amount paid)
+- receipt_date (payment/transaction date in YYYY-MM-DD format)
+- booking_type (if determinable from context)
+
+For FULL BOOKING CONFIRMATIONS (is_receipt_only: false), extract all fields:
+- booking_type (flight, stay, car_rental, activity, parking)
 - vendor_name
 - start_datetime (ISO 8601 format)
 - end_datetime (ISO 8601 format, if applicable)
@@ -180,18 +213,23 @@ You are a travel booking confirmation parser. Extract the following from the boo
 For flights also extract:
 - airline
 - passenger_name
-- flight_number (put in notes)
+- flight_number (put in notes, format as "Outbound: XXXX, Return: XXXX" for round trips)
 
 For stays also extract:
 - property_name
 - stay_type (hotel, airbnb, vrbo, other)
 - check_in_time
 - check_out_time
+- CRITICAL: Only extract if ACTUAL check-in/check-out dates are present. Payment receipts are NOT booking confirmations.
 
 For car rentals also extract:
 - rental_company
 - pickup_location
 - return_location
+
+For parking also extract:
+- parking_type (airport, hotel, city_garage, beach, other)
+- address (facility address)
 
 Return a JSON object with these fields. Use null for any fields you cannot determine.
 ```
