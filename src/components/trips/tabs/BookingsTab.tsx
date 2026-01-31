@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useBookings, useCreateBooking, useUpdateBooking, useDeleteBooking } from '@/hooks/useBookings';
 import { useCompanions } from '@/hooks/useCompanions';
 import { useBookingCompanionsByTrip, useSetBookingCompanions } from '@/hooks/useBookingCompanions';
-import { useTrip } from '@/hooks/useTrips';
+import { useTrip, useUpdateTrip } from '@/hooks/useTrips';
+import { useTripDateSync, calculateFlightDateRange, calculateNonFlightDateRange } from '@/hooks/useTripDateSync';
 import { Booking, BookingType, StayType, Companion } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -59,7 +60,11 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
   const createBooking = useCreateBooking();
   const updateBooking = useUpdateBooking();
   const deleteBooking = useDeleteBooking();
+  const updateTrip = useUpdateTrip();
   const setBookingCompanions = useSetBookingCompanions();
+  
+  // Hook to sync trip dates when bookings are added
+  const { syncTripDates } = useTripDateSync(tripId, bookings, trip, canEdit);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [bookingToDelete, setBookingToDelete] = useState<string | null>(null);
@@ -391,6 +396,17 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
           companionIds: selectedCompanions,
           tripId,
         });
+      }
+      
+      // If this is a new flight booking, sync trip dates
+      // The useTripDateSync hook will handle this automatically when bookings change,
+      // but we can also trigger it explicitly here for immediate feedback
+      if (bookingType === 'flight') {
+        // The hook will detect the new booking and update dates if needed
+        // Give a small delay for the query to refresh, then sync
+        setTimeout(() => {
+          syncTripDates();
+        }, 500);
       }
     }
     

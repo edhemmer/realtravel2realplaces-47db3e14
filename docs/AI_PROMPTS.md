@@ -797,6 +797,10 @@ type trip_type = "business" | "personal" | "mixed";
 | 1.5 | 2026-01-30 | Parsing: AI now detects parking reservations (SpotHero, WallyPark, etc.) and routes to Parking tab |
 | 1.5 | 2026-01-30 | Parsing: Stay dates now explicitly use check-in/check-out dates (not reservation/payment dates) |
 | 1.5 | 2026-01-30 | Parsing: Airline costs with single total now placed on first/outbound leg only (no duplication) |
+| 1.6 | 2026-01-31 | Trip dates: Airline confirmations are now default source of truth for trip dates |
+| 1.6 | 2026-01-31 | Trip dates: Created useTripDateSync hook to calculate dates from flights first, fallback to non-flights |
+| 1.6 | 2026-01-31 | Trip dates: Manual user edits to trip dates are preserved and not auto-overwritten |
+| 1.6 | 2026-01-31 | Trip dates: Date recalculation only occurs when user explicitly re-parses confirmations |
 
 ---
 
