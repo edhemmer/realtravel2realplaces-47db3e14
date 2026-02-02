@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plane, MapPin, Calendar, Eye, EyeOff, Loader2, AlertCircle, Mail, Lock } from 'lucide-react';
-
 export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,7 +14,11 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const { signIn, signUp, user } = useAuth();
+  const {
+    signIn,
+    signUp,
+    user
+  } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -33,22 +36,20 @@ export default function Auth() {
       navigate('/dashboard');
     }
   }, [user, navigate]);
-
   const clearMessages = () => {
     setError('');
     setSuccessMessage('');
   };
-
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return; // Prevent double submission
-    
+
     clearMessages();
     setLoading(true);
-    
     try {
-      const { error } = await signIn(email, password);
-      
+      const {
+        error
+      } = await signIn(email, password);
       if (error) {
         // User-friendly error messages
         if (error.message.includes('Invalid login credentials')) {
@@ -67,24 +68,22 @@ export default function Auth() {
       setLoading(false);
     }
   };
-
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return; // Prevent double submission
-    
+
     clearMessages();
-    
+
     // Validate password
     if (password.length < 6) {
       setError('Password must be at least 6 characters.');
       return;
     }
-    
     setLoading(true);
-    
     try {
-      const { error } = await signUp(email, password);
-      
+      const {
+        error
+      } = await signUp(email, password);
       if (error) {
         if (error.message.includes('already registered')) {
           setError('An account with this email already exists.');
@@ -101,17 +100,19 @@ export default function Auth() {
       setLoading(false);
     }
   };
-
-  return (
-    <div className="min-h-screen bg-gradient-dawn flex flex-col items-center justify-center p-4">
+  return <div className="min-h-screen bg-gradient-dawn flex flex-col items-center justify-center p-4">
       {/* Decorative Elements */}
       <div className="absolute top-10 left-10 text-primary/20 animate-float">
         <Plane className="w-16 h-16" />
       </div>
-      <div className="absolute bottom-10 right-10 text-primary/20 animate-float" style={{ animationDelay: '2s' }}>
+      <div className="absolute bottom-10 right-10 text-primary/20 animate-float" style={{
+      animationDelay: '2s'
+    }}>
         <MapPin className="w-12 h-12" />
       </div>
-      <div className="absolute top-1/4 right-20 text-accent-foreground/20 animate-float" style={{ animationDelay: '1s' }}>
+      <div className="absolute top-1/4 right-20 text-accent-foreground/20 animate-float" style={{
+      animationDelay: '1s'
+    }}>
         <Calendar className="w-10 h-10" />
       </div>
 
@@ -121,13 +122,11 @@ export default function Auth() {
           <div className="w-12 h-12 rounded-xl bg-gradient-ocean flex items-center justify-center shadow-glow">
             <Plane className="w-6 h-6 text-primary-foreground" />
           </div>
-          <h1 className="text-3xl font-bold text-gradient-ocean">
+          <h1 className="font-bold text-gradient-ocean text-5xl">
             Real Travel 2 <span className="italic">Real Places</span>
           </h1>
         </div>
-        <p className="text-muted-foreground text-sm">
-          Your personal travel companion
-        </p>
+        <p className="text-muted-foreground text-sm">Your travel organizer.</p>
       </div>
 
       {/* Auth Card */}
@@ -149,78 +148,38 @@ export default function Auth() {
                   <Label htmlFor="signin-email">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="signin-email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
-                      required
-                      disabled={loading}
-                      autoComplete="email"
-                    />
+                    <Input id="signin-email" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} className="pl-10" required disabled={loading} autoComplete="email" />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signin-password">Password</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="signin-password"
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10 pr-10"
-                      required
-                      disabled={loading}
-                      autoComplete="current-password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                      tabIndex={-1}
-                    >
+                    <Input id="signin-password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} className="pl-10 pr-10" required disabled={loading} autoComplete="current-password" />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" tabIndex={-1}>
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
 
-                {error && (
-                  <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+                {error && <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-md">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
                     <span>{error}</span>
-                  </div>
-                )}
+                  </div>}
 
-                {successMessage && (
-                  <div className="text-sm text-success bg-success/10 p-3 rounded-md">
+                {successMessage && <div className="text-sm text-success bg-success/10 p-3 rounded-md">
                     {successMessage}
-                  </div>
-                )}
+                  </div>}
 
-                <Button 
-                  type="submit" 
-                  className="w-full bg-gradient-ocean hover:opacity-90 transition-opacity"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
+                <Button type="submit" className="w-full bg-gradient-ocean hover:opacity-90 transition-opacity" disabled={loading}>
+                  {loading ? <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Signing in...
-                    </>
-                  ) : (
-                    'Sign In'
-                  )}
+                    </> : 'Sign In'}
                 </Button>
 
                 <div className="text-center">
-                  <Link
-                    to="/forgot-password"
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
+                  <Link to="/forgot-password" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                     Forgot password?
                   </Link>
                 </div>
@@ -233,41 +192,15 @@ export default function Auth() {
                   <Label htmlFor="signup-email">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
-                      required
-                      disabled={loading}
-                      autoComplete="email"
-                    />
+                    <Input id="signup-email" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} className="pl-10" required disabled={loading} autoComplete="email" />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-password">Password</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="signup-password"
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10 pr-10"
-                      required
-                      minLength={6}
-                      disabled={loading}
-                      autoComplete="new-password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                      tabIndex={-1}
-                    >
+                    <Input id="signup-password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} className="pl-10 pr-10" required minLength={6} disabled={loading} autoComplete="new-password" />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" tabIndex={-1}>
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
@@ -276,32 +209,20 @@ export default function Auth() {
                   </p>
                 </div>
 
-                {error && (
-                  <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+                {error && <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-md">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
                     <span>{error}</span>
-                  </div>
-                )}
+                  </div>}
 
-                {successMessage && (
-                  <div className="text-sm text-success bg-success/10 p-3 rounded-md">
+                {successMessage && <div className="text-sm text-success bg-success/10 p-3 rounded-md">
                     {successMessage}
-                  </div>
-                )}
+                  </div>}
 
-                <Button 
-                  type="submit" 
-                  className="w-full bg-gradient-ocean hover:opacity-90 transition-opacity"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
+                <Button type="submit" className="w-full bg-gradient-ocean hover:opacity-90 transition-opacity" disabled={loading}>
+                  {loading ? <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Creating account...
-                    </>
-                  ) : (
-                    'Create Account'
-                  )}
+                    </> : 'Create Account'}
                 </Button>
               </form>
             </TabsContent>
@@ -313,6 +234,5 @@ export default function Auth() {
       <p className="text-xs text-muted-foreground mt-8 text-center">
         By continuing, you agree to our terms of service.
       </p>
-    </div>
-  );
+    </div>;
 }
