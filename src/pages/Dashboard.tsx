@@ -10,72 +10,76 @@ import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { Trip } from '@/types/database';
 import { CreateTripDialog } from '@/components/trips/CreateTripDialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 export default function Dashboard() {
-  const { data: trips, isLoading } = useTrips();
-  const { data: sharedTrips = [], isLoading: sharedLoading } = useSharedTrips();
+  const {
+    data: trips,
+    isLoading
+  } = useTrips();
+  const {
+    data: sharedTrips = [],
+    isLoading: sharedLoading
+  } = useSharedTrips();
   const deleteTrip = useDeleteTrip();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [tripToDelete, setTripToDelete] = useState<string | null>(null);
-
   const getTripTypeIcon = (type: string) => {
     switch (type) {
-      case 'business': return <Briefcase className="w-4 h-4" />;
-      case 'personal': return <Heart className="w-4 h-4" />;
-      case 'mixed': return <Sparkles className="w-4 h-4" />;
-      default: return <Plane className="w-4 h-4" />;
+      case 'business':
+        return <Briefcase className="w-4 h-4" />;
+      case 'personal':
+        return <Heart className="w-4 h-4" />;
+      case 'mixed':
+        return <Sparkles className="w-4 h-4" />;
+      default:
+        return <Plane className="w-4 h-4" />;
     }
   };
-
   const getTripTypeBadgeVariant = (type: string) => {
     switch (type) {
-      case 'business': return 'secondary';
-      case 'personal': return 'default';
-      case 'mixed': return 'outline';
-      default: return 'default';
+      case 'business':
+        return 'secondary';
+      case 'personal':
+        return 'default';
+      case 'mixed':
+        return 'outline';
+      default:
+        return 'default';
     }
   };
-
   const handleDeleteTrip = () => {
     if (tripToDelete) {
       deleteTrip.mutate(tripToDelete);
       setTripToDelete(null);
     }
   };
-
   if (isLoading || sharedLoading) {
-    return (
-      <Layout>
+    return <Layout>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
-      </Layout>
-    );
+      </Layout>;
   }
-
-  const TripCard = ({ trip, isShared = false, index }: { trip: Trip | SharedTrip; isShared?: boolean; index: number }) => (
-    <Card key={trip.id} className="group hover:shadow-lg transition-all duration-300 overflow-hidden animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+  const TripCard = ({
+    trip,
+    isShared = false,
+    index
+  }: {
+    trip: Trip | SharedTrip;
+    isShared?: boolean;
+    index: number;
+  }) => <Card key={trip.id} className="group hover:shadow-lg transition-all duration-300 overflow-hidden animate-fade-in" style={{
+    animationDelay: `${index * 50}ms`
+  }}>
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <CardTitle className="text-lg truncate">{trip.name}</CardTitle>
-              {isShared && (
-                <Badge variant="outline" className="shrink-0 text-xs">
+              {isShared && <Badge variant="outline" className="shrink-0 text-xs">
                   <Users className="w-3 h-3 mr-1" />
                   Shared
-                </Badge>
-              )}
+                </Badge>}
             </div>
             <CardDescription className="flex items-center gap-1 mt-1">
               <MapPin className="w-3 h-3" />
@@ -102,30 +106,19 @@ export default function Dashboard() {
               View Trip
             </Link>
           </Button>
-          {!isShared && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setTripToDelete(trip.id)}
-              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-            >
+          {!isShared && <Button variant="ghost" size="sm" onClick={() => setTripToDelete(trip.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
               <Trash2 className="w-4 h-4" />
-            </Button>
-          )}
+            </Button>}
         </div>
       </CardContent>
-    </Card>
-  );
-
-  const hasTrips = (trips && trips.length > 0) || sharedTrips.length > 0;
-
-  return (
-    <Layout>
+    </Card>;
+  const hasTrips = trips && trips.length > 0 || sharedTrips.length > 0;
+  return <Layout>
       <div className="space-y-6 animate-fade-in">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">My Trips</h1>
+            <h1 className="font-bold text-4xl">My Trips</h1>
             <p className="text-muted-foreground mt-1">Plan and organize your adventures</p>
           </div>
           <Button onClick={() => setCreateDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90 transition-opacity">
@@ -135,35 +128,27 @@ export default function Dashboard() {
         </div>
 
         {/* My Trips */}
-        {trips && trips.length > 0 && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">My Trips</h2>
+        {trips && trips.length > 0 && <div className="space-y-4">
+            <h2 className="text-lg font-semibold">
+        </h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {trips.map((trip: Trip, index: number) => (
-                <TripCard key={trip.id} trip={trip} index={index} />
-              ))}
+              {trips.map((trip: Trip, index: number) => <TripCard key={trip.id} trip={trip} index={index} />)}
             </div>
-          </div>
-        )}
+          </div>}
 
         {/* Shared Trips */}
-        {sharedTrips.length > 0 && (
-          <div className="space-y-4">
+        {sharedTrips.length > 0 && <div className="space-y-4">
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Users className="w-5 h-5 text-primary" />
               Shared With Me
             </h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {sharedTrips.map((trip: SharedTrip, index: number) => (
-                <TripCard key={trip.id} trip={trip} isShared index={index} />
-              ))}
+              {sharedTrips.map((trip: SharedTrip, index: number) => <TripCard key={trip.id} trip={trip} isShared index={index} />)}
             </div>
-          </div>
-        )}
+          </div>}
 
         {/* Empty State */}
-        {!hasTrips && (
-          <Card className="border-dashed">
+        {!hasTrips && <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-16">
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                 <Plane className="w-8 h-8 text-primary" />
@@ -177,8 +162,7 @@ export default function Dashboard() {
                 Create Your First Trip
               </Button>
             </CardContent>
-          </Card>
-        )}
+          </Card>}
       </div>
 
       <CreateTripDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
@@ -199,6 +183,5 @@ export default function Dashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Layout>
-  );
+    </Layout>;
 }
