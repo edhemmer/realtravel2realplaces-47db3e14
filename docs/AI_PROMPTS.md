@@ -853,7 +853,12 @@ type trip_type = "business" | "personal" | "mixed";
 | 1.7 | 2026-02-02 | Stay dates (v1.2.3): start_datetime MUST be check-in date, end_datetime MUST be check-out date |
 | 1.7 | 2026-02-02 | Stay dates (v1.2.3): Explicitly rejects reservation/payment/booking dates as stay dates |
 | 1.7 | 2026-02-02 | Stay dates (v1.2.3): Missing check-in/check-out triggers is_receipt_only: true |
-
+| 1.8 | 2026-02-02 | Booking-Expense Sync (v1.2.5): Every booking with valid total creates/updates linked expense |
+| 1.8 | 2026-02-02 | Booking-Expense Sync (v1.2.5): Uses notes field marker [linked_booking:uuid] to link expenses |
+| 1.8 | 2026-02-02 | Booking-Expense Sync (v1.2.5): Category mapping: flight/car→transport, stay→other, parking→parking |
+| 1.8 | 2026-02-02 | Booking-Expense Sync (v1.2.5): Re-parsing updates existing linked expense, no duplication |
+| 1.8 | 2026-02-02 | Booking-Expense Sync (v1.2.5): Deleting booking removes linked expense automatically |
+| 1.8 | 2026-02-02 | Booking-Expense Sync (v1.2.5): UI shows "From Booking" badge on auto-generated expenses |
 ---
 
 *This document is auto-generated based on the current state of the application's edge functions and UI components.*
