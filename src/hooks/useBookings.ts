@@ -2,6 +2,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Booking, BookingType, StayType } from '@/types/database';
 import { toast } from 'sonner';
+import { 
+  syncExpenseFromBooking, 
+  deleteLinkedExpense 
+} from '@/lib/bookingExpenseSync';
 
 export function useBookings(tripId: string) {
   return useQuery({
@@ -53,10 +57,17 @@ export function useCreateBooking() {
         .single();
       
       if (error) throw error;
+      
+      // v1.2.5: Sync expense from booking
+      if (booking && Number(booking.total_cost || 0) > 0) {
+        await syncExpenseFromBooking(booking as Booking);
+      }
+      
       return booking;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['bookings', variables.trip_id] });
+      queryClient.invalidateQueries({ queryKey: ['expenses', variables.trip_id] });
       toast.success('Booking added successfully!');
     },
     onError: (error) => {
@@ -76,10 +87,29 @@ export function useUpdateBooking() {
         .eq('id', id);
       
       if (error) throw error;
+      
+      // v1.2.5: Re-sync expense when booking is updated
+      // Fetch the updated booking to sync expense
+      const { data: updatedBooking } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (updatedBooking) {
+        if (Number(updatedBooking.total_cost || 0) > 0) {
+          await syncExpenseFromBooking(updatedBooking as Booking);
+        } else {
+          // If cost is now 0, remove linked expense
+          await deleteLinkedExpense(trip_id, id);
+        }
+      }
+      
       return { trip_id };
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['bookings', result.trip_id] });
+      queryClient.invalidateQueries({ queryKey: ['expenses', result.trip_id] });
       toast.success('Booking updated successfully!');
     },
     onError: (error) => {
@@ -93,6 +123,9 @@ export function useDeleteBooking() {
 
   return useMutation({
     mutationFn: async ({ id, trip_id }: { id: string; trip_id: string }) => {
+      // v1.2.5: Delete linked expense first
+      await deleteLinkedExpense(trip_id, id);
+      
       const { error } = await supabase
         .from('bookings')
         .delete()
@@ -103,6 +136,7 @@ export function useDeleteBooking() {
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['bookings', result.trip_id] });
+      queryClient.invalidateQueries({ queryKey: ['expenses', result.trip_id] });
       toast.success('Booking deleted successfully!');
     },
     onError: (error) => {
