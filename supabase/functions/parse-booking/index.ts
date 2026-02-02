@@ -152,11 +152,17 @@ For flights also extract:
 - flight_number (put in notes, format as "Outbound: XXXX, Return: XXXX" for round trips)
 
 CRITICAL FOR STAYS - DATE VALIDATION:
-- ONLY extract stays if you can identify ACTUAL CHECK-IN and CHECK-OUT dates
-- start_datetime must be the CHECK-IN date, end_datetime must be the CHECK-OUT date
-- NEVER use: reservation date, payment date, booking creation date, or transaction date
-- If the confirmation only shows a payment/transaction date without explicit check-in/check-out dates, set is_receipt_only to true
-- A "Payment successful" email is NOT a booking confirmation - it lacks check-in/check-out dates
+- start_datetime MUST be the actual CHECK-IN DATE (sometimes labeled "arrival date" or "check-in")
+- end_datetime MUST be the actual CHECK-OUT DATE (sometimes labeled "departure date" or "check-out")
+- ONLY these dates are valid for stays: check-in date, check-out date, arrival date, departure date
+- NEVER USE ANY OF THESE for stay dates:
+  * Reservation date / booking date
+  * Payment date / transaction date / charge date
+  * Email sent date / confirmation email date
+  * Order creation date / purchase date
+- If you cannot find explicit check-in AND check-out dates, set is_receipt_only to true
+- A "Payment successful" or "Booking confirmed" email without check-in/check-out dates is a RECEIPT, not a booking
+- When in doubt, if dates appear near words like "paid", "charged", "booked on", "reserved", these are NOT check-in dates
 
 For stays also extract:
 - property_name

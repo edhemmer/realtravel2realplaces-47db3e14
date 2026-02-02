@@ -220,7 +220,18 @@ For stays also extract:
 - stay_type (hotel, airbnb, vrbo, other)
 - check_in_time
 - check_out_time
-- CRITICAL: Only extract if ACTUAL check-in/check-out dates are present. Payment receipts are NOT booking confirmations.
+
+CRITICAL FOR STAYS (v1.2.3):
+- start_datetime MUST be the actual CHECK-IN DATE (or "arrival date")
+- end_datetime MUST be the actual CHECK-OUT DATE (or "departure date")
+- VALID date sources: check-in date, check-out date, arrival date, departure date
+- INVALID date sources (NEVER use for stay dates):
+  * Reservation date / booking date
+  * Payment date / transaction date / charge date
+  * Email sent date / confirmation email date
+  * Order creation date / purchase date
+- If explicit check-in AND check-out dates cannot be found, set is_receipt_only: true
+- A "Payment successful" or "Booking confirmed" email without check-in/check-out dates is a RECEIPT, not a booking
 
 For car rentals also extract:
 - rental_company
@@ -839,6 +850,9 @@ type trip_type = "business" | "personal" | "mixed";
 | 1.6 | 2026-01-31 | Trip dates: Created useTripDateSync hook to calculate dates from flights first, fallback to non-flights |
 | 1.6 | 2026-01-31 | Trip dates: Manual user edits to trip dates are preserved and not auto-overwritten |
 | 1.6 | 2026-01-31 | Trip dates: Date recalculation only occurs when user explicitly re-parses confirmations |
+| 1.7 | 2026-02-02 | Stay dates (v1.2.3): start_datetime MUST be check-in date, end_datetime MUST be check-out date |
+| 1.7 | 2026-02-02 | Stay dates (v1.2.3): Explicitly rejects reservation/payment/booking dates as stay dates |
+| 1.7 | 2026-02-02 | Stay dates (v1.2.3): Missing check-in/check-out triggers is_receipt_only: true |
 
 ---
 
