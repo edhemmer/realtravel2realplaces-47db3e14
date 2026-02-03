@@ -859,6 +859,11 @@ type trip_type = "business" | "personal" | "mixed";
 | 1.8 | 2026-02-02 | Booking-Expense Sync (v1.2.5): Re-parsing updates existing linked expense, no duplication |
 | 1.8 | 2026-02-02 | Booking-Expense Sync (v1.2.5): Deleting booking removes linked expense automatically |
 | 1.8 | 2026-02-02 | Booking-Expense Sync (v1.2.5): UI shows "From Booking" badge on auto-generated expenses |
+| 1.9 | 2026-02-03 | Airline Cost Fix (v1.2.6): Total airfare reported once for entire trip, never split/duplicated |
+| 1.9 | 2026-02-03 | Airline Cost Fix (v1.2.6): Multi-leg round trips create ONE booking with ONE total_cost |
+| 1.9 | 2026-02-03 | Airline Cost Fix (v1.2.6): Per-leg costs only used when explicitly provided in confirmation |
+| 1.9 | 2026-02-03 | Airline Cost Fix (v1.2.6): Linked expense reflects accurate single-total airfare |
+| 1.9 | 2026-02-03 | Airline Cost Fix (v1.2.6): Re-parsing updates existing flight booking, no duplication |
 ---
 
 *This document is auto-generated based on the current state of the application's edge functions and UI components.*
