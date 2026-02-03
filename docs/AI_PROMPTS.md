@@ -864,6 +864,13 @@ type trip_type = "business" | "personal" | "mixed";
 | 1.9 | 2026-02-03 | Airline Cost Fix (v1.2.6): Per-leg costs only used when explicitly provided in confirmation |
 | 1.9 | 2026-02-03 | Airline Cost Fix (v1.2.6): Linked expense reflects accurate single-total airfare |
 | 1.9 | 2026-02-03 | Airline Cost Fix (v1.2.6): Re-parsing updates existing flight booking, no duplication |
+| 2.0 | 2026-02-03 | Timeline Accuracy (v1.2.7): Flights use departure datetime from start_datetime field |
+| 2.0 | 2026-02-03 | Timeline Accuracy (v1.2.7): Stays show check-in (start_datetime) and check-out (end_datetime) as separate events |
+| 2.0 | 2026-02-03 | Timeline Accuracy (v1.2.7): Car rentals show pickup (start_datetime) and drop-off (end_datetime) as separate events |
+| 2.0 | 2026-02-03 | Timeline Accuracy (v1.2.7): Parking shows start and end as separate events when end_datetime available |
+| 2.0 | 2026-02-03 | Timeline Accuracy (v1.2.7): Right-side time display uses event's datetime field directly |
+| 2.0 | 2026-02-03 | Timeline Accuracy (v1.2.7): Timeline strictly sorted by datetime in chronological order |
+| 2.0 | 2026-02-03 | Timeline Accuracy (v1.2.7): Never uses payment/reservation/created dates for timeline |
 ---
 
 *This document is auto-generated based on the current state of the application's edge functions and UI components.*
