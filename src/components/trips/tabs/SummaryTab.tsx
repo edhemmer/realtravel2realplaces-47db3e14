@@ -218,17 +218,30 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
       }
     });
     
-    // Add parking events
+    // Add parking events - v1.2.7: separate start and end events for parking
     parkingList.forEach((p: Parking) => {
+      // Parking start event
       events.push({
-        id: p.id,
+        id: `${p.id}-start`,
         type: 'parking',
+        eventType: 'pickup', // reusing eventType for parking start
         title: p.label,
-        subtitle: `Parking - ${p.parking_type}`,
+        subtitle: `Parking Start - ${p.parking_type}`,
         datetime: parseISO(p.start_datetime),
-        endDatetime: p.end_datetime ? parseISO(p.end_datetime) : undefined,
         address: p.address,
       });
+      // Parking end event (if end_datetime available)
+      if (p.end_datetime) {
+        events.push({
+          id: `${p.id}-end`,
+          type: 'parking',
+          eventType: 'dropoff', // reusing eventType for parking end
+          title: p.label,
+          subtitle: `Parking End - ${p.parking_type}`,
+          datetime: parseISO(p.end_datetime),
+          address: p.address,
+        });
+      }
     });
     
     return events.sort((a, b) => a.datetime.getTime() - b.datetime.getTime());
