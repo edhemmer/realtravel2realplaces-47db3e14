@@ -112,7 +112,7 @@ Extract:
 
 Return a JSON object with these fields. Use null for any fields you cannot determine.
 Be precise with sub_category for future reporting (e.g., tracking alcohol spend across trips).`
-      : `You are a travel booking confirmation parser. Your job is to determine if a document is:
+: `You are a travel booking confirmation parser. Your job is to determine if a document is:
 1. A FULL BOOKING CONFIRMATION with service dates (flight times, check-in/out dates, pickup/dropoff times), OR
 2. A RECEIPT ONLY (payment record) without service dates
 
@@ -137,14 +137,22 @@ For FULL BOOKING CONFIRMATIONS (is_receipt_only: false), extract all fields:
 - start_datetime (ISO 8601 format) - For flights: use DEPARTURE time of FIRST/OUTBOUND flight. For stays: use CHECK-IN date/time. For car rentals: use PICKUP time. For parking: use entry/start time.
 - end_datetime (ISO 8601 format, if applicable) - For flights: use ARRIVAL time of LAST/RETURN flight. For stays: use CHECK-OUT date. For car rentals: use DROP-OFF time. For parking: use exit/end time.
 - confirmation_number
-- total_cost (number only) - For multi-leg flights with a single total, put the FULL cost on the FIRST/OUTBOUND leg only. Do NOT duplicate the same total across return flights.
 - address
+
+CRITICAL AIRFARE COST RULES (v1.2.6):
+- total_cost should contain the TOTAL airfare for the entire trip (all legs combined)
+- For multi-leg/round-trip flights: Report the SINGLE total once. Do NOT split or duplicate costs.
+- If the confirmation shows one total (e.g., "$350.00 Total") for a round trip, return total_cost: 350
+- Do NOT infer per-leg costs. Only report amounts explicitly shown.
+- If separate per-leg costs are explicitly provided (rare), sum them for total_cost.
+- NEVER multiply or duplicate the total based on number of passengers or legs.
 
 CRITICAL FOR FLIGHTS WITH MULTIPLE LEGS (round trips):
 - start_datetime = DEPARTURE time of the FIRST/OUTBOUND flight
 - end_datetime = ARRIVAL time of the LAST/RETURN flight (NOT the outbound arrival)
 - This ensures the flight booking spans the entire trip duration
 - Example: If outbound departs Jan 30 6:13 PM and return arrives Feb 1 9:46 PM, use start_datetime=2026-01-30T18:13:00 and end_datetime=2026-02-01T21:46:00
+- The single total_cost applies to this ONE booking record spanning both legs
 
 For flights also extract:
 - airline (the actual airline name like "Frontier Airlines", "Delta", "United" - extract from the confirmation text)
@@ -226,7 +234,7 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
                     end_datetime: { type: "string", description: "For stays: check-out date. For flights: arrival. For rentals: drop-off. For parking: end time. NULL for receipts." },
                     receipt_date: { type: "string", description: "For receipts only: the payment/transaction date in YYYY-MM-DD format" },
                     confirmation_number: { type: "string" },
-                    total_cost: { type: "number", description: "For multi-leg flights with single total, put full cost on first/outbound leg only" },
+                    total_cost: { type: "number", description: "Total cost for entire booking. For flights: single total for all legs combined - never duplicate or split" },
                     address: { type: "string" },
                     airline: { type: "string" },
                     passenger_name: { type: "string" },
