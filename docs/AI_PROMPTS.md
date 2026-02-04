@@ -195,6 +195,15 @@ First, determine which type this is by setting:
 - is_receipt_only: true if this is just a payment receipt WITHOUT service dates
 - is_receipt_only: false if this contains actual service dates
 
+CRITICAL v2.0.6 - STRICT DATETIME INTEGRITY:
+- ONLY extract times that are EXPLICITLY stated in the document
+- If a document shows a date but NO explicit time (e.g., "Check-in: January 30, 2026"), set the time to null
+- DO NOT infer, guess, or default times to midnight, morning, or any placeholder
+- DO NOT interpret phrases like "after 4:00 PM" or "by 10:00 AM" as exact times - these are NOT explicit times
+- For start_datetime and end_datetime: if no explicit time exists, use date-only format (YYYY-MM-DD) NOT a datetime with 00:00:00
+- Examples of EXPLICIT times: "Departs 6:00 AM", "Check-in 3:00 PM", "Pickup at 10:30 AM"
+- Examples of NON-EXPLICIT times: "Check-in after 3 PM", "Checkout by 11 AM", "Arrives evening", no time mentioned
+
 For RECEIPT ONLY documents (is_receipt_only: true), extract:
 - vendor_name
 - total_cost (amount paid)
@@ -204,8 +213,11 @@ For RECEIPT ONLY documents (is_receipt_only: true), extract:
 For FULL BOOKING CONFIRMATIONS (is_receipt_only: false), extract all fields:
 - booking_type (flight, stay, car_rental, activity, parking)
 - vendor_name
-- start_datetime (ISO 8601 format)
-- end_datetime (ISO 8601 format, if applicable)
+- start_datetime:
+  - If EXPLICIT time exists: use ISO 8601 format with time (e.g., "2026-01-30T18:13:00")
+  - If NO explicit time: use date-only format (e.g., "2026-01-30")
+- end_datetime:
+  - Same rules as start_datetime regarding explicit times
 - confirmation_number
 - total_cost (number only)
 - address
@@ -218,8 +230,8 @@ For flights also extract:
 For stays also extract:
 - property_name
 - stay_type (hotel, airbnb, vrbo, other)
-- check_in_time
-- check_out_time
+- check_in_time (only if explicitly stated, null otherwise)
+- check_out_time (only if explicitly stated, null otherwise)
 
 CRITICAL FOR STAYS (v1.2.3):
 - start_datetime MUST be the actual CHECK-IN DATE (or "arrival date")
@@ -232,6 +244,7 @@ CRITICAL FOR STAYS (v1.2.3):
   * Order creation date / purchase date
 - If explicit check-in AND check-out dates cannot be found, set is_receipt_only: true
 - A "Payment successful" or "Booking confirmed" email without check-in/check-out dates is a RECEIPT, not a booking
+- For check-in/check-out TIMES: only include if explicitly stated (e.g., "Check-in: 3:00 PM")
 
 For car rentals also extract:
 - rental_company
