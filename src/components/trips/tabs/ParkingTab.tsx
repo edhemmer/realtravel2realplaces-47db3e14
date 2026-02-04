@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Plus, Trash2, CircleParking, MapPin, Clock, AlertTriangle, Pencil } from 'lucide-react';
+import { ParkingExpirationIndicator } from '@/components/trips/ParkingExpirationIndicator';
 import { format, parseISO, isAfter, isBefore, addMinutes } from 'date-fns';
 import {
   AlertDialog,
@@ -221,6 +222,8 @@ export function ParkingTab({ tripId }: ParkingTabProps) {
                       {parking.end_datetime && ` - ${format(parseISO(parking.end_datetime), 'MMM d, h:mm a')}`}
                     </span>
                   </div>
+                  {/* v2.0.4: Pro-only parking expiration indicator */}
+                  <ParkingExpirationIndicator tripId={tripId} parkingId={parking.id} />
                   {parking.level_section_space && (
                     <p className="text-muted-foreground">
                       Location: {parking.level_section_space}
