@@ -353,8 +353,8 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
               </p>
             </div>
           </div>
-          {/* v2.0.3: Pro-only Upcoming Events */}
-          <UpcomingEventsWidget tripId={tripId} />
+          {/* v2.1.1: Pro-only Upcoming Events strip with drill-through */}
+          <UpcomingEventsWidget tripId={tripId} onDrillThrough={onDrillThrough} />
         </CardContent>
       </Card>
 

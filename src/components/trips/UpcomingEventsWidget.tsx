@@ -1,11 +1,16 @@
 import { useTripEvents } from '@/hooks/useTripEvents';
+import { useBookings } from '@/hooks/useBookings';
+import { useParking } from '@/hooks/useParking';
 import { useIsPro } from '@/hooks/useSubscription';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { TripEventType } from '@/types/tripEvent';
 import { format, parseISO, isAfter } from 'date-fns';
-import { Plane, Building2, Car, CircleParking, Clock } from 'lucide-react';
+import { Plane, Building2, Car, CircleParking, Clock, ChevronRight } from 'lucide-react';
+import type { DrillThroughTarget } from '@/pages/TripDetail';
 
 interface UpcomingEventsWidgetProps {
   tripId: string;
+  onDrillThrough?: (target: DrillThroughTarget) => void;
 }
 
 // Event type labels for display
@@ -37,15 +42,84 @@ const getEventIcon = (eventType: TripEventType) => {
 };
 
 /**
- * v2.0.3: Pro-only Upcoming Events display
- * 
- * - Read-only display of next 1-3 upcoming TripEvents
- * - Only visible for Pro users
- * - Shows nothing if no upcoming events exist
+ * Get the tab target for drill-through based on event type
  */
-export function UpcomingEventsWidget({ tripId }: UpcomingEventsWidgetProps) {
+const getTabForEventType = (eventType: TripEventType): 'bookings' | 'parking' => {
+  if (eventType === 'parking_expiration') {
+    return 'parking';
+  }
+  return 'bookings';
+};
+
+/**
+ * Build descriptive label for an event based on source data
+ */
+const getEventLabel = (
+  eventType: TripEventType,
+  sourceId: string,
+  bookings: Array<{ id: string; airline?: string | null; vendor_name: string; property_name?: string | null; rental_company?: string | null; pickup_location?: string | null; return_location?: string | null }>,
+  parkingList: Array<{ id: string; label: string }>
+): string => {
+  const baseLabel = EVENT_TYPE_LABELS[eventType];
+  
+  if (eventType === 'parking_expiration') {
+    const parking = parkingList.find(p => p.id === sourceId);
+    return parking ? `${baseLabel} – ${parking.label}` : baseLabel;
+  }
+  
+  const booking = bookings.find(b => b.id === sourceId);
+  if (!booking) return baseLabel;
+  
+  switch (eventType) {
+    case 'flight_departure':
+      return `${baseLabel} – ${booking.airline || booking.vendor_name}`;
+    case 'hotel_checkin':
+    case 'hotel_checkout':
+      return `${baseLabel} – ${booking.property_name || booking.vendor_name}`;
+    case 'rental_pickup':
+      return `${baseLabel} – ${booking.rental_company || booking.vendor_name}`;
+    case 'rental_return':
+      return `${baseLabel} – ${booking.rental_company || booking.vendor_name}`;
+    default:
+      return baseLabel;
+  }
+};
+
+/**
+ * Format datetime based on user preference
+ * Formats: "MM/DD/YYYY 12h" or "DD/MM/YYYY 24h"
+ */
+const formatEventDatetime = (datetime: string, preferredFormat: string | null | undefined): string => {
+  const parsed = parseISO(datetime);
+  
+  // Default format: EEE, MMM d · h:mm a (e.g., "Mon, Jan 15 · 3:30 PM")
+  if (!preferredFormat || preferredFormat === 'MM/DD/YYYY 12h') {
+    return format(parsed, 'EEE, MMM d · h:mm a');
+  }
+  
+  // 24-hour format: EEE, d MMM · HH:mm (e.g., "Mon, 15 Jan · 15:30")
+  if (preferredFormat === 'DD/MM/YYYY 24h') {
+    return format(parsed, 'EEE, d MMM · HH:mm');
+  }
+  
+  // Fallback
+  return format(parsed, 'EEE, MMM d · h:mm a');
+};
+
+/**
+ * v2.1.1: Pro-only Upcoming Events strip powered by TripEvents
+ * 
+ * - Read-only display of next 3-5 upcoming TripEvents
+ * - Only visible for Pro users
+ * - Clickable events navigate to source record
+ * - Shows "No upcoming events" when empty
+ */
+export function UpcomingEventsWidget({ tripId, onDrillThrough }: UpcomingEventsWidgetProps) {
   const isPro = useIsPro();
   const { data: events = [] } = useTripEvents(tripId);
+  const { data: bookings = [] } = useBookings(tripId);
+  const { data: parkingList = [] } = useParking(tripId);
+  const { data: userProfile } = useUserProfile();
 
   // Not visible for non-Pro users
   if (!isPro) {
@@ -53,40 +127,71 @@ export function UpcomingEventsWidget({ tripId }: UpcomingEventsWidgetProps) {
   }
 
   // Filter to upcoming events only (event_datetime > now)
+  // Only include events with valid, non-null datetime
   const now = new Date();
   const upcomingEvents = events
-    .filter(event => isAfter(parseISO(event.event_datetime), now))
-    .slice(0, 3); // Max 3 events
+    .filter(event => event.event_datetime && isAfter(parseISO(event.event_datetime), now))
+    .slice(0, 5); // Max 5 events per spec
 
-  // Show nothing if no upcoming events
-  if (upcomingEvents.length === 0) {
-    return null;
-  }
+  // Handle event click - navigate to source record
+  const handleEventClick = (eventType: TripEventType, sourceId: string) => {
+    if (!onDrillThrough) return;
+    
+    const tab = getTabForEventType(eventType);
+    onDrillThrough({ tab, recordId: sourceId });
+  };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 mt-4">
       <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
         <Clock className="w-4 h-4" />
-        Upcoming
+        Upcoming Events
       </h4>
-      <div className="space-y-2">
-        {upcomingEvents.map(event => (
-          <div 
-            key={event.id} 
-            className="flex items-center gap-3 text-sm"
-          >
-            {getEventIcon(event.event_type)}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">
-                {EVENT_TYPE_LABELS[event.event_type]}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {format(parseISO(event.event_datetime), 'EEE, MMM d · h:mm a')}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
+      
+      {upcomingEvents.length === 0 ? (
+        <p className="text-sm text-muted-foreground italic">No upcoming events</p>
+      ) : (
+        <div className="space-y-2">
+          {upcomingEvents.map(event => {
+            const label = getEventLabel(event.event_type, event.source_id, bookings, parkingList);
+            const formattedTime = formatEventDatetime(event.event_datetime, userProfile?.preferred_datetime_format);
+            const isClickable = !!onDrillThrough;
+            
+            return (
+              <div 
+                key={event.id} 
+                className={`flex items-center gap-3 text-sm ${
+                  isClickable 
+                    ? 'cursor-pointer hover:bg-accent/50 rounded-md p-2 -m-2 transition-colors group' 
+                    : ''
+                }`}
+                onClick={() => handleEventClick(event.event_type, event.source_id)}
+                role={isClickable ? 'button' : undefined}
+                tabIndex={isClickable ? 0 : undefined}
+                onKeyDown={(e) => {
+                  if (isClickable && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault();
+                    handleEventClick(event.event_type, event.source_id);
+                  }
+                }}
+              >
+                {getEventIcon(event.event_type)}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">
+                    {label}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {formattedTime}
+                  </p>
+                </div>
+                {isClickable && (
+                  <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
