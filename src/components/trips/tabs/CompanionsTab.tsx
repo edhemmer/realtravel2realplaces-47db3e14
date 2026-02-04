@@ -30,7 +30,6 @@ import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { useTripPermission } from '@/pages/TripDetail';
 import { CompanionDetailDialog } from '@/components/trips/CompanionDetailDialog';
-import { CompactWeatherWidget } from '@/components/trips/CompactWeatherWidget';
 
 interface CompanionsTabProps {
   tripId: string;
@@ -169,26 +168,15 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header with compact weather widget v1.2.8 */}
+      {/* Header v1.3.2 */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-4 flex-wrap">
-          <div>
-            <h3 className="text-lg font-semibold">Travel Companions</h3>
-            <p className="text-sm text-muted-foreground">
-              {companions.length === 0 
-                ? 'Add people traveling with you' 
-                : `${companions.length} companion${companions.length !== 1 ? 's' : ''}`}
-            </p>
-          </div>
-          {trip && (
-            <CompactWeatherWidget
-              city={trip.destination_city}
-              country={trip.destination_country}
-              state={trip.destination_state || undefined}
-              startDate={trip.start_date}
-              endDate={trip.end_date}
-            />
-          )}
+        <div>
+          <h3 className="text-lg font-semibold">Travel Companions</h3>
+          <p className="text-sm text-muted-foreground">
+            {companions.length === 0 
+              ? 'Add people traveling with you' 
+              : `${companions.length} companion${companions.length !== 1 ? 's' : ''}`}
+          </p>
         </div>
         {canEdit && (
           <div className="flex gap-2">
