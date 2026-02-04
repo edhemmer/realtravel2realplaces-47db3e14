@@ -106,7 +106,6 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
             </div>
             <div className="flex justify-between items-center text-xs text-muted-foreground">
               <span>Bookings: ${bookingsTotal.toFixed(2)}</span>
-              <span>Parking: ${parkingTotal.toFixed(2)}</span>
               <span>Expenses: ${expensesTotal.toFixed(2)}</span>
             </div>
           </div>
