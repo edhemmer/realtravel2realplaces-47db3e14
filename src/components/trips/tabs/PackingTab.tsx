@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { usePackingItems, useCreatePackingItem, useUpdatePackingItem, useDeletePackingItem, useBulkCreatePackingItems } from '@/hooks/usePackingItems';
 import { useTrip } from '@/hooks/useTrips';
 import { useTripWeather } from '@/hooks/useWeather';
-import { useTemperatureUnit } from '@/hooks/useTemperatureUnit';
 import { supabase } from '@/integrations/supabase/client';
 import { PackingItem } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Progress } from '@/components/ui/progress';
 import { 
   Plus, Trash2, Sparkles, Copy, Check, Cloud, Sun, 
-  CloudRain, Snowflake, Thermometer, Briefcase, ShoppingBag, Luggage, Waves, RefreshCw, AlertCircle, Mountain, Building2,
+  Briefcase, ShoppingBag, Luggage, Waves, RefreshCw, AlertCircle, Mountain, Building2,
   Minus
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -91,7 +90,7 @@ export function PackingTab({ tripId }: PackingTabProps) {
   const updateItem = useUpdatePackingItem();
   const deleteItem = useDeletePackingItem();
   const bulkCreate = useBulkCreatePackingItems();
-  const { formatTemp, toggleUnit, unit } = useTemperatureUnit();
+  
   const [dialogOpen, setDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -114,8 +113,8 @@ export function PackingTab({ tripId }: PackingTabProps) {
 
   const tripNights = tripDays - 1;
 
-  // Get weather data (include state for better US geocoding)
-  const { current: currentWeather, tripForecast, weatherAnalysis, isLoading: weatherLoading } = useTripWeather(
+  // Get weather data for AI packing list generation
+  const { tripForecast, weatherAnalysis, isLoading: weatherLoading } = useTripWeather(
     trip?.destination_city?.trim() || '',
     trip?.destination_country || '',
     trip?.start_date || '',
@@ -255,14 +254,6 @@ export function PackingTab({ tripId }: PackingTabProps) {
   const packedItems = packingItems.filter(i => i.is_packed).length;
   const progress = totalItems > 0 ? (packedItems / totalItems) * 100 : 0;
 
-  // Weather display helpers
-  const getWeatherIcon = (condition: string) => {
-    if (condition.includes('Rain') || condition.includes('Shower')) return <CloudRain className="w-4 h-4" />;
-    if (condition.includes('Snow')) return <Snowflake className="w-4 h-4" />;
-    if (condition.includes('Clear') || condition.includes('Sunny')) return <Sun className="w-4 h-4" />;
-    return <Cloud className="w-4 h-4" />;
-  };
-
   if (isLoading) {
     return <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>;
   }
@@ -319,98 +310,8 @@ export function PackingTab({ tripId }: PackingTabProps) {
         )}
       </div>
 
-      {/* Weather & Luggage Cards */}
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* Weather Summary */}
-        <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Thermometer className="w-4 h-4 text-primary" />
-                Weather
-              </CardTitle>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={toggleUnit}
-                className="h-7 px-2 text-xs font-medium"
-              >
-                {unit === 'fahrenheit' ? '°F' : '°C'}
-                <span className="ml-1 text-muted-foreground">→ {unit === 'fahrenheit' ? '°C' : '°F'}</span>
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {weatherLoading ? (
-              <p className="text-sm text-muted-foreground">Loading weather data...</p>
-            ) : currentWeather || tripForecast.length > 0 ? (
-              <div className="space-y-3">
-                {/* Current Conditions */}
-                {currentWeather && (
-                  <div className="p-3 rounded-lg bg-background/60 border border-border/50">
-                    <p className="text-xs text-muted-foreground mb-1">Current in {trip?.destination_city?.trim()}</p>
-                    <div className="flex items-center gap-3">
-                      {getWeatherIcon(currentWeather.condition)}
-                      <span className="text-2xl font-bold">{formatTemp(currentWeather.temperature)}</span>
-                      <div className="text-sm text-muted-foreground">
-                        <p>{currentWeather.condition}</p>
-                        <p className="text-xs">💧 {currentWeather.humidity}% • 💨 {currentWeather.windSpeed} mph</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                
-                {/* Trip forecast summary */}
-                {tripForecast.length > 0 && (
-                  <>
-                    <div className="flex items-center gap-4">
-                      {weatherAnalysis.avgHigh && (
-                        <div className="flex items-center gap-1">
-                          <Sun className="w-4 h-4 text-amber-500" />
-                          <span className="text-sm font-medium">{formatTemp(weatherAnalysis.avgHigh)} high</span>
-                        </div>
-                      )}
-                      {weatherAnalysis.avgLow && (
-                        <div className="flex items-center gap-1">
-                          <Cloud className="w-4 h-4 text-blue-400" />
-                          <span className="text-sm font-medium">{formatTemp(weatherAnalysis.avgLow)} low</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {weatherAnalysis.hasHot && (
-                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">☀️ Hot</Badge>
-                      )}
-                      {weatherAnalysis.hasCold && (
-                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">❄️ Cold</Badge>
-                      )}
-                      {weatherAnalysis.hasRain && (
-                        <Badge variant="outline" className="bg-sky-50 text-sky-700 border-sky-200">🌧️ Rain expected</Badge>
-                      )}
-                      {weatherAnalysis.hasSnow && (
-                        <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">🌨️ Snow</Badge>
-                      )}
-                    </div>
-                    <div className="flex gap-1 overflow-x-auto pb-1">
-                      {tripForecast.slice(0, 7).map((day) => (
-                        <div key={day.date} className="flex flex-col items-center p-2 min-w-[3.5rem] rounded-lg bg-background/50">
-                          <span className="text-[10px] text-muted-foreground">
-                            {new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' })}
-                          </span>
-                          {getWeatherIcon(day.condition)}
-                          <span className="text-xs font-medium">{formatTemp(day.tempHigh, false)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">Weather data unavailable</p>
-            )}
-          </CardContent>
-        </Card>
-
+      {/* Luggage Recommendation */}
+      <div className="grid gap-4 md:grid-cols-1">
         {/* Luggage Recommendation */}
         <Card className="border-accent/20 bg-gradient-to-br from-accent/5 to-primary/5">
           <CardHeader className="pb-2">

@@ -875,6 +875,10 @@ type trip_type = "business" | "personal" | "mixed";
 | 2.1 | 2026-02-04 | UI Layout (v1.2.8): Compact weather widget added to all primary tab headers (Bookings, Expenses, Parking, Packing, Companions, Notes) |
 | 2.1 | 2026-02-04 | UI Layout (v1.2.8): Compact weather shows trip location, weather icon, today's high/low temperature |
 | 2.1 | 2026-02-04 | UI Layout (v1.2.8): Widget container and compact weather are responsive on desktop and tablet widths |
+| 2.2 | 2026-02-04 | UI Cleanup (v1.2.9): Removed legacy Weather card from Summary tab Trip Overview Cards grid |
+| 2.2 | 2026-02-04 | UI Cleanup (v1.2.9): Removed standalone Weather card from Packing tab body |
+| 2.2 | 2026-02-04 | UI Cleanup (v1.2.9): Weather displayed only in top widget container and compact tab header widgets |
+| 2.2 | 2026-02-04 | UI Cleanup (v1.2.9): Adjusted layout grids for clean visual flow after weather card removal |
 ---
 
 *This document is auto-generated based on the current state of the application's edge functions and UI components.*

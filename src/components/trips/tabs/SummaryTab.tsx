@@ -354,48 +354,7 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
       />
 
       {/* Trip Overview Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        {/* Weather */}
-        <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Thermometer className="w-4 h-4 text-primary" />
-              Weather
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {weatherLoading ? (
-              <p className="text-sm text-muted-foreground">Loading...</p>
-            ) : tripForecast.length > 0 ? (
-              <div className="space-y-2">
-                <div className="flex items-center gap-3">
-                  {weatherAnalysis.avgHigh && (
-                    <span className="text-lg font-bold">{weatherAnalysis.avgHigh}°F</span>
-                  )}
-                  <div className="flex gap-1">
-                    {weatherAnalysis.hasHot && <Badge variant="outline" className="text-xs">☀️ Hot</Badge>}
-                    {weatherAnalysis.hasCold && <Badge variant="outline" className="text-xs">❄️ Cold</Badge>}
-                    {weatherAnalysis.hasRain && <Badge variant="outline" className="text-xs">🌧️ Rain</Badge>}
-                  </div>
-                </div>
-                <div className="flex gap-1 overflow-x-auto">
-                  {tripForecast.slice(0, 5).map((day) => (
-                    <div key={day.date} className="flex flex-col items-center p-1.5 min-w-[2.5rem] rounded bg-background/50 text-center">
-                      <span className="text-[9px] text-muted-foreground">
-                        {new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' })}
-                      </span>
-                      {getWeatherIcon(day.condition)}
-                      <span className="text-[10px] font-medium">{day.tempHigh}°</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No forecast available</p>
-            )}
-          </CardContent>
-        </Card>
-
+      <div className="grid gap-4 md:grid-cols-2">
         {/* Cost Summary */}
         <Card>
           <CardHeader className="pb-2">
