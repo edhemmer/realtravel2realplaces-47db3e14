@@ -37,6 +37,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useTripPermission } from '@/pages/TripDetail';
 import { CompanionDetailDialog } from '@/components/trips/CompanionDetailDialog';
+import { CompactWeatherWidget } from '@/components/trips/CompactWeatherWidget';
 
 // Helper to safely open external URLs in new tab
 const openExternalUrl = (url: string | null | undefined) => {
@@ -611,15 +612,26 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header with compact weather widget v1.2.8 */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h3 className="text-lg font-semibold">Bookings</h3>
-          <p className="text-sm text-muted-foreground">
-            {bookings.length === 0 
-              ? 'Add flights, hotels, car rentals & activities' 
-              : `${bookings.length} booking${bookings.length !== 1 ? 's' : ''}`}
-          </p>
+        <div className="flex items-center gap-4 flex-wrap">
+          <div>
+            <h3 className="text-lg font-semibold">Bookings</h3>
+            <p className="text-sm text-muted-foreground">
+              {bookings.length === 0 
+                ? 'Add flights, hotels, car rentals & activities' 
+                : `${bookings.length} booking${bookings.length !== 1 ? 's' : ''}`}
+            </p>
+          </div>
+          {trip && (
+            <CompactWeatherWidget
+              city={trip.destination_city}
+              country={trip.destination_country}
+              state={trip.destination_state || undefined}
+              startDate={trip.start_date}
+              endDate={trip.end_date}
+            />
+          )}
         </div>
         {canEdit && (
           <Button onClick={() => setDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90">

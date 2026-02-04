@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useExpenses, useCreateExpense, useDeleteExpense } from '@/hooks/useExpenses';
+import { useTrip } from '@/hooks/useTrips';
 import { Expense, ExpenseCategory, ExpenseSubCategory } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -23,6 +24,7 @@ import {
   CheckCircle, RefreshCw, Image as ImageIcon, Fuel, Link2
 } from 'lucide-react';
 import { GasExpenseDialog } from '@/components/trips/GasExpenseDialog';
+import { CompactWeatherWidget } from '@/components/trips/CompactWeatherWidget';
 import { format, parseISO } from 'date-fns';
 import {
   AlertDialog,
@@ -88,6 +90,7 @@ const SUB_CATEGORIES: Record<ExpenseCategory, { value: ExpenseSubCategory; label
 export function ExpensesTab({ tripId }: ExpensesTabProps) {
   const { canEdit } = useTripPermission();
   const { data: expenses = [], isLoading } = useExpenses(tripId);
+  const { data: trip } = useTrip(tripId);
   const createExpense = useCreateExpense();
   const deleteExpense = useDeleteExpense();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -447,8 +450,20 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3">
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold">Expenses</h3>
+        {/* Header with compact weather widget v1.2.8 */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            <h3 className="text-lg font-semibold">Expenses</h3>
+            {trip && (
+              <CompactWeatherWidget
+                city={trip.destination_city}
+                country={trip.destination_country}
+                state={trip.destination_state || undefined}
+                startDate={trip.start_date}
+                endDate={trip.end_date}
+              />
+            )}
+          </div>
           {canEdit && (
             <Button onClick={() => setDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90">
               <Plus className="w-4 h-4 mr-2" />

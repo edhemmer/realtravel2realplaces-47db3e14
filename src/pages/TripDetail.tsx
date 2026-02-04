@@ -14,6 +14,7 @@ import { ParkingTab } from '@/components/trips/tabs/ParkingTab';
 import { PackingTab } from '@/components/trips/tabs/PackingTab';
 import { CompanionsTab } from '@/components/trips/tabs/CompanionsTab';
 import { NotesTab } from '@/components/trips/tabs/NotesTab';
+import { TripHeaderWidgets } from '@/components/trips/TripHeaderWidgets';
 import { createContext, useContext } from 'react';
 
 // Context to share ownership info with child components
@@ -119,6 +120,9 @@ export default function TripDetail() {
               <span>You're viewing this trip in read-only mode. Only the trip owner can make changes.</span>
             </div>
           )}
+
+          {/* v1.2.8: Widget container moved below trip header */}
+          <TripHeaderWidgets trip={trip} />
 
           {/* Tabs */}
           <Tabs defaultValue="summary" className="w-full">
