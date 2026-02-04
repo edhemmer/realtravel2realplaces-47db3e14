@@ -102,6 +102,7 @@ export interface PackingItem {
   item_name: string;
   quantity: number;
   is_packed: boolean;
+  is_custom: boolean; // v1.3.3: true for user-added items, false for AI-generated
   created_at: string;
 }
 

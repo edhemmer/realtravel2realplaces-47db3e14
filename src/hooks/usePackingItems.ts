@@ -25,6 +25,7 @@ interface CreatePackingItemData {
   category: string;
   item_name: string;
   quantity?: number;
+  is_custom?: boolean; // v1.3.3: Mark user-added items
 }
 
 export function useCreatePackingItem() {
@@ -98,8 +99,8 @@ export function useBulkCreatePackingItems() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ trip_id, items }: { trip_id: string; items: Omit<CreatePackingItemData, 'trip_id'>[] }) => {
-      const itemsWithTripId = items.map(item => ({ ...item, trip_id }));
+    mutationFn: async ({ trip_id, items, is_custom = false }: { trip_id: string; items: Omit<CreatePackingItemData, 'trip_id'>[]; is_custom?: boolean }) => {
+      const itemsWithTripId = items.map(item => ({ ...item, trip_id, is_custom }));
       const { error } = await supabase
         .from('packing_items')
         .insert(itemsWithTripId);
@@ -110,6 +111,30 @@ export function useBulkCreatePackingItems() {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['packing_items', result.trip_id] });
       toast.success('Packing list generated!');
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+// v1.3.3: Delete all auto-generated (non-custom) packing items for a trip
+export function useDeleteAutoPackingItems() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ trip_id }: { trip_id: string }) => {
+      const { error } = await supabase
+        .from('packing_items')
+        .delete()
+        .eq('trip_id', trip_id)
+        .eq('is_custom', false);
+      
+      if (error) throw error;
+      return { trip_id };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['packing_items', result.trip_id] });
     },
     onError: (error) => {
       toast.error(error.message);
