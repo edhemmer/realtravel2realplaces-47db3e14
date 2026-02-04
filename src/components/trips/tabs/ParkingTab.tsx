@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParking, useCreateParking, useUpdateParking, useDeleteParking } from '@/hooks/useParking';
 import { useTrip } from '@/hooks/useTrips';
 import { Parking, ParkingType, ParkingBilling } from '@/types/database';
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Plus, Trash2, CircleParking, MapPin, Clock, AlertTriangle, Pencil } from 'lucide-react';
 import { ParkingExpirationIndicator } from '@/components/trips/ParkingExpirationIndicator';
+import { cn } from '@/lib/utils';
 import { format, parseISO, isAfter, isBefore, addMinutes } from 'date-fns';
 import {
   AlertDialog,
@@ -26,9 +27,13 @@ import { useTripPermission } from '@/pages/TripDetail';
 
 interface ParkingTabProps {
   tripId: string;
+  /** v2.0.7: ID of parking record to highlight after drill-through */
+  highlightId?: string;
+  /** v2.0.7: Callback when highlight has been consumed */
+  onHighlightConsumed?: () => void;
 }
 
-export function ParkingTab({ tripId }: ParkingTabProps) {
+export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: ParkingTabProps) {
   const { canEdit } = useTripPermission();
   const { data: parkingList = [], isLoading } = useParking(tripId);
   const { data: trip } = useTrip(tripId);
@@ -38,6 +43,38 @@ export function ParkingTab({ tripId }: ParkingTabProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingParking, setEditingParking] = useState<Parking | null>(null);
   const [parkingToDelete, setParkingToDelete] = useState<string | null>(null);
+
+  // v2.0.7: Highlight state for drill-through
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  // v2.0.7: Handle drill-through highlight
+  useEffect(() => {
+    if (highlightId && parkingList.length > 0) {
+      // Check if the parking record exists
+      const parkingExists = parkingList.some(p => p.id === highlightId);
+      if (parkingExists) {
+        setHighlightedId(highlightId);
+        
+        // Scroll to the card after a brief delay to let render complete
+        setTimeout(() => {
+          const cardElement = cardRefs.current.get(highlightId);
+          if (cardElement) {
+            cardElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
+
+        // Clear highlight after 2 seconds
+        setTimeout(() => {
+          setHighlightedId(null);
+          onHighlightConsumed?.();
+        }, 2000);
+      } else {
+        // Record doesn't exist, just clear the target
+        onHighlightConsumed?.();
+      }
+    }
+  }, [highlightId, parkingList, onHighlightConsumed]);
 
   const [formData, setFormData] = useState({
     parking_type: 'airport' as ParkingType,
@@ -170,7 +207,17 @@ export function ParkingTab({ tripId }: ParkingTabProps) {
           {parkingList.map((parking: Parking) => {
             const status = getParkingStatus(parking);
             return (
-              <Card key={parking.id} className={status === 'expiring' ? 'border-warning' : status === 'expired' ? 'border-muted' : ''}>
+              <Card 
+                key={parking.id} 
+                ref={(el) => {
+                  if (el) cardRefs.current.set(parking.id, el);
+                }}
+                className={cn(
+                  "transition-all",
+                  status === 'expiring' ? 'border-warning' : status === 'expired' ? 'border-muted' : '',
+                  highlightedId === parking.id && "ring-2 ring-primary ring-offset-2 shadow-lg"
+                )}
+              >
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">

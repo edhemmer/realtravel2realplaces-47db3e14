@@ -1,4 +1,4 @@
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useTrip } from '@/hooks/useTrips';
 import { useTripOwnership } from '@/hooks/useSharedTrips';
 import { Layout } from '@/components/Layout';
@@ -15,7 +15,7 @@ import { PackingTab } from '@/components/trips/tabs/PackingTab';
 import { CompanionsTab } from '@/components/trips/tabs/CompanionsTab';
 import { NotesTab } from '@/components/trips/tabs/NotesTab';
 import { TripHeaderWidgets } from '@/components/trips/TripHeaderWidgets';
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 // Context to share ownership info with child components
 interface TripPermissionContextType {
@@ -30,10 +30,33 @@ const TripPermissionContext = createContext<TripPermissionContextType>({
 
 export const useTripPermission = () => useContext(TripPermissionContext);
 
+// v2.0.7: Types for drill-through navigation
+export type DrillThroughTarget = {
+  tab: 'bookings' | 'parking';
+  recordId: string;
+} | null;
+
 export default function TripDetail() {
   const { tripId } = useParams<{ tripId: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data: trip, isLoading } = useTrip(tripId || '');
   const { data: ownership, isLoading: ownershipLoading } = useTripOwnership(tripId || '');
+  
+  // v2.0.7: Tab and drill-through state
+  const [activeTab, setActiveTab] = useState('summary');
+  const [drillTarget, setDrillTarget] = useState<DrillThroughTarget>(null);
+
+  // v2.0.7: Handle drill-through navigation from timeline
+  const handleDrillThrough = useCallback((target: DrillThroughTarget) => {
+    if (!target) return;
+    setActiveTab(target.tab);
+    setDrillTarget(target);
+  }, []);
+
+  // v2.0.7: Clear drill target after it's been consumed
+  const clearDrillTarget = useCallback(() => {
+    setDrillTarget(null);
+  }, []);
 
   const getTripTypeIcon = (type: string) => {
     switch (type) {
@@ -125,7 +148,7 @@ export default function TripDetail() {
           <TripHeaderWidgets trip={trip} />
 
           {/* Tabs */}
-          <Tabs defaultValue="summary" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="w-full justify-start overflow-x-auto flex-nowrap">
               <TabsTrigger value="summary">Summary</TabsTrigger>
               <TabsTrigger value="bookings">Bookings</TabsTrigger>
@@ -138,16 +161,24 @@ export default function TripDetail() {
 
             <div className="mt-6">
               <TabsContent value="summary">
-                <SummaryTab tripId={trip.id} trip={trip} />
+                <SummaryTab tripId={trip.id} trip={trip} onDrillThrough={handleDrillThrough} />
               </TabsContent>
               <TabsContent value="bookings">
-                <BookingsTab tripId={trip.id} />
+                <BookingsTab 
+                  tripId={trip.id} 
+                  highlightId={drillTarget?.tab === 'bookings' ? drillTarget.recordId : undefined}
+                  onHighlightConsumed={clearDrillTarget}
+                />
               </TabsContent>
               <TabsContent value="expenses">
                 <ExpensesTab tripId={trip.id} />
               </TabsContent>
               <TabsContent value="parking">
-                <ParkingTab tripId={trip.id} />
+                <ParkingTab 
+                  tripId={trip.id}
+                  highlightId={drillTarget?.tab === 'parking' ? drillTarget.recordId : undefined}
+                  onHighlightConsumed={clearDrillTarget}
+                />
               </TabsContent>
               <TabsContent value="packing">
                 <PackingTab tripId={trip.id} />
