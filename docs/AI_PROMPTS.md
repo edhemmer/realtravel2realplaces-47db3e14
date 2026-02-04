@@ -888,6 +888,12 @@ type trip_type = "business" | "personal" | "mixed";
 | 2.3 | 2026-02-04 | UI Cleanup (v1.2.10): Removed duplicate Parking card from Summary tab body |
 | 2.3 | 2026-02-04 | UI Cleanup (v1.2.10): Cost Summary and Parking now appear only in top TripHeaderWidgets row |
 | 2.3 | 2026-02-04 | UI Cleanup (v1.2.10): Destination Info section moves up cleanly after card removal |
+| 3.1 | 2026-02-04 | Expense Row Click-to-Edit (v1.3.1): Clicking expense row opens Edit Expense dialog with pre-populated data |
+| 3.1 | 2026-02-04 | Expense Row Click-to-Edit (v1.3.1): Delete icon click is isolated and does not trigger edit |
+| 3.1 | 2026-02-04 | Expense Row Click-to-Edit (v1.3.1): Edit dialog reuses same form fields as Add Expense |
+| 3.1 | 2026-02-04 | Expense Row Click-to-Edit (v1.3.1): Save updates existing expense in place, no duplicate records created |
+| 3.1 | 2026-02-04 | Expense Row Click-to-Edit (v1.3.1): Expense totals refresh immediately after saving edits |
+| 3.1 | 2026-02-04 | Expense Row Click-to-Edit (v1.3.1): Booking-linked expenses show "Edit via Bookings" and are not row-clickable |
 ---
 
 *This document is auto-generated based on the current state of the application's edge functions and UI components.*
