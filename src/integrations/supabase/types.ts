@@ -393,6 +393,47 @@ export type Database = {
         }
         Relationships: []
       }
+      trip_events: {
+        Row: {
+          created_at: string
+          event_datetime: string
+          event_type: Database["public"]["Enums"]["trip_event_type"]
+          id: string
+          source_id: string
+          source_type: Database["public"]["Enums"]["event_source_type"]
+          trip_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          event_datetime: string
+          event_type: Database["public"]["Enums"]["trip_event_type"]
+          id?: string
+          source_id: string
+          source_type: Database["public"]["Enums"]["event_source_type"]
+          trip_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          event_datetime?: string
+          event_type?: Database["public"]["Enums"]["trip_event_type"]
+          id?: string
+          source_id?: string
+          source_type?: Database["public"]["Enums"]["event_source_type"]
+          trip_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_events_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip_notes: {
         Row: {
           created_at: string
@@ -607,6 +648,7 @@ export type Database = {
         Returns: Database["public"]["Enums"]["subscription_tier"]
       }
       get_user_trip_limit: { Args: { p_user_id: string }; Returns: number }
+      trip_owner_is_pro: { Args: { p_trip_id: string }; Returns: boolean }
       user_can_create_trip: { Args: { p_user_id: string }; Returns: boolean }
       user_has_booking_access: {
         Args: { p_booking_id: string }
@@ -620,6 +662,7 @@ export type Database = {
     Enums: {
       booking_type: "flight" | "stay" | "car_rental" | "activity"
       destination_type: "beach" | "mountain" | "city" | "unspecified"
+      event_source_type: "booking" | "parking"
       expense_category:
         | "meals"
         | "transport"
@@ -659,6 +702,13 @@ export type Database = {
       stay_type: "hotel" | "airbnb" | "vrbo" | "other"
       subscription_tier: "free" | "pro"
       transportation_mode: "flight" | "drive" | "unspecified"
+      trip_event_type:
+        | "flight_departure"
+        | "hotel_checkin"
+        | "hotel_checkout"
+        | "rental_pickup"
+        | "rental_return"
+        | "parking_expiration"
       trip_type: "business" | "personal" | "mixed"
     }
     CompositeTypes: {
@@ -789,6 +839,7 @@ export const Constants = {
     Enums: {
       booking_type: ["flight", "stay", "car_rental", "activity"],
       destination_type: ["beach", "mountain", "city", "unspecified"],
+      event_source_type: ["booking", "parking"],
       expense_category: [
         "meals",
         "transport",
@@ -830,6 +881,14 @@ export const Constants = {
       stay_type: ["hotel", "airbnb", "vrbo", "other"],
       subscription_tier: ["free", "pro"],
       transportation_mode: ["flight", "drive", "unspecified"],
+      trip_event_type: [
+        "flight_departure",
+        "hotel_checkin",
+        "hotel_checkout",
+        "rental_pickup",
+        "rental_return",
+        "parking_expiration",
+      ],
       trip_type: ["business", "personal", "mixed"],
     },
   },
