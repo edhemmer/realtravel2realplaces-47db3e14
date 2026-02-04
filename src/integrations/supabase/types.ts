@@ -576,11 +576,49 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      admin_get_all_users: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          lifetime_trip_count: number
+          subscription_tier: Database["public"]["Enums"]["subscription_tier"]
+          user_id: string
+        }[]
+      }
+      admin_update_user_tier: {
+        Args: {
+          p_new_tier: Database["public"]["Enums"]["subscription_tier"]
+          p_user_id: string
+        }
+        Returns: boolean
+      }
       count_user_active_trips: { Args: { p_user_id: string }; Returns: number }
       get_bookings_safe: {
         Args: { p_trip_id: string }
@@ -648,6 +686,14 @@ export type Database = {
         Returns: Database["public"]["Enums"]["subscription_tier"]
       }
       get_user_trip_limit: { Args: { p_user_id: string }; Returns: number }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin: { Args: never; Returns: boolean }
       trip_owner_is_pro: { Args: { p_trip_id: string }; Returns: boolean }
       user_can_create_trip: { Args: { p_user_id: string }; Returns: boolean }
       user_has_booking_access: {
@@ -660,6 +706,7 @@ export type Database = {
       user_owns_trip: { Args: { trip_id: string }; Returns: boolean }
     }
     Enums: {
+      app_role: "admin" | "user"
       booking_type: "flight" | "stay" | "car_rental" | "activity"
       destination_type: "beach" | "mountain" | "city" | "unspecified"
       event_source_type: "booking" | "parking"
@@ -837,6 +884,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "user"],
       booking_type: ["flight", "stay", "car_rental", "activity"],
       destination_type: ["beach", "mountain", "city", "unspecified"],
       event_source_type: ["booking", "parking"],
