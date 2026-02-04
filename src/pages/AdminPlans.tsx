@@ -100,7 +100,8 @@ export default function AdminPlans() {
                   <TableRow>
                     <TableHead>Email</TableHead>
                     <TableHead>Plan</TableHead>
-                    <TableHead className="text-right">Trips</TableHead>
+                    <TableHead className="text-right">Lifetime Trips</TableHead>
+                    <TableHead className="text-right">Current Trips</TableHead>
                     <TableHead>Joined</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -134,6 +135,9 @@ export default function AdminPlans() {
                       </TableCell>
                       <TableCell className="text-right">
                         {u.lifetime_trip_count}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {u.current_trip_count}
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">
                         {format(parseISO(u.created_at), 'MMM d, yyyy')}
