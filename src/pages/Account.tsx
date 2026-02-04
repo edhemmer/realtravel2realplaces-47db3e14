@@ -2,18 +2,21 @@ import { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Mail, Crown, User, Lock, CheckCircle, AlertCircle } from 'lucide-react';
+import { Mail, Crown, User, Lock, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { TravelPreferencesCard } from '@/components/account/TravelPreferencesCard';
 
 export default function Account() {
   const { user } = useAuth();
-  const { data: subscription, isLoading } = useSubscription();
+  const { data: subscription, isLoading: isSubscriptionLoading } = useSubscription();
+  const { data: profile, isLoading: isProfileLoading } = useUserProfile();
   const [isResetting, setIsResetting] = useState(false);
   const [resetSent, setResetSent] = useState(false);
 
@@ -42,6 +45,7 @@ export default function Account() {
   };
 
   const isPro = subscription?.tier === 'pro';
+  const isLoading = isSubscriptionLoading || isProfileLoading;
 
   return (
     <Layout>
@@ -79,7 +83,7 @@ export default function Account() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               {isPro ? (
-                <Crown className="w-5 h-5 text-amber-500" />
+                <Crown className="w-5 h-5 text-primary" />
               ) : (
                 <User className="w-5 h-5 text-primary" />
               )}
@@ -115,6 +119,15 @@ export default function Account() {
             )}
           </CardContent>
         </Card>
+
+        {/* Travel Preferences Section */}
+        {!isLoading && (
+          <TravelPreferencesCard
+            initialAirport={profile?.preferred_home_airport}
+            initialCurrency={profile?.preferred_currency}
+            initialDatetimeFormat={profile?.preferred_datetime_format}
+          />
+        )}
 
         {/* Password Section */}
         <Card>

@@ -362,6 +362,9 @@ export type Database = {
           display_name: string | null
           id: string
           lifetime_trip_count: number
+          preferred_currency: string | null
+          preferred_datetime_format: string | null
+          preferred_home_airport: string | null
           subscription_started_at: string | null
           subscription_tier: Database["public"]["Enums"]["subscription_tier"]
           updated_at: string
@@ -374,6 +377,9 @@ export type Database = {
           display_name?: string | null
           id?: string
           lifetime_trip_count?: number
+          preferred_currency?: string | null
+          preferred_datetime_format?: string | null
+          preferred_home_airport?: string | null
           subscription_started_at?: string | null
           subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
           updated_at?: string
@@ -386,6 +392,9 @@ export type Database = {
           display_name?: string | null
           id?: string
           lifetime_trip_count?: number
+          preferred_currency?: string | null
+          preferred_datetime_format?: string | null
+          preferred_home_airport?: string | null
           subscription_started_at?: string | null
           subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
           updated_at?: string

@@ -143,6 +143,10 @@ export interface Profile {
   subscription_tier?: 'free' | 'pro';
   subscription_started_at?: string;
   lifetime_trip_count?: number;
+  // v2.0.13: Travel preferences
+  preferred_home_airport?: string;
+  preferred_currency?: string;
+  preferred_datetime_format?: string;
   created_at: string;
   updated_at: string;
 }
