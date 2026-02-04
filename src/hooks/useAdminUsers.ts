@@ -8,6 +8,7 @@ interface AdminUser {
   email: string;
   subscription_tier: SubscriptionTier;
   lifetime_trip_count: number;
+  current_trip_count: number;
   created_at: string;
 }
 
