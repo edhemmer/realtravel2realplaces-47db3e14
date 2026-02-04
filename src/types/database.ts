@@ -139,11 +139,10 @@ export interface Profile {
   display_name?: string;
   default_tsa_precheck?: string;
   default_frequent_flyer?: string;
-  // v2.0.0: Subscription tier fields
+  // v2.0.0a: Subscription tier and lifetime trip count
   subscription_tier?: 'free' | 'pro';
   subscription_started_at?: string;
-  monthly_ai_generations?: number;
-  ai_generations_reset_at?: string;
+  lifetime_trip_count?: number;
   created_at: string;
   updated_at: string;
 }
