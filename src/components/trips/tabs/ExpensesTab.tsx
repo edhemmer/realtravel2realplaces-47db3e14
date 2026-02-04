@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useExpenses, useCreateExpense, useDeleteExpense } from '@/hooks/useExpenses';
 import { useTrip } from '@/hooks/useTrips';
-import { Expense, ExpenseCategory, ExpenseSubCategory } from '@/types/database';
+import { Expense, ExpenseCategory, ExpenseSubCategory, ExpensePurpose } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   calculateExpenseTotals, 
@@ -115,6 +115,7 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
     my_share: '',
     notes: '',
     receipt_url: '',
+    expense_purpose: '' as ExpensePurpose | '',
   });
 
   const resetForm = () => {
@@ -127,6 +128,7 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
       my_share: '',
       notes: '',
       receipt_url: '',
+      expense_purpose: '',
     });
     setPreviewImage(null);
     setParseError(null);
@@ -144,6 +146,7 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
       my_share: '',
       notes: '',
       receipt_url: '',
+      expense_purpose: '',
     });
     setPreviewImage(null);
     setParseError(null);
@@ -153,6 +156,13 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // v1.3.0: Validate expense_purpose is set for mixed trips
+    const isMixedTrip = trip?.trip_type === 'mixed';
+    if (isMixedTrip && !formData.expense_purpose) {
+      toast.error('Please select Business or Personal for this expense');
+      return;
+    }
     
     const amount = parseFloat(formData.amount) || 0;
     // Default my_share to total amount if not specified or empty
@@ -170,6 +180,7 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
       my_share: myShare,
       notes: formData.notes || undefined,
       receipt_url: formData.receipt_url || undefined,
+      expense_purpose: isMixedTrip && formData.expense_purpose ? formData.expense_purpose : undefined,
     });
     
     resetForm();
@@ -574,13 +585,23 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
                             {isFromBooking ? <Link2 className="w-4 h-4" /> : getCategoryIcon(expense.category)}
                           </div>
                           <div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <p className="font-medium">
                                 {expense.description || (expense.category === 'transport' && expense.sub_category === 'gas' ? 'Gas' : expense.category)}
                               </p>
                               {isFromBooking && (
                                 <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium">
                                   From Booking
+                                </span>
+                              )}
+                              {/* v1.3.0: Show Business/Personal badge for mixed trips */}
+                              {trip?.trip_type === 'mixed' && expense.expense_purpose && (
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                                  expense.expense_purpose === 'business' 
+                                    ? 'bg-violet-100 text-violet-700' 
+                                    : 'bg-emerald-100 text-emerald-700'
+                                }`}>
+                                  {expense.expense_purpose === 'business' ? '💼 Business' : '🏠 Personal'}
                                 </span>
                               )}
                             </div>
@@ -815,6 +836,25 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
                     {SUB_CATEGORIES[formData.category].map(sub => (
                       <SelectItem key={sub.value} value={sub.value}>{sub.label}</SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* v1.3.0: Business/Personal selector for mixed trips only */}
+            {trip?.trip_type === 'mixed' && (
+              <div className="space-y-2">
+                <Label>Expense Type *</Label>
+                <Select 
+                  value={formData.expense_purpose} 
+                  onValueChange={(v: ExpensePurpose) => setFormData({ ...formData, expense_purpose: v })}
+                >
+                  <SelectTrigger className={!formData.expense_purpose ? 'border-amber-400' : ''}>
+                    <SelectValue placeholder="Select Business or Personal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="business">💼 Business</SelectItem>
+                    <SelectItem value="personal">🏠 Personal</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

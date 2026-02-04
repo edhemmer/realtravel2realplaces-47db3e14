@@ -4,6 +4,7 @@ export type StayType = 'hotel' | 'airbnb' | 'vrbo' | 'other';
 export type ExpenseCategory = 'meals' | 'transport' | 'activity' | 'shopping' | 'parking' | 'other';
 export type ParkingType = 'airport' | 'beach' | 'city_garage' | 'hotel' | 'other';
 export type ParkingBilling = 'hourly' | 'daily' | 'per_trip' | 'other';
+export type ExpensePurpose = 'business' | 'personal';
 export type TransportationMode = 'flight' | 'drive' | 'unspecified';
 export type DestinationType = 'beach' | 'mountain' | 'city' | 'unspecified';
 export type ExpenseSubCategory = 
@@ -73,6 +74,7 @@ export interface Expense {
   my_share: number;
   notes?: string;
   receipt_url?: string;
+  expense_purpose?: ExpensePurpose; // v1.3.0: For mixed trips only
   created_at: string;
   updated_at: string;
 }
