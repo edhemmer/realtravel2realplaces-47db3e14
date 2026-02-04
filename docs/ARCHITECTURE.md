@@ -1,0 +1,279 @@
+# Real Travel 2 Real Places - Architecture Guide
+
+This document provides an overview of the application architecture for developers.
+
+---
+
+## Table of Contents
+
+1. [Technology Stack](#technology-stack)
+2. [Project Structure](#project-structure)
+3. [Data Flow](#data-flow)
+4. [Key Patterns](#key-patterns)
+5. [Subscription Model](#subscription-model)
+6. [Database Schema](#database-schema)
+
+---
+
+## Technology Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | React 18 + TypeScript |
+| Styling | Tailwind CSS + shadcn/ui |
+| State Management | TanStack Query (React Query) |
+| Routing | React Router v6 |
+| Backend | Supabase (Lovable Cloud) |
+| Database | PostgreSQL via Supabase |
+| Edge Functions | Deno (Supabase Edge Functions) |
+| AI Services | Lovable AI (Gemini models) |
+
+---
+
+## Project Structure
+
+```
+src/
+├── components/           # React components
+│   ├── ui/              # shadcn/ui base components
+│   ├── trips/           # Trip-related components
+│   │   ├── tabs/        # Tab content components
+│   │   └── ...
+│   └── account/         # Account/settings components
+├── contexts/            # React contexts (AuthContext)
+├── hooks/               # Custom React hooks
+│   ├── useTrips.ts      # Trip CRUD operations
+│   ├── useBookings.ts   # Booking management
+│   ├── useExpenses.ts   # Expense tracking
+│   ├── useSubscription.ts # Pro/Free tier logic
+│   └── ...
+├── lib/                 # Utility functions
+│   ├── datetimeIntegrity.ts  # Strict datetime handling
+│   ├── expenseCalculations.ts # Cost summary logic
+│   └── ...
+├── pages/               # Route page components
+├── types/               # TypeScript type definitions
+├── integrations/        # External service integrations
+│   └── supabase/        # Auto-generated Supabase client
+└── main.tsx             # Application entry point
+
+supabase/
+├── functions/           # Edge functions
+│   ├── parse-booking/   # AI booking parser
+│   ├── parse-itinerary/ # AI itinerary parser
+│   ├── parse-receipt-image/ # OCR receipt parser
+│   ├── generate-packing-list/ # AI packing suggestions
+│   └── send-companion-summary/ # Email notifications
+├── migrations/          # Database migrations (read-only)
+└── config.toml          # Supabase configuration (read-only)
+
+docs/
+├── ARCHITECTURE.md      # This file
+├── DEVELOPER_GUIDE.md   # Development workflow
+├── AI_PROMPTS.md        # AI system prompts reference
+└── COMPONENTS.md        # Component documentation
+```
+
+---
+
+## Data Flow
+
+### Query Pattern (Read)
+
+```
+Component → useQuery hook → Supabase client → PostgreSQL
+                ↓
+         TanStack Query cache
+                ↓
+         Component re-render
+```
+
+### Mutation Pattern (Write)
+
+```
+User action → useMutation hook → Supabase client → PostgreSQL
+                    ↓
+            Optimistic update (optional)
+                    ↓
+            Query invalidation
+                    ↓
+            Automatic refetch
+```
+
+### AI Parsing Flow
+
+```
+User uploads document
+        ↓
+Frontend sends to Edge Function
+        ↓
+Edge Function calls Lovable AI
+        ↓
+AI returns structured JSON
+        ↓
+Frontend creates records via hooks
+        ↓
+Database updated + cache invalidated
+```
+
+---
+
+## Key Patterns
+
+### 1. Custom Hooks for Data Access
+
+All database operations go through custom hooks in `src/hooks/`. This provides:
+- Consistent caching via TanStack Query
+- Automatic refetching and invalidation
+- Type-safe return values
+- Loading/error state handling
+
+**Example:**
+```typescript
+// ✅ Correct - use the hook
+const { data: bookings, isLoading } = useBookings(tripId);
+
+// ❌ Wrong - direct Supabase calls in components
+const { data } = await supabase.from('bookings').select('*');
+```
+
+### 2. Drill-Through Navigation
+
+Components can trigger navigation to specific records:
+
+```typescript
+// Define target type
+type DrillThroughTarget = {
+  tab: 'bookings' | 'parking' | 'expenses';
+  recordId?: string;
+} | null;
+
+// Pass handler through props
+<SummaryTab onDrillThrough={handleDrillThrough} />
+
+// Navigate and highlight
+const handleDrillThrough = (target: DrillThroughTarget) => {
+  if (target) {
+    setActiveTab(target.tab);
+    setHighlightedRecord(target.recordId);
+  }
+};
+```
+
+### 3. Datetime Integrity
+
+**Never guess or infer times.** Use `src/lib/datetimeIntegrity.ts`:
+
+```typescript
+import { hasExplicitTime, getTimeDisplay } from '@/lib/datetimeIntegrity';
+
+// Check if time is real (not midnight default)
+if (hasExplicitTime(booking.start_datetime)) {
+  // Safe to show time
+}
+
+// Display with fallback
+const timeStr = getTimeDisplay(datetime, 'Time not specified');
+```
+
+### 4. Pro vs Free Gating
+
+Use subscription hooks for feature gating:
+
+```typescript
+import { useIsPro } from '@/hooks/useSubscription';
+
+function MyComponent() {
+  const isPro = useIsPro();
+  
+  if (!isPro) {
+    return null; // Or show upgrade prompt
+  }
+  
+  return <ProOnlyFeature />;
+}
+```
+
+---
+
+## Subscription Model
+
+### Tiers
+
+| Tier | Trip Limit | Features |
+|------|------------|----------|
+| Free | 5 lifetime | Core trip management |
+| Pro | Unlimited | TripEvents, Health Checklist, Upcoming Events |
+
+### Key Principles
+
+1. **Free tier is fully functional** - Users can plan real trips
+2. **Pro adds intelligence** - Time-based events, proactive warnings
+3. **No silent limits** - Clear messaging when limits apply
+4. **Owner override** - `edhemmer@gmail.com` always has Pro access
+
+### Implementation
+
+```typescript
+// src/hooks/useSubscription.ts
+export function useIsPro(): boolean {
+  const { user } = useAuth();
+  const { data } = useSubscription();
+  
+  // Owner always Pro
+  if (user?.email?.toLowerCase() === 'edhemmer@gmail.com') return true;
+  
+  return data?.tier === 'pro';
+}
+```
+
+---
+
+## Database Schema
+
+### Core Tables
+
+| Table | Purpose |
+|-------|---------|
+| `trips` | Trip metadata (dates, destination, type) |
+| `bookings` | Flights, stays, rentals, activities |
+| `expenses` | Individual expense records |
+| `parking` | Parking entries with location/time |
+| `companions` | Travel companions with contact info |
+| `packing_items` | Packing list items per trip |
+| `profiles` | User preferences and subscription |
+| `trip_events` | Pro-only time-based events |
+| `trip_shares` | Trip sharing permissions |
+
+### Row-Level Security (RLS)
+
+All tables use RLS policies. Common patterns:
+
+```sql
+-- User owns the trip
+CREATE POLICY "Users can view their own trips" 
+ON public.trips FOR SELECT 
+USING (auth.uid() = user_id);
+
+-- User has access via ownership or sharing
+CREATE POLICY "Users can view bookings for accessible trips" 
+ON public.bookings FOR SELECT 
+USING (user_has_trip_access(trip_id));
+```
+
+### Helper Functions
+
+| Function | Purpose |
+|----------|---------|
+| `user_owns_trip(trip_id)` | Check if current user owns trip |
+| `user_has_trip_access(trip_id)` | Check ownership or share access |
+| `user_is_pro(user_id)` | Check Pro subscription |
+| `trip_owner_is_pro(trip_id)` | Check if trip owner is Pro |
+
+---
+
+## Next Steps
+
+- [DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md) - Development workflow
+- [COMPONENTS.md](./COMPONENTS.md) - Component documentation
+- [AI_PROMPTS.md](./AI_PROMPTS.md) - AI system prompts
