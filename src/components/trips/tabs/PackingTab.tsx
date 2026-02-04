@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { usePackingItems, useCreatePackingItem, useUpdatePackingItem, useDeletePackingItem, useBulkCreatePackingItems } from '@/hooks/usePackingItems';
+import { usePackingItems, useCreatePackingItem, useUpdatePackingItem, useDeletePackingItem, useBulkCreatePackingItems, useDeleteAutoPackingItems } from '@/hooks/usePackingItems';
 import { useTrip } from '@/hooks/useTrips';
 import { useTripWeather } from '@/hooks/useWeather';
 import { supabase } from '@/integrations/supabase/client';
@@ -89,6 +89,7 @@ export function PackingTab({ tripId }: PackingTabProps) {
   const updateItem = useUpdatePackingItem();
   const deleteItem = useDeletePackingItem();
   const bulkCreate = useBulkCreatePackingItems();
+  const deleteAutoItems = useDeleteAutoPackingItems();
   
   const [dialogOpen, setDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
@@ -138,11 +139,13 @@ export function PackingTab({ tripId }: PackingTabProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // v1.3.3: User-added items are marked as custom
     await createItem.mutateAsync({
       trip_id: tripId,
       category: formData.category,
       item_name: formData.item_name,
       quantity: parseInt(formData.quantity) || 1,
+      is_custom: true,
     });
     
     resetForm();
@@ -175,6 +178,9 @@ export function PackingTab({ tripId }: PackingTabProps) {
     
     setIsGenerating(true);
     try {
+      // v1.3.3: Delete auto-generated items first, preserving custom items
+      await deleteAutoItems.mutateAsync({ trip_id: tripId });
+      
       const { data, error } = await supabase.functions.invoke<{ success: boolean; data: AIPackingResponse; error?: string }>('generate-packing-list', {
         body: {
           destination_city: trip.destination_city.trim(),
@@ -198,7 +204,8 @@ export function PackingTab({ tripId }: PackingTabProps) {
       if (error) throw error;
 
       if (data?.success && data.data?.items) {
-        await bulkCreate.mutateAsync({ trip_id: tripId, items: data.data.items });
+        // v1.3.3: Mark AI-generated items as is_custom: false
+        await bulkCreate.mutateAsync({ trip_id: tripId, items: data.data.items, is_custom: false });
         
         if (data.data.luggage_recommendation) {
           setAiLuggageRec(data.data.luggage_recommendation);

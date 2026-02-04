@@ -262,6 +262,7 @@ export type Database = {
           category: string
           created_at: string
           id: string
+          is_custom: boolean
           is_packed: boolean
           item_name: string
           quantity: number
@@ -271,6 +272,7 @@ export type Database = {
           category: string
           created_at?: string
           id?: string
+          is_custom?: boolean
           is_packed?: boolean
           item_name: string
           quantity?: number
@@ -280,6 +282,7 @@ export type Database = {
           category?: string
           created_at?: string
           id?: string
+          is_custom?: boolean
           is_packed?: boolean
           item_name?: string
           quantity?: number

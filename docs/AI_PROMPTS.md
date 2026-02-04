@@ -898,6 +898,11 @@ type trip_type = "business" | "personal" | "mixed";
 | 3.2 | 2026-02-04 | Tab Weather Removal (v1.3.2): Weather now appears only in TripHeaderWidgets summary row |
 | 3.2 | 2026-02-04 | Tab Weather Removal (v1.3.2): Tab headers simplified for cleaner visual appearance |
 | 3.2 | 2026-02-04 | Tab Weather Removal (v1.3.2): Affected tabs: Bookings, Expenses, Parking, Packing, Companions, Notes |
+| 3.3 | 2026-02-04 | Packing Regenerate Fix (v1.3.3): Added is_custom boolean column to packing_items table |
+| 3.3 | 2026-02-04 | Packing Regenerate Fix (v1.3.3): User-added items marked as is_custom=true, preserved on regenerate |
+| 3.3 | 2026-02-04 | Packing Regenerate Fix (v1.3.3): AI-generated items marked as is_custom=false, replaced on regenerate |
+| 3.3 | 2026-02-04 | Packing Regenerate Fix (v1.3.3): Regenerate deletes auto items first, then inserts fresh AI list |
+| 3.3 | 2026-02-04 | Packing Regenerate Fix (v1.3.3): No more duplicate items from repeated Regenerate clicks |
 ---
 
 *This document is auto-generated based on the current state of the application's edge functions and UI components.*
