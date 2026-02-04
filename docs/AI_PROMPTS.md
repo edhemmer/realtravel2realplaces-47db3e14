@@ -894,6 +894,10 @@ type trip_type = "business" | "personal" | "mixed";
 | 3.1 | 2026-02-04 | Expense Row Click-to-Edit (v1.3.1): Save updates existing expense in place, no duplicate records created |
 | 3.1 | 2026-02-04 | Expense Row Click-to-Edit (v1.3.1): Expense totals refresh immediately after saving edits |
 | 3.1 | 2026-02-04 | Expense Row Click-to-Edit (v1.3.1): Booking-linked expenses show "Edit via Bookings" and are not row-clickable |
+| 3.2 | 2026-02-04 | Tab Weather Removal (v1.3.2): Removed compact weather pill from all trip tab headers |
+| 3.2 | 2026-02-04 | Tab Weather Removal (v1.3.2): Weather now appears only in TripHeaderWidgets summary row |
+| 3.2 | 2026-02-04 | Tab Weather Removal (v1.3.2): Tab headers simplified for cleaner visual appearance |
+| 3.2 | 2026-02-04 | Tab Weather Removal (v1.3.2): Affected tabs: Bookings, Expenses, Parking, Packing, Companions, Notes |
 ---
 
 *This document is auto-generated based on the current state of the application's edge functions and UI components.*
