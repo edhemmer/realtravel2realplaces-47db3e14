@@ -884,6 +884,10 @@ type trip_type = "business" | "personal" | "mixed";
 | 3.0 | 2026-02-04 | Mixed Trip Classification (v1.3.0): expense_purpose is required before saving expenses on mixed trips |
 | 3.0 | 2026-02-04 | Mixed Trip Classification (v1.3.0): Expense list shows Business/Personal badge for mixed trip expenses |
 | 3.0 | 2026-02-04 | Mixed Trip Classification (v1.3.0): Non-mixed trips (pure Business or Personal) unaffected by this change |
+| 2.3 | 2026-02-04 | UI Cleanup (v1.2.10): Removed duplicate Cost Summary card from Summary tab body |
+| 2.3 | 2026-02-04 | UI Cleanup (v1.2.10): Removed duplicate Parking card from Summary tab body |
+| 2.3 | 2026-02-04 | UI Cleanup (v1.2.10): Cost Summary and Parking now appear only in top TripHeaderWidgets row |
+| 2.3 | 2026-02-04 | UI Cleanup (v1.2.10): Destination Info section moves up cleanly after card removal |
 ---
 
 *This document is auto-generated based on the current state of the application's edge functions and UI components.*

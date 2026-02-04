@@ -353,70 +353,7 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
         canEdit={true}
       />
 
-      {/* Trip Overview Cards */}
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* Cost Summary */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-primary" />
-              Cost Summary
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Total Trip Cost</span>
-                <span className="text-xl font-bold">${totalCost.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between items-center text-xs text-muted-foreground">
-                <span>Bookings: ${bookingsCost.toFixed(2)}</span>
-                <span>Parking: ${parkingCost.toFixed(2)}</span>
-                <span>Expenses: ${expensesCost.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between items-center pt-2 border-t">
-                <span className="text-sm text-muted-foreground">My Share</span>
-                <span className="text-lg font-semibold text-primary">${myOutOfPocket.toFixed(2)}</span>
-              </div>
-              {totalCost > 0 && myOutOfPocket < totalCost && (
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-muted-foreground">Shared/Covered</span>
-                  <span className="text-green-600">${(totalCost - myOutOfPocket).toFixed(2)}</span>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Parking Status */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <CircleParking className="w-4 h-4 text-primary" />
-              Parking
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {upcomingParkingExpiration ? (
-              <div className="space-y-1">
-                <p className="font-medium text-sm">{upcomingParkingExpiration.label}</p>
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  Expires {format(parseISO(upcomingParkingExpiration.end_datetime!), 'MMM d, h:mm a')}
-                </p>
-                {upcomingParkingExpiration.address && (
-                  <Button size="sm" variant="link" className="h-auto p-0 text-xs" onClick={() => openInMaps(upcomingParkingExpiration.address!)}>
-                    <MapPin className="w-3 h-3 mr-1" />
-                    Open in Maps
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No active parking</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      {/* v1.2.10: Removed duplicate Cost Summary and Parking cards - these are now shown only in TripHeaderWidgets */}
 
       {/* Destination Info & Recommendations */}
       <Card>
