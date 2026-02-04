@@ -6,6 +6,8 @@ import { useCompanions } from '@/hooks/useCompanions';
 import { useBookingCompanionsByTrip } from '@/hooks/useBookingCompanions';
 import { useTripWeather } from '@/hooks/useWeather';
 import { useTravelAlerts } from '@/hooks/useTravelAlerts';
+import { useIsPro } from '@/hooks/useSubscription';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { Trip, Booking, Parking, Companion } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +21,7 @@ import { ExpenseReminderBanner } from '@/components/trips/ExpenseReminderBanner'
 import { TsaWarningCard } from '@/components/trips/TsaWarningCard';
 import { CompanionDetailDialog } from '@/components/trips/CompanionDetailDialog';
 import { UpcomingEventsWidget } from '@/components/trips/UpcomingEventsWidget';
+import { TripHealthChecklist } from '@/components/trips/TripHealthChecklist';
 import { generateTripICS, downloadICSFile } from '@/lib/icsGenerator';
 import { calculateTripCostSummary, logExpenseDebug } from '@/lib/expenseCalculations';
 import { calculateTripDateRange } from '@/lib/tripDateCalculations';
@@ -98,6 +101,8 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
   const { data: expenses = [] } = useExpenses(tripId);
   const { data: companions = [] } = useCompanions(tripId);
   const { data: bookingCompanions = [] } = useBookingCompanionsByTrip(tripId);
+  const { data: userProfile } = useUserProfile();
+  const isPro = useIsPro();
   const { tripForecast, weatherAnalysis, isLoading: weatherLoading } = useTripWeather(
     trip.destination_city,
     trip.destination_country,
@@ -394,6 +399,18 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
       />
 
       {/* v1.2.10: Removed duplicate Cost Summary and Parking cards - these are now shown only in TripHeaderWidgets */}
+
+      {/* v2.1.0: Pro-only Trip Health Checklist */}
+      {isPro && onDrillThrough && (
+        <TripHealthChecklist
+          trip={trip}
+          bookings={bookings}
+          parkingList={parkingList}
+          expenses={expenses}
+          preferredCurrency={userProfile?.preferred_currency}
+          onNavigate={onDrillThrough}
+        />
+      )}
 
       {/* Destination Info & Recommendations */}
       <Card>

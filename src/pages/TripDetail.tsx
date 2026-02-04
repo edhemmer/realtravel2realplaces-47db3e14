@@ -31,9 +31,10 @@ const TripPermissionContext = createContext<TripPermissionContextType>({
 export const useTripPermission = () => useContext(TripPermissionContext);
 
 // v2.0.7: Types for drill-through navigation
+// v2.1.0: Extended to support expenses tab
 export type DrillThroughTarget = {
-  tab: 'bookings' | 'parking';
-  recordId: string;
+  tab: 'bookings' | 'parking' | 'expenses';
+  recordId?: string;
 } | null;
 
 export default function TripDetail() {
