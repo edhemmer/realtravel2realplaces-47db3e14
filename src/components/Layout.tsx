@@ -1,6 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Plane, LogOut, User } from 'lucide-react';
+import { Plane, LogOut, User, Settings } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -49,6 +49,10 @@ export function Layout({ children }: LayoutProps) {
                 <div className="px-2 py-1.5 text-sm text-muted-foreground">
                   {user.email}
                 </div>
+                <DropdownMenuItem onClick={() => navigate('/account')} className="cursor-pointer">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Account Settings
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
                   <LogOut className="w-4 h-4 mr-2" />
                   Sign Out
