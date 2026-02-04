@@ -18,6 +18,7 @@ import { GasExpenseDialog } from '@/components/trips/GasExpenseDialog';
 import { ExpenseReminderBanner } from '@/components/trips/ExpenseReminderBanner';
 import { TsaWarningCard } from '@/components/trips/TsaWarningCard';
 import { CompanionDetailDialog } from '@/components/trips/CompanionDetailDialog';
+import { UpcomingEventsWidget } from '@/components/trips/UpcomingEventsWidget';
 import { generateTripICS, downloadICSFile } from '@/lib/icsGenerator';
 import { calculateTripCostSummary, logExpenseDebug } from '@/lib/expenseCalculations';
 import { calculateTripDateRange } from '@/lib/tripDateCalculations';
@@ -310,6 +311,8 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
               </p>
             </div>
           </div>
+          {/* v2.0.3: Pro-only Upcoming Events */}
+          <UpcomingEventsWidget tripId={tripId} />
         </CardContent>
       </Card>
 
