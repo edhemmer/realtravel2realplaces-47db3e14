@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useParking, useCreateParking, useUpdateParking, useDeleteParking } from '@/hooks/useParking';
+import { useTrip } from '@/hooks/useTrips';
 import { Parking, ParkingType, ParkingBilling } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useTripPermission } from '@/pages/TripDetail';
+import { CompactWeatherWidget } from '@/components/trips/CompactWeatherWidget';
 
 interface ParkingTabProps {
   tripId: string;
@@ -29,6 +31,7 @@ interface ParkingTabProps {
 export function ParkingTab({ tripId }: ParkingTabProps) {
   const { canEdit } = useTripPermission();
   const { data: parkingList = [], isLoading } = useParking(tripId);
+  const { data: trip } = useTrip(tripId);
   const createParking = useCreateParking();
   const updateParking = useUpdateParking();
   const deleteParking = useDeleteParking();
@@ -142,8 +145,20 @@ export function ParkingTab({ tripId }: ParkingTabProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Parking</h3>
+      {/* Header with compact weather widget v1.2.8 */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
+          <h3 className="text-lg font-semibold">Parking</h3>
+          {trip && (
+            <CompactWeatherWidget
+              city={trip.destination_city}
+              country={trip.destination_country}
+              state={trip.destination_state || undefined}
+              startDate={trip.start_date}
+              endDate={trip.end_date}
+            />
+          )}
+        </div>
         {canEdit && (
           <Button onClick={() => { resetForm(); setDialogOpen(true); }} className="bg-gradient-ocean hover:opacity-90">
             <Plus className="w-4 h-4 mr-2" />

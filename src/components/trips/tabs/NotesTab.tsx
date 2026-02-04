@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useTripNotes, useUpsertTripNotes } from '@/hooks/useTripNotes';
+import { useTrip } from '@/hooks/useTrips';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { FileText, Phone, Link, Save } from 'lucide-react';
 import { useTripPermission } from '@/pages/TripDetail';
+import { CompactWeatherWidget } from '@/components/trips/CompactWeatherWidget';
 
 interface NotesTabProps {
   tripId: string;
@@ -14,6 +16,7 @@ interface NotesTabProps {
 export function NotesTab({ tripId }: NotesTabProps) {
   const { canEdit } = useTripPermission();
   const { data: notes, isLoading } = useTripNotes(tripId);
+  const { data: trip } = useTrip(tripId);
   const upsertNotes = useUpsertTripNotes();
 
   const [formData, setFormData] = useState({
@@ -53,8 +56,20 @@ export function NotesTab({ tripId }: NotesTabProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Notes & Safety</h3>
+      {/* Header with compact weather widget v1.2.8 */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
+          <h3 className="text-lg font-semibold">Notes & Safety</h3>
+          {trip && (
+            <CompactWeatherWidget
+              city={trip.destination_city}
+              country={trip.destination_country}
+              state={trip.destination_state || undefined}
+              startDate={trip.start_date}
+              endDate={trip.end_date}
+            />
+          )}
+        </div>
         {canEdit && (
           <Button
             onClick={handleSave}

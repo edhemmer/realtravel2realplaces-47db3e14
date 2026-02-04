@@ -21,6 +21,7 @@ import {
 import { toast } from 'sonner';
 import { differenceInDays, parseISO } from 'date-fns';
 import { useTripPermission } from '@/pages/TripDetail';
+import { CompactWeatherWidget } from '@/components/trips/CompactWeatherWidget';
 
 interface PackingTabProps {
   tripId: string;
@@ -268,11 +269,22 @@ export function PackingTab({ tripId }: PackingTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header with actions */}
+      {/* Header with compact weather widget and actions v1.2.8 */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h3 className="text-lg font-semibold">Packing List</h3>
-          <p className="text-sm text-muted-foreground">{tripNights} night{tripNights !== 1 ? 's' : ''} in {trip?.destination_city}{trip?.destination_state ? `, ${trip.destination_state}` : ''}</p>
+        <div className="flex items-center gap-4 flex-wrap">
+          <div>
+            <h3 className="text-lg font-semibold">Packing List</h3>
+            <p className="text-sm text-muted-foreground">{tripNights} night{tripNights !== 1 ? 's' : ''} in {trip?.destination_city}{trip?.destination_state ? `, ${trip.destination_state}` : ''}</p>
+          </div>
+          {trip && (
+            <CompactWeatherWidget
+              city={trip.destination_city}
+              country={trip.destination_country}
+              state={trip.destination_state || undefined}
+              startDate={trip.start_date}
+              endDate={trip.end_date}
+            />
+          )}
         </div>
         {canEdit && (
           <div className="flex gap-2 flex-wrap">
