@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import TripDetail from "./pages/TripDetail";
 import AcceptShare from "./pages/AcceptShare";
 import AdminPlans from "./pages/AdminPlans";
+import Account from "./pages/Account";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -62,6 +63,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <AcceptShare />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/account"
+        element={
+          <ProtectedRoute>
+            <Account />
           </ProtectedRoute>
         }
       />
