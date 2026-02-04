@@ -11,6 +11,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import TripDetail from "./pages/TripDetail";
 import AcceptShare from "./pages/AcceptShare";
+import AdminPlans from "./pages/AdminPlans";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -64,6 +65,8 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      {/* Admin routes */}
+      <Route path="/admin/plans" element={<AdminPlans />} />
       {/* Legacy route redirect */}
       <Route path="/login" element={<Navigate to="/auth" replace />} />
       <Route path="*" element={<NotFound />} />
