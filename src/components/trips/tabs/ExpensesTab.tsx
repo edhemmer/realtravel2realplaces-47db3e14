@@ -270,12 +270,14 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
 
       if (uploadError) throw uploadError;
 
-      // Get the URL for the uploaded image
-      const { data: { publicUrl } } = supabase.storage
+      // Get a signed URL for the uploaded image (1 hour expiry for defense-in-depth)
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
         .from('receipts')
-        .getPublicUrl(fileName);
+        .createSignedUrl(fileName, 3600);
 
-      setFormData(prev => ({ ...prev, receipt_url: publicUrl }));
+      if (signedUrlError) throw signedUrlError;
+      
+      setFormData(prev => ({ ...prev, receipt_url: signedUrlData.signedUrl }));
 
       // Convert to base64 for AI parsing
       const base64Reader = new FileReader();
