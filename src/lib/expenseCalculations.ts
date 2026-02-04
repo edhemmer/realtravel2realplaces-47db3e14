@@ -1,9 +1,27 @@
 /**
  * Centralized expense calculation utilities
  * Single source of truth for all expense math
+ * 
+ * v2.0 - Fixed double counting: booking-linked expenses are excluded from expenses total
  */
 
 import { Expense, Booking, Parking } from '@/types/database';
+import { extractBookingIdFromNotes } from './bookingExpenseSync';
+
+/**
+ * Check if an expense is linked to a booking (auto-generated from booking sync)
+ * These should NOT be counted in expenses total to avoid double counting with bookings
+ */
+export function isBookingLinkedExpense(expense: Expense): boolean {
+  return extractBookingIdFromNotes(expense.notes) !== null;
+}
+
+/**
+ * Filter expenses to only include true out-of-pocket expenses (not booking-linked)
+ */
+export function getOutOfPocketExpenses(expenses: Expense[]): Expense[] {
+  return expenses.filter(e => !isBookingLinkedExpense(e));
+}
 
 /**
  * Calculate My Share for a single expense
@@ -56,19 +74,19 @@ export interface CategorySummary {
 }
 
 export interface TripCostSummary {
-  // Expenses
+  // Expenses (out-of-pocket only, excluding booking-linked)
   expensesTotal: number;
   expensesMyShare: number;
   // Bookings
   bookingsTotal: number;
   bookingsMyShare: number;
-  // Parking
+  // Parking (tracked separately, NOT included in totalCost)
   parkingTotal: number;
   parkingMyShare: number;
-  // Combined
+  // Combined (bookings + out-of-pocket expenses only, NO parking)
   totalCost: number;
   totalMyShare: number;
-  // Category breakdown for expenses only
+  // Category breakdown for out-of-pocket expenses only
   byCategory: CategorySummary;
 }
 
@@ -104,30 +122,39 @@ export function calculateCategorySummary(expenses: Expense[]): CategorySummary {
 
 /**
  * Calculate complete trip cost summary from all sources
+ * 
+ * IMPORTANT: This function filters out booking-linked expenses to prevent double counting.
+ * - Bookings total: Sum of all booking costs (flights, stays, rentals, activities)
+ * - Expenses total: Sum of out-of-pocket expenses ONLY (excludes booking-linked expenses)
+ * - Parking total: Tracked separately, NOT included in Total Trip Cost
+ * - Total Trip Cost = Bookings + Out-of-pocket Expenses (NO parking)
  */
 export function calculateTripCostSummary(
   expenses: Expense[],
   bookings: Booking[],
   parkingList: Parking[]
 ): TripCostSummary {
-  // Expenses
-  const expensesTotal = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
-  const expensesMyShare = expenses.reduce((sum, e) => sum + getExpenseMyShare(e), 0);
+  // Filter to only out-of-pocket expenses (exclude booking-linked to prevent double counting)
+  const outOfPocketExpenses = getOutOfPocketExpenses(expenses);
+  
+  // Expenses (out-of-pocket only)
+  const expensesTotal = outOfPocketExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+  const expensesMyShare = outOfPocketExpenses.reduce((sum, e) => sum + getExpenseMyShare(e), 0);
   
   // Bookings
   const bookingsTotal = bookings.reduce((sum, b) => sum + Number(b.total_cost || 0), 0);
   const bookingsMyShare = bookings.reduce((sum, b) => sum + getBookingMyShare(b), 0);
   
-  // Parking
+  // Parking (tracked separately, NOT included in total trip cost)
   const parkingTotal = parkingList.reduce((sum, p) => sum + Number(p.total_cost || 0), 0);
   const parkingMyShare = parkingList.reduce((sum, p) => sum + getParkingMyShare(p), 0);
   
-  // Combined totals
-  const totalCost = expensesTotal + bookingsTotal + parkingTotal;
-  const totalMyShare = expensesMyShare + bookingsMyShare + parkingMyShare;
+  // Combined totals: Bookings + Out-of-pocket Expenses (NO parking, NO booking-linked expenses)
+  const totalCost = bookingsTotal + expensesTotal;
+  const totalMyShare = bookingsMyShare + expensesMyShare;
   
-  // Category breakdown
-  const byCategory = calculateCategorySummary(expenses);
+  // Category breakdown (out-of-pocket expenses only)
+  const byCategory = calculateCategorySummary(outOfPocketExpenses);
   
   return {
     expensesTotal,
