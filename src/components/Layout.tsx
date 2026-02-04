@@ -1,4 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsPro } from '@/hooks/useSubscription';
 import { Button } from '@/components/ui/button';
 import { Plane, LogOut, User, Settings } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -15,6 +16,7 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   const { user, signOut } = useAuth();
+  const isPro = useIsPro();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -32,7 +34,7 @@ export function Layout({ children }: LayoutProps) {
               <Plane className="w-5 h-5 text-primary-foreground" />
             </div>
             <h1 className="text-lg font-bold text-gradient-ocean leading-tight">
-              Real Travel 2 <span className="italic">Real Places</span>
+              Real Travel 2 <span className="italic">Real Places</span>{isPro && ' – Pro'}
             </h1>
           </Link>
 
