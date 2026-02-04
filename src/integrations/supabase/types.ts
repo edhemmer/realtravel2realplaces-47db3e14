@@ -202,6 +202,7 @@ export type Database = {
           created_at: string
           date: string
           description: string | null
+          expense_purpose: string | null
           id: string
           my_share: number | null
           notes: string | null
@@ -218,6 +219,7 @@ export type Database = {
           created_at?: string
           date: string
           description?: string | null
+          expense_purpose?: string | null
           id?: string
           my_share?: number | null
           notes?: string | null
@@ -234,6 +236,7 @@ export type Database = {
           created_at?: string
           date?: string
           description?: string | null
+          expense_purpose?: string | null
           id?: string
           my_share?: number | null
           notes?: string | null

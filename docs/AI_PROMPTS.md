@@ -879,6 +879,11 @@ type trip_type = "business" | "personal" | "mixed";
 | 2.2 | 2026-02-04 | UI Cleanup (v1.2.9): Removed standalone Weather card from Packing tab body |
 | 2.2 | 2026-02-04 | UI Cleanup (v1.2.9): Weather displayed only in top widget container and compact tab header widgets |
 | 2.2 | 2026-02-04 | UI Cleanup (v1.2.9): Adjusted layout grids for clean visual flow after weather card removal |
+| 3.0 | 2026-02-04 | Mixed Trip Classification (v1.3.0): Added expense_purpose field (business/personal) to expenses table |
+| 3.0 | 2026-02-04 | Mixed Trip Classification (v1.3.0): Business/Personal selector shown in Add Expense dialog for mixed trips only |
+| 3.0 | 2026-02-04 | Mixed Trip Classification (v1.3.0): expense_purpose is required before saving expenses on mixed trips |
+| 3.0 | 2026-02-04 | Mixed Trip Classification (v1.3.0): Expense list shows Business/Personal badge for mixed trip expenses |
+| 3.0 | 2026-02-04 | Mixed Trip Classification (v1.3.0): Non-mixed trips (pure Business or Personal) unaffected by this change |
 ---
 
 *This document is auto-generated based on the current state of the application's edge functions and UI components.*

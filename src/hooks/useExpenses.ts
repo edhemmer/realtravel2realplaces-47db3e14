@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Expense, ExpenseCategory } from '@/types/database';
+import { Expense, ExpenseCategory, ExpensePurpose } from '@/types/database';
 import { toast } from 'sonner';
 
 export function useExpenses(tripId: string) {
@@ -30,6 +30,7 @@ interface CreateExpenseData {
   my_share?: number;
   notes?: string;
   receipt_url?: string;
+  expense_purpose?: ExpensePurpose; // v1.3.0: For mixed trips only
 }
 
 export function useCreateExpense() {
@@ -49,6 +50,7 @@ export function useCreateExpense() {
       if (data.my_share !== undefined) insertData.my_share = data.my_share;
       if (data.notes) insertData.notes = data.notes;
       if (data.receipt_url) insertData.receipt_url = data.receipt_url;
+      if (data.expense_purpose) insertData.expense_purpose = data.expense_purpose;
 
       const { data: expense, error } = await supabase
         .from('expenses')
