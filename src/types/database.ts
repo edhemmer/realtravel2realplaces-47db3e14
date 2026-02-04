@@ -139,6 +139,11 @@ export interface Profile {
   display_name?: string;
   default_tsa_precheck?: string;
   default_frequent_flyer?: string;
+  // v2.0.0: Subscription tier fields
+  subscription_tier?: 'free' | 'pro';
+  subscription_started_at?: string;
+  monthly_ai_generations?: number;
+  ai_generations_reset_at?: string;
   created_at: string;
   updated_at: string;
 }

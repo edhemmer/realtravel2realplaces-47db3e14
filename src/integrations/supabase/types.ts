@@ -356,29 +356,41 @@ export type Database = {
       }
       profiles: {
         Row: {
+          ai_generations_reset_at: string | null
           created_at: string
           default_frequent_flyer: string | null
           default_tsa_precheck: string | null
           display_name: string | null
           id: string
+          monthly_ai_generations: number
+          subscription_started_at: string | null
+          subscription_tier: Database["public"]["Enums"]["subscription_tier"]
           updated_at: string
           user_id: string
         }
         Insert: {
+          ai_generations_reset_at?: string | null
           created_at?: string
           default_frequent_flyer?: string | null
           default_tsa_precheck?: string | null
           display_name?: string | null
           id?: string
+          monthly_ai_generations?: number
+          subscription_started_at?: string | null
+          subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
           updated_at?: string
           user_id: string
         }
         Update: {
+          ai_generations_reset_at?: string | null
           created_at?: string
           default_frequent_flyer?: string | null
           default_tsa_precheck?: string | null
           display_name?: string | null
           id?: string
+          monthly_ai_generations?: number
+          subscription_started_at?: string | null
+          subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
           updated_at?: string
           user_id?: string
         }
@@ -531,6 +543,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      count_user_active_trips: { Args: { p_user_id: string }; Returns: number }
       get_bookings_safe: {
         Args: { p_trip_id: string }
         Returns: {
@@ -592,11 +605,18 @@ export type Database = {
           updated_at: string
         }[]
       }
+      get_user_subscription_tier: {
+        Args: { p_user_id: string }
+        Returns: Database["public"]["Enums"]["subscription_tier"]
+      }
+      get_user_trip_limit: { Args: { p_user_id: string }; Returns: number }
+      user_can_create_trip: { Args: { p_user_id: string }; Returns: boolean }
       user_has_booking_access: {
         Args: { p_booking_id: string }
         Returns: boolean
       }
       user_has_trip_access: { Args: { trip_id: string }; Returns: boolean }
+      user_is_pro: { Args: { p_user_id: string }; Returns: boolean }
       user_owns_booking: { Args: { p_booking_id: string }; Returns: boolean }
       user_owns_trip: { Args: { trip_id: string }; Returns: boolean }
     }
@@ -640,6 +660,7 @@ export type Database = {
       parking_billing: "hourly" | "daily" | "per_trip" | "other"
       parking_type: "airport" | "beach" | "city_garage" | "hotel" | "other"
       stay_type: "hotel" | "airbnb" | "vrbo" | "other"
+      subscription_tier: "free" | "pro"
       transportation_mode: "flight" | "drive" | "unspecified"
       trip_type: "business" | "personal" | "mixed"
     }
@@ -810,6 +831,7 @@ export const Constants = {
       parking_billing: ["hourly", "daily", "per_trip", "other"],
       parking_type: ["airport", "beach", "city_garage", "hotel", "other"],
       stay_type: ["hotel", "airbnb", "vrbo", "other"],
+      subscription_tier: ["free", "pro"],
       transportation_mode: ["flight", "drive", "unspecified"],
       trip_type: ["business", "personal", "mixed"],
     },

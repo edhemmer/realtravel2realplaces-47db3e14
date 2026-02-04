@@ -906,6 +906,11 @@ type trip_type = "business" | "personal" | "mixed";
 | 3.5 | 2026-02-04 | Luggage Removal (v1.3.5): Removed luggage recommendation block from Packing tab |
 | 3.5 | 2026-02-04 | Luggage Removal (v1.3.5): Removed getLuggageRecommendation function and related state |
 | 3.5 | 2026-02-04 | Luggage Removal (v1.3.5): Packing tab now shows only packing list items and special notes |
+| 4.0 | 2026-02-04 | Foundation (v2.0.0): Added subscription_tier column to profiles table (free/pro enum) |
+| 4.0 | 2026-02-04 | Foundation (v2.0.0): Created DB functions: get_user_subscription_tier, user_is_pro, user_can_create_trip |
+| 4.0 | 2026-02-04 | Foundation (v2.0.0): Free tier limited to 3 active trips, Pro unlimited |
+| 4.0 | 2026-02-04 | Foundation (v2.0.0): Added useSubscription and useUsageTracking hooks |
+| 4.0 | 2026-02-04 | Foundation (v2.0.0): Defined PRODUCT_GUARDRAILS for trust principles (no silent actions, data provenance) |
 ---
 
 *This document is auto-generated based on the current state of the application's edge functions and UI components.*
