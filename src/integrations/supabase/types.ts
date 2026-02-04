@@ -356,39 +356,36 @@ export type Database = {
       }
       profiles: {
         Row: {
-          ai_generations_reset_at: string | null
           created_at: string
           default_frequent_flyer: string | null
           default_tsa_precheck: string | null
           display_name: string | null
           id: string
-          monthly_ai_generations: number
+          lifetime_trip_count: number
           subscription_started_at: string | null
           subscription_tier: Database["public"]["Enums"]["subscription_tier"]
           updated_at: string
           user_id: string
         }
         Insert: {
-          ai_generations_reset_at?: string | null
           created_at?: string
           default_frequent_flyer?: string | null
           default_tsa_precheck?: string | null
           display_name?: string | null
           id?: string
-          monthly_ai_generations?: number
+          lifetime_trip_count?: number
           subscription_started_at?: string | null
           subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
           updated_at?: string
           user_id: string
         }
         Update: {
-          ai_generations_reset_at?: string | null
           created_at?: string
           default_frequent_flyer?: string | null
           default_tsa_precheck?: string | null
           display_name?: string | null
           id?: string
-          monthly_ai_generations?: number
+          lifetime_trip_count?: number
           subscription_started_at?: string | null
           subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
           updated_at?: string

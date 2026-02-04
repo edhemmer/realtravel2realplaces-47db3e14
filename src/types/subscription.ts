@@ -1,33 +1,23 @@
-// v2.0.0: Subscription tier types and limits
+// v2.0.0a: Simplified subscription tier types (lifetime trip limits only)
 
 export type SubscriptionTier = 'free' | 'pro';
 
 export interface SubscriptionLimits {
-  maxActiveTrips: number; // -1 means unlimited
-  maxAiGenerationsPerMonth: number; // -1 means unlimited
+  maxTripsLifetime: number; // -1 means unlimited
 }
 
 export const TIER_LIMITS: Record<SubscriptionTier, SubscriptionLimits> = {
   free: {
-    maxActiveTrips: 3,
-    maxAiGenerationsPerMonth: 5,
+    maxTripsLifetime: 5,
   },
   pro: {
-    maxActiveTrips: -1, // unlimited
-    maxAiGenerationsPerMonth: -1, // unlimited
+    maxTripsLifetime: -1, // unlimited
   },
 };
 
 export interface SubscriptionStatus {
   tier: SubscriptionTier;
   limits: SubscriptionLimits;
-  usage: {
-    activeTrips: number;
-    aiGenerationsThisMonth: number;
-  };
-  canCreateTrip: boolean;
-  canUseAi: boolean;
-  subscriptionStartedAt: string | null;
 }
 
 // Trust guardrails: These rules are immutable product principles
@@ -42,4 +32,6 @@ export const PRODUCT_GUARDRAILS = {
   freeTierDataRetention: 'indefinite' as const,
   // Pro tier includes all Free features (no feature removal on downgrade history)
   proIncludesAllFreeFeatures: true,
+  // Lifetime trip count never decrements (even if trips are deleted)
+  lifetimeTripCountNeverDecrements: true,
 } as const;
