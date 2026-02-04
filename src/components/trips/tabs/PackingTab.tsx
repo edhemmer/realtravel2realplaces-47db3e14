@@ -55,31 +55,9 @@ const categoryColors: Record<string, string> = {
 
 interface AIPackingResponse {
   items: { category: string; item_name: string; quantity: number }[];
-  luggage_recommendation: { type: string; description: string };
   special_notes?: string[];
 }
 
-function getLuggageRecommendation(tripDays: number): { type: string; icon: React.ReactNode; description: string } {
-  if (tripDays <= 2) {
-    return {
-      type: 'Personal Item',
-      icon: <Briefcase className="w-5 h-5" />,
-      description: 'A backpack or small bag should be sufficient for a quick trip',
-    };
-  } else if (tripDays <= 5) {
-    return {
-      type: 'Carry-On Bag',
-      icon: <ShoppingBag className="w-5 h-5" />,
-      description: 'A standard carry-on bag (22" x 14" x 9") should fit everything',
-    };
-  } else {
-    return {
-      type: 'Checked Bag',
-      icon: <Luggage className="w-5 h-5" />,
-      description: 'Consider a checked bag for extended trips with more items',
-    };
-  }
-}
 
 export function PackingTab({ tripId }: PackingTabProps) {
   const { canEdit } = useTripPermission();
@@ -95,7 +73,6 @@ export function PackingTab({ tripId }: PackingTabProps) {
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [aiLuggageRec, setAiLuggageRec] = useState<{ type: string; description: string } | null>(null);
   const [specialNotes, setSpecialNotes] = useState<string[]>([]);
   const [preselectedCategory, setPreselectedCategory] = useState<string | null>(null);
 
@@ -122,8 +99,6 @@ export function PackingTab({ tripId }: PackingTabProps) {
     trip?.destination_state || undefined
   );
 
-  const luggageRec = getLuggageRecommendation(tripDays);
-  const displayLuggageRec = aiLuggageRec || luggageRec;
 
   const resetForm = () => {
     setFormData({ category: '', item_name: '', quantity: '1' });
@@ -207,9 +182,6 @@ export function PackingTab({ tripId }: PackingTabProps) {
         // v1.3.3: Mark AI-generated items as is_custom: false
         await bulkCreate.mutateAsync({ trip_id: tripId, items: data.data.items, is_custom: false });
         
-        if (data.data.luggage_recommendation) {
-          setAiLuggageRec(data.data.luggage_recommendation);
-        }
         if (data.data.special_notes) {
           setSpecialNotes(data.data.special_notes);
         }
@@ -305,28 +277,6 @@ export function PackingTab({ tripId }: PackingTabProps) {
         )}
       </div>
 
-      {/* Luggage Recommendation */}
-      <div className="grid gap-4 md:grid-cols-1">
-        {/* Luggage Recommendation */}
-        <Card className="border-accent/20 bg-gradient-to-br from-accent/5 to-primary/5">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              {displayLuggageRec.type === 'Checked Bag' ? <Luggage className="w-5 h-5" /> : 
-               displayLuggageRec.type === 'Carry-On' ? <ShoppingBag className="w-5 h-5" /> : 
-               <Briefcase className="w-5 h-5" />}
-              Luggage Recommendation
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <Badge variant="secondary" className="text-base font-semibold px-3 py-1">
-                {displayLuggageRec.type}
-              </Badge>
-              <p className="text-sm text-muted-foreground">{displayLuggageRec.description}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       {/* Special Notes from AI */}
       {specialNotes.length > 0 && (

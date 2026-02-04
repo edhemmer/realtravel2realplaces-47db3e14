@@ -903,6 +903,9 @@ type trip_type = "business" | "personal" | "mixed";
 | 3.3 | 2026-02-04 | Packing Regenerate Fix (v1.3.3): AI-generated items marked as is_custom=false, replaced on regenerate |
 | 3.3 | 2026-02-04 | Packing Regenerate Fix (v1.3.3): Regenerate deletes auto items first, then inserts fresh AI list |
 | 3.3 | 2026-02-04 | Packing Regenerate Fix (v1.3.3): No more duplicate items from repeated Regenerate clicks |
+| 3.5 | 2026-02-04 | Luggage Removal (v1.3.5): Removed luggage recommendation block from Packing tab |
+| 3.5 | 2026-02-04 | Luggage Removal (v1.3.5): Removed getLuggageRecommendation function and related state |
+| 3.5 | 2026-02-04 | Luggage Removal (v1.3.5): Packing tab now shows only packing list items and special notes |
 ---
 
 *This document is auto-generated based on the current state of the application's edge functions and UI components.*
