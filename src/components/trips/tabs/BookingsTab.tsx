@@ -50,9 +50,13 @@ const openExternalUrl = (url: string | null | undefined) => {
 
 interface BookingsTabProps {
   tripId: string;
+  /** v2.0.7: ID of booking to highlight after drill-through */
+  highlightId?: string;
+  /** v2.0.7: Callback when highlight has been consumed */
+  onHighlightConsumed?: () => void;
 }
 
-export function BookingsTab({ tripId }: BookingsTabProps) {
+export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: BookingsTabProps) {
   const { canEdit } = useTripPermission();
   const { data: bookings = [], isLoading } = useBookings(tripId);
   const { data: companions = [] } = useCompanions(tripId);
@@ -90,6 +94,38 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
   const [showDateWarning, setShowDateWarning] = useState(false);
   const [dateWarningMessage, setDateWarningMessage] = useState('');
   const [pendingSubmit, setPendingSubmit] = useState(false);
+
+  // v2.0.7: Highlight state for drill-through
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  // v2.0.7: Handle drill-through highlight
+  useEffect(() => {
+    if (highlightId && bookings.length > 0) {
+      // Check if the booking exists
+      const bookingExists = bookings.some(b => b.id === highlightId);
+      if (bookingExists) {
+        setHighlightedId(highlightId);
+        
+        // Scroll to the card after a brief delay to let render complete
+        setTimeout(() => {
+          const cardElement = cardRefs.current.get(highlightId);
+          if (cardElement) {
+            cardElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
+
+        // Clear highlight after 2 seconds
+        setTimeout(() => {
+          setHighlightedId(null);
+          onHighlightConsumed?.();
+        }, 2000);
+      } else {
+        // Record doesn't exist, just clear the target
+        onHighlightConsumed?.();
+      }
+    }
+  }, [highlightId, bookings, onHighlightConsumed]);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -633,7 +669,16 @@ export function BookingsTab({ tripId }: BookingsTabProps) {
       {bookings.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2">
           {bookings.map((booking: Booking) => (
-            <Card key={booking.id} className="group hover:shadow-md transition-shadow overflow-hidden">
+            <Card 
+              key={booking.id} 
+              ref={(el) => {
+                if (el) cardRefs.current.set(booking.id, el);
+              }}
+              className={cn(
+                "group hover:shadow-md transition-all overflow-hidden",
+                highlightedId === booking.id && "ring-2 ring-primary ring-offset-2 shadow-lg"
+              )}
+            >
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">

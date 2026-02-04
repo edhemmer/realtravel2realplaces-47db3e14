@@ -32,9 +32,13 @@ import {
 import { format, parseISO, isAfter, differenceInDays } from 'date-fns';
 import { toast } from 'sonner';
 
+// v2.0.7: Drill-through target type
+import type { DrillThroughTarget } from '@/pages/TripDetail';
+
 interface SummaryTabProps {
   tripId: string;
   trip: Trip;
+  onDrillThrough?: (target: DrillThroughTarget) => void;
 }
 
 interface TimelineEvent {
@@ -49,6 +53,8 @@ interface TimelineEvent {
   linkUrl?: string;
   /** v2.0.6: Track if the original datetime had an explicit time */
   hasExplicitTime: boolean;
+  /** v2.0.7: Source record ID for drill-through */
+  sourceId: string;
 }
 
 // Helper to safely open external URLs in new tab
@@ -83,7 +89,7 @@ const getDestinationLinks = (city: string, state: string | undefined, country: s
   };
 };
 
-export function SummaryTab({ tripId, trip }: SummaryTabProps) {
+export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
   const [gasDialogOpen, setGasDialogOpen] = useState(false);
   const [selectedCompanion, setSelectedCompanion] = useState<Companion | null>(null);
   const [companionDialogOpen, setCompanionDialogOpen] = useState(false);
@@ -157,6 +163,7 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
           address: b.address,
           linkUrl: b.link_url,
           hasExplicitTime: hasExplicitTime(b.start_datetime),
+          sourceId: b.id,
         });
       } else if (b.booking_type === 'stay') {
         // Stay: show check-in event
@@ -170,6 +177,7 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
           address: b.address,
           linkUrl: b.link_url,
           hasExplicitTime: hasExplicitTime(b.start_datetime),
+          sourceId: b.id,
         });
         // Stay: show check-out event on end date (if available)
         if (b.end_datetime) {
@@ -183,6 +191,7 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
             address: b.address,
             linkUrl: b.link_url,
             hasExplicitTime: hasExplicitTime(b.end_datetime),
+            sourceId: b.id,
           });
         }
       } else if (b.booking_type === 'car_rental') {
@@ -197,6 +206,7 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
           address: b.pickup_location || b.address,
           linkUrl: b.link_url,
           hasExplicitTime: hasExplicitTime(b.start_datetime),
+          sourceId: b.id,
         });
         // Rental: show drop-off event on end date (if available)
         if (b.end_datetime) {
@@ -210,6 +220,7 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
             address: b.return_location || b.pickup_location || b.address,
             linkUrl: b.link_url,
             hasExplicitTime: hasExplicitTime(b.end_datetime),
+            sourceId: b.id,
           });
         }
       } else {
@@ -224,6 +235,7 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
           address: b.address,
           linkUrl: b.link_url,
           hasExplicitTime: hasExplicitTime(b.start_datetime),
+          sourceId: b.id,
         });
       }
     });
@@ -240,6 +252,7 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
         datetime: parseISO(p.start_datetime),
         address: p.address,
         hasExplicitTime: hasExplicitTime(p.start_datetime),
+        sourceId: p.id,
       });
       // Parking end event (if end_datetime available)
       if (p.end_datetime) {
@@ -252,6 +265,7 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
           datetime: parseISO(p.end_datetime),
           address: p.address,
           hasExplicitTime: hasExplicitTime(p.end_datetime),
+          sourceId: p.id,
         });
       }
     });
@@ -260,6 +274,18 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
   };
   
   const timeline = buildTimelineEvents();
+
+  // v2.0.7: Handle timeline item click for drill-through
+  const handleTimelineClick = (event: TimelineEvent) => {
+    if (!onDrillThrough) return;
+    
+    if (event.type === 'parking') {
+      onDrillThrough({ tab: 'parking', recordId: event.sourceId });
+    } else {
+      // flight, stay, car_rental, activity all go to bookings
+      onDrillThrough({ tab: 'bookings', recordId: event.sourceId });
+    }
+  };
 
   // Parking status for card display
   const now = new Date();
@@ -451,7 +477,12 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
           {timeline.length > 0 ? (
             <div className="space-y-4">
               {timeline.map((event, index) => (
-                <div key={event.id} className="flex gap-4 animate-slide-in" style={{ animationDelay: `${index * 50}ms` }}>
+                <div 
+                  key={event.id} 
+                  className="flex gap-4 animate-slide-in cursor-pointer hover:bg-muted/50 rounded-lg p-2 -mx-2 transition-colors" 
+                  style={{ animationDelay: `${index * 50}ms` }}
+                  onClick={() => handleTimelineClick(event)}
+                >
                   <div className="flex flex-col items-center">
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                       {getEventIcon(event.type)}
