@@ -3,14 +3,20 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { SubscriptionTier, SubscriptionStatus, TIER_LIMITS } from '@/types/subscription';
 
+// Owner email that always gets Pro access (override)
+const OWNER_EMAIL = 'edhemmer@gmail.com';
+
 /**
- * v2.0.0a: Simplified hook to get subscription tier only
+ * v2.0.20: Simplified hook to get subscription tier with owner override
  * 
  * Returns the user's current subscription tier and limits.
- * Usage tracking and quota logic removed per 2.0.0a spec.
+ * Owner (edhemmer@gmail.com) is always forced to Pro tier.
  */
 export function useSubscription() {
   const { user } = useAuth();
+
+  // Check if current user is the owner (case-insensitive)
+  const isOwner = user?.email?.toLowerCase() === OWNER_EMAIL.toLowerCase();
 
   return useQuery({
     queryKey: ['subscription', user?.id],
@@ -23,7 +29,15 @@ export function useSubscription() {
         };
       }
 
-      // Fetch profile with subscription info
+      // Owner override: always Pro regardless of DB value
+      if (isOwner) {
+        return {
+          tier: 'pro',
+          limits: TIER_LIMITS.pro,
+        };
+      }
+
+      // Fetch profile with subscription info for non-owners
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('subscription_tier')
@@ -51,8 +65,15 @@ export function useSubscription() {
 
 /**
  * Helper hook to check if current user is Pro
+ * Includes owner override: edhemmer@gmail.com is always Pro
  */
 export function useIsPro(): boolean {
+  const { user } = useAuth();
   const { data } = useSubscription();
+  
+  // Owner override check
+  const isOwner = user?.email?.toLowerCase() === OWNER_EMAIL.toLowerCase();
+  if (isOwner) return true;
+  
   return data?.tier === 'pro';
 }
