@@ -22,6 +22,7 @@ import { UpcomingEventsWidget } from '@/components/trips/UpcomingEventsWidget';
 import { generateTripICS, downloadICSFile } from '@/lib/icsGenerator';
 import { calculateTripCostSummary, logExpenseDebug } from '@/lib/expenseCalculations';
 import { calculateTripDateRange } from '@/lib/tripDateCalculations';
+import { hasExplicitTime, getTimeDisplay } from '@/lib/datetimeIntegrity';
 import { 
   Plane, Building2, Car, Calendar, MapPin, DollarSign, 
   AlertTriangle, Download, ExternalLink, Clock, PartyPopper,
@@ -46,6 +47,8 @@ interface TimelineEvent {
   endDatetime?: Date;
   address?: string;
   linkUrl?: string;
+  /** v2.0.6: Track if the original datetime had an explicit time */
+  hasExplicitTime: boolean;
 }
 
 // Helper to safely open external URLs in new tab
@@ -153,6 +156,7 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
           endDatetime: b.end_datetime ? parseISO(b.end_datetime) : undefined,
           address: b.address,
           linkUrl: b.link_url,
+          hasExplicitTime: hasExplicitTime(b.start_datetime),
         });
       } else if (b.booking_type === 'stay') {
         // Stay: show check-in event
@@ -165,6 +169,7 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
           datetime: parseISO(b.start_datetime),
           address: b.address,
           linkUrl: b.link_url,
+          hasExplicitTime: hasExplicitTime(b.start_datetime),
         });
         // Stay: show check-out event on end date (if available)
         if (b.end_datetime) {
@@ -177,6 +182,7 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
             datetime: parseISO(b.end_datetime),
             address: b.address,
             linkUrl: b.link_url,
+            hasExplicitTime: hasExplicitTime(b.end_datetime),
           });
         }
       } else if (b.booking_type === 'car_rental') {
@@ -190,6 +196,7 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
           datetime: parseISO(b.start_datetime),
           address: b.pickup_location || b.address,
           linkUrl: b.link_url,
+          hasExplicitTime: hasExplicitTime(b.start_datetime),
         });
         // Rental: show drop-off event on end date (if available)
         if (b.end_datetime) {
@@ -202,6 +209,7 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
             datetime: parseISO(b.end_datetime),
             address: b.return_location || b.pickup_location || b.address,
             linkUrl: b.link_url,
+            hasExplicitTime: hasExplicitTime(b.end_datetime),
           });
         }
       } else {
@@ -215,6 +223,7 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
           endDatetime: b.end_datetime ? parseISO(b.end_datetime) : undefined,
           address: b.address,
           linkUrl: b.link_url,
+          hasExplicitTime: hasExplicitTime(b.start_datetime),
         });
       }
     });
@@ -230,6 +239,7 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
         subtitle: `Parking Start - ${p.parking_type}`,
         datetime: parseISO(p.start_datetime),
         address: p.address,
+        hasExplicitTime: hasExplicitTime(p.start_datetime),
       });
       // Parking end event (if end_datetime available)
       if (p.end_datetime) {
@@ -241,6 +251,7 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
           subtitle: `Parking End - ${p.parking_type}`,
           datetime: parseISO(p.end_datetime),
           address: p.address,
+          hasExplicitTime: hasExplicitTime(p.end_datetime),
         });
       }
     });
@@ -457,7 +468,12 @@ export function SummaryTab({ tripId, trip }: SummaryTabProps) {
                       </div>
                       <div className="text-right text-xs shrink-0">
                         <p className="font-medium">{format(event.datetime, 'MMM d')}</p>
-                        <p className="text-muted-foreground">{format(event.datetime, 'h:mm a')}</p>
+                        {/* v2.0.6: Show "Time not specified" if no explicit time */}
+                        <p className="text-muted-foreground">
+                          {event.hasExplicitTime 
+                            ? format(event.datetime, 'h:mm a') 
+                            : 'Time not specified'}
+                        </p>
                       </div>
                     </div>
                     <div className="flex gap-2 mt-1">
