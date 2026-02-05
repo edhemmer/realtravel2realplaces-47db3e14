@@ -36,67 +36,146 @@ const weatherCodeToCondition = (code: number): string => {
   return 'Unknown';
 };
 
-async function geocodeCity(city: string, country: string, state?: string): Promise<GeocodingResult | null> {
+ /**
+  * Safely geocode a city with error handling
+  * Returns null on any failure (network, invalid response, no results)
+  */
+ async function geocodeCity(city: string, country: string, state?: string): Promise<GeocodingResult | null> {
+   if (!city || typeof city !== 'string') {
+     console.warn('[Weather] Invalid city parameter for geocoding');
+     return null;
+   }
+   
   // Try city + state first for US locations, then fallback to city alone
   const queries = state && country === 'USA' 
     ? [`${city}, ${state}`, city]
     : [`${city}, ${country}`, city];
   
-  for (const query of queries) {
-    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json`;
-    
-    const response = await fetch(url);
-    if (!response.ok) continue;
-    
-    const data = await response.json();
-    if (data.results && data.results.length > 0) {
-      // For US locations with state, try to match the state
-      if (state && country === 'USA') {
-        const match = data.results.find((r: any) => 
-          r.admin1?.toLowerCase() === state.toLowerCase() || 
-          r.country_code === 'US'
-        );
-        if (match) {
+   try {
+     for (const query of queries) {
+       const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json`;
+       
+       let response: Response;
+       try {
+         response = await fetch(url);
+       } catch (fetchError) {
+         console.warn('[Weather] Geocoding fetch failed:', fetchError);
+         continue;
+       }
+       
+       if (!response.ok) {
+         console.warn(`[Weather] Geocoding API returned ${response.status}`);
+         continue;
+       }
+       
+       let data: { results?: Array<{ latitude: number; longitude: number; name: string; admin1?: string; country_code?: string }> };
+       try {
+         data = await response.json();
+       } catch (parseError) {
+         console.warn('[Weather] Failed to parse geocoding response:', parseError);
+         continue;
+       }
+       
+       if (data.results && data.results.length > 0) {
+         // For US locations with state, try to match the state
+         if (state && country === 'USA') {
+           const match = data.results.find((r) => 
+             r.admin1?.toLowerCase() === state.toLowerCase() || 
+             r.country_code === 'US'
+           );
+           if (match) {
+             return {
+               latitude: match.latitude,
+               longitude: match.longitude,
+               name: match.name,
+             };
+           }
+         }
+         // Return first result as fallback
+         const firstResult = data.results[0];
+         if (firstResult) {
           return {
-            latitude: match.latitude,
-            longitude: match.longitude,
-            name: match.name,
+             latitude: firstResult.latitude,
+             longitude: firstResult.longitude,
+             name: firstResult.name,
           };
         }
       }
-      // Return first result as fallback
-      return {
-        latitude: data.results[0].latitude,
-        longitude: data.results[0].longitude,
-        name: data.results[0].name,
-      };
     }
+   } catch (error) {
+     console.error('[Weather] Geocoding error:', error);
   }
   
   return null;
 }
 
-async function fetchWeather(lat: number, lon: number): Promise<WeatherData | null> {
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=14&temperature_unit=fahrenheit`;
+ /**
+  * Fetch weather data with comprehensive error handling
+  * Returns null on any failure, never throws
+  */
+ async function fetchWeather(lat: number, lon: number): Promise<WeatherData | null> {
+   if (!isFinite(lat) || !isFinite(lon)) {
+     console.warn('[Weather] Invalid coordinates:', { lat, lon });
+     return null;
+   }
+   
+   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=14&temperature_unit=fahrenheit`;
   
-  const response = await fetch(url);
-  if (!response.ok) return null;
+   let response: Response;
+   try {
+     response = await fetch(url);
+   } catch (fetchError) {
+     console.warn('[Weather] Weather API fetch failed:', fetchError);
+     return null;
+   }
+   
+   if (!response.ok) {
+     console.warn(`[Weather] Weather API returned ${response.status}`);
+     return null;
+   }
   
-  const data = await response.json();
+   let data: {
+     current?: {
+       temperature_2m?: number;
+       relative_humidity_2m?: number;
+       weather_code?: number;
+       wind_speed_10m?: number;
+     };
+     daily?: {
+       time?: string[];
+       weather_code?: number[];
+       temperature_2m_max?: number[];
+       temperature_2m_min?: number[];
+       precipitation_probability_max?: number[];
+     };
+   };
+   
+   try {
+     data = await response.json();
+   } catch (parseError) {
+     console.warn('[Weather] Failed to parse weather response:', parseError);
+     return null;
+   }
+   
+   // Validate required data exists
+   if (!data.current || !data.daily || !data.daily.time) {
+     console.warn('[Weather] Weather response missing required fields');
+     return null;
+   }
   
   return {
     current: {
-      temperature: Math.round(data.current.temperature_2m),
-      condition: weatherCodeToCondition(data.current.weather_code),
-      humidity: data.current.relative_humidity_2m,
-      windSpeed: Math.round(data.current.wind_speed_10m),
+       temperature: Math.round(data.current.temperature_2m ?? 0),
+       condition: weatherCodeToCondition(data.current.weather_code ?? 0),
+       humidity: data.current.relative_humidity_2m ?? 0,
+       windSpeed: Math.round(data.current.wind_speed_10m ?? 0),
     },
-    forecast: data.daily.time.map((date: string, i: number) => ({
+     forecast: data.daily.time.map((date, i) => ({
       date,
-      tempHigh: Math.round(data.daily.temperature_2m_max[i]),
-      tempLow: Math.round(data.daily.temperature_2m_min[i]),
-      condition: weatherCodeToCondition(data.daily.weather_code[i]),
-      precipitation: data.daily.precipitation_probability_max[i] || 0,
+       tempHigh: Math.round(data.daily?.temperature_2m_max?.[i] ?? 0),
+       tempLow: Math.round(data.daily?.temperature_2m_min?.[i] ?? 0),
+       condition: weatherCodeToCondition(data.daily?.weather_code?.[i] ?? 0),
+       precipitation: data.daily?.precipitation_probability_max?.[i] ?? 0,
     })),
   };
 }
