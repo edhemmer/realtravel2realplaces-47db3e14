@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plane, Users, Clock, ExternalLink, MapPin, AlertTriangle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
+ import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
 
 interface BookingCompanion {
   id: string;
@@ -116,14 +117,26 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                         <span className="font-medium text-foreground">
                           {format(parseISO(flight.start_datetime), 'EEE, MMM d')}
                         </span>
-                        <span className="text-muted-foreground">
-                          at {format(parseISO(flight.start_datetime), 'h:mm a')}
-                        </span>
+                         {hasExplicitTime(flight.start_datetime) ? (
+                           <span className="text-muted-foreground">
+                             at {format(parseISO(flight.start_datetime), 'h:mm a')}
+                           </span>
+                         ) : (
+                           <span className="text-destructive font-medium">
+                             at {UNKNOWN_TIME_PLACEHOLDER}
+                           </span>
+                         )}
                       </span>
                       {flight.end_datetime && (
-                        <span className="text-xs">
-                          → Arrives {format(parseISO(flight.end_datetime), 'h:mm a')}
-                        </span>
+                         hasExplicitTime(flight.end_datetime) ? (
+                           <span className="text-xs">
+                             → Arrives {format(parseISO(flight.end_datetime), 'h:mm a')}
+                           </span>
+                         ) : (
+                           <span className="text-xs text-destructive font-medium">
+                             → Arrives {UNKNOWN_TIME_PLACEHOLDER}
+                           </span>
+                         )
                       )}
                     </div>
                     

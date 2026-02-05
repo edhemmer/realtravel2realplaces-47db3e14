@@ -9,6 +9,12 @@
 
 import { format, parseISO } from 'date-fns';
 
+ /**
+  * v2.1.8: Unknown time placeholder constant
+  * Used consistently across all UI components
+  */
+ export const UNKNOWN_TIME_PLACEHOLDER = '--:--';
+
 /**
  * Check if a datetime string has an explicit time component.
  * 
@@ -113,12 +119,12 @@ export function isValidForTripEvent(datetime: string | null | undefined): boolea
  * Get display-friendly time string, or fallback message.
  * 
  * @param datetime - ISO datetime string
- * @param fallback - Message to show when time is unknown (default: "Time not specified")
+ * @param fallback - Message to show when time is unknown (default: "--:--")
  * @returns Time string or fallback message
  */
 export function getTimeDisplay(
   datetime: string | null | undefined,
-  fallback: string = 'Time not specified'
+   fallback: string = UNKNOWN_TIME_PLACEHOLDER
 ): string {
   if (!datetime) return fallback;
   

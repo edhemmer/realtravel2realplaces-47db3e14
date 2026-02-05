@@ -25,7 +25,7 @@ import { TripHealthChecklist } from '@/components/trips/TripHealthChecklist';
 import { generateTripICS, downloadICSFile } from '@/lib/icsGenerator';
 import { calculateTripCostSummary, logExpenseDebug } from '@/lib/expenseCalculations';
 import { calculateTripDateRange } from '@/lib/tripDateCalculations';
-import { hasExplicitTime, getTimeDisplay } from '@/lib/datetimeIntegrity';
+ import { hasExplicitTime, getTimeDisplay, UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
 import { 
   Plane, Building2, Car, Calendar, MapPin, DollarSign, 
   AlertTriangle, Download, ExternalLink, Clock, PartyPopper,
@@ -516,11 +516,11 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
                       </div>
                       <div className="text-right text-xs shrink-0">
                         <p className="font-medium">{format(event.datetime, 'MMM d')}</p>
-                        {/* v2.0.6: Show "Time not specified" if no explicit time */}
-                        <p className="text-muted-foreground">
+                         {/* v2.1.8: Show "--:--" in red if no explicit time */}
+                         <p className={event.hasExplicitTime ? 'text-muted-foreground' : 'text-destructive font-medium'}>
                           {event.hasExplicitTime 
                             ? format(event.datetime, 'h:mm a') 
-                            : 'Time not specified'}
+                             : UNKNOWN_TIME_PLACEHOLDER}
                         </p>
                       </div>
                     </div>

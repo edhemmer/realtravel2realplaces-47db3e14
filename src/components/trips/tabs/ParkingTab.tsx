@@ -13,6 +13,7 @@ import { Plus, Trash2, CircleParking, MapPin, Clock, AlertTriangle, Pencil } fro
 import { ParkingExpirationIndicator } from '@/components/trips/ParkingExpirationIndicator';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isAfter, isBefore, addMinutes } from 'date-fns';
+ import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -265,8 +266,23 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Clock className="w-4 h-4" />
                     <span>
-                      {format(parseISO(parking.start_datetime), 'MMM d, h:mm a')}
-                      {parking.end_datetime && ` - ${format(parseISO(parking.end_datetime), 'MMM d, h:mm a')}`}
+                       {format(parseISO(parking.start_datetime), 'MMM d')},{' '}
+                       {hasExplicitTime(parking.start_datetime) ? (
+                         format(parseISO(parking.start_datetime), 'h:mm a')
+                       ) : (
+                         <span className="text-destructive font-medium">{UNKNOWN_TIME_PLACEHOLDER}</span>
+                       )}
+                       {parking.end_datetime && (
+                         <>
+                           {' - '}
+                           {format(parseISO(parking.end_datetime), 'MMM d')},{' '}
+                           {hasExplicitTime(parking.end_datetime) ? (
+                             format(parseISO(parking.end_datetime), 'h:mm a')
+                           ) : (
+                             <span className="text-destructive font-medium">{UNKNOWN_TIME_PLACEHOLDER}</span>
+                           )}
+                         </>
+                       )}
                     </span>
                   </div>
                   {/* v2.0.4: Pro-only parking expiration indicator */}
