@@ -1,9 +1,15 @@
 /**
  * Booking-Expense Synchronization Utilities
- * v1.2.5 - Links expenses to bookings for accurate financial tracking
+ * v2.2.1 - Links expenses to bookings for accurate financial tracking
  * 
  * Since we cannot add a booking_id column, we use a marker in the notes field:
  * Format: [linked_booking:booking_uuid]
+ * 
+ * AIRFARE COST RULES (v2.2.1):
+ * - Multi-leg flights: Use booking.total_cost (single total for entire booking)
+ * - If booking.total_cost is null/0, no expense is created
+ * - We never create per-segment expenses - only booking-level
+ * - This prevents double-counting when a confirmation shows one total for all legs
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -98,12 +104,46 @@ export async function findLinkedExpense(tripId: string, bookingId: string): Prom
 }
 
 /**
+ * Determine the effective cost for a booking expense
+ * 
+ * AIRFARE COST NORMALIZATION (v2.2.1):
+ * - For flights (and all booking types): Use booking.total_cost
+ * - This is the single source of truth for booking cost
+ * - Per-segment costs are NOT tracked separately - only booking-level
+ * - If total_cost is null/undefined/0, return 0 (no expense will be created)
+ * 
+ * This prevents double-counting when:
+ * - A multi-leg flight shows one total fare
+ * - Each segment appears as a timeline event without its own cost
+ */
+export function getBookingExpenseCost(booking: Booking): number {
+  // Use booking.total_cost as the single source of truth
+  // This is already at the booking level (not segment level)
+  const totalCost = Number(booking.total_cost || 0);
+  
+  // Guard against NaN, negative, or invalid values
+  if (!Number.isFinite(totalCost) || totalCost < 0) {
+    return 0;
+  }
+  
+  return totalCost;
+}
+
+/**
  * Create or update expense for a booking
  * Returns the expense ID on success, null on failure
+ * 
+ * AIRFARE ALLOCATION (v2.2.1):
+ * - Creates ONE expense per booking using booking.total_cost
+ * - For multi-leg flights: The booking represents the entire itinerary
+ * - We do NOT create segment-level expenses
+ * - This ensures the fare is counted exactly once regardless of leg count
  */
 export async function syncExpenseFromBooking(booking: Booking): Promise<string | null> {
-  // Only sync if booking has a valid cost
-  const totalCost = Number(booking.total_cost || 0);
+  // Get normalized booking cost (handles edge cases)
+  const totalCost = getBookingExpenseCost(booking);
+  
+  // Only sync if booking has a valid cost > 0
   if (totalCost <= 0) return null;
   
   const bookingLinkMarker = createBookingLinkMarker(booking.id);
