@@ -5,7 +5,7 @@ import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, MapPin, Calendar, Briefcase, Heart, Sparkles, Eye, Users } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Eye, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { SummaryTab } from '@/components/trips/tabs/SummaryTab';
 import { BookingsTab } from '@/components/trips/tabs/BookingsTab';
@@ -15,6 +15,8 @@ import { PackingTab } from '@/components/trips/tabs/PackingTab';
 import { CompanionsTab } from '@/components/trips/tabs/CompanionsTab';
 import { NotesTab } from '@/components/trips/tabs/NotesTab';
 import { TripHeaderWidgets } from '@/components/trips/TripHeaderWidgets';
+import { TripStatusHeroBar } from '@/components/trips/TripStatusHeroBar';
+import { ProRetentionCountdownCard } from '@/components/trips/ProRetentionCountdownCard';
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 // Context to share ownership info with child components
@@ -59,15 +61,6 @@ export default function TripDetail() {
     setDrillTarget(null);
   }, []);
 
-  const getTripTypeIcon = (type: string) => {
-    switch (type) {
-      case 'business': return <Briefcase className="w-4 h-4" />;
-      case 'personal': return <Heart className="w-4 h-4" />;
-      case 'mixed': return <Sparkles className="w-4 h-4" />;
-      default: return null;
-    }
-  };
-
   if (isLoading || ownershipLoading) {
     return (
       <Layout>
@@ -99,7 +92,13 @@ export default function TripDetail() {
     <TripPermissionContext.Provider value={{ isOwner, canEdit }}>
       <Layout>
         <div className="space-y-6 animate-fade-in">
-          {/* Header */}
+          {/* v2.1.6: Trip Status Hero Bar - sticky at top */}
+          <TripStatusHeroBar trip={trip} />
+
+          {/* v2.1.6: Pro Retention Countdown Card - shows for Pro closed trips */}
+          <ProRetentionCountdownCard trip={trip} />
+
+          {/* Navigation */}
           <div className="flex flex-col gap-4">
             <Button asChild variant="ghost" className="w-fit -ml-2">
               <Link to="/dashboard">
@@ -112,10 +111,6 @@ export default function TripDetail() {
               <div>
                 <div className="flex items-center gap-3 mb-2">
                   <h1 className="text-3xl font-bold">{trip.name}</h1>
-                  <Badge variant="secondary" className="flex items-center gap-1">
-                    {getTripTypeIcon(trip.trip_type)}
-                    {trip.trip_type}
-                  </Badge>
                   {!isOwner && (
                     <Badge variant="outline" className="flex items-center gap-1 bg-primary/5">
                       <Users className="w-3 h-3" />
