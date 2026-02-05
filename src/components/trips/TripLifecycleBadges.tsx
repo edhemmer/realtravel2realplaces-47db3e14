@@ -1,7 +1,7 @@
  import { Trip, TripState } from '@/types/database';
  import { Badge } from '@/components/ui/badge';
- import { Lock, Archive, Clock } from 'lucide-react';
- import { differenceInDays, parseISO, startOfDay } from 'date-fns';
+ import { Lock, Archive, Clock, Moon } from 'lucide-react';
+ import { differenceInDays, parseISO, startOfDay, isBefore } from 'date-fns';
  import { cn } from '@/lib/utils';
  
  interface TripLifecycleBadgesProps {
@@ -20,19 +20,33 @@
    const daysSinceEnd = differenceInDays(today, tripEndDate);
    const daysUntilDeletion = 45 - daysSinceEnd;
    
+   // v2.1.7: Display "Inactive" for ACTIVE trips past their end date
+   const isPastEndDate = isBefore(tripEndDate, today);
+   const isDisplayInactive = tripState === 'active' && isPastEndDate;
+
    const isProClosedTrip = isPro && tripState === 'closed';
    const showRetentionBadge = isProClosedTrip && daysUntilDeletion > 0;
    const isUrgent = showRetentionBadge && daysUntilDeletion <= 7;
    const isDeletingTomorrow = showRetentionBadge && daysUntilDeletion <= 1;
  
    const getStatusConfig = () => {
+     // v2.1.7: Check for display-only "Inactive" state first
+     if (isDisplayInactive) {
+       return {
+         label: 'Inactive',
+         icon: <Moon className="w-3 h-3" />,
+         className: 'bg-slate-500/15 text-slate-600 dark:text-slate-400 border-slate-500/30',
+         show: true,
+       };
+     }
+
      switch (tripState) {
        case 'active':
          return {
            label: 'Active',
            icon: null,
            className: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
-           show: true, // Now always show status badge
+           show: true,
          };
        case 'locked':
          return {

@@ -1,8 +1,8 @@
  import { Trip, TripState } from '@/types/database';
  import { useIsPro } from '@/hooks/useSubscription';
  import { Badge } from '@/components/ui/badge';
- import { Lock, Archive, Sparkles, Crown, Clock } from 'lucide-react';
- import { differenceInDays, parseISO, startOfDay } from 'date-fns';
+ import { Lock, Archive, Crown, Clock, Moon } from 'lucide-react';
+ import { differenceInDays, parseISO, startOfDay, isBefore } from 'date-fns';
  import { cn } from '@/lib/utils';
  
  interface TripStatusHeroBarProps {
@@ -18,11 +18,25 @@
    const tripEndDate = startOfDay(parseISO(trip.end_date));
    const daysSinceEnd = differenceInDays(today, tripEndDate);
    const daysUntilDeletion = 45 - daysSinceEnd;
+
+   // v2.1.7: Display "Inactive" for ACTIVE trips past their end date
+   const isPastEndDate = isBefore(tripEndDate, today);
+   const isDisplayInactive = tripState === 'active' && isPastEndDate;
+
    const isProClosedTrip = isPro && tripState === 'closed';
    const showRetentionWarning = isProClosedTrip && daysUntilDeletion > 0;
    const isUrgent = showRetentionWarning && daysUntilDeletion <= 7;
  
    const getStatusConfig = () => {
+     // v2.1.7: Check for display-only "Inactive" state first
+     if (isDisplayInactive) {
+       return {
+         label: 'Inactive',
+         icon: <Moon className="w-3 h-3" />,
+         className: 'bg-slate-500/15 text-slate-600 dark:text-slate-400 border-slate-500/30',
+       };
+     }
+
      switch (tripState) {
        case 'active':
          return {
@@ -62,20 +76,13 @@
  
            {/* Plan + Status badges */}
            <div className="flex items-center gap-2">
-             {/* Plan Badge */}
-             {isPro ? (
+             {/* Plan Badge - only show for Pro users */}
+             {isPro && (
                <Badge 
                  className="bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0 shadow-md shadow-purple-500/20 flex items-center gap-1"
                >
                  <Crown className="w-3 h-3" />
                  PRO
-               </Badge>
-             ) : (
-               <Badge 
-                 variant="outline" 
-                 className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600"
-               >
-                 FREE
                </Badge>
              )}
  
