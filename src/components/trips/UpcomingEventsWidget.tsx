@@ -6,6 +6,7 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { TripEventType } from '@/types/tripEvent';
 import { format, parseISO, isAfter } from 'date-fns';
 import { Plane, Building2, Car, CircleParking, Clock, ChevronRight } from 'lucide-react';
+import { parseDatetimeForDisplay, hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
 import type { DrillThroughTarget } from '@/pages/TripDetail';
 
 interface UpcomingEventsWidgetProps {
@@ -87,10 +88,23 @@ const getEventLabel = (
 
 /**
  * Format datetime based on user preference
+ * v2.2.0: Uses safe datetime parsing to preserve original dates
  * Formats: "MM/DD/YYYY 12h" or "DD/MM/YYYY 24h"
  */
 const formatEventDatetime = (datetime: string, preferredFormat: string | null | undefined): string => {
-  const parsed = parseISO(datetime);
+  // v2.2.0: Use safe parsing that preserves the original date
+  const parsed = parseDatetimeForDisplay(datetime);
+  if (!parsed) return '--';
+  
+  const hasTime = hasExplicitTime(datetime);
+  
+  // If no explicit time, show date only with placeholder
+  if (!hasTime) {
+    if (!preferredFormat || preferredFormat === 'MM/DD/YYYY 12h') {
+      return `${format(parsed, 'EEE, MMM d')} · ${UNKNOWN_TIME_PLACEHOLDER}`;
+    }
+    return `${format(parsed, 'EEE, d MMM')} · ${UNKNOWN_TIME_PLACEHOLDER}`;
+  }
   
   // Default format: EEE, MMM d · h:mm a (e.g., "Mon, Jan 15 · 3:30 PM")
   if (!preferredFormat || preferredFormat === 'MM/DD/YYYY 12h') {
@@ -128,9 +142,14 @@ export function UpcomingEventsWidget({ tripId, onDrillThrough }: UpcomingEventsW
 
   // Filter to upcoming events only (event_datetime > now)
   // Only include events with valid, non-null datetime
+  // v2.2.0: Use safe datetime parsing
   const now = new Date();
   const upcomingEvents = events
-    .filter(event => event.event_datetime && isAfter(parseISO(event.event_datetime), now))
+    .filter(event => {
+      if (!event.event_datetime) return false;
+      const eventDate = parseDatetimeForDisplay(event.event_datetime);
+      return eventDate && isAfter(eventDate, now);
+    })
     .slice(0, 5); // Max 5 events per spec
 
   // Handle event click - navigate to source record

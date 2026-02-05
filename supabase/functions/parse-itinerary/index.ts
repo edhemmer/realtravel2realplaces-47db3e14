@@ -90,6 +90,26 @@ serve(async (req) => {
 
     const systemPrompt = `You are a travel itinerary and booking confirmation parser. Your job is to extract TRIP-LEVEL information from booking confirmations, itineraries, or travel documents.
 
+CRITICAL v2.2.0 - GLOBAL DATETIME INTEGRITY RULES:
+
+1. DATES ARE ABSOLUTE AUTHORITY
+   - Extract dates EXACTLY as they appear in the confirmation
+   - NEVER add or subtract days
+   - NEVER apply timezone conversions that change the calendar date
+   - The date shown on the confirmation is the ONLY valid date
+
+2. TIMES ARE EXPLICIT ONLY
+   - Only extract times that are EXPLICITLY stated (e.g., "Departs 6:00 PM", "Check-in 3:00 PM")
+   - If no explicit time is shown, leave time portion empty - use date-only format (YYYY-MM-DD)
+   - NEVER infer or guess times
+   - NEVER default to midnight (00:00) when time is unknown
+   - Phrases like "after 3 PM" or "by 11 AM" are NOT explicit times - treat as no time
+
+3. FORMAT RULES
+   - If EXPLICIT time exists: use ISO 8601 format (e.g., "2026-01-30T18:13:00")
+   - If NO explicit time: use date-only format (e.g., "2026-01-30")
+   - For trips: start_date and end_date are always date-only (YYYY-MM-DD)
+
 Extract the following TRIP information:
 - trip_name: A descriptive name for the trip (e.g., "Orlando Family Vacation", "NYC Business Trip")
 - destination_city: The main destination city
@@ -102,8 +122,10 @@ Extract the following TRIP information:
 Also extract ALL BOOKINGS found in the document as an array. Each booking should include:
 - booking_type: "flight", "stay", "car_rental", or "activity"
 - vendor_name: The company name (airline, hotel, rental company, etc.)
-- start_datetime: ISO 8601 format
-- end_datetime: ISO 8601 format (if applicable)
+- start_datetime: 
+  - With explicit time: ISO 8601 format (2026-01-30T18:13:00)
+  - Without explicit time: date-only (2026-01-30)
+- end_datetime: Same rules as start_datetime
 - confirmation_number: If present
 - total_cost: Number only
 - address: If applicable
@@ -247,6 +269,61 @@ Return a JSON object with trip info and an array of bookings. Use null for any f
     if (toolCall?.function?.arguments) {
       try {
         const parsed = JSON.parse(toolCall.function.arguments);
+        
+        // v2.2.0: DATETIME INTEGRITY POST-PROCESSING
+        // Normalize datetime fields to preserve original dates and handle missing times correctly
+        const normalizeDatetime = (dt: string | null | undefined): string | null => {
+          if (!dt) return null;
+          
+          // If it's already date-only (YYYY-MM-DD), keep it that way
+          if (/^\d{4}-\d{2}-\d{2}$/.test(dt)) {
+            return dt;
+          }
+          
+          // Parse and check for explicit time
+          try {
+            const parsedDate = new Date(dt);
+            if (isNaN(parsedDate.getTime())) return null;
+            
+            const hours = parsedDate.getHours();
+            const minutes = parsedDate.getMinutes();
+            const seconds = parsedDate.getSeconds();
+            
+            // If time is midnight (00:00:00), treat as date-only
+            if (hours === 0 && minutes === 0 && seconds === 0) {
+              if (dt.includes('T')) {
+                const timePart = dt.split('T')[1];
+                if (timePart?.startsWith('00:00:00') || timePart?.startsWith('00:00')) {
+                  return dt.split('T')[0];
+                }
+              }
+              return dt.split('T')[0] || dt.substring(0, 10);
+            }
+            
+            // Has explicit non-midnight time
+            return parsedDate.toISOString();
+          } catch {
+            return null;
+          }
+        };
+        
+        // Normalize trip dates (always date-only)
+        if (parsed.trip?.start_date) {
+          parsed.trip.start_date = parsed.trip.start_date.split('T')[0] || parsed.trip.start_date.substring(0, 10);
+        }
+        if (parsed.trip?.end_date) {
+          parsed.trip.end_date = parsed.trip.end_date.split('T')[0] || parsed.trip.end_date.substring(0, 10);
+        }
+        
+        // Normalize booking datetimes
+        if (Array.isArray(parsed.bookings)) {
+          parsed.bookings = parsed.bookings.map((booking: Record<string, unknown>) => ({
+            ...booking,
+            start_datetime: normalizeDatetime(booking.start_datetime as string),
+            end_datetime: normalizeDatetime(booking.end_datetime as string),
+          }));
+        }
+        
         return new Response(JSON.stringify({ 
           success: true, 
           data: parsed,

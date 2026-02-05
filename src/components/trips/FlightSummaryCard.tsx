@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plane, Users, Clock, ExternalLink, MapPin, AlertTriangle } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
- import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
+import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER, parseDatetimeForDisplay } from '@/lib/datetimeIntegrity';
 
 interface BookingCompanion {
   id: string;
@@ -20,9 +20,15 @@ interface FlightSummaryCardProps {
 }
 
 export function FlightSummaryCard({ bookings, companions, bookingCompanions }: FlightSummaryCardProps) {
+  // v2.2.0: Use safe datetime parsing to prevent timezone drift
   const flights = bookings
     .filter((b) => b.booking_type === 'flight')
-    .sort((a, b) => parseISO(a.start_datetime).getTime() - parseISO(b.start_datetime).getTime());
+    .sort((a, b) => {
+      const aDate = parseDatetimeForDisplay(a.start_datetime);
+      const bDate = parseDatetimeForDisplay(b.start_datetime);
+      if (!aDate || !bDate) return 0;
+      return aDate.getTime() - bDate.getTime();
+    });
 
   if (flights.length === 0) {
     return null;
@@ -110,34 +116,45 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                     </div>
                     
                     {/* Date/Time Row - Shows DEPARTURE time as primary */}
+                    {/* v2.2.0: Uses safe datetime parsing to preserve original dates */}
                     <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
                       <span className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5" />
                         <span className="text-xs text-muted-foreground mr-1">Departs</span>
-                        <span className="font-medium text-foreground">
-                          {format(parseISO(flight.start_datetime), 'EEE, MMM d')}
-                        </span>
-                         {hasExplicitTime(flight.start_datetime) ? (
-                           <span className="text-muted-foreground">
-                             at {format(parseISO(flight.start_datetime), 'h:mm a')}
-                           </span>
-                         ) : (
-                           <span className="text-destructive font-medium">
-                             at {UNKNOWN_TIME_PLACEHOLDER}
-                           </span>
-                         )}
+                        {(() => {
+                          const startDate = parseDatetimeForDisplay(flight.start_datetime);
+                          return startDate ? (
+                            <>
+                              <span className="font-medium text-foreground">
+                                {format(startDate, 'EEE, MMM d')}
+                              </span>
+                              {hasExplicitTime(flight.start_datetime) ? (
+                                <span className="text-muted-foreground">
+                                  at {format(startDate, 'h:mm a')}
+                                </span>
+                              ) : (
+                                <span className="text-destructive font-medium">
+                                  at {UNKNOWN_TIME_PLACEHOLDER}
+                                </span>
+                              )}
+                            </>
+                          ) : null;
+                        })()}
                       </span>
-                      {flight.end_datetime && (
-                         hasExplicitTime(flight.end_datetime) ? (
-                           <span className="text-xs">
-                             → Arrives {format(parseISO(flight.end_datetime), 'h:mm a')}
-                           </span>
-                         ) : (
-                           <span className="text-xs text-destructive font-medium">
-                             → Arrives {UNKNOWN_TIME_PLACEHOLDER}
-                           </span>
-                         )
-                      )}
+                      {flight.end_datetime && (() => {
+                        const endDate = parseDatetimeForDisplay(flight.end_datetime);
+                        return endDate ? (
+                          hasExplicitTime(flight.end_datetime) ? (
+                            <span className="text-xs">
+                              → Arrives {format(endDate, 'h:mm a')}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-destructive font-medium">
+                              → Arrives {UNKNOWN_TIME_PLACEHOLDER}
+                            </span>
+                          )
+                        ) : null;
+                      })()}
                     </div>
                     
                     {/* Passenger Name */}
