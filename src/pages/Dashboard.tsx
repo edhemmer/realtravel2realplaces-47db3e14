@@ -4,9 +4,8 @@ import { useSharedTrips, SharedTrip } from '@/hooks/useSharedTrips';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Plus, MapPin, Calendar, Briefcase, Heart, Sparkles, Plane, Trash2, Eye, Users } from 'lucide-react';
-import { Link } from 'react-router-dom';
+ import { Plus, MapPin, Calendar, Plane, Trash2, Users, ChevronRight } from 'lucide-react';
+ import { Link, useNavigate } from 'react-router-dom';
 import { format, isBefore, startOfDay, parseISO } from 'date-fns';
 import { Trip } from '@/types/database';
 import { CreateTripDialog } from '@/components/trips/CreateTripDialog';
@@ -24,32 +23,9 @@ export default function Dashboard() {
   } = useSharedTrips();
   const deleteTrip = useDeleteTrip();
   const isPro = useIsPro();
+   const navigate = useNavigate();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [tripToDelete, setTripToDelete] = useState<string | null>(null);
-  const getTripTypeIcon = (type: string) => {
-    switch (type) {
-      case 'business':
-        return <Briefcase className="w-4 h-4" />;
-      case 'personal':
-        return <Heart className="w-4 h-4" />;
-      case 'mixed':
-        return <Sparkles className="w-4 h-4" />;
-      default:
-        return <Plane className="w-4 h-4" />;
-    }
-  };
-  const getTripTypeBadgeVariant = (type: string) => {
-    switch (type) {
-      case 'business':
-        return 'secondary';
-      case 'personal':
-        return 'default';
-      case 'mixed':
-        return 'outline';
-      default:
-        return 'default';
-    }
-  };
   const handleDeleteTrip = () => {
     if (tripToDelete) {
       deleteTrip.mutate(tripToDelete);
@@ -72,40 +48,47 @@ export default function Dashboard() {
     isShared?: boolean;
     index: number;
   }) => {
-    // v2.1.2: Determine if trip is in the past (end_date < today)
-    const today = startOfDay(new Date());
-    const tripEndDate = startOfDay(parseISO(trip.end_date));
-    const isPastTrip = isBefore(tripEndDate, today);
-    
     // v2.1.6: Get lifecycle-based styling
     const { cardClassName, isLocked } = getTripCardLifecycleStyles(trip as Trip, isPro);
     const tripState = (trip as Trip).trip_state || 'active';
     
+     // v2.1.7: Hide delete for Free users
+     const canDelete = isPro && !isShared && tripState === 'active';
+
+     const handleCardClick = () => {
+       navigate(`/trip/${trip.id}`);
+     };
+
     return (
       <Card 
         key={trip.id} 
-        className={`group hover:shadow-lg transition-all duration-300 overflow-hidden animate-fade-in ${cardClassName}`}
+         className={`group cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-300 overflow-hidden animate-fade-in ${cardClassName}`}
         style={{
           animationDelay: `${index * 50}ms`
         }}
+         onClick={handleCardClick}
       >
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-lg truncate">{trip.name}</CardTitle>
-                {isShared && <Badge variant="outline" className="shrink-0 text-xs">
-                    <Users className="w-3 h-3 mr-1" />
-                    Shared
-                  </Badge>}
-              </div>
+               <CardTitle className="text-lg truncate group-hover:text-primary transition-colors">
+                 {trip.name}
+               </CardTitle>
               <CardDescription className="flex items-center gap-1 mt-1">
                 <MapPin className="w-3 h-3" />
                 {trip.destination_city}, {trip.destination_country}
               </CardDescription>
             </div>
-            {/* v2.1.6: Lifecycle badges replace trip type badge */}
-            <TripLifecycleBadges trip={trip as Trip} isPro={isPro} compact />
+             {/* v2.1.7: Status-only badges (no plan pills) */}
+             <div className="flex items-center gap-2">
+               {isShared && (
+                 <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full bg-muted text-muted-foreground">
+                   <Users className="w-3 h-3" />
+                   Shared
+                 </span>
+               )}
+               <TripLifecycleBadges trip={trip as Trip} isPro={isPro} compact />
+             </div>
           </div>
         </CardHeader>
         <CardContent className="pt-2">
@@ -115,16 +98,25 @@ export default function Dashboard() {
               {format(new Date(trip.start_date), 'MMM d')} - {format(new Date(trip.end_date), 'MMM d, yyyy')}
             </span>
           </div>
-          <div className="flex gap-2">
-            <Button asChild variant="default" size="sm" className="flex-1 bg-gradient-ocean hover:opacity-90">
-              <Link to={`/trip/${trip.id}`}>
-                <Eye className="w-4 h-4 mr-1" />
-                View Trip
-              </Link>
-            </Button>
-            {!isShared && tripState === 'active' && <Button variant="ghost" size="sm" onClick={() => setTripToDelete(trip.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                <Trash2 className="w-4 h-4" />
-              </Button>}
+           <div className="flex items-center justify-between">
+             <div className="flex items-center gap-1 text-sm text-primary font-medium group-hover:gap-2 transition-all">
+               View Trip
+               <ChevronRight className="w-4 h-4" />
+             </div>
+             {/* v2.1.7: Only show delete for Pro users */}
+             {canDelete && (
+               <Button 
+                 variant="ghost" 
+                 size="sm" 
+                 onClick={(e) => {
+                   e.stopPropagation();
+                   setTripToDelete(trip.id);
+                 }} 
+                 className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+               >
+                 <Trash2 className="w-4 h-4" />
+               </Button>
+             )}
           </div>
         </CardContent>
       </Card>
