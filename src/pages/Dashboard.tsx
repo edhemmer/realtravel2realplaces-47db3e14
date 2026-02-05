@@ -10,6 +10,8 @@ import { Link } from 'react-router-dom';
 import { format, isBefore, startOfDay, parseISO } from 'date-fns';
 import { Trip } from '@/types/database';
 import { CreateTripDialog } from '@/components/trips/CreateTripDialog';
+import { TripLifecycleBadges, getTripCardLifecycleStyles } from '@/components/trips/TripLifecycleBadges';
+import { useIsPro } from '@/hooks/useSubscription';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 export default function Dashboard() {
   const {
@@ -21,6 +23,7 @@ export default function Dashboard() {
     isLoading: sharedLoading
   } = useSharedTrips();
   const deleteTrip = useDeleteTrip();
+  const isPro = useIsPro();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [tripToDelete, setTripToDelete] = useState<string | null>(null);
   const getTripTypeIcon = (type: string) => {
@@ -74,12 +77,14 @@ export default function Dashboard() {
     const tripEndDate = startOfDay(parseISO(trip.end_date));
     const isPastTrip = isBefore(tripEndDate, today);
     
+    // v2.1.6: Get lifecycle-based styling
+    const { cardClassName, isLocked } = getTripCardLifecycleStyles(trip as Trip, isPro);
+    const tripState = (trip as Trip).trip_state || 'active';
+    
     return (
       <Card 
         key={trip.id} 
-        className={`group hover:shadow-lg transition-all duration-300 overflow-hidden animate-fade-in ${
-          isPastTrip ? 'opacity-60' : ''
-        }`}
+        className={`group hover:shadow-lg transition-all duration-300 overflow-hidden animate-fade-in ${cardClassName}`}
         style={{
           animationDelay: `${index * 50}ms`
         }}
@@ -99,10 +104,8 @@ export default function Dashboard() {
                 {trip.destination_city}, {trip.destination_country}
               </CardDescription>
             </div>
-            <Badge variant={getTripTypeBadgeVariant(trip.trip_type) as any} className="flex items-center gap-1 shrink-0">
-              {getTripTypeIcon(trip.trip_type)}
-              {trip.trip_type}
-            </Badge>
+            {/* v2.1.6: Lifecycle badges replace trip type badge */}
+            <TripLifecycleBadges trip={trip as Trip} isPro={isPro} compact />
           </div>
         </CardHeader>
         <CardContent className="pt-2">
@@ -119,7 +122,7 @@ export default function Dashboard() {
                 View Trip
               </Link>
             </Button>
-            {!isShared && <Button variant="ghost" size="sm" onClick={() => setTripToDelete(trip.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
+            {!isShared && tripState === 'active' && <Button variant="ghost" size="sm" onClick={() => setTripToDelete(trip.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
                 <Trash2 className="w-4 h-4" />
               </Button>}
           </div>
