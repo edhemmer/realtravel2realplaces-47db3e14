@@ -23,8 +23,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Plus, Trash2, Receipt, Utensils, Car, PartyPopper, ShoppingBag, 
   ParkingCircle, MoreHorizontal, Upload, Sparkles, Camera, AlertCircle,
-  CheckCircle, RefreshCw, Image as ImageIcon, Fuel, Link2, Pencil
+  CheckCircle, RefreshCw, Image as ImageIcon, Fuel, Link2, Pencil,
+  Briefcase, Home
 } from 'lucide-react';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { GasExpenseDialog } from '@/components/trips/GasExpenseDialog';
 import { format, parseISO } from 'date-fns';
 import {
@@ -99,6 +101,7 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null); // v1.3.1: Track editing state
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [activePurposeFilter, setActivePurposeFilter] = useState<'all' | 'business' | 'personal'>('all');
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
   const [parseSuccess, setParseSuccess] = useState(false);
@@ -469,10 +472,18 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
     }
   };
 
-  // Filter expenses by category
-  const filteredExpenses = activeCategory === 'all' 
+  // v2.1.3: Check if this is a mixed trip (needed for purpose filtering)
+  const isMixedTrip = trip?.trip_type === 'mixed';
+
+  // Filter expenses by category first
+  const categoryFilteredExpenses = activeCategory === 'all' 
     ? expenses 
     : expenses.filter(e => e.category === activeCategory);
+
+  // Then filter by purpose (only for mixed trips when not "all")
+  const filteredExpenses = isMixedTrip && activePurposeFilter !== 'all'
+    ? categoryFilteredExpenses.filter(e => e.expense_purpose === activePurposeFilter)
+    : categoryFilteredExpenses;
 
   // Calculate totals using shared utility (single source of truth)
   const allExpenseTotals = calculateExpenseTotals(expenses);
@@ -490,7 +501,6 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
   const byCategory = calculateCategorySummary(expenses);
 
   // v2.1.3: Calculate business/personal breakdown for mixed trips
-  const isMixedTrip = trip?.trip_type === 'mixed';
   const purposeBreakdown = isMixedTrip ? calculateExpensePurposeBreakdown(expenses) : null;
 
   // Debug logging - runs on every render when expenses change
@@ -614,6 +624,31 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
             <MoreHorizontal className="w-3 h-3 mr-1" />Other
           </TabsTrigger>
         </TabsList>
+
+        {/* v2.1.4: Business/Personal Filter for Mixed Trips */}
+        {isMixedTrip && (
+          <div className="mt-3 flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Filter by:</span>
+            <ToggleGroup 
+              type="single" 
+              value={activePurposeFilter} 
+              onValueChange={(value) => value && setActivePurposeFilter(value as 'all' | 'business' | 'personal')}
+              size="sm"
+            >
+              <ToggleGroupItem value="all" aria-label="Show all expenses" className="text-xs">
+                All
+              </ToggleGroupItem>
+              <ToggleGroupItem value="business" aria-label="Show business expenses" className="text-xs">
+                <Briefcase className="w-3 h-3 mr-1" />
+                Business
+              </ToggleGroupItem>
+              <ToggleGroupItem value="personal" aria-label="Show personal expenses" className="text-xs">
+                <Home className="w-3 h-3 mr-1" />
+                Personal
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+        )}
 
         <TabsContent value={activeCategory} className="mt-4">
           {filteredExpenses.length > 0 ? (
