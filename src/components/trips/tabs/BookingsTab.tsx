@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isBefore, isAfter, startOfDay } from 'date-fns';
+ import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -721,7 +722,14 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
                     <span className="text-muted-foreground block">Date/Time</span>
-                    <span className="font-medium">{format(parseISO(booking.start_datetime), 'MMM d, h:mm a')}</span>
+                     <span className="font-medium">
+                       {format(parseISO(booking.start_datetime), 'MMM d')},{' '}
+                       {hasExplicitTime(booking.start_datetime) ? (
+                         format(parseISO(booking.start_datetime), 'h:mm a')
+                       ) : (
+                         <span className="text-destructive">{UNKNOWN_TIME_PLACEHOLDER}</span>
+                       )}
+                     </span>
                   </div>
                   {booking.confirmation_number && (
                     <div>
