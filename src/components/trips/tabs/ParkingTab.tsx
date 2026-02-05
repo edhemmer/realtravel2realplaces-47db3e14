@@ -13,7 +13,7 @@ import { Plus, Trash2, CircleParking, MapPin, Clock, AlertTriangle, Pencil } fro
 import { ParkingExpirationIndicator } from '@/components/trips/ParkingExpirationIndicator';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isAfter, isBefore, addMinutes } from 'date-fns';
- import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
+ import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER, parseDatetimeForDisplay } from '@/lib/datetimeIntegrity';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -265,24 +265,37 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
                 <CardContent className="space-y-2 text-sm">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Clock className="w-4 h-4" />
+                    {/* v2.2.0: Use safe datetime parsing to preserve original dates */}
                     <span>
-                       {format(parseISO(parking.start_datetime), 'MMM d')},{' '}
-                       {hasExplicitTime(parking.start_datetime) ? (
-                         format(parseISO(parking.start_datetime), 'h:mm a')
-                       ) : (
-                         <span className="text-destructive font-medium">{UNKNOWN_TIME_PLACEHOLDER}</span>
-                       )}
-                       {parking.end_datetime && (
-                         <>
-                           {' - '}
-                           {format(parseISO(parking.end_datetime), 'MMM d')},{' '}
-                           {hasExplicitTime(parking.end_datetime) ? (
-                             format(parseISO(parking.end_datetime), 'h:mm a')
-                           ) : (
-                             <span className="text-destructive font-medium">{UNKNOWN_TIME_PLACEHOLDER}</span>
-                           )}
-                         </>
-                       )}
+                      {(() => {
+                        const startDate = parseDatetimeForDisplay(parking.start_datetime);
+                        return startDate ? format(startDate, 'MMM d') : '--';
+                      })()},{' '}
+                      {hasExplicitTime(parking.start_datetime) ? (
+                        (() => {
+                          const startDate = parseDatetimeForDisplay(parking.start_datetime);
+                          return startDate ? format(startDate, 'h:mm a') : '--';
+                        })()
+                      ) : (
+                        <span className="text-destructive font-medium">{UNKNOWN_TIME_PLACEHOLDER}</span>
+                      )}
+                      {parking.end_datetime && (
+                        <>
+                          {' - '}
+                          {(() => {
+                            const endDate = parseDatetimeForDisplay(parking.end_datetime);
+                            return endDate ? format(endDate, 'MMM d') : '--';
+                          })()},{' '}
+                          {hasExplicitTime(parking.end_datetime) ? (
+                            (() => {
+                              const endDate = parseDatetimeForDisplay(parking.end_datetime);
+                              return endDate ? format(endDate, 'h:mm a') : '--';
+                            })()
+                          ) : (
+                            <span className="text-destructive font-medium">{UNKNOWN_TIME_PLACEHOLDER}</span>
+                          )}
+                        </>
+                      )}
                     </span>
                   </div>
                   {/* v2.0.4: Pro-only parking expiration indicator */}

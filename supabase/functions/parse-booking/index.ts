@@ -337,6 +337,59 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
           }
         }
         
+        // v2.2.0: DATETIME INTEGRITY POST-PROCESSING
+        // Normalize datetime fields to preserve original dates and handle missing times correctly
+        const normalizeDatetime = (dt: string | null | undefined): string | null => {
+          if (!dt) return null;
+          
+          // If it's already date-only (YYYY-MM-DD), keep it that way
+          if (/^\d{4}-\d{2}-\d{2}$/.test(dt)) {
+            return dt;
+          }
+          
+          // Parse and check for explicit time
+          try {
+            const parsed = new Date(dt);
+            if (isNaN(parsed.getTime())) return null;
+            
+            const hours = parsed.getHours();
+            const minutes = parsed.getMinutes();
+            const seconds = parsed.getSeconds();
+            
+            // If time is midnight (00:00:00), treat as date-only
+            // This prevents false times from being stored
+            if (hours === 0 && minutes === 0 && seconds === 0) {
+              // Check if original string had explicit midnight time
+              if (dt.includes('T')) {
+                const timePart = dt.split('T')[1];
+                if (timePart?.startsWith('00:00:00') || timePart?.startsWith('00:00')) {
+                  // Likely defaulted, store as date-only
+                  return dt.split('T')[0];
+                }
+              }
+              // No T separator or midnight time - store as date-only
+              return dt.split('T')[0] || dt.substring(0, 10);
+            }
+            
+            // Has explicit non-midnight time, return full datetime
+            return parsed.toISOString();
+          } catch {
+            return null;
+          }
+        };
+        
+        // Apply normalization to datetime fields
+        if (parsed.start_datetime) {
+          parsed.start_datetime = normalizeDatetime(parsed.start_datetime);
+        }
+        if (parsed.end_datetime) {
+          parsed.end_datetime = normalizeDatetime(parsed.end_datetime);
+        }
+        if (parsed.receipt_date) {
+          // Receipt date should always be date-only
+          parsed.receipt_date = parsed.receipt_date?.split('T')[0] || parsed.receipt_date?.substring(0, 10) || parsed.receipt_date;
+        }
+        
         // Check if this is a receipt-only document
         if (parsed.is_receipt_only === true) {
           return new Response(JSON.stringify({ 

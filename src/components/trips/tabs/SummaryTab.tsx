@@ -25,7 +25,7 @@ import { TripHealthChecklist } from '@/components/trips/TripHealthChecklist';
 import { generateTripICS, downloadICSFile } from '@/lib/icsGenerator';
 import { calculateTripCostSummary, logExpenseDebug } from '@/lib/expenseCalculations';
 import { calculateTripDateRange } from '@/lib/tripDateCalculations';
- import { hasExplicitTime, getTimeDisplay, UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
+ import { hasExplicitTime, getTimeDisplay, UNKNOWN_TIME_PLACEHOLDER, parseDatetimeForDisplay, extractDateForDisplay } from '@/lib/datetimeIntegrity';
 import { 
   Plane, Building2, Car, Calendar, MapPin, DollarSign, 
   AlertTriangle, Download, ExternalLink, Clock, PartyPopper,
@@ -151,10 +151,18 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
   // - Flights: show DEPARTURE time (start_datetime)
   // - Stays: show CHECK-IN time (start_datetime) AND CHECK-OUT (end_datetime as separate event)
   // - Rentals: show PICKUP time (start_datetime)
+  // 
+  // v2.2.0: Uses parseDatetimeForDisplay to prevent timezone-related date drift
   const buildTimelineEvents = (): TimelineEvent[] => {
     const events: TimelineEvent[] = [];
     
     bookings.forEach((b: Booking) => {
+      // v2.2.0: Use safe datetime parsing that preserves original dates
+      const startDate = parseDatetimeForDisplay(b.start_datetime);
+      const endDate = b.end_datetime ? parseDatetimeForDisplay(b.end_datetime) : null;
+      
+      if (!startDate) return; // Skip if no valid start date
+      
       if (b.booking_type === 'flight') {
         // Flight: show departure time
         events.push({
@@ -163,8 +171,8 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
           eventType: 'departure',
           title: b.airline || b.vendor_name,
           subtitle: `Flight Departure - ${b.confirmation_number || 'No confirmation'}`,
-          datetime: parseISO(b.start_datetime),
-          endDatetime: b.end_datetime ? parseISO(b.end_datetime) : undefined,
+          datetime: startDate,
+          endDatetime: endDate || undefined,
           address: b.address,
           linkUrl: b.link_url,
           hasExplicitTime: hasExplicitTime(b.start_datetime),
@@ -178,21 +186,21 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
           eventType: 'check-in',
           title: b.property_name || b.vendor_name,
           subtitle: `Check In - ${b.stay_type || 'Stay'}${b.confirmation_number ? ` - ${b.confirmation_number}` : ''}`,
-          datetime: parseISO(b.start_datetime),
+          datetime: startDate,
           address: b.address,
           linkUrl: b.link_url,
           hasExplicitTime: hasExplicitTime(b.start_datetime),
           sourceId: b.id,
         });
         // Stay: show check-out event on end date (if available)
-        if (b.end_datetime) {
+        if (endDate) {
           events.push({
             id: `${b.id}-checkout`,
             type: 'stay',
             eventType: 'check-out',
             title: b.property_name || b.vendor_name,
             subtitle: `Check Out - ${b.stay_type || 'Stay'}`,
-            datetime: parseISO(b.end_datetime),
+            datetime: endDate,
             address: b.address,
             linkUrl: b.link_url,
             hasExplicitTime: hasExplicitTime(b.end_datetime),
@@ -207,21 +215,21 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
           eventType: 'pickup',
           title: b.rental_company || b.vendor_name,
           subtitle: `Car Pickup${b.confirmation_number ? ` - ${b.confirmation_number}` : ''}`,
-          datetime: parseISO(b.start_datetime),
+          datetime: startDate,
           address: b.pickup_location || b.address,
           linkUrl: b.link_url,
           hasExplicitTime: hasExplicitTime(b.start_datetime),
           sourceId: b.id,
         });
         // Rental: show drop-off event on end date (if available)
-        if (b.end_datetime) {
+        if (endDate) {
           events.push({
             id: `${b.id}-dropoff`,
             type: 'car_rental',
             eventType: 'dropoff',
             title: b.rental_company || b.vendor_name,
             subtitle: `Car Drop-off`,
-            datetime: parseISO(b.end_datetime),
+            datetime: endDate,
             address: b.return_location || b.pickup_location || b.address,
             linkUrl: b.link_url,
             hasExplicitTime: hasExplicitTime(b.end_datetime),
@@ -235,8 +243,8 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
           type: 'activity',
           title: b.vendor_name,
           subtitle: `Activity - ${b.confirmation_number || 'No confirmation'}`,
-          datetime: parseISO(b.start_datetime),
-          endDatetime: b.end_datetime ? parseISO(b.end_datetime) : undefined,
+          datetime: startDate,
+          endDatetime: endDate || undefined,
           address: b.address,
           linkUrl: b.link_url,
           hasExplicitTime: hasExplicitTime(b.start_datetime),
@@ -246,7 +254,13 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
     });
     
     // Add parking events - v1.2.7: separate start and end events for parking
+    // v2.2.0: Uses parseDatetimeForDisplay to prevent timezone-related date drift
     parkingList.forEach((p: Parking) => {
+      const parkingStart = parseDatetimeForDisplay(p.start_datetime);
+      const parkingEnd = p.end_datetime ? parseDatetimeForDisplay(p.end_datetime) : null;
+      
+      if (!parkingStart) return; // Skip if no valid start date
+      
       // Parking start event
       events.push({
         id: `${p.id}-start`,
@@ -254,20 +268,20 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
         eventType: 'pickup', // reusing eventType for parking start
         title: p.label,
         subtitle: `Parking Start - ${p.parking_type}`,
-        datetime: parseISO(p.start_datetime),
+        datetime: parkingStart,
         address: p.address,
         hasExplicitTime: hasExplicitTime(p.start_datetime),
         sourceId: p.id,
       });
       // Parking end event (if end_datetime available)
-      if (p.end_datetime) {
+      if (parkingEnd) {
         events.push({
           id: `${p.id}-end`,
           type: 'parking',
           eventType: 'dropoff', // reusing eventType for parking end
           title: p.label,
           subtitle: `Parking End - ${p.parking_type}`,
-          datetime: parseISO(p.end_datetime),
+          datetime: parkingEnd,
           address: p.address,
           hasExplicitTime: hasExplicitTime(p.end_datetime),
           sourceId: p.id,

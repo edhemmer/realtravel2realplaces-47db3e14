@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isBefore, isAfter, startOfDay } from 'date-fns';
- import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
+ import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER, parseDatetimeForDisplay } from '@/lib/datetimeIntegrity';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -722,14 +722,20 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
                     <span className="text-muted-foreground block">Date/Time</span>
-                     <span className="font-medium">
-                       {format(parseISO(booking.start_datetime), 'MMM d')},{' '}
-                       {hasExplicitTime(booking.start_datetime) ? (
-                         format(parseISO(booking.start_datetime), 'h:mm a')
-                       ) : (
-                         <span className="text-destructive">{UNKNOWN_TIME_PLACEHOLDER}</span>
-                       )}
-                     </span>
+                    {/* v2.2.0: Use safe datetime parsing to preserve original dates */}
+                    {(() => {
+                      const startDate = parseDatetimeForDisplay(booking.start_datetime);
+                      return startDate ? (
+                        <span className="font-medium">
+                          {format(startDate, 'MMM d')},{' '}
+                          {hasExplicitTime(booking.start_datetime) ? (
+                            format(startDate, 'h:mm a')
+                          ) : (
+                            <span className="text-destructive">{UNKNOWN_TIME_PLACEHOLDER}</span>
+                          )}
+                        </span>
+                      ) : <span className="text-muted-foreground">--</span>;
+                    })()}
                   </div>
                   {booking.confirmation_number && (
                     <div>
