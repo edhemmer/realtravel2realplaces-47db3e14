@@ -1,6 +1,6 @@
  import { Trip, TripState } from '@/types/database';
  import { Badge } from '@/components/ui/badge';
- import { Lock, Archive, Crown, Clock } from 'lucide-react';
+ import { Lock, Archive, Clock } from 'lucide-react';
  import { differenceInDays, parseISO, startOfDay } from 'date-fns';
  import { cn } from '@/lib/utils';
  
@@ -8,9 +8,10 @@
    trip: Trip;
    isPro: boolean;
    compact?: boolean;
+   showPlanBadge?: boolean;
  }
  
- export function TripLifecycleBadges({ trip, isPro, compact = false }: TripLifecycleBadgesProps) {
+ export function TripLifecycleBadges({ trip, isPro, compact = false, showPlanBadge = false }: TripLifecycleBadgesProps) {
    const tripState = (trip.trip_state || 'active') as TripState;
    
    // Calculate days until deletion for Pro closed trips
@@ -31,7 +32,7 @@
            label: 'Active',
            icon: null,
            className: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
-           show: false, // Don't show active badge - it's the default
+           show: true, // Now always show status badge
          };
        case 'locked':
          return {
@@ -61,30 +62,19 @@
  
    return (
      <div className="flex flex-wrap items-center gap-1.5">
-       {/* Plan Badge */}
-       {isPro ? (
+       {/* Plan Badge - only shown if explicitly requested */}
+       {showPlanBadge && isPro && (
          <Badge 
            className={cn(
              'bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0 shadow-sm shadow-purple-500/20 flex items-center gap-1',
              compact && 'text-[10px] px-1.5 py-0'
            )}
          >
-           <Crown className={cn('w-3 h-3', compact && 'w-2.5 h-2.5')} />
            PRO
-         </Badge>
-       ) : (
-         <Badge 
-           variant="outline" 
-           className={cn(
-             'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600',
-             compact && 'text-[10px] px-1.5 py-0'
-           )}
-         >
-           FREE
          </Badge>
        )}
  
-       {/* Status Badge (only for non-active states) */}
+       {/* Status Badge - always shown */}
        {statusConfig.show && (
          <Badge 
            variant="outline"

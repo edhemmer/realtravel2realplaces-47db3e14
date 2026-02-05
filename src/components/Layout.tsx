@@ -1,7 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsPro } from '@/hooks/useSubscription';
 import { Button } from '@/components/ui/button';
-import { Plane, LogOut, User, Settings } from 'lucide-react';
+ import { Plane, LogOut, User, Settings, Crown } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -33,9 +33,17 @@ export function Layout({ children }: LayoutProps) {
             <div className="w-10 h-10 rounded-lg bg-gradient-ocean flex items-center justify-center shadow-sm">
               <Plane className="w-5 h-5 text-primary-foreground" />
             </div>
-            <h1 className="text-lg font-bold text-gradient-ocean leading-tight">
-              Real Travel 2 <span className="italic">Real Places</span>{isPro && ' – Pro'}
-            </h1>
+             <div className="flex items-center gap-2">
+               <h1 className="text-lg font-bold text-gradient-ocean leading-tight">
+                 Real Travel 2 <span className="italic">Real Places</span>
+               </h1>
+               {isPro && (
+                 <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-sm shadow-purple-500/25">
+                   <Crown className="w-3 h-3" />
+                   PRO
+                 </span>
+               )}
+             </div>
           </Link>
 
           {user && (
