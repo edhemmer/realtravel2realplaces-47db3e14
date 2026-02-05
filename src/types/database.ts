@@ -7,6 +7,7 @@ export type ParkingBilling = 'hourly' | 'daily' | 'per_trip' | 'other';
 export type ExpensePurpose = 'business' | 'personal';
 export type TransportationMode = 'flight' | 'drive' | 'unspecified';
 export type DestinationType = 'beach' | 'mountain' | 'city' | 'unspecified';
+export type TripState = 'active' | 'locked' | 'closed';
 export type ExpenseSubCategory = 
   'breakfast' | 'lunch' | 'dinner' | 'snacks' | 'coffee' | 'groceries' | 'alcohol' | 'beverages' |
   'uber' | 'taxi' | 'gas' | 'tolls' | 'public_transit' | 'parking_expense' | 'rental_car' |
@@ -24,6 +25,7 @@ export interface Trip {
   start_date: string;
   end_date: string;
   trip_type: TripType;
+  trip_state?: TripState;
   transportation_mode?: TransportationMode;
   destination_type?: DestinationType;
   origin_address?: string;
