@@ -59,6 +59,57 @@ export function getParkingMyShare(parking: Parking): number {
   return myShare;
 }
 
+export interface ExpensePurposeBreakdown {
+  businessTotal: number;
+  businessMyShare: number;
+  personalTotal: number;
+  personalMyShare: number;
+  unassignedTotal: number;
+  unassignedMyShare: number;
+}
+
+/**
+ * Calculate Business vs Personal expense breakdown for mixed trips
+ * Only considers out-of-pocket expenses (excludes booking-linked expenses)
+ * 
+ * v2.1.3: Added for mixed trip expense categorization
+ */
+export function calculateExpensePurposeBreakdown(expenses: Expense[]): ExpensePurposeBreakdown {
+  // Filter to only out-of-pocket expenses (exclude booking-linked to prevent double counting)
+  const outOfPocketExpenses = getOutOfPocketExpenses(expenses);
+  
+  const breakdown: ExpensePurposeBreakdown = {
+    businessTotal: 0,
+    businessMyShare: 0,
+    personalTotal: 0,
+    personalMyShare: 0,
+    unassignedTotal: 0,
+    unassignedMyShare: 0,
+  };
+  
+  for (const expense of outOfPocketExpenses) {
+    const amount = Number(expense.amount || 0);
+    const myShare = getExpenseMyShare(expense);
+    
+    switch (expense.expense_purpose) {
+      case 'business':
+        breakdown.businessTotal += amount;
+        breakdown.businessMyShare += myShare;
+        break;
+      case 'personal':
+        breakdown.personalTotal += amount;
+        breakdown.personalMyShare += myShare;
+        break;
+      default:
+        breakdown.unassignedTotal += amount;
+        breakdown.unassignedMyShare += myShare;
+        break;
+    }
+  }
+  
+  return breakdown;
+}
+
 export interface ExpenseTotals {
   totalAmount: number;
   totalMyShare: number;
