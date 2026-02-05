@@ -541,6 +541,7 @@ export type Database = {
           origin_address: string | null
           start_date: string
           transportation_mode: Database["public"]["Enums"]["transportation_mode"]
+          trip_state: Database["public"]["Enums"]["trip_state"]
           trip_type: Database["public"]["Enums"]["trip_type"]
           updated_at: string
           user_id: string
@@ -560,6 +561,7 @@ export type Database = {
           origin_address?: string | null
           start_date: string
           transportation_mode?: Database["public"]["Enums"]["transportation_mode"]
+          trip_state?: Database["public"]["Enums"]["trip_state"]
           trip_type?: Database["public"]["Enums"]["trip_type"]
           updated_at?: string
           user_id: string
@@ -579,6 +581,7 @@ export type Database = {
           origin_address?: string | null
           start_date?: string
           transportation_mode?: Database["public"]["Enums"]["transportation_mode"]
+          trip_state?: Database["public"]["Enums"]["trip_state"]
           trip_type?: Database["public"]["Enums"]["trip_type"]
           updated_at?: string
           user_id?: string
@@ -704,8 +707,11 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
+      run_trip_lifecycle_enforcement: { Args: never; Returns: Json }
+      trip_is_writable: { Args: { p_trip_id: string }; Returns: boolean }
       trip_owner_is_pro: { Args: { p_trip_id: string }; Returns: boolean }
       user_can_create_trip: { Args: { p_user_id: string }; Returns: boolean }
+      user_can_write_trip: { Args: { p_trip_id: string }; Returns: boolean }
       user_has_booking_access: {
         Args: { p_booking_id: string }
         Returns: boolean
@@ -766,6 +772,7 @@ export type Database = {
         | "rental_pickup"
         | "rental_return"
         | "parking_expiration"
+      trip_state: "active" | "locked" | "closed"
       trip_type: "business" | "personal" | "mixed"
     }
     CompositeTypes: {
@@ -947,6 +954,7 @@ export const Constants = {
         "rental_return",
         "parking_expiration",
       ],
+      trip_state: ["active", "locked", "closed"],
       trip_type: ["business", "personal", "mixed"],
     },
   },

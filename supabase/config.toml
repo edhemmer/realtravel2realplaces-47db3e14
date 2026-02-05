@@ -1,5 +1,8 @@
 project_id = "tlrviwlfckiahhfmeilv"
 
+[functions.trip-lifecycle-enforcement]
+verify_jwt = false
+
 [functions.parse-booking]
 verify_jwt = false
 
