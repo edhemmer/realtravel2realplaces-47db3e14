@@ -1,5 +1,6 @@
 /**
- * Patch 2.1.17: Explore tab content for Pro users
+ * Patch 2.1.17 / 2.1.19: Explore tab content for Pro users
+ * - 2.1.19: Added empty/error states, location validation, ticket clarity
  */
 
 import { useState } from 'react';
@@ -16,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Compass, MapPin, Search, Sparkles, Loader2 } from 'lucide-react';
+import { Compass, MapPin, Search, Sparkles, Loader2, AlertCircle, Building2, MapPinned } from 'lucide-react';
 
 interface ExploreTabProps {
   tripId: string;
@@ -36,24 +37,37 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
   const [selectedAttraction, setSelectedAttraction] = useState<AttractionSuggestion | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
 
+  // Check if trip has a usable location
+  const hasUsableLocation = !!(trip.destination_city && trip.destination_city.trim());
+
   // Determine search location
   const searchCity = locationMode === 'custom' && customLocation 
     ? customLocation 
     : trip.destination_city;
   const searchState = locationMode === 'custom' ? undefined : trip.destination_state || undefined;
 
-  // Fetch attractions (only for Pro users)
+  // Fetch attractions (only for Pro users with valid location)
   const { data: attractions = [], isLoading, error } = useAttractions({
     city: searchCity,
     state: searchState,
     radiusMiles: parseInt(radius),
-    enabled: isPro,
+    enabled: isPro && hasUsableLocation && (locationMode === 'stay' || !!customLocation.trim()),
   });
 
   // Handle adding attraction to trip
   const handleAddToTrip = (attraction: AttractionSuggestion) => {
     setSelectedAttraction(attraction);
     setAddModalOpen(true);
+  };
+
+  // Handle quick radius increase
+  const handleIncreaseRadius = () => {
+    setRadius('50');
+  };
+
+  // Handle switching to custom location
+  const handleChangeLocation = () => {
+    setLocationMode('custom');
   };
 
   // Free user teaser
@@ -73,6 +87,25 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
           <Badge variant="secondary" className="mt-4">
             Pro
           </Badge>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // No usable location state (v2.1.19)
+  if (!hasUsableLocation) {
+    return (
+      <Card className="border-dashed border-amber-300/50 bg-amber-50/30 dark:bg-amber-950/10">
+        <CardContent className="py-12 text-center">
+          <div className="flex justify-center mb-4">
+            <div className="p-3 rounded-full bg-amber-100 dark:bg-amber-900/30">
+              <Building2 className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+            </div>
+          </div>
+          <h3 className="text-lg font-semibold mb-2">Add a stay or destination first</h3>
+          <p className="text-muted-foreground max-w-md mx-auto">
+            Once we know where you're going, Explore can suggest nearby places to visit.
+          </p>
         </CardContent>
       </Card>
     );
@@ -158,18 +191,43 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
             <span className="ml-2 text-muted-foreground">Finding attractions...</span>
           </div>
         ) : error ? (
-          <Card className="border-destructive/50">
-            <CardContent className="py-6 text-center text-destructive">
-              Failed to load attractions. Please try again.
+          /* v2.1.19: Friendly error state */
+          <Card className="border-dashed">
+            <CardContent className="py-12 text-center">
+              <div className="flex justify-center mb-4">
+                <div className="p-3 rounded-full bg-muted">
+                  <AlertCircle className="w-8 h-8 text-muted-foreground" />
+                </div>
+              </div>
+              <h3 className="text-base font-medium mb-2">Explore is temporarily unavailable</h3>
+              <p className="text-sm text-muted-foreground">
+                Please try again in a few minutes.
+              </p>
             </CardContent>
           </Card>
         ) : attractions.length === 0 ? (
-          <Card>
+          /* v2.1.19: Enhanced empty state with quick actions */
+          <Card className="border-dashed">
             <CardContent className="py-12 text-center">
-              <MapPin className="w-8 h-8 mx-auto mb-3 text-muted-foreground" />
-              <p className="text-muted-foreground">
-                No attractions found for this location. Try expanding your search radius.
+              <div className="flex justify-center mb-4">
+                <div className="p-3 rounded-full bg-muted">
+                  <MapPinned className="w-8 h-8 text-muted-foreground" />
+                </div>
+              </div>
+              <h3 className="text-base font-medium mb-2">No places found in this area</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Try a larger radius or search from a nearby town.
               </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+                {radius !== '50' && (
+                  <Button variant="outline" size="sm" onClick={handleIncreaseRadius}>
+                    Increase radius to 50 miles
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" onClick={handleChangeLocation}>
+                  Change search location
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ) : (

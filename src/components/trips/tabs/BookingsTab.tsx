@@ -789,41 +789,59 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                   </div>
                 )}
 
-                {/* Activity ticket status (v2.1.17) */}
-                {booking.booking_type === 'activity' && (booking.ticket_required || booking.advance_recommended) && (
-                  <div className="flex items-center gap-2 pt-2 border-t">
-                    {booking.tickets_purchased ? (
-                      <Badge variant="outline" className="gap-1 text-xs bg-accent">
-                        <CheckCircle2 className="w-3 h-3 text-primary" />
-                        Tickets purchased
-                      </Badge>
-                    ) : canEdit ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs gap-1"
-                        onClick={() => markTicketsPurchased.mutate({ bookingId: booking.id, tripId })}
-                        disabled={markTicketsPurchased.isPending}
-                      >
-                        <Ticket className="w-3 h-3" />
-                        Mark tickets purchased
-                      </Button>
-                    ) : (
-                      <Badge variant="secondary" className="gap-1 text-xs">
-                        <Ticket className="w-3 h-3" />
-                        Tickets needed
-                      </Badge>
+                {/* Activity ticket status (v2.1.17 / v2.1.19 enhancements) */}
+                {booking.booking_type === 'activity' && (
+                  <div className="pt-2 border-t space-y-1.5">
+                    {/* Ticket status row */}
+                    {(booking.ticket_required || booking.advance_recommended) && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {booking.tickets_purchased ? (
+                          <>
+                            <Badge variant="outline" className="gap-1 text-xs bg-accent">
+                              <CheckCircle2 className="w-3 h-3 text-primary" />
+                              Tickets purchased
+                            </Badge>
+                            {/* v2.1.19: Confirmation tip */}
+                            <span className="text-xs text-muted-foreground">
+                              Keep your confirmation email handy at check-in.
+                            </span>
+                          </>
+                        ) : canEdit ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs gap-1"
+                            onClick={() => markTicketsPurchased.mutate({ bookingId: booking.id, tripId })}
+                            disabled={markTicketsPurchased.isPending}
+                          >
+                            <Ticket className="w-3 h-3" />
+                            Mark tickets purchased
+                          </Button>
+                        ) : (
+                          <Badge variant="secondary" className="gap-1 text-xs">
+                            <Ticket className="w-3 h-3" />
+                            Tickets needed
+                          </Badge>
+                        )}
+                        {booking.booking_url && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 text-xs gap-1"
+                            onClick={() => openExternalUrl(booking.booking_url)}
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            Book
+                          </Button>
+                        )}
+                      </div>
                     )}
-                    {booking.booking_url && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 text-xs gap-1"
-                        onClick={() => openExternalUrl(booking.booking_url)}
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                        Book
-                      </Button>
+                    {/* v2.1.19: Activity source label */}
+                    {booking.activity_source && (
+                      <p className="text-xs text-muted-foreground">
+                        {booking.activity_source === 'explore' ? 'From Explore' : 
+                         booking.activity_source === 'confirmation' ? 'From confirmation' : ''}
+                      </p>
                     )}
                   </div>
                 )}

@@ -103,15 +103,23 @@ export function AttractionCard({ attraction, onAddToTrip }: AttractionCardProps)
             </p>
 
             {/* Ticket info */}
-            <div className="flex items-center gap-1.5 text-sm">
-              {showTicketIcon ? (
-                <Ticket className="w-3.5 h-3.5 text-amber-600" />
-              ) : (
-                <Clock className="w-3.5 h-3.5 text-green-600" />
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-1.5 text-sm">
+                {showTicketIcon ? (
+                  <Ticket className="w-3.5 h-3.5 text-amber-600" />
+                ) : (
+                  <Clock className="w-3.5 h-3.5 text-green-600" />
+                )}
+                <span className={showTicketIcon ? 'text-amber-700 dark:text-amber-400' : 'text-green-700 dark:text-green-400'}>
+                  {ticketSummary}
+                </span>
+              </div>
+              {/* v2.1.19: Ticket clarity helper text */}
+              {showTicketIcon && (
+                <p className="text-xs text-muted-foreground pl-5">
+                  Tickets often sell out. We'll remind you, but availability isn't guaranteed.
+                </p>
               )}
-              <span className={showTicketIcon ? 'text-amber-700 dark:text-amber-400' : 'text-green-700 dark:text-green-400'}>
-                {ticketSummary}
-              </span>
             </div>
 
             {/* Location */}
