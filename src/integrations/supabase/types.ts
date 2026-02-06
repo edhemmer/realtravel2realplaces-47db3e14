@@ -429,6 +429,42 @@ export type Database = {
         }
         Relationships: []
       }
+      support_tickets: {
+        Row: {
+          app_version: string | null
+          created_at: string
+          email: string
+          id: string
+          message: string
+          status: string
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          app_version?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          status?: string
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          app_version?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ticket_reminders: {
         Row: {
           booking_id: string
