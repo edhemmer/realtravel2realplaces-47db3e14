@@ -267,7 +267,7 @@ export function AddToTripModal({ open, onOpenChange, attraction, trip }: AddToTr
               </div>
               
               <p className="text-xs text-muted-foreground">
-                We'll remind you to get tickets. We can't guarantee availability.
+                We'll email you a reminder to get tickets before your visit. We can't guarantee tickets will still be available.
               </p>
             </div>
           )}

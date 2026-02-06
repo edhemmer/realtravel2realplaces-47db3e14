@@ -30,7 +30,7 @@ import {
   Plane, Building2, Car, Calendar, MapPin, DollarSign, 
   AlertTriangle, Download, ExternalLink, Clock, PartyPopper,
   Cloud, Sun, CloudRain, Snowflake, Thermometer, Info, Globe, Utensils, Camera, Bell,
-  CircleParking
+  CircleParking, Compass, Ticket
 } from 'lucide-react';
 import { format, parseISO, isAfter, differenceInDays } from 'date-fns';
 import { toast } from 'sonner';
@@ -58,6 +58,10 @@ interface TimelineEvent {
   hasExplicitTime: boolean;
   /** v2.0.7: Source record ID for drill-through */
   sourceId: string;
+  /** v2.1.19: Activity-specific fields for timeline */
+  ticketRequired?: boolean;
+  ticketsPurchased?: boolean;
+  activitySource?: string;
 }
 
 // Helper to safely open external URLs in new tab
@@ -237,18 +241,21 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
           });
         }
       } else {
-        // Activity: use start time
+        // Activity: use start time with v2.1.19 enhancements
         events.push({
           id: b.id,
           type: 'activity',
           title: b.vendor_name,
-          subtitle: `Activity - ${b.confirmation_number || 'No confirmation'}`,
+          subtitle: b.location_summary || 'Activity',
           datetime: startDate,
           endDatetime: endDate || undefined,
           address: b.address,
-          linkUrl: b.link_url,
+          linkUrl: b.link_url || b.booking_url,
           hasExplicitTime: hasExplicitTime(b.start_datetime),
           sourceId: b.id,
+          ticketRequired: b.ticket_required || b.advance_recommended || false,
+          ticketsPurchased: b.tickets_purchased || false,
+          activitySource: b.activity_source || undefined,
         });
       }
     });
@@ -318,6 +325,7 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
       case 'stay': return <Building2 className="w-4 h-4" />;
       case 'car_rental': return <Car className="w-4 h-4" />;
       case 'parking': return <CircleParking className="w-4 h-4" />;
+      case 'activity': return <Compass className="w-4 h-4" />; // v2.1.19: Distinct icon for activities
       default: return <PartyPopper className="w-4 h-4" />;
     }
   };
@@ -527,6 +535,28 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
                       <div>
                         <p className="font-medium text-sm">{event.title}</p>
                         <p className="text-xs text-muted-foreground">{event.subtitle}</p>
+                        {/* v2.1.19: Activity-specific badges */}
+                        {event.type === 'activity' && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {event.ticketRequired && (
+                              <Badge variant="secondary" className="text-[10px] h-4 px-1 gap-0.5">
+                                <Ticket className="w-2.5 h-2.5" />
+                                Ticket
+                              </Badge>
+                            )}
+                            {event.ticketsPurchased && (
+                              <Badge variant="outline" className="text-[10px] h-4 px-1 bg-accent">
+                                Tickets purchased
+                              </Badge>
+                            )}
+                            {event.activitySource && (
+                              <span className="text-[10px] text-muted-foreground">
+                                {event.activitySource === 'explore' ? 'From Explore' : 
+                                 event.activitySource === 'confirmation' ? 'From confirmation' : ''}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="text-right text-xs shrink-0">
                         <p className="font-medium">{format(event.datetime, 'MMM d')}</p>
