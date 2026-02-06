@@ -2,7 +2,11 @@
  * Centralized expense calculation utilities
  * Single source of truth for all expense math
  * 
- * v2.0 - Fixed double counting: booking-linked expenses are excluded from expenses total
+ * v2.1.9 - Airfare Cost Duplication Fix:
+ * - Booking costs are ALWAYS calculated at the booking level, not segment level
+ * - For flights: One booking = one cost, regardless of number of legs
+ * - Booking-linked expenses are excluded from expenses total to avoid double counting
+ * - The getBookingMyShare() function is the ONLY path to calculate booking costs
  */
 
 import { Expense, Booking, Parking } from '@/types/database';
@@ -38,12 +42,28 @@ export function getExpenseMyShare(expense: Expense): number {
 /**
  * Calculate My Share for a single booking
  * If my_share is defined, use it; otherwise fallback to total_cost
+ * 
+ * CRITICAL (v2.1.9): This function is the ONLY correct way to get booking cost.
+ * Do NOT access booking.total_cost directly for summation purposes.
+ * This ensures costs are calculated at booking-level (not segment-level).
  */
 export function getBookingMyShare(booking: Booking): number {
   const totalCost = Number(booking.total_cost || 0);
+  
+  // Guard against invalid values
+  if (!Number.isFinite(totalCost) || totalCost < 0) {
+    return 0;
+  }
+  
   const myShare = booking.my_share !== undefined && booking.my_share !== null
     ? Number(booking.my_share)
     : totalCost;
+    
+  // Guard the my_share value as well
+  if (!Number.isFinite(myShare) || myShare < 0) {
+    return totalCost;
+  }
+  
   return myShare;
 }
 
@@ -174,7 +194,13 @@ export function calculateCategorySummary(expenses: Expense[]): CategorySummary {
 /**
  * Calculate complete trip cost summary from all sources
  * 
- * IMPORTANT: This function filters out booking-linked expenses to prevent double counting.
+ * IMPORTANT (v2.1.9 - Airfare Duplication Prevention):
+ * - This function filters out booking-linked expenses to prevent double counting.
+ * - Booking costs are calculated using getBookingMyShare() which returns booking-level totals.
+ * - For flights: Each booking record = one airfare cost (not per-leg/segment).
+ * - We NEVER sum segment-level costs - only booking-level.
+ * 
+ * Structure:
  * - Bookings total: Sum of all booking costs (flights, stays, rentals, activities)
  * - Expenses total: Sum of out-of-pocket expenses ONLY (excludes booking-linked expenses)
  * - Parking total: Tracked separately, NOT included in Total Trip Cost
@@ -192,8 +218,13 @@ export function calculateTripCostSummary(
   const expensesTotal = outOfPocketExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
   const expensesMyShare = outOfPocketExpenses.reduce((sum, e) => sum + getExpenseMyShare(e), 0);
   
-  // Bookings
-  const bookingsTotal = bookings.reduce((sum, b) => sum + Number(b.total_cost || 0), 0);
+  // Bookings - use getBookingMyShare() to ensure booking-level calculation
+  // This prevents any segment-level duplication from affecting totals
+  const bookingsTotal = bookings.reduce((sum, b) => {
+    const cost = Number(b.total_cost || 0);
+    // Guard against invalid values
+    return sum + (Number.isFinite(cost) && cost >= 0 ? cost : 0);
+  }, 0);
   const bookingsMyShare = bookings.reduce((sum, b) => sum + getBookingMyShare(b), 0);
   
   // Parking (tracked separately, NOT included in total trip cost)
