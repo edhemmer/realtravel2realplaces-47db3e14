@@ -50,22 +50,22 @@ export default function LandingHero() {
               >
                 Get started
               </Link>
-              <button
-                onClick={scrollToFeatures}
-                className="landing-btn-secondary text-base px-8 py-3 inline-flex items-center justify-center gap-2"
+              <Link
+                to="/auth"
+                className="landing-btn-secondary text-base px-8 py-3 text-center"
               >
-                How it works
-                <ArrowDown className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Returning user login link */}
-            <p className="text-sm text-[hsl(var(--landing-text-muted))] mb-4 text-center lg:text-left">
-              Already using Real Travel <span className="italic">to Real Places</span>?{' '}
-              <Link to="/auth" className="text-[hsl(var(--landing-accent))] hover:underline font-medium">
                 Log in
               </Link>
-            </p>
+            </div>
+
+            {/* How it works */}
+            <button
+              onClick={scrollToFeatures}
+              className="text-sm text-[hsl(var(--landing-text-muted))] hover:text-[hsl(var(--landing-accent))] transition-colors inline-flex items-center gap-1.5 mb-6"
+            >
+              How it works
+              <ArrowDown className="w-3.5 h-3.5" />
+            </button>
 
             {/* Trust text */}
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 justify-center lg:justify-start text-sm text-[hsl(var(--landing-text-muted))]">
