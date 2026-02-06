@@ -7,7 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plane, MapPin, Calendar, Eye, EyeOff, Loader2, AlertCircle, Mail, Lock } from 'lucide-react';
+import { User } from 'lucide-react';
+
 export default function Auth() {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -74,6 +78,16 @@ export default function Auth() {
 
     clearMessages();
 
+    // Validate first and last name
+    if (!firstName.trim()) {
+      setError('First name is required.');
+      return;
+    }
+    if (!lastName.trim()) {
+      setError('Last name is required.');
+      return;
+    }
+
     // Validate password
     if (password.length < 6) {
       setError('Password must be at least 6 characters.');
@@ -81,9 +95,7 @@ export default function Auth() {
     }
     setLoading(true);
     try {
-      const {
-        error
-      } = await signUp(email, password);
+      const { error } = await signUp({ email, password, firstName: firstName.trim(), lastName: lastName.trim() });
       if (error) {
         if (error.message.includes('already registered')) {
           setError('An account with this email already exists.');
@@ -91,7 +103,9 @@ export default function Auth() {
           setError(error.message);
         }
       } else {
-        setSuccessMessage('Account created successfully! You can now sign in.');
+        setSuccessMessage('Account created successfully! Please check your email to verify your account.');
+        setFirstName('');
+        setLastName('');
         setPassword('');
       }
     } catch (err) {
@@ -188,6 +202,22 @@ export default function Auth() {
             
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-firstname">First Name</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input id="signup-firstname" type="text" value={firstName} onChange={e => setFirstName(e.target.value)} className="pl-10" required disabled={loading} autoComplete="given-name" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-lastname">Last Name</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input id="signup-lastname" type="text" value={lastName} onChange={e => setLastName(e.target.value)} className="pl-10" required disabled={loading} autoComplete="family-name" />
+                    </div>
+                  </div>
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-email">Email</Label>
                   <div className="relative">

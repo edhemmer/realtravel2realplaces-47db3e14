@@ -53,11 +53,18 @@ async function ensureOwnerProStatus(user: User): Promise<void> {
   }
 }
 
+interface SignUpData {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  signUp: (data: SignUpData) => Promise<{ error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
 }
@@ -104,14 +111,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
+  const signUp = async ({ email, password, firstName, lastName }: SignUpData) => {
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: window.location.origin,
       },
     });
+    
+    // If signup succeeded, update the profile with first/last name
+    if (!error && data.user) {
+      // Use raw update since types may not be regenerated yet
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+        } as Record<string, unknown>)
+        .eq('user_id', data.user.id);
+      
+      if (profileError) {
+        console.error('Error updating profile with names:', profileError);
+        // Don't fail the signup, names can be added later
+      }
+    }
+    
     return { error };
   };
 

@@ -6,6 +6,8 @@ import { SubscriptionTier } from '@/types/subscription';
 interface AdminUser {
   user_id: string;
   email: string;
+  first_name: string | null;
+  last_name: string | null;
   subscription_tier: SubscriptionTier;
   lifetime_trip_count: number;
   current_trip_count: number;
