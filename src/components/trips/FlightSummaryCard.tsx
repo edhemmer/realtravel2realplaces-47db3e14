@@ -5,6 +5,8 @@ import { Plane, Users, Clock, ExternalLink, MapPin, AlertTriangle } from 'lucide
 import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER, parseDatetimeForDisplay } from '@/lib/datetimeIntegrity';
+import { extractAirportCodes } from '@/lib/airportData';
+import { AirportInfoPill } from './AirportInfoPill';
 
 interface BookingCompanion {
   id: string;
@@ -60,6 +62,25 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
     return match ? match[1].replace(/\s+/g, '') : null;
   };
 
+  // Extract airport codes from flight booking (notes, vendor_name, or other fields)
+  const getFlightAirportCodes = (flight: Booking): { origin?: string; destination?: string } => {
+    // Try extracting from notes first
+    let codes = extractAirportCodes(flight.notes || '');
+    if (codes.origin || codes.destination) return codes;
+    
+    // Try vendor_name (e.g., "Delta DEN-LAX")
+    codes = extractAirportCodes(flight.vendor_name || '');
+    if (codes.origin || codes.destination) return codes;
+    
+    // Try pickup/return locations if set (sometimes used for flights)
+    if (flight.pickup_location) {
+      codes = extractAirportCodes(flight.pickup_location);
+      if (codes.origin) return codes;
+    }
+    
+    return {};
+  };
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-3 bg-gradient-to-r from-sky-50 to-primary/5 dark:from-sky-950/30 dark:to-primary/10">
@@ -81,6 +102,7 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
             const hasLinkedTravelers = flightCompanions.length > 0;
             const flightNumber = extractFlightInfo(flight.notes);
             const missingTsa = hasMissingTsa(flight);
+            const airportCodes = getFlightAirportCodes(flight);
             
             return (
               <div
@@ -161,6 +183,24 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                     {flight.passenger_name && (
                       <div className="text-sm text-muted-foreground mb-2">
                         <span className="font-medium">Passenger:</span> {flight.passenger_name}
+                      </div>
+                    )}
+                    
+                    {/* v2.2.0: Airport Info Pills */}
+                    {(airportCodes.origin || airportCodes.destination) && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {airportCodes.origin && (
+                          <AirportInfoPill 
+                            airportCode={airportCodes.origin} 
+                            label="Origin" 
+                          />
+                        )}
+                        {airportCodes.destination && (
+                          <AirportInfoPill 
+                            airportCode={airportCodes.destination} 
+                            label="Destination" 
+                          />
+                        )}
                       </div>
                     )}
                   </div>
