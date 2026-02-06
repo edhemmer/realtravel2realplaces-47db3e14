@@ -419,22 +419,24 @@ export function PackingTab({ tripId }: PackingTabProps) {
       ) : (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <Luggage className="w-8 h-8 text-primary" />
+            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Luggage className="w-7 h-7 text-primary" />
             </div>
-            <h4 className="text-lg font-medium mb-1">No packing list yet</h4>
+            <h4 className="text-base font-medium mb-1">No packing list yet</h4>
             <p className="text-muted-foreground text-sm text-center max-w-sm mb-4">
-              AI will generate a smart packing list based on your {tripNights}-night trip to {trip?.destination_city}{trip?.destination_state ? `, ${trip.destination_state}` : ''} and current weather
+              Packing lists help you avoid last-minute stress.
             </p>
-            <div className="flex gap-2">
-              <Button onClick={generatePackingList} disabled={isGenerating || weatherLoading}>
-                <Sparkles className="w-4 h-4 mr-2" />
-                {isGenerating ? 'Generating...' : 'Generate AI Packing List'}
-              </Button>
-              <Button onClick={() => setDialogOpen(true)} variant="outline">
-                Add Manually
-              </Button>
-            </div>
+            {canEdit && (
+              <div className="flex gap-2">
+                <Button onClick={generatePackingList} disabled={isGenerating || weatherLoading} className="bg-gradient-ocean hover:opacity-90">
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  {isGenerating ? 'Generating...' : 'Generate packing list'}
+                </Button>
+                <Button onClick={() => setDialogOpen(true)} variant="outline">
+                  Add Manually
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

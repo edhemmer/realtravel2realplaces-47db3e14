@@ -1,6 +1,8 @@
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useTrip } from '@/hooks/useTrips';
 import { useTripOwnership } from '@/hooks/useSharedTrips';
+import { useIsPro } from '@/hooks/useSubscription';
+import { useExploreDiscovery } from '@/hooks/useExploreDiscovery';
 import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -45,6 +47,8 @@ export default function TripDetail() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: trip, isLoading } = useTrip(tripId || '');
   const { data: ownership, isLoading: ownershipLoading } = useTripOwnership(tripId || '');
+  const isPro = useIsPro();
+  const { hasDiscovered: hasDiscoveredExplore, markDiscovered: markExploreDiscovered } = useExploreDiscovery();
   
   // v2.0.7: Tab and drill-through state
   const [activeTab, setActiveTab] = useState('summary');
@@ -61,6 +65,14 @@ export default function TripDetail() {
   const clearDrillTarget = useCallback(() => {
     setDrillTarget(null);
   }, []);
+
+  // v2.1.29: Mark Explore as discovered when switching to that tab
+  const handleTabChange = useCallback((value: string) => {
+    setActiveTab(value);
+    if (value === 'explore' && isPro && !hasDiscoveredExplore) {
+      markExploreDiscovered();
+    }
+  }, [isPro, hasDiscoveredExplore, markExploreDiscovered]);
 
   if (isLoading || ownershipLoading) {
     return (
@@ -145,7 +157,7 @@ export default function TripDetail() {
           <TripHeaderWidgets trip={trip} />
 
           {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="w-full justify-start overflow-x-auto flex-nowrap">
               <TabsTrigger value="summary">Summary</TabsTrigger>
               <TabsTrigger value="bookings">Bookings</TabsTrigger>
@@ -154,7 +166,18 @@ export default function TripDetail() {
               <TabsTrigger value="packing">Packing</TabsTrigger>
               <TabsTrigger value="companions">Companions</TabsTrigger>
               <TabsTrigger value="notes">Notes & Safety</TabsTrigger>
-              <TabsTrigger value="explore">Explore</TabsTrigger>
+              <TabsTrigger value="explore" className="relative">
+                Explore
+                {/* v2.1.29: New badge for Pro users who haven't discovered Explore */}
+                {isPro && !hasDiscoveredExplore && (
+                  <Badge 
+                    variant="secondary" 
+                    className="absolute -top-1.5 -right-1.5 h-4 px-1.5 text-[10px] font-semibold bg-primary text-primary-foreground"
+                  >
+                    New
+                  </Badge>
+                )}
+              </TabsTrigger>
             </TabsList>
 
             <div className="mt-6">

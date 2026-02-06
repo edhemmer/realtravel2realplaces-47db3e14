@@ -757,13 +757,21 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
           ) : (
             <Card className="border-dashed">
               <CardContent className="flex flex-col items-center justify-center py-12">
-                <Receipt className="w-12 h-12 text-muted-foreground/50 mb-4" />
-                <p className="text-muted-foreground">
+                <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                  <Receipt className="w-7 h-7 text-primary" />
+                </div>
+                <h4 className="text-base font-medium mb-1">
                   {activeCategory === 'all' ? 'No expenses yet' : `No ${activeCategory} expenses`}
+                </h4>
+                <p className="text-sm text-muted-foreground text-center max-w-sm mb-4">
+                  Track gas, food, activities, and shared costs here.
                 </p>
-                <Button onClick={() => setDialogOpen(true)} variant="link" className="mt-2">
-                  Add your first expense
-                </Button>
+                {canEdit && (
+                  <Button onClick={() => setDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add first expense
+                  </Button>
+                )}
               </CardContent>
             </Card>
           )}
