@@ -66,15 +66,20 @@ export function useCompleteProfile() {
     mutationFn: async ({ firstName, lastName }: { firstName: string; lastName: string }) => {
       if (!user) throw new Error('Not authenticated');
 
-      const { error } = await supabase
-        .from('profiles')
-        .update({
+      // Use upsert to handle both existing and missing profile rows
+      // Cast needed since first_name/last_name may not be in generated types yet
+      const { error } = await (supabase
+        .from('profiles') as ReturnType<typeof supabase.from>)
+        .upsert({
+          user_id: user.id,
           first_name: firstName.trim(),
           last_name: lastName.trim(),
-        } as Record<string, unknown>)
-        .eq('user_id', user.id);
+        }, { 
+          onConflict: 'user_id' 
+        });
 
       if (error) {
+        console.error('Profile save error:', error);
         throw error;
       }
 
