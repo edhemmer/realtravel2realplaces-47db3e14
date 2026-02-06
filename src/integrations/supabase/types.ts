@@ -776,17 +776,24 @@ export type Database = {
       get_bookings_safe: {
         Args: { p_trip_id: string }
         Returns: {
+          activity_source: string
           address: string
+          advance_recommended: boolean
           airline: string
+          booking_pattern: string
           booking_type: string
+          booking_url: string
           confirmation_number: string
           created_at: string
           end_datetime: string
           frequent_flyer_number: string
+          from_location: string
           id: string
           link_url: string
+          location_summary: string
           my_share: number
           notes: string
+          operator: string
           passenger_name: string
           pickup_location: string
           property_name: string
@@ -794,7 +801,11 @@ export type Database = {
           return_location: string
           start_datetime: string
           stay_type: string
+          ticket_required: boolean
+          tickets_purchased: boolean
+          to_location: string
           total_cost: number
+          transport_mode: string
           trip_id: string
           tsa_precheck_number: string
           updated_at: string
