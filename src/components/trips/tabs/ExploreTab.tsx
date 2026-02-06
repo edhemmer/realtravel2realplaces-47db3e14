@@ -1,9 +1,10 @@
 /**
- * Patch 2.1.17 / 2.1.19: Explore tab content for Pro users
+ * Patch 2.1.17 / 2.1.19 / 2.1.26: Explore tab content for Pro users
  * - 2.1.19: Added empty/error states, location validation, ticket clarity
+ * - 2.1.26: Added GPS-based "Current location" mode
  */
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Trip } from '@/types/database';
 import { AttractionSuggestion } from '@/types/attraction';
 import { useAttractions } from '@/hooks/useAttractions';
@@ -13,45 +14,117 @@ import { AttractionCard } from '@/components/trips/explore/AttractionCard';
 import { AddToTripModal } from '@/components/trips/explore/AddToTripModal';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Compass, MapPin, Search, Sparkles, Loader2, AlertCircle, Building2, MapPinned } from 'lucide-react';
+import { Compass, MapPin, Search, Sparkles, Loader2, AlertCircle, Building2, MapPinned, Navigation } from 'lucide-react';
 
 interface ExploreTabProps {
   tripId: string;
   trip: Trip;
 }
 
-type LocationMode = 'stay' | 'custom';
+type LocationMode = 'stay' | 'currentLocation';
 type RadiusOption = '5' | '10' | '25' | '50';
+
+interface GpsState {
+  lat: number;
+  lng: number;
+}
 
 export function ExploreTab({ tripId, trip }: ExploreTabProps) {
   const isPro = useIsPro();
   const { canEdit } = useTripPermission();
   
   const [locationMode, setLocationMode] = useState<LocationMode>('stay');
-  const [customLocation, setCustomLocation] = useState('');
   const [radius, setRadius] = useState<RadiusOption>('25');
   const [selectedAttraction, setSelectedAttraction] = useState<AttractionSuggestion | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
 
+  // GPS state (v2.1.26)
+  const [gpsCoords, setGpsCoords] = useState<GpsState | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
+  const [gpsError, setGpsError] = useState<string | null>(null);
+  const [gpsSupported, setGpsSupported] = useState(true);
+
   // Check if trip has a usable location
   const hasUsableLocation = !!(trip.destination_city && trip.destination_city.trim());
 
-  // Determine search location
-  const searchCity = locationMode === 'custom' && customLocation 
-    ? customLocation 
-    : trip.destination_city;
-  const searchState = locationMode === 'custom' ? undefined : trip.destination_state || undefined;
+  // Request GPS location
+  const requestGpsLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setGpsSupported(false);
+      setGpsError("Current location isn't supported on this device. Try Hotel instead.");
+      return;
+    }
 
-  // Fetch attractions (only for Pro users with valid location)
+    setIsLocating(true);
+    setGpsError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setGpsCoords({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+        setIsLocating(false);
+        setGpsError(null);
+      },
+      (error) => {
+        setIsLocating(false);
+        setGpsCoords(null);
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            setGpsError("Location access was denied. Check browser permissions and try again.");
+            break;
+          case error.POSITION_UNAVAILABLE:
+            setGpsError("Location information unavailable. Try again later.");
+            break;
+          case error.TIMEOUT:
+            setGpsError("Location request timed out. Try again.");
+            break;
+          default:
+            setGpsError("We couldn't access your location. Check browser permissions and try again.");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  }, []);
+
+  // Handle mode change
+  const handleModeChange = useCallback((newMode: LocationMode) => {
+    setLocationMode(newMode);
+    if (newMode === 'currentLocation') {
+      // Request GPS immediately when switching to current location mode
+      requestGpsLocation();
+    } else {
+      // Clear GPS state when switching away
+      setGpsCoords(null);
+      setGpsError(null);
+      setIsLocating(false);
+    }
+  }, [requestGpsLocation]);
+
+  // Determine search parameters based on mode
+  const searchCity = locationMode === 'stay' ? trip.destination_city : undefined;
+  const searchState = locationMode === 'stay' ? (trip.destination_state || undefined) : undefined;
+  const searchLat = locationMode === 'currentLocation' ? gpsCoords?.lat : undefined;
+  const searchLng = locationMode === 'currentLocation' ? gpsCoords?.lng : undefined;
+
+  // Can we fetch attractions?
+  const canFetch = isPro && (
+    (locationMode === 'stay' && hasUsableLocation) ||
+    (locationMode === 'currentLocation' && gpsCoords !== null)
+  );
+
+  // Fetch attractions
   const { data: attractions = [], isLoading, error } = useAttractions({
     city: searchCity,
     state: searchState,
+    lat: searchLat,
+    lng: searchLng,
     radiusMiles: parseInt(radius),
-    enabled: isPro && hasUsableLocation && (locationMode === 'stay' || !!customLocation.trim()),
+    enabled: canFetch,
   });
 
   // Handle adding attraction to trip
@@ -65,9 +138,9 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
     setRadius('50');
   };
 
-  // Handle switching to custom location
-  const handleChangeLocation = () => {
-    setLocationMode('custom');
+  // Handle switching to stay mode from empty state
+  const handleSwitchToStay = () => {
+    handleModeChange('stay');
   };
 
   // Free user teaser
@@ -132,31 +205,45 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
               Search from
             </Label>
             <div className="flex flex-col sm:flex-row gap-2">
-              <Select value={locationMode} onValueChange={(v) => setLocationMode(v as LocationMode)}>
+              <Select value={locationMode} onValueChange={(v) => handleModeChange(v as LocationMode)}>
                 <SelectTrigger className="w-full sm:w-48">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="stay">Stay location</SelectItem>
-                  <SelectItem value="custom">Current location</SelectItem>
+                  <SelectItem value="stay">Hotel</SelectItem>
+                  <SelectItem value="currentLocation">Current location</SelectItem>
                 </SelectContent>
               </Select>
               
-              {locationMode === 'custom' && (
-                <div className="flex-1 flex gap-2">
-                  <Input
-                    placeholder="Enter city or place name"
-                    value={customLocation}
-                    onChange={(e) => setCustomLocation(e.target.value)}
-                    className="flex-1"
-                  />
-                </div>
-              )}
-              
+              {/* Stay mode: show destination */}
               {locationMode === 'stay' && (
                 <div className="flex-1 flex items-center text-sm text-muted-foreground">
                   <MapPin className="w-3.5 h-3.5 mr-1" />
                   {trip.destination_city}, {trip.destination_state || trip.destination_country}
+                </div>
+              )}
+
+              {/* Current location mode: show GPS status */}
+              {locationMode === 'currentLocation' && (
+                <div className="flex-1 flex items-center text-sm">
+                  {isLocating && (
+                    <span className="flex items-center text-muted-foreground">
+                      <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                      Locating you…
+                    </span>
+                  )}
+                  {!isLocating && gpsCoords && !gpsError && (
+                    <span className="flex items-center text-muted-foreground">
+                      <Navigation className="w-3.5 h-3.5 mr-1.5" />
+                      Using your current location
+                    </span>
+                  )}
+                  {!isLocating && gpsError && (
+                    <span className="flex items-center text-destructive text-xs">
+                      <AlertCircle className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
+                      {gpsError}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -216,7 +303,7 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
               </div>
               <h3 className="text-base font-medium mb-2">No places found in this area</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Try a larger radius or search from a nearby town.
+                Try a larger radius or switch search modes.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
                 {radius !== '50' && (
@@ -224,9 +311,11 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
                     Increase radius to 50 miles
                   </Button>
                 )}
-                <Button variant="ghost" size="sm" onClick={handleChangeLocation}>
-                  Change search location
-                </Button>
+                {locationMode === 'currentLocation' && hasUsableLocation && (
+                  <Button variant="ghost" size="sm" onClick={handleSwitchToStay}>
+                    Search from Hotel instead
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
