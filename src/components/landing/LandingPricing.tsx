@@ -1,6 +1,6 @@
 import { Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
-const freePlanFeatures = ['Manage real trips with a dedicated trip home.', 'Add travel confirmations to set up your trip quickly.', 'Capture receipts and keep trip expenses in one place.', 'Build packing lists based on your trip details.', 'Access from desktop and mobile through your browser.'];
+const freePlanFeatures = ['Manage 5 real trips with a dedicated trip home.', 'Add travel confirmations to set up your trip quickly.', 'Capture receipts and keep trip expenses in one place.', 'Build packing lists based on your trip details.', 'Access from desktop and mobile through your browser.'];
 const proPlanFeatures = ['Advanced expense insights and export options.', 'Smarter reminders around key trip moments and expenses.', 'More automation for travelers who are often on the move.', 'Priority support as we grow.'];
 export default function LandingPricing() {
   return <section className="landing-section">
