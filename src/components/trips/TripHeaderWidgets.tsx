@@ -37,9 +37,12 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
   const { data: parkingList = [] } = useParking(trip.id);
   const { data: expenses = [] } = useExpenses(trip.id);
 
-  // Calculate costs
+  // Calculate costs with defensive guards (v2.1.30)
   const costSummary = calculateTripCostSummary(expenses, bookings, parkingList);
-  const { totalCost, bookingsTotal, parkingTotal, expensesTotal } = costSummary;
+  // Guard against NaN/undefined with fallback to 0
+  const totalCost = Number.isFinite(costSummary.totalCost) ? costSummary.totalCost : 0;
+  const bookingsTotal = Number.isFinite(costSummary.bookingsTotal) ? costSummary.bookingsTotal : 0;
+  const expensesTotal = Number.isFinite(costSummary.expensesTotal) ? costSummary.expensesTotal : 0;
 
   // Parking status
   const now = new Date();
