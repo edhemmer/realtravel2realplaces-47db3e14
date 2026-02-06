@@ -2,6 +2,12 @@
  * Centralized expense calculation utilities
  * Single source of truth for all expense math
  * 
+ * v2.1.10 - Legacy Airfare Normalizer:
+ * - Added calculation-time fallback to detect legacy duplicated flight costs
+ * - Trips created before 2.1.9 may have per-leg costs duplicated (same total on each leg)
+ * - This normalizer detects the pattern and counts the cost only once at calculation time
+ * - No data migration required - this is a read-time safeguard
+ * 
  * v2.1.9 - Airfare Cost Duplication Fix:
  * - Booking costs are ALWAYS calculated at the booking level, not segment level
  * - For flights: One booking = one cost, regardless of number of legs
@@ -162,6 +168,137 @@ export interface TripCostSummary {
 }
 
 /**
+ * Generate a stable booking key for grouping flight bookings
+ * Used to detect legacy duplicated leg costs
+ */
+function getFlightBookingKey(booking: Booking): string {
+  // Primary grouping key: confirmation number + airline (case-insensitive, trimmed)
+  const confirmationNumber = (booking.confirmation_number || '').toLowerCase().trim();
+  const airline = (booking.airline || booking.vendor_name || '').toLowerCase().trim();
+  
+  // If no confirmation number, use vendor + approximate date as fallback
+  if (!confirmationNumber) {
+    const dateKey = booking.start_datetime?.split('T')[0] || '';
+    return `${airline}::${dateKey}::no-conf`;
+  }
+  
+  return `${confirmationNumber}::${airline}`;
+}
+
+/**
+ * LEGACY AIRFARE NORMALIZER (v2.1.10)
+ * 
+ * Detects and normalizes duplicated flight costs from trips created before v2.1.9.
+ * 
+ * Legacy Pattern:
+ * - Multiple flight bookings (one per leg) with the same confirmation number
+ * - Each booking has the same total_cost (full trip fare copied to each leg)
+ * - This causes trip totals to be N× the actual airfare
+ * 
+ * Detection:
+ * - Group flight bookings by confirmation_number + airline
+ * - If 2+ bookings in a group have the SAME non-zero cost, it's duplicated
+ * - Count that cost only ONCE for the group
+ * 
+ * This applies at calculation-time only - no data is modified.
+ * 
+ * @param bookings All bookings for the trip
+ * @returns Object with normalized totals and my_share for bookings
+ */
+export function normalizeFlightBookingCosts(bookings: Booking[]): { 
+  normalizedTotal: number; 
+  normalizedMyShare: number;
+} {
+  // Separate flight and non-flight bookings
+  const flightBookings = bookings.filter(b => b.booking_type === 'flight');
+  const nonFlightBookings = bookings.filter(b => b.booking_type !== 'flight');
+  
+  // Calculate non-flight bookings normally
+  const nonFlightTotal = nonFlightBookings.reduce((sum, b) => {
+    const cost = Number(b.total_cost || 0);
+    return sum + (Number.isFinite(cost) && cost >= 0 ? cost : 0);
+  }, 0);
+  
+  const nonFlightMyShare = nonFlightBookings.reduce((sum, b) => sum + getBookingMyShare(b), 0);
+  
+  // If no flight bookings, return non-flight totals only
+  if (flightBookings.length === 0) {
+    return { normalizedTotal: nonFlightTotal, normalizedMyShare: nonFlightMyShare };
+  }
+  
+  // Group flight bookings by their booking key
+  const flightGroups = new Map<string, Booking[]>();
+  
+  for (const booking of flightBookings) {
+    const key = getFlightBookingKey(booking);
+    if (!flightGroups.has(key)) {
+      flightGroups.set(key, []);
+    }
+    flightGroups.get(key)!.push(booking);
+  }
+  
+  // Calculate normalized flight totals
+  let flightTotal = 0;
+  let flightMyShare = 0;
+  
+  for (const [, groupBookings] of flightGroups) {
+    if (groupBookings.length === 1) {
+      // Single booking in group - use as-is
+      const booking = groupBookings[0];
+      const cost = Number(booking.total_cost || 0);
+      if (Number.isFinite(cost) && cost >= 0) {
+        flightTotal += cost;
+        flightMyShare += getBookingMyShare(booking);
+      }
+    } else {
+      // Multiple bookings in group - check for legacy duplication pattern
+      const costs = groupBookings.map(b => Number(b.total_cost || 0));
+      const validCosts = costs.filter(c => Number.isFinite(c) && c > 0);
+      
+      if (validCosts.length === 0) {
+        // No valid costs - skip
+        continue;
+      }
+      
+      // Check if all valid costs are the same (legacy duplication pattern)
+      const uniqueCosts = [...new Set(validCosts)];
+      
+      if (uniqueCosts.length === 1 && groupBookings.length >= 2) {
+        // LEGACY DUPLICATION DETECTED:
+        // All bookings have the same cost, meaning the total was copied to each leg
+        // Count this cost only ONCE
+        const singleCost = uniqueCosts[0];
+        flightTotal += singleCost;
+        
+        // For my_share: use the first booking's my_share ratio
+        // If my_share was also duplicated, it should be the same value
+        const firstBooking = groupBookings.find(b => Number(b.total_cost || 0) === singleCost);
+        if (firstBooking) {
+          flightMyShare += getBookingMyShare(firstBooking);
+        } else {
+          flightMyShare += singleCost;
+        }
+      } else {
+        // Different costs in group - not a duplication, sum normally
+        // This handles cases where per-leg costs were explicitly different
+        for (const booking of groupBookings) {
+          const cost = Number(booking.total_cost || 0);
+          if (Number.isFinite(cost) && cost >= 0) {
+            flightTotal += cost;
+            flightMyShare += getBookingMyShare(booking);
+          }
+        }
+      }
+    }
+  }
+  
+  return {
+    normalizedTotal: nonFlightTotal + flightTotal,
+    normalizedMyShare: nonFlightMyShare + flightMyShare,
+  };
+}
+
+/**
  * Calculate totals for a list of expenses
  */
 export function calculateExpenseTotals(expenses: Expense[]): ExpenseTotals {
@@ -194,6 +331,11 @@ export function calculateCategorySummary(expenses: Expense[]): CategorySummary {
 /**
  * Calculate complete trip cost summary from all sources
  * 
+ * IMPORTANT (v2.1.10 - Legacy Airfare Normalizer):
+ * - Uses normalizeFlightBookingCosts() to detect legacy duplicated flight costs
+ * - Trips created before v2.1.9 may have per-leg costs duplicated
+ * - The normalizer counts duplicated costs only ONCE at calculation time
+ * 
  * IMPORTANT (v2.1.9 - Airfare Duplication Prevention):
  * - This function filters out booking-linked expenses to prevent double counting.
  * - Booking costs are calculated using getBookingMyShare() which returns booking-level totals.
@@ -202,6 +344,7 @@ export function calculateCategorySummary(expenses: Expense[]): CategorySummary {
  * 
  * Structure:
  * - Bookings total: Sum of all booking costs (flights, stays, rentals, activities)
+ *   - Flights are normalized to prevent legacy duplication
  * - Expenses total: Sum of out-of-pocket expenses ONLY (excludes booking-linked expenses)
  * - Parking total: Tracked separately, NOT included in Total Trip Cost
  * - Total Trip Cost = Bookings + Out-of-pocket Expenses (NO parking)
@@ -218,14 +361,13 @@ export function calculateTripCostSummary(
   const expensesTotal = outOfPocketExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
   const expensesMyShare = outOfPocketExpenses.reduce((sum, e) => sum + getExpenseMyShare(e), 0);
   
-  // Bookings - use getBookingMyShare() to ensure booking-level calculation
-  // This prevents any segment-level duplication from affecting totals
-  const bookingsTotal = bookings.reduce((sum, b) => {
-    const cost = Number(b.total_cost || 0);
-    // Guard against invalid values
-    return sum + (Number.isFinite(cost) && cost >= 0 ? cost : 0);
-  }, 0);
-  const bookingsMyShare = bookings.reduce((sum, b) => sum + getBookingMyShare(b), 0);
+  // Bookings - use normalizeFlightBookingCosts() to handle legacy duplicated flights
+  // This function:
+  // 1. Detects legacy per-leg duplication patterns (same confirmation, same cost)
+  // 2. Counts duplicated flight costs only ONCE
+  // 3. Calculates non-flight bookings normally
+  const { normalizedTotal: bookingsTotal, normalizedMyShare: bookingsMyShare } = 
+    normalizeFlightBookingCosts(bookings);
   
   // Parking (tracked separately, NOT included in total trip cost)
   const parkingTotal = parkingList.reduce((sum, p) => sum + Number(p.total_cost || 0), 0);
