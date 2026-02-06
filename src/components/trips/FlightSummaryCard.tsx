@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER, parseDatetimeForDisplay } from '@/lib/datetimeIntegrity';
 import { extractAirportCodes } from '@/lib/airportData';
 import { AirportInfoPill } from './AirportInfoPill';
+import { useIsPro } from '@/hooks/useSubscription';
 
 interface BookingCompanion {
   id: string;
@@ -22,6 +23,8 @@ interface FlightSummaryCardProps {
 }
 
 export function FlightSummaryCard({ bookings, companions, bookingCompanions }: FlightSummaryCardProps) {
+  // v2.1.31: Airport info pills are Pro-only
+  const isPro = useIsPro();
   // v2.2.0: Use safe datetime parsing to prevent timezone drift
   const flights = bookings
     .filter((b) => b.booking_type === 'flight')
@@ -186,8 +189,8 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                       </div>
                     )}
                     
-                    {/* v2.2.0: Airport Info Pills */}
-                    {(airportCodes.origin || airportCodes.destination) && (
+                    {/* v2.2.0: Airport Info Pills - Pro only (v2.1.31) */}
+                    {isPro && (airportCodes.origin || airportCodes.destination) && (
                       <div className="flex flex-wrap gap-2 mt-2">
                         {airportCodes.origin && (
                           <AirportInfoPill 
