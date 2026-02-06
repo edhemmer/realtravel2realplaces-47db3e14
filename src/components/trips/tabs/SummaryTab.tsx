@@ -22,6 +22,7 @@ import { TsaWarningCard } from '@/components/trips/TsaWarningCard';
 import { CompanionDetailDialog } from '@/components/trips/CompanionDetailDialog';
 import { UpcomingEventsWidget } from '@/components/trips/UpcomingEventsWidget';
 import { TripHealthChecklist } from '@/components/trips/TripHealthChecklist';
+import { FirstTripHint } from '@/components/trips/FirstTripHint';
 import { generateTripICS, downloadICSFile } from '@/lib/icsGenerator';
 import { calculateTripCostSummary, logExpenseDebug } from '@/lib/expenseCalculations';
 import { calculateTripDateRange } from '@/lib/tripDateCalculations';
@@ -379,6 +380,9 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
           <UpcomingEventsWidget tripId={tripId} onDrillThrough={onDrillThrough} />
         </CardContent>
       </Card>
+
+      {/* v2.1.29: First-trip completion nudge - shown when only 1 booking */}
+      <FirstTripHint bookingsCount={bookings.length} />
 
       {/* Daily Expense Reminder Banner */}
       <ExpenseReminderBanner trip={trip} expenses={expenses} />

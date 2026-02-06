@@ -157,20 +157,23 @@ export default function Dashboard() {
             </div>
           </div>}
 
-        {/* Empty State */}
+        {/* First-Trip Empty State - v2.1.29 */}
         {!hasTrips && <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-16">
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                 <Plane className="w-8 h-8 text-primary" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">No trips yet</h3>
-              <p className="text-muted-foreground text-center mb-4">
-                Create your first trip to start organizing your travels
+              <h3 className="text-xl font-semibold mb-2">Create your first trip</h3>
+              <p className="text-muted-foreground text-center mb-6 max-w-md">
+                Add a flight, stay, or confirmation to start managing your trip in one place.
               </p>
-              <Button onClick={() => setCreateDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90">
+              <Button onClick={() => setCreateDialogOpen(true)} size="lg" className="bg-gradient-ocean hover:opacity-90">
                 <Plus className="w-4 h-4 mr-2" />
-                Create Your First Trip
+                Add your first trip
               </Button>
+              <p className="text-sm text-muted-foreground mt-4">
+                You can forward confirmations or paste them manually.
+              </p>
             </CardContent>
           </Card>}
       </div>
