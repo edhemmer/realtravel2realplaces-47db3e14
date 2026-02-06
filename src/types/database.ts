@@ -1,6 +1,7 @@
 export type TripType = 'business' | 'personal' | 'mixed';
-export type BookingType = 'flight' | 'stay' | 'car_rental' | 'activity';
+export type BookingType = 'flight' | 'stay' | 'car_rental' | 'activity' | 'transport';
 export type StayType = 'hotel' | 'airbnb' | 'vrbo' | 'other';
+export type TransportModeType = 'train' | 'bus' | 'metro' | 'ferry' | 'other';
 export type ExpenseCategory = 'meals' | 'transport' | 'activity' | 'shopping' | 'parking' | 'other';
 export type ParkingType = 'airport' | 'beach' | 'city_garage' | 'hotel' | 'other';
 export type ParkingBilling = 'hourly' | 'daily' | 'per_trip' | 'other';
@@ -69,6 +70,11 @@ export interface Booking {
   booking_url?: string;
   tickets_purchased?: boolean;
   location_summary?: string;
+  // Transport specific (Patch 2.1.37)
+  transport_mode?: TransportModeType;
+  from_location?: string;
+  to_location?: string;
+  operator?: string;
   created_at: string;
   updated_at: string;
 }

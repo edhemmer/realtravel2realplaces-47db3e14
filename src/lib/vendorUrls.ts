@@ -125,7 +125,7 @@ export const CAR_RENTAL_URLS: Record<string, string> = {
   'ace': 'https://www.acerentacar.com',
 };
 
-export function getVendorUrl(name: string, type: 'flight' | 'stay' | 'car_rental' | 'activity'): string | null {
+export function getVendorUrl(name: string, type: 'flight' | 'stay' | 'car_rental' | 'activity' | 'transport'): string | null {
   const normalizedName = name.toLowerCase().trim();
   
   if (type === 'flight') {
@@ -153,11 +153,12 @@ export function getVendorUrl(name: string, type: 'flight' | 'stay' | 'car_rental
     }
   }
   
+  // Transport type - no auto-fill for now
   return null;
 }
 
 // Get all matches for autocomplete suggestions
-export function getVendorSuggestions(query: string, type: 'flight' | 'stay' | 'car_rental' | 'activity'): string[] {
+export function getVendorSuggestions(query: string, type: 'flight' | 'stay' | 'car_rental' | 'activity' | 'transport'): string[] {
   if (!query || query.length < 2) return [];
   
   const normalizedQuery = query.toLowerCase().trim();

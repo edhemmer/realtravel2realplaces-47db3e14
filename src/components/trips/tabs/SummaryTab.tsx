@@ -31,7 +31,7 @@ import {
   Plane, Building2, Car, Calendar, MapPin, DollarSign, 
   AlertTriangle, Download, ExternalLink, Clock, PartyPopper,
   Cloud, Sun, CloudRain, Snowflake, Thermometer, Info, Globe, Utensils, Camera, Bell,
-  CircleParking, Compass, Ticket
+  CircleParking, Compass, Ticket, TrainFront, Bus, TramFront, Ship
 } from 'lucide-react';
 import { format, parseISO, isAfter, differenceInDays } from 'date-fns';
 import { toast } from 'sonner';
@@ -47,8 +47,8 @@ interface SummaryTabProps {
 
 interface TimelineEvent {
   id: string;
-  type: 'flight' | 'stay' | 'car_rental' | 'activity' | 'parking';
-  eventType?: 'check-in' | 'check-out' | 'departure' | 'pickup' | 'dropoff';
+  type: 'flight' | 'stay' | 'car_rental' | 'activity' | 'parking' | 'transport';
+  eventType?: 'check-in' | 'check-out' | 'departure' | 'pickup' | 'dropoff' | 'arrival';
   title: string;
   subtitle: string;
   datetime: Date;
@@ -63,6 +63,8 @@ interface TimelineEvent {
   ticketRequired?: boolean;
   ticketsPurchased?: boolean;
   activitySource?: string;
+  /** v2.1.37: Transport mode for icon display */
+  transportMode?: string;
 }
 
 // Helper to safely open external URLs in new tab
@@ -241,6 +243,37 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
             sourceId: b.id,
           });
         }
+      } else if (b.booking_type === 'transport') {
+        // Transport: show departure time and arrival if available
+        events.push({
+          id: `${b.id}-departure`,
+          type: 'transport',
+          eventType: 'departure',
+          title: (b as any).operator || b.vendor_name,
+          subtitle: `${((b as any).from_location || '')} → ${((b as any).to_location || '')}`.trim() || 'Transport',
+          datetime: startDate,
+          address: b.address,
+          linkUrl: b.link_url,
+          hasExplicitTime: hasExplicitTime(b.start_datetime),
+          sourceId: b.id,
+          transportMode: (b as any).transport_mode || 'train',
+        });
+        // Add arrival event if end_datetime available
+        if (endDate) {
+          events.push({
+            id: `${b.id}-arrival`,
+            type: 'transport',
+            eventType: 'arrival',
+            title: (b as any).operator || b.vendor_name,
+            subtitle: `Arrival at ${(b as any).to_location || 'destination'}`,
+            datetime: endDate,
+            address: b.address,
+            linkUrl: b.link_url,
+            hasExplicitTime: hasExplicitTime(b.end_datetime),
+            sourceId: b.id,
+            transportMode: (b as any).transport_mode || 'train',
+          });
+        }
       } else {
         // Activity: use start time with v2.1.19 enhancements
         events.push({
@@ -320,13 +353,21 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
     .filter((p: Parking) => p.end_datetime && isAfter(parseISO(p.end_datetime), now))
     .sort((a: Parking, b: Parking) => parseISO(a.end_datetime!).getTime() - parseISO(b.end_datetime!).getTime())[0];
 
-  const getEventIcon = (type: string) => {
+  const getEventIcon = (type: string, transportMode?: string) => {
     switch (type) {
       case 'flight': return <Plane className="w-4 h-4" />;
       case 'stay': return <Building2 className="w-4 h-4" />;
       case 'car_rental': return <Car className="w-4 h-4" />;
       case 'parking': return <CircleParking className="w-4 h-4" />;
       case 'activity': return <Compass className="w-4 h-4" />; // v2.1.19: Distinct icon for activities
+      case 'transport':
+        switch (transportMode) {
+          case 'train': return <TrainFront className="w-4 h-4" />;
+          case 'bus': return <Bus className="w-4 h-4" />;
+          case 'metro': return <TramFront className="w-4 h-4" />;
+          case 'ferry': return <Ship className="w-4 h-4" />;
+          default: return <TrainFront className="w-4 h-4" />;
+        }
       default: return <PartyPopper className="w-4 h-4" />;
     }
   };
@@ -528,7 +569,7 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
                 >
                   <div className="flex flex-col items-center">
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                      {getEventIcon(event.type)}
+                      {getEventIcon(event.type, event.transportMode)}
                     </div>
                     {index < timeline.length - 1 && (
                       <div className="w-px h-full bg-border mt-2 min-h-[20px]" />
