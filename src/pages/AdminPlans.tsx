@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsAdmin, useAdminUsers, useUpdateUserTier } from '@/hooks/useAdminUsers';
 import { SubscriptionTier } from '@/types/subscription';
@@ -32,7 +32,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
-import { Shield, Users } from 'lucide-react';
+import { Shield, Users, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminPlans() {
@@ -102,6 +102,17 @@ export default function AdminPlans() {
   return (
     <Layout>
       <div className="container mx-auto py-8 px-4 max-w-5xl">
+        {/* Admin navigation */}
+        <div className="mb-4">
+          <Link 
+            to="/admin/support-tickets" 
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <MessageSquare className="w-4 h-4" />
+            Support tickets
+          </Link>
+        </div>
+
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3">

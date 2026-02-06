@@ -15,6 +15,7 @@ import Dashboard from "./pages/Dashboard";
 import TripDetail from "./pages/TripDetail";
 import AcceptShare from "./pages/AcceptShare";
 import AdminPlans from "./pages/AdminPlans";
+import AdminSupportTickets from "./pages/AdminSupportTickets";
 import Account from "./pages/Account";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
@@ -112,6 +113,7 @@ function AppRoutes() {
       
       {/* Admin routes */}
       <Route path="/admin/plans" element={<AdminPlans />} />
+      <Route path="/admin/support-tickets" element={<AdminSupportTickets />} />
       
       {/* Legacy route redirect */}
       <Route path="/login" element={<Navigate to="/auth" replace />} />
