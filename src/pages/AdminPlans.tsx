@@ -98,6 +98,7 @@ export default function AdminPlans() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Plan</TableHead>
                     <TableHead className="text-right">Lifetime Trips</TableHead>
@@ -106,44 +107,53 @@ export default function AdminPlans() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((u) => (
-                    <TableRow key={u.user_id}>
-                      <TableCell className="font-medium">
-                        {u.email}
-                        {u.email === user?.email && (
-                          <Badge variant="outline" className="ml-2 text-xs">
-                            You
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Select
-                          value={u.subscription_tier}
-                          onValueChange={(value: SubscriptionTier) => 
-                            handleTierChange(u.user_id, value)
-                          }
-                          disabled={updateTierMutation.isPending}
-                        >
-                          <SelectTrigger className="w-24">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="free">Free</SelectItem>
-                            <SelectItem value="pro">Pro</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {u.lifetime_trip_count}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {u.current_trip_count}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {format(parseISO(u.created_at), 'MMM d, yyyy')}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {users.map((u) => {
+                    const displayName = u.first_name && u.last_name 
+                      ? `${u.first_name} ${u.last_name}`
+                      : null;
+                    
+                    return (
+                      <TableRow key={u.user_id}>
+                        <TableCell className="font-medium">
+                          {displayName || <span className="text-muted-foreground italic">—</span>}
+                          {u.email === user?.email && (
+                            <Badge variant="outline" className="ml-2 text-xs">
+                              You
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {u.email}
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={u.subscription_tier}
+                            onValueChange={(value: SubscriptionTier) => 
+                              handleTierChange(u.user_id, value)
+                            }
+                            disabled={updateTierMutation.isPending}
+                          >
+                            <SelectTrigger className="w-24">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="free">Free</SelectItem>
+                              <SelectItem value="pro">Pro</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {u.lifetime_trip_count}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {u.current_trip_count}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {format(parseISO(u.created_at), 'MMM d, yyyy')}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}
