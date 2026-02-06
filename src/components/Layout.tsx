@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsPro } from '@/hooks/useSubscription';
+import { useIdleLogout } from '@/hooks/useIdleLogout';
 import { Button } from '@/components/ui/button';
 import { Plane, LogOut, User, Settings, Crown, MessageCircleQuestion } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -22,6 +23,9 @@ export function Layout({ children }: LayoutProps) {
   const isPro = useIsPro();
   const navigate = useNavigate();
   const [supportDialogOpen, setSupportDialogOpen] = useState(false);
+
+  // v2.1.39: Auto-logout after 2 hours of inactivity
+  useIdleLogout();
 
   const handleSignOut = async () => {
     await signOut();

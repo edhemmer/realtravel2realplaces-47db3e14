@@ -711,7 +711,7 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
           <h3 className="text-lg font-semibold">Bookings</h3>
           <p className="text-sm text-muted-foreground">
             {bookings.length === 0 
-              ? 'Add flights, hotels, car rentals & activities' 
+              ? 'Add flights, stays, transport, car rentals & activities' 
               : `${bookings.length} booking${bookings.length !== 1 ? 's' : ''}`}
           </p>
         </div>
@@ -975,7 +975,7 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
             </div>
             <h4 className="text-lg font-medium mb-1">No bookings yet</h4>
             <p className="text-muted-foreground text-sm text-center max-w-sm mb-4">
-              Add your flights, hotels, car rentals, and activities
+              Add your flights, stays, trains, buses, car rentals, and activities
             </p>
             <div className="flex gap-2">
               <Button onClick={() => setDialogOpen(true)}>

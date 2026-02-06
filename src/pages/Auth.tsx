@@ -26,11 +26,13 @@ export default function Auth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Check for session expired reason
+  // Check for session expired or idle logout reason
   useEffect(() => {
     const reason = searchParams.get('reason');
     if (reason === 'sessionExpired') {
       setError('Your session has expired. Please log in again.');
+    } else if (reason === 'idle') {
+      setError('You were logged out after 2 hours of inactivity for security.');
     }
   }, [searchParams]);
 
