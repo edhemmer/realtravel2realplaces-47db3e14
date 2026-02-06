@@ -186,9 +186,27 @@ function getFlightBookingKey(booking: Booking): string {
 }
 
 /**
- * LEGACY AIRFARE NORMALIZER (v2.1.10)
+ * Result of flight booking normalization
+ * 
+ * v2.1.21: Extended to include per-booking cost map
+ * - normalizedTotal / normalizedMyShare: for summary card totals
+ * - perBookingCost / perBookingMyShare: for expense tab per-row display
+ */
+export interface NormalizedAirfareResult {
+  normalizedTotal: number;
+  normalizedMyShare: number;
+  /** Per-booking ID -> normalized cost. For duplicated legs, only canonical booking has the cost; others are 0. */
+  perBookingCost: Record<string, number>;
+  /** Per-booking ID -> normalized my share. */
+  perBookingMyShare: Record<string, number>;
+}
+
+/**
+ * LEGACY AIRFARE NORMALIZER (v2.1.10, extended v2.1.21)
  * 
  * Detects and normalizes duplicated flight costs from trips created before v2.1.9.
+ * 
+ * v2.1.21: Extended to return per-booking cost map for Expenses tab alignment.
  * 
  * Legacy Pattern:
  * - Multiple flight bookings (one per leg) with the same confirmation number
@@ -203,27 +221,40 @@ function getFlightBookingKey(booking: Booking): string {
  * This applies at calculation-time only - no data is modified.
  * 
  * @param bookings All bookings for the trip
- * @returns Object with normalized totals and my_share for bookings
+ * @returns Object with normalized totals, my_share, and per-booking cost maps
  */
-export function normalizeFlightBookingCosts(bookings: Booking[]): { 
-  normalizedTotal: number; 
-  normalizedMyShare: number;
-} {
+export function normalizeFlightBookingCosts(bookings: Booking[]): NormalizedAirfareResult {
   // Separate flight and non-flight bookings
   const flightBookings = bookings.filter(b => b.booking_type === 'flight');
   const nonFlightBookings = bookings.filter(b => b.booking_type !== 'flight');
   
-  // Calculate non-flight bookings normally
-  const nonFlightTotal = nonFlightBookings.reduce((sum, b) => {
-    const cost = Number(b.total_cost || 0);
-    return sum + (Number.isFinite(cost) && cost >= 0 ? cost : 0);
-  }, 0);
+  // Initialize per-booking cost maps
+  const perBookingCost: Record<string, number> = {};
+  const perBookingMyShare: Record<string, number> = {};
   
-  const nonFlightMyShare = nonFlightBookings.reduce((sum, b) => sum + getBookingMyShare(b), 0);
+  // Calculate non-flight bookings normally and populate per-booking maps
+  let nonFlightTotal = 0;
+  let nonFlightMyShare = 0;
+  
+  for (const b of nonFlightBookings) {
+    const cost = Number(b.total_cost || 0);
+    const validCost = Number.isFinite(cost) && cost >= 0 ? cost : 0;
+    const myShare = getBookingMyShare(b);
+    
+    nonFlightTotal += validCost;
+    nonFlightMyShare += myShare;
+    perBookingCost[b.id] = validCost;
+    perBookingMyShare[b.id] = myShare;
+  }
   
   // If no flight bookings, return non-flight totals only
   if (flightBookings.length === 0) {
-    return { normalizedTotal: nonFlightTotal, normalizedMyShare: nonFlightMyShare };
+    return { 
+      normalizedTotal: nonFlightTotal, 
+      normalizedMyShare: nonFlightMyShare,
+      perBookingCost,
+      perBookingMyShare,
+    };
   }
   
   // Group flight bookings by their booking key
@@ -237,7 +268,7 @@ export function normalizeFlightBookingCosts(bookings: Booking[]): {
     flightGroups.get(key)!.push(booking);
   }
   
-  // Calculate normalized flight totals
+  // Calculate normalized flight totals and per-booking costs
   let flightTotal = 0;
   let flightMyShare = 0;
   
@@ -246,17 +277,24 @@ export function normalizeFlightBookingCosts(bookings: Booking[]): {
       // Single booking in group - use as-is
       const booking = groupBookings[0];
       const cost = Number(booking.total_cost || 0);
-      if (Number.isFinite(cost) && cost >= 0) {
-        flightTotal += cost;
-        flightMyShare += getBookingMyShare(booking);
-      }
+      const validCost = Number.isFinite(cost) && cost >= 0 ? cost : 0;
+      const myShare = getBookingMyShare(booking);
+      
+      flightTotal += validCost;
+      flightMyShare += myShare;
+      perBookingCost[booking.id] = validCost;
+      perBookingMyShare[booking.id] = myShare;
     } else {
       // Multiple bookings in group - check for legacy duplication pattern
       const costs = groupBookings.map(b => Number(b.total_cost || 0));
       const validCosts = costs.filter(c => Number.isFinite(c) && c > 0);
       
       if (validCosts.length === 0) {
-        // No valid costs - skip
+        // No valid costs - all get 0
+        for (const booking of groupBookings) {
+          perBookingCost[booking.id] = 0;
+          perBookingMyShare[booking.id] = 0;
+        }
         continue;
       }
       
@@ -266,27 +304,44 @@ export function normalizeFlightBookingCosts(bookings: Booking[]): {
       if (uniqueCosts.length === 1 && groupBookings.length >= 2) {
         // LEGACY DUPLICATION DETECTED:
         // All bookings have the same cost, meaning the total was copied to each leg
-        // Count this cost only ONCE
+        // Count this cost only ONCE - assign to the canonical (earliest departure) booking
         const singleCost = uniqueCosts[0];
-        flightTotal += singleCost;
         
-        // For my_share: use the first booking's my_share ratio
-        // If my_share was also duplicated, it should be the same value
-        const firstBooking = groupBookings.find(b => Number(b.total_cost || 0) === singleCost);
-        if (firstBooking) {
-          flightMyShare += getBookingMyShare(firstBooking);
-        } else {
-          flightMyShare += singleCost;
+        // Sort by start_datetime to find canonical (earliest) booking
+        const sortedBookings = [...groupBookings].sort((a, b) => {
+          const aTime = a.start_datetime ? new Date(a.start_datetime).getTime() : Infinity;
+          const bTime = b.start_datetime ? new Date(b.start_datetime).getTime() : Infinity;
+          return aTime - bTime;
+        });
+        
+        const canonicalBooking = sortedBookings[0];
+        const canonicalMyShare = getBookingMyShare(canonicalBooking);
+        
+        flightTotal += singleCost;
+        flightMyShare += canonicalMyShare;
+        
+        // Assign cost to canonical booking, 0 to others
+        for (const booking of groupBookings) {
+          if (booking.id === canonicalBooking.id) {
+            perBookingCost[booking.id] = singleCost;
+            perBookingMyShare[booking.id] = canonicalMyShare;
+          } else {
+            perBookingCost[booking.id] = 0;
+            perBookingMyShare[booking.id] = 0;
+          }
         }
       } else {
         // Different costs in group - not a duplication, sum normally
         // This handles cases where per-leg costs were explicitly different
         for (const booking of groupBookings) {
           const cost = Number(booking.total_cost || 0);
-          if (Number.isFinite(cost) && cost >= 0) {
-            flightTotal += cost;
-            flightMyShare += getBookingMyShare(booking);
-          }
+          const validCost = Number.isFinite(cost) && cost >= 0 ? cost : 0;
+          const myShare = getBookingMyShare(booking);
+          
+          flightTotal += validCost;
+          flightMyShare += myShare;
+          perBookingCost[booking.id] = validCost;
+          perBookingMyShare[booking.id] = myShare;
         }
       }
     }
@@ -295,6 +350,8 @@ export function normalizeFlightBookingCosts(bookings: Booking[]): {
   return {
     normalizedTotal: nonFlightTotal + flightTotal,
     normalizedMyShare: nonFlightMyShare + flightMyShare,
+    perBookingCost,
+    perBookingMyShare,
   };
 }
 
@@ -306,6 +363,84 @@ export function calculateExpenseTotals(expenses: Expense[]): ExpenseTotals {
   const totalMyShare = expenses.reduce((sum, e) => sum + getExpenseMyShare(e), 0);
   
   return { totalAmount, totalMyShare };
+}
+
+/**
+ * Calculate totals for expenses using normalized booking costs (v2.1.21)
+ * 
+ * For expenses linked to bookings, this uses the normalized per-booking cost
+ * from normalizeFlightBookingCosts() to ensure multi-leg flights with duplicated
+ * costs are counted correctly (only once).
+ * 
+ * @param expenses All expenses for the trip
+ * @param bookings All bookings for the trip (used to calculate normalized costs)
+ * @returns Totals with normalized flight costs
+ */
+export function calculateNormalizedExpenseTotals(
+  expenses: Expense[],
+  bookings: Booking[]
+): ExpenseTotals {
+  // Get normalized per-booking costs
+  const { perBookingCost, perBookingMyShare } = normalizeFlightBookingCosts(bookings);
+  
+  let totalAmount = 0;
+  let totalMyShare = 0;
+  
+  for (const expense of expenses) {
+    // Check if this expense is linked to a booking
+    const linkedBookingId = extractBookingIdFromNotes(expense.notes);
+    
+    if (linkedBookingId && perBookingCost[linkedBookingId] !== undefined) {
+      // Use normalized cost for this linked booking
+      totalAmount += perBookingCost[linkedBookingId];
+      totalMyShare += perBookingMyShare[linkedBookingId];
+    } else {
+      // Regular expense - use as-is
+      totalAmount += Number(expense.amount || 0);
+      totalMyShare += getExpenseMyShare(expense);
+    }
+  }
+  
+  return { totalAmount, totalMyShare };
+}
+
+/**
+ * Get the normalized amount for a single expense (v2.1.21)
+ * 
+ * For flight-linked expenses that are part of a duplicated leg group,
+ * this returns 0 for non-canonical legs and the full cost for the canonical leg.
+ * 
+ * @param expense The expense to get normalized amount for
+ * @param perBookingCost The per-booking cost map from normalizeFlightBookingCosts()
+ * @returns The normalized amount (may be 0 for duplicate flight legs)
+ */
+export function getNormalizedExpenseAmount(
+  expense: Expense,
+  perBookingCost: Record<string, number>
+): number {
+  const linkedBookingId = extractBookingIdFromNotes(expense.notes);
+  
+  if (linkedBookingId && perBookingCost[linkedBookingId] !== undefined) {
+    return perBookingCost[linkedBookingId];
+  }
+  
+  return Number(expense.amount || 0);
+}
+
+/**
+ * Get the normalized my_share for a single expense (v2.1.21)
+ */
+export function getNormalizedExpenseMyShare(
+  expense: Expense,
+  perBookingMyShare: Record<string, number>
+): number {
+  const linkedBookingId = extractBookingIdFromNotes(expense.notes);
+  
+  if (linkedBookingId && perBookingMyShare[linkedBookingId] !== undefined) {
+    return perBookingMyShare[linkedBookingId];
+  }
+  
+  return getExpenseMyShare(expense);
 }
 
 /**
