@@ -1,15 +1,14 @@
 import { ArrowDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import MockTripCard from './MockTripCard';
-
 export default function LandingHero() {
   const scrollToFeatures = () => {
     const element = document.getElementById('features');
-    element?.scrollIntoView({ behavior: 'smooth' });
+    element?.scrollIntoView({
+      behavior: 'smooth'
+    });
   };
-
-  return (
-    <section className="landing-section pt-28 sm:pt-32 lg:pt-40 pb-16 lg:pb-24">
+  return <section className="landing-section pt-28 sm:pt-32 lg:pt-40 pb-16 lg:pb-24">
       <div className="max-w-7xl mx-auto">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Left: Text Content */}
@@ -44,25 +43,16 @@ export default function LandingHero() {
 
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-6">
-              <Link
-                to="/auth"
-                className="landing-btn-primary text-base px-8 py-3 text-center"
-              >
+              <Link to="/auth" className="landing-btn-primary text-base px-8 py-3 text-center">
                 Get started
               </Link>
-              <Link
-                to="/auth"
-                className="landing-btn-secondary text-base px-8 py-3 text-center"
-              >
+              <Link to="/auth" className="landing-btn-secondary text-base px-8 py-3 text-center">
                 Log in
               </Link>
             </div>
 
             {/* How it works */}
-            <button
-              onClick={scrollToFeatures}
-              className="text-sm text-[hsl(var(--landing-text-muted))] hover:text-[hsl(var(--landing-accent))] transition-colors inline-flex items-center gap-1.5 mb-6"
-            >
+            <button onClick={scrollToFeatures} className="text-sm text-[hsl(var(--landing-text-muted))] hover:text-[hsl(var(--landing-accent))] transition-colors inline-flex items-center gap-1.5 mb-6">
               How it works
               <ArrowDown className="w-3.5 h-3.5" />
             </button>
@@ -71,7 +61,7 @@ export default function LandingHero() {
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 justify-center lg:justify-start text-sm text-[hsl(var(--landing-text-muted))]">
               <span>Free to use.</span>
               <span className="hidden sm:block">•</span>
-              <span>No ads. Your data stays yours.</span>
+              <span>No ads   •    Your data stays yours.</span>
             </div>
           </div>
 
@@ -83,6 +73,5 @@ export default function LandingHero() {
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 }
