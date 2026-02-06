@@ -290,6 +290,31 @@ export function useCreateBooking() {
 }
 ```
 
+### Security Hooks
+
+#### useIdleLogout (v2.1.39)
+
+Auto-logout after 2 hours of inactivity:
+
+```typescript
+import { useIdleLogout } from '@/hooks/useIdleLogout';
+
+// In your authenticated layout component:
+export function Layout({ children }: LayoutProps) {
+  // Automatically tracks activity and logs out after 2hr idle
+  useIdleLogout();
+  
+  return <div>{children}</div>;
+}
+```
+
+**Implementation details:**
+- Tracks: click, keydown, touchstart, mousemove, scroll, navigation
+- Timeout: 2 hours (120 minutes)
+- On timeout: Calls signOut() and redirects to `/auth?reason=idle`
+- Only runs when user is authenticated
+```
+
 ---
 
 ## Testing

@@ -196,6 +196,51 @@ function MyComponent() {
 
 ---
 
+## Security
+
+### Session Management
+
+**Idle Logout (v2.1.39):**
+
+Users are automatically logged out after 2 hours of inactivity for security.
+
+```typescript
+// src/hooks/useIdleLogout.ts
+const IDLE_TIMEOUT_MS = 120 * 60 * 1000; // 2 hours
+
+// Tracked activity events:
+// - click, keydown, touchstart, mousemove, scroll
+// - Route navigation changes
+```
+
+**Behavior:**
+1. Timer resets on any user activity
+2. After 2 hours idle, user is logged out
+3. Redirect to `/auth?reason=idle`
+4. Auth page shows: "You were logged out after 2 hours of inactivity for security."
+
+### Row-Level Security (RLS)
+
+All tables use RLS policies. Common patterns:
+
+```sql
+-- User owns the trip
+CREATE POLICY "Users can view their own trips" 
+ON public.trips FOR SELECT 
+USING (auth.uid() = user_id);
+
+-- User has access via ownership or sharing
+CREATE POLICY "Users can view bookings for accessible trips" 
+ON public.bookings FOR SELECT 
+USING (user_has_trip_access(trip_id));
+```
+
+### PII Protection
+
+Sensitive data (emails, phone, TSA/FF numbers) is masked via secure RPC functions for non-owners.
+
+---
+
 ## Subscription Model
 
 ### Tiers
@@ -236,7 +281,7 @@ export function useIsPro(): boolean {
 | Table | Purpose |
 |-------|---------|
 | `trips` | Trip metadata (dates, destination, type) |
-| `bookings` | Flights, stays, rentals, activities |
+| `bookings` | Flights, stays, rentals, transport, activities |
 | `expenses` | Individual expense records |
 | `parking` | Parking entries with location/time |
 | `companions` | Travel companions with contact info |
@@ -244,6 +289,28 @@ export function useIsPro(): boolean {
 | `profiles` | User preferences and subscription |
 | `trip_events` | Pro-only time-based events |
 | `trip_shares` | Trip sharing permissions |
+
+### Booking Types
+
+| Type | Description |
+|------|-------------|
+| `flight` | Air travel with airline, passenger, TSA info |
+| `stay` | Hotels, Airbnb, VRBO with check-in/out |
+| `car_rental` | Rental vehicles with pickup/return locations |
+| `transport` | Ground transport: train, bus, metro, ferry (v2.1.37) |
+| `activity` | Tours, attractions, events |
+
+### Transport Modes (v2.1.37)
+
+```typescript
+type TransportModeType = 'train' | 'bus' | 'metro' | 'ferry' | 'other';
+
+// Transport-specific fields:
+// - transport_mode: TransportModeType
+// - from_location: string
+// - to_location: string  
+// - operator: string (e.g., "Eurostar", "SNCB")
+```
 
 ### Row-Level Security (RLS)
 
