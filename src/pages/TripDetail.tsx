@@ -5,7 +5,7 @@ import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, MapPin, Calendar, Eye, Users, Compass } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Eye, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { SummaryTab } from '@/components/trips/tabs/SummaryTab';
 import { BookingsTab } from '@/components/trips/tabs/BookingsTab';
@@ -154,10 +154,7 @@ export default function TripDetail() {
               <TabsTrigger value="packing">Packing</TabsTrigger>
               <TabsTrigger value="companions">Companions</TabsTrigger>
               <TabsTrigger value="notes">Notes & Safety</TabsTrigger>
-              <TabsTrigger value="explore" className="gap-1.5">
-                <Compass className="w-3.5 h-3.5" />
-                Explore
-              </TabsTrigger>
+              <TabsTrigger value="explore">Explore</TabsTrigger>
             </TabsList>
 
             <div className="mt-6">
