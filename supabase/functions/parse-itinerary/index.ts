@@ -133,7 +133,13 @@ Also extract ALL BOOKINGS found in the document as an array. Each booking should
 For flights also extract:
 - airline
 - passenger_name
-- notes: Include flight numbers here
+- notes: Include ALL flight numbers here (e.g., "Outbound: F1234, Return: F5678")
+
+CRITICAL AIRFARE RULES (v2.1.9):
+- Create ONE booking record per flight confirmation, regardless of number of legs
+- total_cost = the SINGLE total shown on the confirmation for all legs combined
+- NEVER split the total across legs or create separate booking records per leg
+- For round-trips: ONE booking with start=first departure, end=last arrival, cost=total fare
 
 For stays also extract:
 - property_name

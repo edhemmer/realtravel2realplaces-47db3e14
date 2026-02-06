@@ -1,15 +1,18 @@
 /**
  * Booking-Expense Synchronization Utilities
- * v2.2.1 - Links expenses to bookings for accurate financial tracking
+ * v2.1.9 - Links expenses to bookings for accurate financial tracking
  * 
  * Since we cannot add a booking_id column, we use a marker in the notes field:
  * Format: [linked_booking:booking_uuid]
  * 
- * AIRFARE COST RULES (v2.2.1):
- * - Multi-leg flights: Use booking.total_cost (single total for entire booking)
+ * AIRFARE COST RULES (v2.1.9 - Cost Duplication Prevention):
+ * - Each flight booking represents ONE confirmation (may contain multiple legs)
+ * - booking.total_cost is the SINGLE source of truth - the total from the confirmation
+ * - We NEVER create per-segment/per-leg expenses - only booking-level
+ * - This prevents double-counting when:
+ *   a) A confirmation shows one total for all legs (most common)
+ *   b) Multiple legs exist as timeline events without individual costs
  * - If booking.total_cost is null/0, no expense is created
- * - We never create per-segment expenses - only booking-level
- * - This prevents double-counting when a confirmation shows one total for all legs
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -106,22 +109,26 @@ export async function findLinkedExpense(tripId: string, bookingId: string): Prom
 /**
  * Determine the effective cost for a booking expense
  * 
- * AIRFARE COST NORMALIZATION (v2.2.1):
- * - For flights (and all booking types): Use booking.total_cost
- * - This is the single source of truth for booking cost
- * - Per-segment costs are NOT tracked separately - only booking-level
+ * AIRFARE COST NORMALIZATION (v2.1.9):
+ * - For ALL booking types: Use booking.total_cost as the SINGLE source of truth
+ * - This is the booking-level cost from the original confirmation
+ * - Per-segment/per-leg costs are NOT tracked separately
  * - If total_cost is null/undefined/0, return 0 (no expense will be created)
  * 
  * This prevents double-counting when:
- * - A multi-leg flight shows one total fare
+ * - A multi-leg flight shows one total fare for all legs
  * - Each segment appears as a timeline event without its own cost
+ * - The same total was incorrectly copied to each leg (legacy data issue)
+ * 
+ * v2.1.9 GUARD: This function is the ONLY path to calculate booking expense costs.
+ * No other code should access booking.total_cost directly for expense purposes.
  */
 export function getBookingExpenseCost(booking: Booking): number {
-  // Use booking.total_cost as the single source of truth
-  // This is already at the booking level (not segment level)
+  // Use booking.total_cost as the ONLY source of truth
+  // Never calculate from segments, legs, or any other source
   const totalCost = Number(booking.total_cost || 0);
   
-  // Guard against NaN, negative, or invalid values
+  // Guard against NaN, Infinity, negative, or invalid values
   if (!Number.isFinite(totalCost) || totalCost < 0) {
     return 0;
   }
@@ -133,11 +140,15 @@ export function getBookingExpenseCost(booking: Booking): number {
  * Create or update expense for a booking
  * Returns the expense ID on success, null on failure
  * 
- * AIRFARE ALLOCATION (v2.2.1):
- * - Creates ONE expense per booking using booking.total_cost
- * - For multi-leg flights: The booking represents the entire itinerary
- * - We do NOT create segment-level expenses
- * - This ensures the fare is counted exactly once regardless of leg count
+ * AIRFARE ALLOCATION (v2.1.9 - Duplication Prevention):
+ * - Creates exactly ONE expense per booking using getBookingExpenseCost()
+ * - For multi-leg flights: The booking represents the entire confirmation
+ * - Each booking ID gets exactly one linked expense
+ * - We NEVER create segment-level or per-leg expenses
+ * - This ensures the fare is counted exactly ONCE regardless of:
+ *   a) Number of legs/segments
+ *   b) Number of passengers
+ *   c) How the data was parsed
  */
 export async function syncExpenseFromBooking(booking: Booking): Promise<string | null> {
   // Get normalized booking cost (handles edge cases)

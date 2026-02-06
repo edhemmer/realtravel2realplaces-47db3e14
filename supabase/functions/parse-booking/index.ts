@@ -159,20 +159,28 @@ For FULL BOOKING CONFIRMATIONS (is_receipt_only: false), extract all fields:
 - confirmation_number
 - address
 
-CRITICAL AIRFARE COST RULES (v1.2.6):
-- total_cost should contain the TOTAL airfare for the entire trip (all legs combined)
-- For multi-leg/round-trip flights: Report the SINGLE total once. Do NOT split or duplicate costs.
-- If the confirmation shows one total (e.g., "$350.00 Total") for a round trip, return total_cost: 350
+CRITICAL AIRFARE COST RULES (v2.1.9):
+- total_cost should contain the TOTAL airfare for the entire booking (all legs combined)
+- For multi-leg/round-trip flights: Report ONE single booking record with ONE total_cost
+- NEVER create separate booking records for each leg - all legs belong to ONE booking
+- If the confirmation shows one total (e.g., "$350.00 Total") for a round trip:
+  - Return ONE booking record with total_cost: 350
+  - Include all leg details in the notes field (e.g., "Outbound: F1234, Return: F5678")
 - Do NOT infer per-leg costs. Only report amounts explicitly shown.
-- If separate per-leg costs are explicitly provided (rare), sum them for total_cost.
+- If separate per-leg costs are explicitly provided (rare), SUM them for total_cost on the single booking.
 - NEVER multiply or duplicate the total based on number of passengers or legs.
+- NEVER create multiple booking records for what is clearly one purchase/confirmation.
 
-CRITICAL FOR FLIGHTS WITH MULTIPLE LEGS (round trips):
-- start_datetime = DEPARTURE time of the FIRST/OUTBOUND flight (with explicit time if shown)
+CRITICAL FOR FLIGHTS WITH MULTIPLE LEGS (round trips, multi-city):
+- Create ONLY ONE booking record for the entire itinerary, regardless of number of legs/segments
+- start_datetime = DEPARTURE time of the FIRST/OUTBOUND flight
 - end_datetime = ARRIVAL time of the LAST/RETURN flight (NOT the outbound arrival)
 - This ensures the flight booking spans the entire trip duration
-- Example: If outbound departs Jan 30 6:13 PM and return arrives Feb 1 9:46 PM, use start_datetime=2026-01-30T18:13:00 and end_datetime=2026-02-01T21:46:00
-- The single total_cost applies to this ONE booking record spanning both legs
+- Example: If outbound departs Jan 30 6:13 PM and return arrives Feb 1 9:46 PM:
+  - Create ONE booking: start_datetime=2026-01-30T18:13:00, end_datetime=2026-02-01T21:46:00, total_cost=(full trip fare)
+  - Include leg details in notes: "Outbound: ATL→MCO F1234, Return: MCO→ATL F5678"
+- The single total_cost applies to this ONE booking record spanning ALL legs
+- NEVER create separate bookings per leg from a single confirmation
 
 For flights also extract:
 - airline (the actual airline name like "Frontier Airlines", "Delta", "United" - extract from the confirmation text)
