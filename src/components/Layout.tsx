@@ -1,14 +1,17 @@
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsPro } from '@/hooks/useSubscription';
 import { Button } from '@/components/ui/button';
- import { Plane, LogOut, User, Settings, Crown } from 'lucide-react';
+import { Plane, LogOut, User, Settings, Crown, MessageCircleQuestion } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ContactSupportDialog } from '@/components/support/ContactSupportDialog';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -18,6 +21,7 @@ export function Layout({ children }: LayoutProps) {
   const { user, signOut } = useAuth();
   const isPro = useIsPro();
   const navigate = useNavigate();
+  const [supportDialogOpen, setSupportDialogOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -63,6 +67,11 @@ export function Layout({ children }: LayoutProps) {
                   <Settings className="w-4 h-4 mr-2" />
                   Account Settings
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setSupportDialogOpen(true)} className="cursor-pointer">
+                  <MessageCircleQuestion className="w-4 h-4 mr-2" />
+                  Contact support
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
                   <LogOut className="w-4 h-4 mr-2" />
                   Sign Out
@@ -77,6 +86,9 @@ export function Layout({ children }: LayoutProps) {
       <main className="container px-4 py-6">
         {children}
       </main>
+
+      {/* Contact Support Dialog */}
+      <ContactSupportDialog open={supportDialogOpen} onOpenChange={setSupportDialogOpen} />
     </div>
   );
 }
