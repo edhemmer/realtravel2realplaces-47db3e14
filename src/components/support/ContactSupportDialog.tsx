@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useSubscription } from '@/hooks/useSubscription';
 import {
   Dialog,
   DialogContent,
@@ -21,10 +23,13 @@ interface ContactSupportDialogProps {
 }
 
 // App version constant - update as needed
-const APP_VERSION = '2.1.25';
+const APP_VERSION = '2.1.27';
 
 export function ContactSupportDialog({ open, onOpenChange }: ContactSupportDialogProps) {
   const { user } = useAuth();
+  const location = useLocation();
+  const { tripId } = useParams<{ tripId?: string }>();
+  const { data: subscription } = useSubscription();
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -63,6 +68,9 @@ export function ContactSupportDialog({ open, onOpenChange }: ContactSupportDialo
         message: trimmedMessage,
         status: 'open',
         app_version: APP_VERSION,
+        page_path: location.pathname,
+        trip_id: tripId || null,
+        user_plan: subscription?.tier || 'free',
       });
 
       if (error) {
@@ -76,8 +84,8 @@ export function ContactSupportDialog({ open, onOpenChange }: ContactSupportDialo
       }
 
       toast({
-        title: "Message sent",
-        description: "Thanks, your message has been sent. We'll review it soon.",
+        title: "Thanks — your request has been sent",
+        description: "We'll take a look.",
       });
 
       // Reset form and close

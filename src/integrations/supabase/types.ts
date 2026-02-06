@@ -436,10 +436,13 @@ export type Database = {
           email: string
           id: string
           message: string
+          page_path: string | null
           status: string
           subject: string
+          trip_id: string | null
           updated_at: string
           user_id: string
+          user_plan: string | null
         }
         Insert: {
           app_version?: string | null
@@ -447,10 +450,13 @@ export type Database = {
           email: string
           id?: string
           message: string
+          page_path?: string | null
           status?: string
           subject: string
+          trip_id?: string | null
           updated_at?: string
           user_id: string
+          user_plan?: string | null
         }
         Update: {
           app_version?: string | null
@@ -458,10 +464,13 @@ export type Database = {
           email?: string
           id?: string
           message?: string
+          page_path?: string | null
           status?: string
           subject?: string
+          trip_id?: string | null
           updated_at?: string
           user_id?: string
+          user_plan?: string | null
         }
         Relationships: []
       }

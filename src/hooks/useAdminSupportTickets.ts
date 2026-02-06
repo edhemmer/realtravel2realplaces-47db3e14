@@ -10,6 +10,9 @@ export interface SupportTicket {
   message: string;
   status: 'open' | 'in_progress' | 'closed';
   app_version: string | null;
+  page_path: string | null;
+  trip_id: string | null;
+  user_plan: string | null;
   created_at: string;
   updated_at: string;
 }
