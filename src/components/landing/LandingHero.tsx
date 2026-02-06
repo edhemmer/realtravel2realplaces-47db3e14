@@ -48,7 +48,7 @@ export default function LandingHero() {
                 to="/auth"
                 className="landing-btn-primary text-base px-8 py-3 text-center"
               >
-                Start free
+                Get started
               </Link>
               <button
                 onClick={scrollToFeatures}
