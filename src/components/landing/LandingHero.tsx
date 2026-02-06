@@ -32,9 +32,7 @@ export default function LandingHero() {
             </p>
 
             {/* Supporting text */}
-            <p className="text-base sm:text-lg text-[hsl(var(--landing-text-muted))] max-w-lg mx-auto lg:mx-0 leading-relaxed mb-3">
-              Add your travel confirmations and we help manage flights, stays, expenses, and packing in one calm, reliable view.
-            </p>
+            <p className="text-base sm:text-lg text-[hsl(var(--landing-text-muted))] max-w-lg mx-auto lg:mx-0 leading-relaxed mb-3">Add your travel confirmations, and we'll take it from there. We help organize and manage flights, stays, expenses, and packing in one calm, reliable view.</p>
 
             {/* SaaS framing line */}
             <p className="text-sm sm:text-base text-[hsl(var(--landing-text-muted))] max-w-lg mx-auto lg:mx-0 mb-8 opacity-80">
@@ -59,7 +57,7 @@ export default function LandingHero() {
 
             {/* Trust text */}
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 justify-center lg:justify-start text-sm text-[hsl(var(--landing-text-muted))]">
-              <span>Free to use.</span>
+              <span>Free limited use.</span>
               <span className="hidden sm:block">•</span>
               <span>No ads   •    Your data stays yours.</span>
             </div>
