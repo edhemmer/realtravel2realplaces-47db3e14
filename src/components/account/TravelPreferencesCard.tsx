@@ -4,9 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plane, DollarSign, Calendar, Check, AlertCircle } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Plane, DollarSign, Calendar, Check, AlertCircle, Ruler, Thermometer } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 import { searchAirports, formatAirport, getAirportByCode, Airport } from '@/lib/airportData';
 
 const CURRENCY_OPTIONS = [
@@ -27,20 +29,27 @@ interface TravelPreferencesCardProps {
   initialAirport?: string | null;
   initialCurrency?: string | null;
   initialDatetimeFormat?: string | null;
+  initialDistanceUnit?: 'miles' | 'kilometers' | null;
+  initialTemperatureUnit?: 'fahrenheit' | 'celsius' | null;
 }
 
 export function TravelPreferencesCard({
   initialAirport,
   initialCurrency,
   initialDatetimeFormat,
+  initialDistanceUnit,
+  initialTemperatureUnit,
 }: TravelPreferencesCardProps) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [homeAirport, setHomeAirport] = useState(initialAirport || '');
   const [airportInput, setAirportInput] = useState('');
   const [airportSuggestions, setAirportSuggestions] = useState<Airport[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [currency, setCurrency] = useState(initialCurrency || 'USD');
   const [datetimeFormat, setDatetimeFormat] = useState(initialDatetimeFormat || 'MM/DD/YYYY 12h');
+  const [distanceUnit, setDistanceUnit] = useState<'miles' | 'kilometers'>(initialDistanceUnit || 'miles');
+  const [temperatureUnit, setTemperatureUnit] = useState<'fahrenheit' | 'celsius'>(initialTemperatureUnit || 'fahrenheit');
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const suggestionsRef = useRef<HTMLDivElement>(null);
@@ -105,6 +114,8 @@ export function TravelPreferencesCard({
           preferred_home_airport: homeAirport || null,
           preferred_currency: currency,
           preferred_datetime_format: datetimeFormat,
+          distance_unit: distanceUnit,
+          temperature_unit: temperatureUnit,
         })
         .eq('user_id', user.id);
 
@@ -113,6 +124,8 @@ export function TravelPreferencesCard({
         setSaveStatus('error');
       } else {
         setSaveStatus('success');
+        // Invalidate user profile query to refresh preferences across the app
+        queryClient.invalidateQueries({ queryKey: ['user-profile', user.id] });
         setTimeout(() => setSaveStatus('idle'), 3000);
       }
     } catch (err) {
@@ -132,7 +145,7 @@ export function TravelPreferencesCard({
         </CardTitle>
         <CardDescription>Customize your travel defaults</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6">
         {/* Home Airport */}
         <div className="space-y-2">
           <Label htmlFor="home-airport">Home airport</Label>
@@ -210,6 +223,50 @@ export function TravelPreferencesCard({
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        {/* Distance Unit */}
+        <div className="space-y-3">
+          <Label className="flex items-center gap-1.5">
+            <Ruler className="w-4 h-4 text-muted-foreground" />
+            Distance unit
+          </Label>
+          <RadioGroup
+            value={distanceUnit}
+            onValueChange={(value) => setDistanceUnit(value as 'miles' | 'kilometers')}
+            className="flex gap-6"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="miles" id="miles" />
+              <Label htmlFor="miles" className="font-normal cursor-pointer">Miles</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="kilometers" id="kilometers" />
+              <Label htmlFor="kilometers" className="font-normal cursor-pointer">Kilometers</Label>
+            </div>
+          </RadioGroup>
+        </div>
+
+        {/* Temperature Unit */}
+        <div className="space-y-3">
+          <Label className="flex items-center gap-1.5">
+            <Thermometer className="w-4 h-4 text-muted-foreground" />
+            Temperature unit
+          </Label>
+          <RadioGroup
+            value={temperatureUnit}
+            onValueChange={(value) => setTemperatureUnit(value as 'fahrenheit' | 'celsius')}
+            className="flex gap-6"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="fahrenheit" id="fahrenheit" />
+              <Label htmlFor="fahrenheit" className="font-normal cursor-pointer">Fahrenheit (°F)</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="celsius" id="celsius" />
+              <Label htmlFor="celsius" className="font-normal cursor-pointer">Celsius (°C)</Label>
+            </div>
+          </RadioGroup>
         </div>
 
         {/* Save Button & Status */}

@@ -381,6 +381,7 @@ export type Database = {
           default_frequent_flyer: string | null
           default_tsa_precheck: string | null
           display_name: string | null
+          distance_unit: string | null
           first_name: string | null
           id: string
           last_name: string | null
@@ -390,6 +391,7 @@ export type Database = {
           preferred_home_airport: string | null
           subscription_started_at: string | null
           subscription_tier: Database["public"]["Enums"]["subscription_tier"]
+          temperature_unit: string | null
           updated_at: string
           user_id: string
         }
@@ -398,6 +400,7 @@ export type Database = {
           default_frequent_flyer?: string | null
           default_tsa_precheck?: string | null
           display_name?: string | null
+          distance_unit?: string | null
           first_name?: string | null
           id?: string
           last_name?: string | null
@@ -407,6 +410,7 @@ export type Database = {
           preferred_home_airport?: string | null
           subscription_started_at?: string | null
           subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
+          temperature_unit?: string | null
           updated_at?: string
           user_id: string
         }
@@ -415,6 +419,7 @@ export type Database = {
           default_frequent_flyer?: string | null
           default_tsa_precheck?: string | null
           display_name?: string | null
+          distance_unit?: string | null
           first_name?: string | null
           id?: string
           last_name?: string | null
@@ -424,6 +429,7 @@ export type Database = {
           preferred_home_airport?: string | null
           subscription_started_at?: string | null
           subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
+          temperature_unit?: string | null
           updated_at?: string
           user_id?: string
         }

@@ -1,5 +1,5 @@
 import { useTripWeather } from '@/hooks/useWeather';
-import { useTemperatureUnit } from '@/hooks/useTemperatureUnit';
+import { useProfileTemperatureUnit } from '@/hooks/useProfileTemperatureUnit';
 import { useParking } from '@/hooks/useParking';
 import { useExpenses } from '@/hooks/useExpenses';
 import { useBookings } from '@/hooks/useBookings';
@@ -24,7 +24,7 @@ const getWeatherIcon = (condition: string) => {
 };
 
 export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
-  const { formatTemp } = useTemperatureUnit();
+  const { formatTemp } = useProfileTemperatureUnit();
   const { tripForecast, weatherAnalysis, isLoading: weatherLoading } = useTripWeather(
     trip.destination_city?.trim() || '',
     trip.destination_country || '',

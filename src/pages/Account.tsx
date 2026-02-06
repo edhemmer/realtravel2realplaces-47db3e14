@@ -126,6 +126,8 @@ export default function Account() {
             initialAirport={profile?.preferred_home_airport}
             initialCurrency={profile?.preferred_currency}
             initialDatetimeFormat={profile?.preferred_datetime_format}
+            initialDistanceUnit={profile?.distance_unit}
+            initialTemperatureUnit={profile?.temperature_unit}
           />
         )}
 
