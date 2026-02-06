@@ -35,9 +35,7 @@ export default function LandingHero() {
             <p className="text-base sm:text-lg text-[hsl(var(--landing-text-muted))] max-w-lg mx-auto lg:mx-0 leading-relaxed mb-3">Add your travel confirmations, and we'll take it from there. We help organize and manage flights, stays, expenses, and packing in one calm, reliable view.</p>
 
             {/* SaaS framing line */}
-            <p className="text-sm sm:text-base text-[hsl(var(--landing-text-muted))] max-w-lg mx-auto lg:mx-0 mb-8 opacity-80">
-              Built like the tools teams rely on every day, but focused on your trips.
-            </p>
+            <p className="text-sm sm:text-base text-[hsl(var(--landing-text-muted))] max-w-lg mx-auto lg:mx-0 mb-8 opacity-80">Built to help you stay in control of your trip.</p>
 
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-6">

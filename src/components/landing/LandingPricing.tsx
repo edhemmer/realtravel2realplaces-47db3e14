@@ -7,9 +7,7 @@ export default function LandingPricing() {
       <div className="max-w-7xl mx-auto">
         {/* Section Header */}
         <div className="text-center mb-12 lg:mb-16">
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4">
-            Free now. Pro coming soon.
-          </h2>
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4">Try the Free version Now. Pro version coming soon.</h2>
           <p className="text-base sm:text-lg text-[hsl(var(--landing-text-muted))] max-w-2xl mx-auto">
             Start with the free plan today. Pro will add more firepower for frequent travelers without adding more noise.
           </p>
