@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Booking, BookingType, StayType } from '@/types/database';
+import { Booking, BookingType, StayType, TransportModeType } from '@/types/database';
 import { toast } from 'sonner';
 import { 
   syncExpenseFromBooking, 
@@ -27,22 +27,27 @@ interface CreateBookingData {
   booking_type: BookingType;
   vendor_name: string;
   start_datetime: string;
-  end_datetime?: string;
-  address?: string;
-  confirmation_number?: string;
+  end_datetime?: string | null;
+  address?: string | null;
+  confirmation_number?: string | null;
   total_cost?: number;
   my_share?: number;
-  link_url?: string;
-  notes?: string;
-  passenger_name?: string;
-  airline?: string;
-  tsa_precheck_number?: string;
-  frequent_flyer_number?: string;
-  stay_type?: StayType;
-  property_name?: string;
-  rental_company?: string;
-  pickup_location?: string;
-  return_location?: string;
+  link_url?: string | null;
+  notes?: string | null;
+  passenger_name?: string | null;
+  airline?: string | null;
+  tsa_precheck_number?: string | null;
+  frequent_flyer_number?: string | null;
+  stay_type?: StayType | null;
+  property_name?: string | null;
+  rental_company?: string | null;
+  pickup_location?: string | null;
+  return_location?: string | null;
+  // Transport-specific (Patch 2.1.37)
+  transport_mode?: TransportModeType | null;
+  from_location?: string | null;
+  to_location?: string | null;
+  operator?: string | null;
 }
 
 export function useCreateBooking() {

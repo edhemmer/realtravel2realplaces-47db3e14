@@ -6,7 +6,7 @@ import { useTrip, useUpdateTrip } from '@/hooks/useTrips';
 import { useTripDateSync, calculateFlightDateRange, calculateNonFlightDateRange } from '@/hooks/useTripDateSync';
 import { useCreateExpense } from '@/hooks/useExpenses';
 import { useMarkTicketsPurchased } from '@/hooks/useActivityBooking';
-import { Booking, BookingType, StayType, Companion } from '@/types/database';
+import { Booking, BookingType, StayType, TransportModeType, Companion } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +19,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { 
   Plus, Plane, Building2, Car, PartyPopper, Trash2, Pencil,
   ExternalLink, MapPin, AlertTriangle, Link2, Upload, FileText, Users,
-  ClipboardPaste, Loader2, Scan, CircleParking, Ticket, CheckCircle2
+  ClipboardPaste, Loader2, Scan, CircleParking, Ticket, CheckCircle2,
+  TrainFront, Bus, TramFront, Ship, Compass
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isBefore, isAfter, startOfDay } from 'date-fns';
@@ -150,6 +151,11 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
     rental_company: '',
     pickup_location: '',
     return_location: '',
+    // Transport-specific
+    transport_mode: 'train' as TransportModeType,
+    from_location: '',
+    to_location: '',
+    operator: '',
   });
 
   // Auto-populate booking link when vendor/airline name changes
@@ -187,6 +193,10 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
       stay_type: 'hotel',
       property_name: '',
       rental_company: '',
+      transport_mode: 'train',
+      from_location: '',
+      to_location: '',
+      operator: '',
       pickup_location: '',
       return_location: '',
     });
@@ -466,6 +476,10 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
       rental_company: booking.rental_company || '',
       pickup_location: booking.pickup_location || '',
       return_location: booking.return_location || '',
+      transport_mode: (booking as any).transport_mode || 'train',
+      from_location: (booking as any).from_location || '',
+      to_location: (booking as any).to_location || '',
+      operator: (booking as any).operator || '',
     });
     // Load existing companions for this booking
     const existingCompanionIds = bookingCompanions
@@ -497,6 +511,11 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
       rental_company: formData.rental_company || null,
       pickup_location: formData.pickup_location || null,
       return_location: formData.return_location || null,
+      // Transport-specific fields
+      transport_mode: bookingType === 'transport' ? formData.transport_mode : null,
+      from_location: bookingType === 'transport' ? (formData.from_location || null) : null,
+      to_location: bookingType === 'transport' ? (formData.to_location || null) : null,
+      operator: bookingType === 'transport' ? (formData.operator || null) : null,
     };
 
     if (editingBooking) {
@@ -633,11 +652,20 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
     }
   };
 
-  const getBookingIcon = (type: string) => {
+  const getBookingIcon = (type: string, transportMode?: string) => {
     switch (type) {
       case 'flight': return <Plane className="w-5 h-5" />;
       case 'stay': return <Building2 className="w-5 h-5" />;
       case 'car_rental': return <Car className="w-5 h-5" />;
+      case 'transport':
+        switch (transportMode) {
+          case 'train': return <TrainFront className="w-5 h-5" />;
+          case 'bus': return <Bus className="w-5 h-5" />;
+          case 'metro': return <TramFront className="w-5 h-5" />;
+          case 'ferry': return <Ship className="w-5 h-5" />;
+          default: return <TrainFront className="w-5 h-5" />;
+        }
+      case 'activity': return <Compass className="w-5 h-5" />;
       default: return <PartyPopper className="w-5 h-5" />;
     }
   };
@@ -647,6 +675,8 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
       case 'flight': return 'bg-sky-500/10 text-sky-600';
       case 'stay': return 'bg-purple-500/10 text-purple-600';
       case 'car_rental': return 'bg-amber-500/10 text-amber-600';
+      case 'transport': return 'bg-teal-500/10 text-teal-600';
+      case 'activity': return 'bg-rose-500/10 text-rose-600';
       default: return 'bg-rose-500/10 text-rose-600';
     }
   };
@@ -711,16 +741,23 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getBookingColor(booking.booking_type)}`}>
-                      {getBookingIcon(booking.booking_type)}
+                      {getBookingIcon(booking.booking_type, (booking as any).transport_mode)}
                     </div>
                     <div className="min-w-0">
                       <CardTitle className="text-base truncate">
                         {booking.booking_type === 'flight' ? booking.airline || booking.vendor_name :
                          booking.booking_type === 'stay' ? booking.property_name || booking.vendor_name :
                          booking.booking_type === 'car_rental' ? booking.rental_company || booking.vendor_name :
+                         booking.booking_type === 'transport' ? ((booking as any).operator || booking.vendor_name) :
                          booking.vendor_name}
                       </CardTitle>
-                      <CardDescription className="capitalize text-xs">{booking.booking_type.replace('_', ' ')}</CardDescription>
+                      <CardDescription className="text-xs">
+                        {booking.booking_type === 'transport' ? (
+                          <span className="capitalize">{((booking as any).transport_mode || 'transport').replace('_', ' ')}</span>
+                        ) : (
+                          <span className="capitalize">{booking.booking_type.replace('_', ' ')}</span>
+                        )}
+                      </CardDescription>
                     </div>
                   </div>
                   {canEdit && (
@@ -746,9 +783,20 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                 </div>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
+                {/* Transport-specific: From → To display */}
+                {booking.booking_type === 'transport' && ((booking as any).from_location || (booking as any).to_location) && (
+                  <div className="text-xs">
+                    <span className="text-muted-foreground block">Route</span>
+                    <span className="font-medium">
+                      {(booking as any).from_location || '—'} → {(booking as any).to_location || '—'}
+                    </span>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
-                    <span className="text-muted-foreground block">Date/Time</span>
+                    <span className="text-muted-foreground block">
+                      {booking.booking_type === 'transport' ? 'Departure' : 'Date/Time'}
+                    </span>
                     {/* v2.2.0: Use safe datetime parsing to preserve original dates */}
                     {(() => {
                       const startDate = parseDatetimeForDisplay(booking.start_datetime);
@@ -764,13 +812,39 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                       ) : <span className="text-muted-foreground">--</span>;
                     })()}
                   </div>
-                  {booking.confirmation_number && (
+                  {/* Transport: show arrival time if available */}
+                  {booking.booking_type === 'transport' && booking.end_datetime && (
+                    <div>
+                      <span className="text-muted-foreground block">Arrival</span>
+                      {(() => {
+                        const endDate = parseDatetimeForDisplay(booking.end_datetime);
+                        return endDate ? (
+                          <span className="font-medium">
+                            {format(endDate, 'MMM d')},{' '}
+                            {hasExplicitTime(booking.end_datetime) ? (
+                              format(endDate, 'h:mm a')
+                            ) : (
+                              <span className="text-destructive">{UNKNOWN_TIME_PLACEHOLDER}</span>
+                            )}
+                          </span>
+                        ) : <span className="text-muted-foreground">--</span>;
+                      })()}
+                    </div>
+                  )}
+                  {booking.confirmation_number && booking.booking_type !== 'transport' && (
                     <div>
                       <span className="text-muted-foreground block">Confirmation</span>
                       <span className="font-mono font-medium">{booking.confirmation_number}</span>
                     </div>
                   )}
                 </div>
+                {/* Transport: show reference/ticket number separately */}
+                {booking.booking_type === 'transport' && booking.confirmation_number && (
+                  <div className="text-xs">
+                    <span className="text-muted-foreground block">Reference / Ticket #</span>
+                    <span className="font-mono font-medium">{booking.confirmation_number}</span>
+                  </div>
+                )}
                 
                 {(booking.total_cost > 0 || booking.my_share > 0) && (
                   <div className="flex gap-4 pt-2 border-t text-xs">
@@ -1041,6 +1115,7 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                   <SelectItem value="flight">✈️ Flight</SelectItem>
                   <SelectItem value="stay">🏨 Stay</SelectItem>
                   <SelectItem value="car_rental">🚗 Car Rental</SelectItem>
+                  <SelectItem value="transport">🚆 Transport</SelectItem>
                   <SelectItem value="activity">🎉 Activity</SelectItem>
                 </SelectContent>
               </Select>
@@ -1181,6 +1256,53 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                       onChange={(e) => setFormData({ ...formData, return_location: e.target.value })}
                     />
                   </div>
+                </div>
+              </>
+            )}
+
+            {/* Transport-specific fields */}
+            {bookingType === 'transport' && (
+              <>
+                <div className="space-y-2">
+                  <Label>Transport Mode *</Label>
+                  <Select value={formData.transport_mode} onValueChange={(v: TransportModeType) => setFormData({ ...formData, transport_mode: v })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="train">🚆 Train</SelectItem>
+                      <SelectItem value="bus">🚌 Bus</SelectItem>
+                      <SelectItem value="metro">🚇 Metro / Tram</SelectItem>
+                      <SelectItem value="ferry">🚢 Ferry</SelectItem>
+                      <SelectItem value="other">🚗 Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>From</Label>
+                    <Input
+                      value={formData.from_location}
+                      onChange={(e) => setFormData({ ...formData, from_location: e.target.value })}
+                      placeholder="City, station, port..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>To</Label>
+                    <Input
+                      value={formData.to_location}
+                      onChange={(e) => setFormData({ ...formData, to_location: e.target.value })}
+                      placeholder="City, station, port..."
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Operator</Label>
+                  <Input
+                    value={formData.operator}
+                    onChange={(e) => setFormData({ ...formData, operator: e.target.value })}
+                    placeholder="e.g., SNCB, Eurostar, Deutsche Bahn"
+                  />
                 </div>
               </>
             )}

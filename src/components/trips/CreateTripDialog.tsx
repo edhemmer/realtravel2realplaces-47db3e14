@@ -319,7 +319,7 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
         let totalCompanionsCreated = 0;
         
         for (const booking of parsedBookings) {
-          const vendorUrl = getVendorUrl(booking.vendor_name, booking.booking_type);
+          const vendorUrl = booking.booking_type !== 'transport' ? getVendorUrl(booking.vendor_name, booking.booking_type) : null;
           
           // Create the booking first
           const createdBooking = await createBooking.mutateAsync({

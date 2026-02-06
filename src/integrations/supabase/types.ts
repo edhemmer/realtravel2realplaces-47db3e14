@@ -63,11 +63,13 @@ export type Database = {
           created_at: string
           end_datetime: string | null
           frequent_flyer_number: string | null
+          from_location: string | null
           id: string
           link_url: string | null
           location_summary: string | null
           my_share: number | null
           notes: string | null
+          operator: string | null
           passenger_name: string | null
           pickup_location: string | null
           property_name: string | null
@@ -77,7 +79,9 @@ export type Database = {
           stay_type: Database["public"]["Enums"]["stay_type"] | null
           ticket_required: boolean | null
           tickets_purchased: boolean | null
+          to_location: string | null
           total_cost: number | null
+          transport_mode: Database["public"]["Enums"]["transport_mode"] | null
           trip_id: string
           tsa_precheck_number: string | null
           updated_at: string
@@ -95,11 +99,13 @@ export type Database = {
           created_at?: string
           end_datetime?: string | null
           frequent_flyer_number?: string | null
+          from_location?: string | null
           id?: string
           link_url?: string | null
           location_summary?: string | null
           my_share?: number | null
           notes?: string | null
+          operator?: string | null
           passenger_name?: string | null
           pickup_location?: string | null
           property_name?: string | null
@@ -109,7 +115,9 @@ export type Database = {
           stay_type?: Database["public"]["Enums"]["stay_type"] | null
           ticket_required?: boolean | null
           tickets_purchased?: boolean | null
+          to_location?: string | null
           total_cost?: number | null
+          transport_mode?: Database["public"]["Enums"]["transport_mode"] | null
           trip_id: string
           tsa_precheck_number?: string | null
           updated_at?: string
@@ -127,11 +135,13 @@ export type Database = {
           created_at?: string
           end_datetime?: string | null
           frequent_flyer_number?: string | null
+          from_location?: string | null
           id?: string
           link_url?: string | null
           location_summary?: string | null
           my_share?: number | null
           notes?: string | null
+          operator?: string | null
           passenger_name?: string | null
           pickup_location?: string | null
           property_name?: string | null
@@ -141,7 +151,9 @@ export type Database = {
           stay_type?: Database["public"]["Enums"]["stay_type"] | null
           ticket_required?: boolean | null
           tickets_purchased?: boolean | null
+          to_location?: string | null
           total_cost?: number | null
+          transport_mode?: Database["public"]["Enums"]["transport_mode"] | null
           trip_id?: string
           tsa_precheck_number?: string | null
           updated_at?: string
@@ -851,7 +863,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
-      booking_type: "flight" | "stay" | "car_rental" | "activity"
+      booking_type: "flight" | "stay" | "car_rental" | "activity" | "transport"
       destination_type: "beach" | "mountain" | "city" | "unspecified"
       event_source_type: "booking" | "parking"
       expense_category:
@@ -892,6 +904,7 @@ export type Database = {
       parking_type: "airport" | "beach" | "city_garage" | "hotel" | "other"
       stay_type: "hotel" | "airbnb" | "vrbo" | "other"
       subscription_tier: "free" | "pro"
+      transport_mode: "train" | "bus" | "metro" | "ferry" | "other"
       transportation_mode: "flight" | "drive" | "unspecified"
       trip_event_type:
         | "flight_departure"
@@ -1030,7 +1043,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
-      booking_type: ["flight", "stay", "car_rental", "activity"],
+      booking_type: ["flight", "stay", "car_rental", "activity", "transport"],
       destination_type: ["beach", "mountain", "city", "unspecified"],
       event_source_type: ["booking", "parking"],
       expense_category: [
@@ -1073,6 +1086,7 @@ export const Constants = {
       parking_type: ["airport", "beach", "city_garage", "hotel", "other"],
       stay_type: ["hotel", "airbnb", "vrbo", "other"],
       subscription_tier: ["free", "pro"],
+      transport_mode: ["train", "bus", "metro", "ferry", "other"],
       transportation_mode: ["flight", "drive", "unspecified"],
       trip_event_type: [
         "flight_departure",
