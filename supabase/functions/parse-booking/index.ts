@@ -124,6 +124,20 @@ First, determine which type this is by setting:
 - is_receipt_only: true if this is just a payment receipt WITHOUT service dates
 - is_receipt_only: false if this contains actual service dates (flight times, check-in/out, pickup/dropoff, etc.)
 
+BOOKING TYPE CLASSIFICATION (v2.1.17):
+- flight: Airline tickets, boarding passes, flight confirmations
+- stay: Hotels, Airbnb, VRBO, vacation rentals
+- car_rental: Rental cars (Hertz, Avis, Enterprise, Alamo, etc.)
+- parking: Parking services (SpotHero, WallyPark, ParkWhiz, The Parking Spot, PreFlight, airport parking, garage parking, lot parking) - NOT "activity"
+- activity: Tours, excursions, permits, event tickets, admission tickets, attraction reservations
+  - Signals: "tour", "excursion", "permit", "entry ticket", "admission", "event ticket", "reservation for [tour/attraction]", "guided", "experience"
+  - Examples: The Wave permit, Antelope Canyon tour, Broadway show tickets, museum admission, theme park tickets
+
+For ACTIVITY bookings, also extract:
+- activity_name (name of the tour/attraction/event)
+- provider_name (company running the tour/issuing the permit)
+- is_ticket_or_permit: true if this is an entry ticket or permit type booking
+
 CRITICAL v2.0.6 - STRICT DATETIME INTEGRITY:
 - ONLY extract times that are EXPLICITLY stated in the document
 - If a document shows a date but NO explicit time (e.g., "Check-in: January 30, 2026"), set the time to null
@@ -138,11 +152,6 @@ For RECEIPT ONLY documents (is_receipt_only: true), extract:
 - total_cost (amount paid)
 - receipt_date (payment/transaction date in YYYY-MM-DD format)
 - Set booking_type based on context if determinable (flight, stay, car_rental, parking, activity, other)
-
-For FULL BOOKING CONFIRMATIONS (is_receipt_only: false), extract all fields:
-- booking_type (flight, stay, car_rental, activity, parking)
-  - IMPORTANT: If the text mentions parking services (SpotHero, WallyPark, ParkWhiz, The Parking Spot, PreFlight, airport parking, garage parking, lot parking), classify as "parking" NOT "activity"
-- vendor_name (the actual company name, e.g., "Frontier Airlines", "Alamo", "Marriott" - NEVER return "null" as a string)
 - start_datetime: 
   - If EXPLICIT time exists: use ISO 8601 format with time (e.g., "2026-01-30T18:13:00")
   - If NO explicit time: use date-only format (e.g., "2026-01-30")
@@ -259,7 +268,7 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
                     is_receipt_only: { type: "boolean", description: "True if this is a payment receipt without service dates (no flight times, no check-in/out, no pickup/dropoff)" },
                     booking_type: { type: "string", enum: ["flight", "stay", "car_rental", "activity", "parking", "other"] },
                     vendor_name: { type: "string" },
-                    start_datetime: { type: "string", description: "For stays: check-in date. For flights: departure. For rentals: pickup. For parking: start time. NULL for receipts." },
+                    start_datetime: { type: "string", description: "For stays: check-in date. For flights: departure. For rentals: pickup. For parking: start time. For activities: event date/time. NULL for receipts." },
                     end_datetime: { type: "string", description: "For stays: check-out date. For flights: arrival. For rentals: drop-off. For parking: end time. NULL for receipts." },
                     receipt_date: { type: "string", description: "For receipts only: the payment/transaction date in YYYY-MM-DD format" },
                     confirmation_number: { type: "string" },
@@ -274,6 +283,11 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
                     return_location: { type: "string" },
                     parking_type: { type: "string", enum: ["airport", "hotel", "city_garage", "beach", "other"] },
                     notes: { type: "string" },
+                    // Activity-specific fields (v2.1.17)
+                    activity_name: { type: "string", description: "For activities: name of the tour, attraction, or event" },
+                    provider_name: { type: "string", description: "For activities: company/organization providing the tour/experience" },
+                    is_ticket_or_permit: { type: "boolean", description: "For activities: true if this is a ticket or permit type booking" },
+                    location_summary: { type: "string", description: "Brief location description (e.g., 'Near Page, AZ')" },
                   },
                   required: ["is_receipt_only", "vendor_name"],
                 },

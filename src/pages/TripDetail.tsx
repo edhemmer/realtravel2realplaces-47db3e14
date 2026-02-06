@@ -5,7 +5,7 @@ import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, MapPin, Calendar, Eye, Users } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Eye, Users, Compass } from 'lucide-react';
 import { format } from 'date-fns';
 import { SummaryTab } from '@/components/trips/tabs/SummaryTab';
 import { BookingsTab } from '@/components/trips/tabs/BookingsTab';
@@ -14,6 +14,7 @@ import { ParkingTab } from '@/components/trips/tabs/ParkingTab';
 import { PackingTab } from '@/components/trips/tabs/PackingTab';
 import { CompanionsTab } from '@/components/trips/tabs/CompanionsTab';
 import { NotesTab } from '@/components/trips/tabs/NotesTab';
+import { ExploreTab } from '@/components/trips/tabs/ExploreTab';
 import { TripHeaderWidgets } from '@/components/trips/TripHeaderWidgets';
 import { TripStatusHeroBar } from '@/components/trips/TripStatusHeroBar';
 import { ProRetentionCountdownCard } from '@/components/trips/ProRetentionCountdownCard';
@@ -153,6 +154,10 @@ export default function TripDetail() {
               <TabsTrigger value="packing">Packing</TabsTrigger>
               <TabsTrigger value="companions">Companions</TabsTrigger>
               <TabsTrigger value="notes">Notes & Safety</TabsTrigger>
+              <TabsTrigger value="explore" className="gap-1.5">
+                <Compass className="w-3.5 h-3.5" />
+                Explore
+              </TabsTrigger>
             </TabsList>
 
             <div className="mt-6">
@@ -184,6 +189,9 @@ export default function TripDetail() {
               </TabsContent>
               <TabsContent value="notes">
                 <NotesTab tripId={trip.id} />
+              </TabsContent>
+              <TabsContent value="explore">
+                <ExploreTab tripId={trip.id} trip={trip} />
               </TabsContent>
             </div>
           </Tabs>
