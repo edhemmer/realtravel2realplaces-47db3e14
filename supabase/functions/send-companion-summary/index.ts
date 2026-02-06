@@ -1,13 +1,11 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { handleCors, corsHeaders } from "../_shared/cors.ts";
+import { validateAuth } from "../_shared/auth.ts";
 
 interface CompanionSummaryRequest {
+  tripId: string;  // Required for ownership verification
+  companionId: string;  // Required to verify companion belongs to trip
   companionName: string;
   companionEmail: string;
   tripName: string;
@@ -20,11 +18,20 @@ interface CompanionSummaryRequest {
 
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   try {
+    // SECURITY: Require authentication
+    const auth = await validateAuth(req);
+    if (!auth.success) {
+      console.error("[send-companion-summary] Auth failed");
+      return auth.errorResponse!;
+    }
+
+    const { user, client: supabaseClient } = auth;
+    console.log("[send-companion-summary] Authenticated user:", user!.id);
+
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     
     if (!resendApiKey) {
@@ -44,6 +51,8 @@ const handler = async (req: Request): Promise<Response> => {
     const resend = new Resend(resendApiKey);
     
     const {
+      tripId,
+      companionId,
       companionName,
       companionEmail,
       tripName,
@@ -55,11 +64,71 @@ const handler = async (req: Request): Promise<Response> => {
     }: CompanionSummaryRequest = await req.json();
 
     // Validate required fields
-    if (!companionName || !companionEmail || !tripName) {
+    if (!tripId || !companionId || !companionName || !companionEmail || !tripName) {
       return new Response(
-        JSON.stringify({ success: false, message: "Missing required fields" }),
+        JSON.stringify({ success: false, message: "Missing required fields (tripId, companionId, companionName, companionEmail, tripName)" }),
         {
-          status: 200,
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    // SECURITY: Verify user owns the trip
+    const { data: trip, error: tripError } = await supabaseClient!
+      .from('trips')
+      .select('id, user_id')
+      .eq('id', tripId)
+      .single();
+
+    if (tripError || !trip) {
+      console.error("[send-companion-summary] Trip not found:", tripError);
+      return new Response(
+        JSON.stringify({ success: false, message: "Trip not found" }),
+        {
+          status: 404,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    if (trip.user_id !== user!.id) {
+      console.error("[send-companion-summary] User does not own trip:", { userId: user!.id, tripOwnerId: trip.user_id });
+      return new Response(
+        JSON.stringify({ success: false, message: "You don't have permission to send emails for this trip" }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    // SECURITY: Verify companion belongs to this trip
+    const { data: companion, error: companionError } = await supabaseClient!
+      .from('companions')
+      .select('id, email')
+      .eq('id', companionId)
+      .eq('trip_id', tripId)
+      .single();
+
+    if (companionError || !companion) {
+      console.error("[send-companion-summary] Companion not found in trip:", companionError);
+      return new Response(
+        JSON.stringify({ success: false, message: "Companion not found in this trip" }),
+        {
+          status: 404,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    // SECURITY: Verify the email matches the companion's email (prevent sending to arbitrary addresses)
+    if (companion.email !== companionEmail) {
+      console.error("[send-companion-summary] Email mismatch:", { provided: companionEmail, stored: companion.email });
+      return new Response(
+        JSON.stringify({ success: false, message: "Email address does not match companion record" }),
+        {
+          status: 400,
           headers: { "Content-Type": "application/json", ...corsHeaders },
         }
       );
