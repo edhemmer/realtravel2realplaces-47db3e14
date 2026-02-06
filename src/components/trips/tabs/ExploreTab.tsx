@@ -1,10 +1,11 @@
 /**
- * Patch 2.1.17 / 2.1.19 / 2.1.26: Explore tab content for Pro users
+ * Patch 2.1.17 / 2.1.19 / 2.1.26 / 2.1.22: Explore tab content for Pro users
  * - 2.1.19: Added empty/error states, location validation, ticket clarity
  * - 2.1.26: Added GPS-based "Current location" mode
+ * - 2.1.22: Added manual location fallback when GPS fails
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Trip } from '@/types/database';
 import { AttractionSuggestion } from '@/types/attraction';
 import { useAttractions } from '@/hooks/useAttractions';
@@ -14,6 +15,7 @@ import { AttractionCard } from '@/components/trips/explore/AttractionCard';
 import { AddToTripModal } from '@/components/trips/explore/AddToTripModal';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -45,7 +47,9 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
   const [gpsCoords, setGpsCoords] = useState<GpsState | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
-  const [gpsSupported, setGpsSupported] = useState(true);
+
+  // Manual location fallback (v2.1.22)
+  const [manualLocation, setManualLocation] = useState('');
 
   // Check if trip has a usable location
   const hasUsableLocation = !!(trip.destination_city && trip.destination_city.trim());
@@ -53,13 +57,13 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
   // Request GPS location
   const requestGpsLocation = useCallback(() => {
     if (!navigator.geolocation) {
-      setGpsSupported(false);
-      setGpsError("Current location isn't supported on this device. Try Hotel instead.");
+      setGpsError("Location unavailable. Turn on location services or enter a location manually.");
       return;
     }
 
     setIsLocating(true);
     setGpsError(null);
+    setManualLocation(''); // Clear manual input when retrying GPS
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -70,22 +74,11 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
         setIsLocating(false);
         setGpsError(null);
       },
-      (error) => {
+      () => {
         setIsLocating(false);
         setGpsCoords(null);
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            setGpsError("Location access was denied. Check browser permissions and try again.");
-            break;
-          case error.POSITION_UNAVAILABLE:
-            setGpsError("Location information unavailable. Try again later.");
-            break;
-          case error.TIMEOUT:
-            setGpsError("Location request timed out. Try again.");
-            break;
-          default:
-            setGpsError("We couldn't access your location. Check browser permissions and try again.");
-        }
+        // v2.1.22: Unified error message per spec
+        setGpsError("Location unavailable. Turn on location services or enter a location manually.");
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
@@ -98,23 +91,29 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
       // Request GPS immediately when switching to current location mode
       requestGpsLocation();
     } else {
-      // Clear GPS state when switching away
+      // Clear GPS and manual state when switching away
       setGpsCoords(null);
       setGpsError(null);
       setIsLocating(false);
+      setManualLocation('');
     }
   }, [requestGpsLocation]);
 
-  // Determine search parameters based on mode
-  const searchCity = locationMode === 'stay' ? trip.destination_city : undefined;
+  // Determine search parameters based on mode and state priority (v2.1.22)
+  // Priority: 1) GPS coords, 2) Manual location, 3) Empty
+  const useManualFallback = locationMode === 'currentLocation' && !gpsCoords && manualLocation.trim();
+  
+  const searchCity = locationMode === 'stay' 
+    ? trip.destination_city 
+    : (useManualFallback ? manualLocation.trim() : undefined);
   const searchState = locationMode === 'stay' ? (trip.destination_state || undefined) : undefined;
-  const searchLat = locationMode === 'currentLocation' ? gpsCoords?.lat : undefined;
-  const searchLng = locationMode === 'currentLocation' ? gpsCoords?.lng : undefined;
+  const searchLat = locationMode === 'currentLocation' && gpsCoords && !useManualFallback ? gpsCoords.lat : undefined;
+  const searchLng = locationMode === 'currentLocation' && gpsCoords && !useManualFallback ? gpsCoords.lng : undefined;
 
   // Can we fetch attractions?
   const canFetch = isPro && (
     (locationMode === 'stay' && hasUsableLocation) ||
-    (locationMode === 'currentLocation' && gpsCoords !== null)
+    (locationMode === 'currentLocation' && (gpsCoords !== null || !!manualLocation.trim()))
   );
 
   // Fetch attractions
@@ -223,26 +222,51 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
                 </div>
               )}
 
-              {/* Current location mode: show GPS status */}
+              {/* Current location mode: show GPS status or manual fallback */}
               {locationMode === 'currentLocation' && (
-                <div className="flex-1 flex items-center text-sm">
+                <div className="flex-1 space-y-2">
+                  {/* GPS acquiring state */}
                   {isLocating && (
-                    <span className="flex items-center text-muted-foreground">
+                    <span className="flex items-center text-sm text-muted-foreground">
                       <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
                       Locating you…
                     </span>
                   )}
+                  
+                  {/* GPS success state */}
                   {!isLocating && gpsCoords && !gpsError && (
-                    <span className="flex items-center text-muted-foreground">
+                    <span className="flex items-center text-sm text-muted-foreground">
                       <Navigation className="w-3.5 h-3.5 mr-1.5" />
                       Using your current location
                     </span>
                   )}
+                  
+                  {/* GPS error with manual fallback (v2.1.22) */}
                   {!isLocating && gpsError && (
-                    <span className="flex items-center text-destructive text-xs">
-                      <AlertCircle className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
-                      {gpsError}
-                    </span>
+                    <div className="space-y-2">
+                      <span className="flex items-center text-sm text-muted-foreground">
+                        <AlertCircle className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
+                        {gpsError}
+                      </span>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <div className="flex-1">
+                          <Label htmlFor="manual-location" className="sr-only">Enter a location</Label>
+                          <Input
+                            id="manual-location"
+                            placeholder="Enter a location"
+                            value={manualLocation}
+                            onChange={(e) => setManualLocation(e.target.value)}
+                            className="w-full"
+                          />
+                        </div>
+                      </div>
+                      {manualLocation.trim() && (
+                        <span className="flex items-center text-xs text-muted-foreground">
+                          <MapPin className="w-3 h-3 mr-1" />
+                          Searching near: {manualLocation.trim()}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
               )}
