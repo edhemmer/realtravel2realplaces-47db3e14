@@ -1,5 +1,5 @@
 import { useTripWeather } from '@/hooks/useWeather';
-import { useTemperatureUnit } from '@/hooks/useTemperatureUnit';
+import { useProfileTemperatureUnit } from '@/hooks/useProfileTemperatureUnit';
 import { Cloud, Sun, CloudRain, Snowflake, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -27,7 +27,7 @@ export function CompactWeatherWidget({
   endDate,
   className 
 }: CompactWeatherWidgetProps) {
-  const { formatTemp } = useTemperatureUnit();
+  const { formatTemp } = useProfileTemperatureUnit();
   const { current, tripForecast, weatherAnalysis, isLoading } = useTripWeather(
     city?.trim() || '',
     country || '',

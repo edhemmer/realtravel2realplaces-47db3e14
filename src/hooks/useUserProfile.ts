@@ -14,6 +14,8 @@ export interface UserProfile {
   preferred_home_airport?: string | null;
   preferred_currency?: string | null;
   preferred_datetime_format?: string | null;
+  distance_unit?: 'miles' | 'kilometers' | null;
+  temperature_unit?: 'fahrenheit' | 'celsius' | null;
 }
 
 /**
