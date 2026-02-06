@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { useProfileCompletion } from "@/hooks/useProfileCompletion";
 import LandingPage from "./pages/LandingPage";
 import Auth from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -24,13 +23,11 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 /**
- * Protected route that requires:
- * 1. User to be authenticated
- * 2. User to have completed their profile (first_name and last_name)
+ * Protected route that requires user to be authenticated.
+ * v2.1.40: Removed profile completion gate - names are optional for legacy users.
  */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
-  const { isComplete, isLoading: profileLoading } = useProfileCompletion();
 
   // Show loading while checking auth status
   if (authLoading) {
@@ -44,20 +41,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   // Redirect to login if not authenticated
   if (!user) {
     return <Navigate to="/auth" replace />;
-  }
-
-  // Show loading while checking profile completion
-  if (profileLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  // Redirect to complete profile if identity is incomplete
-  if (!isComplete) {
-    return <Navigate to="/complete-profile" replace />;
   }
 
   return <>{children}</>;
