@@ -57,7 +57,7 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
   // Request GPS location
   const requestGpsLocation = useCallback(() => {
     if (!navigator.geolocation) {
-      setGpsError("Location unavailable. Turn on location services or enter a location manually.");
+      setGpsError("Location access is off or unavailable. Turn on location services or enter a location manually.");
       return;
     }
 
@@ -77,8 +77,8 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
       () => {
         setIsLocating(false);
         setGpsCoords(null);
-        // v2.1.22: Unified error message per spec
-        setGpsError("Location unavailable. Turn on location services or enter a location manually.");
+        // v2.1.24: Explicit permission guidance per spec
+        setGpsError("Location access is off or unavailable. Turn on location services or enter a location manually.");
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
@@ -248,17 +248,17 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
                         <AlertCircle className="w-3.5 h-3.5 mr-1.5 flex-shrink-0" />
                         {gpsError}
                       </span>
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        <div className="flex-1">
-                          <Label htmlFor="manual-location" className="sr-only">Enter a location</Label>
-                          <Input
-                            id="manual-location"
-                            placeholder="Enter a location"
-                            value={manualLocation}
-                            onChange={(e) => setManualLocation(e.target.value)}
-                            className="w-full"
-                          />
-                        </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="manual-location" className="text-sm font-medium">
+                          Enter location manually
+                        </Label>
+                        <Input
+                          id="manual-location"
+                          placeholder="City, landmark, or area"
+                          value={manualLocation}
+                          onChange={(e) => setManualLocation(e.target.value)}
+                          className="w-full sm:max-w-xs"
+                        />
                       </div>
                       {manualLocation.trim() && (
                         <span className="flex items-center text-xs text-muted-foreground">
