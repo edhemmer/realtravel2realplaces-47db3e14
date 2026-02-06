@@ -381,7 +381,9 @@ export type Database = {
           default_frequent_flyer: string | null
           default_tsa_precheck: string | null
           display_name: string | null
+          first_name: string | null
           id: string
+          last_name: string | null
           lifetime_trip_count: number
           preferred_currency: string | null
           preferred_datetime_format: string | null
@@ -396,7 +398,9 @@ export type Database = {
           default_frequent_flyer?: string | null
           default_tsa_precheck?: string | null
           display_name?: string | null
+          first_name?: string | null
           id?: string
+          last_name?: string | null
           lifetime_trip_count?: number
           preferred_currency?: string | null
           preferred_datetime_format?: string | null
@@ -411,7 +415,9 @@ export type Database = {
           default_frequent_flyer?: string | null
           default_tsa_precheck?: string | null
           display_name?: string | null
+          first_name?: string | null
           id?: string
+          last_name?: string | null
           lifetime_trip_count?: number
           preferred_currency?: string | null
           preferred_datetime_format?: string | null
