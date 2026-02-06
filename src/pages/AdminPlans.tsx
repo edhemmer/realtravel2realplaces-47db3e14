@@ -200,10 +200,10 @@ export default function AdminPlans() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          {u.lifetime_trip_count}
+                          {u.lifetime_trip_count ?? '—'}
                         </TableCell>
                         <TableCell className="text-right">
-                          {u.current_trip_count}
+                          {u.current_trip_count ?? '—'}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm">
                           {format(parseISO(u.created_at), 'MMM d, yyyy')}

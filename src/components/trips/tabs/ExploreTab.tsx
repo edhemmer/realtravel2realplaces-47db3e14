@@ -19,7 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Compass, MapPin, Search, Sparkles, Loader2, AlertCircle, Building2, MapPinned, Navigation } from 'lucide-react';
+import { Compass, MapPin, Search, Sparkles, Loader2, AlertCircle, Building2, MapPinned, Navigation, RefreshCw } from 'lucide-react';
 
 interface ExploreTabProps {
   tripId: string;
@@ -302,7 +302,7 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
             <span className="ml-2 text-muted-foreground">Finding attractions...</span>
           </div>
         ) : error ? (
-          /* v2.1.19: Friendly error state */
+          /* v2.1.30: Enhanced error state with retry and location adjustment */
           <Card className="border-dashed">
             <CardContent className="py-12 text-center">
               <div className="flex justify-center mb-4">
@@ -310,10 +310,32 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
                   <AlertCircle className="w-8 h-8 text-muted-foreground" />
                 </div>
               </div>
-              <h3 className="text-base font-medium mb-2">Explore is temporarily unavailable</h3>
-              <p className="text-sm text-muted-foreground">
-                Please try again in a few minutes.
+              <h3 className="text-base font-medium mb-2">
+                We couldn't load nearby attractions right now
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Try again or adjust your location.
               </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    // Trigger a refetch by toggling mode or just refetching
+                    if (locationMode === 'currentLocation') {
+                      requestGpsLocation();
+                    }
+                  }}
+                >
+                  <RefreshCw className="w-4 h-4 mr-1.5" />
+                  Try again
+                </Button>
+                {locationMode === 'currentLocation' && hasUsableLocation && (
+                  <Button variant="ghost" size="sm" onClick={handleSwitchToStay}>
+                    Search from Hotel instead
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
         ) : attractions.length === 0 ? (

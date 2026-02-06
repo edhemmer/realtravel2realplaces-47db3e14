@@ -416,7 +416,7 @@ export default function AdminSupportTickets() {
                 <div className="bg-muted/30 rounded-md p-3 space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">App Version</span>
-                    <span>{selectedTicket.app_version || '—'}</span>
+                    <span>{selectedTicket.app_version ?? '—'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">User Plan</span>
@@ -426,7 +426,7 @@ export default function AdminSupportTickets() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Page Path</span>
-                    <span className="font-mono text-xs">{selectedTicket.page_path || '—'}</span>
+                    <span className="font-mono text-xs">{selectedTicket.page_path ?? '—'}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Trip ID</span>

@@ -515,15 +515,19 @@ export function calculateTripCostSummary(
   // Category breakdown (out-of-pocket expenses only)
   const byCategory = calculateCategorySummary(outOfPocketExpenses);
   
+  // v2.1.30: Defensive guards - ensure all values are finite numbers, fallback to 0
+  const safeNumber = (val: number): number => 
+    Number.isFinite(val) && val >= 0 ? val : 0;
+  
   return {
-    expensesTotal,
-    expensesMyShare,
-    bookingsTotal,
-    bookingsMyShare,
-    parkingTotal,
-    parkingMyShare,
-    totalCost,
-    totalMyShare,
+    expensesTotal: safeNumber(expensesTotal),
+    expensesMyShare: safeNumber(expensesMyShare),
+    bookingsTotal: safeNumber(bookingsTotal),
+    bookingsMyShare: safeNumber(bookingsMyShare),
+    parkingTotal: safeNumber(parkingTotal),
+    parkingMyShare: safeNumber(parkingMyShare),
+    totalCost: safeNumber(totalCost),
+    totalMyShare: safeNumber(totalMyShare),
     byCategory,
   };
 }

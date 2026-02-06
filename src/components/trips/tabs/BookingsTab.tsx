@@ -322,9 +322,32 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
         // Validate dates before applying
         const dateValidation = validateBookingDates(parsed.start_datetime, parsed.end_datetime);
         
+        // v2.1.30: Enhanced partial parsing feedback
+        // Build a list of what was captured vs what's missing
+        const capturedFields: string[] = [];
+        const missingFields: string[] = [];
+        
+        if (parsed.vendor_name) capturedFields.push('vendor');
+        else missingFields.push('vendor');
+        
+        if (parsed.confirmation_number) capturedFields.push('confirmation #');
+        else missingFields.push('confirmation #');
+        
+        if (dateValidation.valid && dateValidation.startDt) capturedFields.push('dates');
+        else missingFields.push('dates');
+        
+        if (parsed.total_cost) capturedFields.push('cost');
+        else missingFields.push('cost');
+        
         if (!dateValidation.valid) {
           // Dates are invalid (end before start) - don't auto-fill date fields
-          toast.warning('We couldn\'t validate these dates. Please check the start and end times before saving.');
+          const capturedText = capturedFields.length > 0 ? `Found: ${capturedFields.join(', ')}.` : '';
+          const missingText = missingFields.length > 0 ? `Missing: ${missingFields.join(', ')}.` : '';
+          
+          toast.warning("We couldn't fully read this confirmation.", {
+            description: `${capturedText} ${missingText} You can still add details manually.`,
+            duration: 6000,
+          });
           // Still fill other fields that are valid
           setBookingType(parsed.booking_type || 'flight');
           setFormData(prev => ({
@@ -373,9 +396,11 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
         setShowPasteInput(false);
         toast.success(data.message || 'Booking parsed! Review and save.');
       } else {
-        // Show warning but keep dialog open for manual entry
-        const message = data?.message || 'We couldn\'t confidently parse this booking. Please review and enter details manually.';
-        toast.warning(message);
+        // v2.1.30: Show clearer failure message with edit CTA
+        toast.warning("We couldn't fully read this confirmation.", {
+          description: "You can still add details manually.",
+          duration: 5000,
+        });
       }
     } catch (err) {
       console.error('Parse error:', err);
