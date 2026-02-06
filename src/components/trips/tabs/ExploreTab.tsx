@@ -138,7 +138,7 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="stay">Stay location</SelectItem>
-                  <SelectItem value="custom">Other location...</SelectItem>
+                  <SelectItem value="custom">Current location</SelectItem>
                 </SelectContent>
               </Select>
               
