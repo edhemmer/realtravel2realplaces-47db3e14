@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsAdmin, useAdminUsers, useUpdateUserTier } from '@/hooks/useAdminUsers';
@@ -20,6 +20,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
 import { Shield, Users } from 'lucide-react';
@@ -31,6 +41,9 @@ export default function AdminPlans() {
   const { data: isAdmin, isLoading: adminLoading } = useIsAdmin();
   const { data: users = [], isLoading: usersLoading } = useAdminUsers();
   const updateTierMutation = useUpdateUserTier();
+  
+  // Confirmation dialog state for Pro → Free downgrade
+  const [pendingDowngrade, setPendingDowngrade] = useState<{ userId: string; email: string } | null>(null);
 
   // Redirect non-admin users
   useEffect(() => {
@@ -43,13 +56,30 @@ export default function AdminPlans() {
     }
   }, [user, isAdmin, authLoading, adminLoading, navigate]);
 
-  const handleTierChange = async (userId: string, newTier: SubscriptionTier) => {
+  const handleTierChange = (userId: string, currentTier: SubscriptionTier, newTier: SubscriptionTier, email: string) => {
+    // If downgrading from Pro to Free, show confirmation
+    if (currentTier === 'pro' && newTier === 'free') {
+      setPendingDowngrade({ userId, email });
+      return;
+    }
+    // Otherwise, proceed directly
+    executeTierChange(userId, newTier);
+  };
+
+  const executeTierChange = async (userId: string, newTier: SubscriptionTier) => {
     try {
       await updateTierMutation.mutateAsync({ userId, tier: newTier });
       toast.success(`Updated user to ${newTier} tier`);
     } catch (error) {
       console.error('Failed to update tier:', error);
       toast.error('Failed to update subscription tier');
+    }
+  };
+
+  const confirmDowngrade = () => {
+    if (pendingDowngrade) {
+      executeTierChange(pendingDowngrade.userId, 'free');
+      setPendingDowngrade(null);
     }
   };
 
@@ -98,8 +128,7 @@ export default function AdminPlans() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
+                    <TableHead>User</TableHead>
                     <TableHead>Plan</TableHead>
                     <TableHead className="text-right">Lifetime Trips</TableHead>
                     <TableHead className="text-right">Current Trips</TableHead>
@@ -111,36 +140,53 @@ export default function AdminPlans() {
                     const displayName = u.first_name && u.last_name 
                       ? `${u.first_name} ${u.last_name}`
                       : null;
+                    const isCurrentUser = u.email === user?.email;
+                    const isProOverride = u.subscription_tier === 'pro';
                     
                     return (
                       <TableRow key={u.user_id}>
-                        <TableCell className="font-medium">
-                          {displayName || <span className="text-muted-foreground italic">—</span>}
-                          {u.email === user?.email && (
-                            <Badge variant="outline" className="ml-2 text-xs">
-                              You
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">
-                          {u.email}
+                        <TableCell>
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">
+                                {displayName || u.email}
+                              </span>
+                              {isCurrentUser && (
+                                <Badge variant="outline" className="text-xs">
+                                  You
+                                </Badge>
+                              )}
+                            </div>
+                            {displayName && (
+                              <span className="text-xs text-muted-foreground">
+                                {u.email}
+                              </span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
-                          <Select
-                            value={u.subscription_tier}
-                            onValueChange={(value: SubscriptionTier) => 
-                              handleTierChange(u.user_id, value)
-                            }
-                            disabled={updateTierMutation.isPending}
-                          >
-                            <SelectTrigger className="w-24">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="free">Free</SelectItem>
-                              <SelectItem value="pro">Pro</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <div className="flex items-center gap-2">
+                            <Select
+                              value={u.subscription_tier}
+                              onValueChange={(value: SubscriptionTier) => 
+                                handleTierChange(u.user_id, u.subscription_tier, value, u.email)
+                              }
+                              disabled={updateTierMutation.isPending}
+                            >
+                              <SelectTrigger className="w-24">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="free">Free</SelectItem>
+                                <SelectItem value="pro">Pro</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {isProOverride && (
+                              <Badge variant="secondary" className="text-xs whitespace-nowrap">
+                                Admin override
+                              </Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-right">
                           {u.lifetime_trip_count}
@@ -160,6 +206,24 @@ export default function AdminPlans() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Pro → Free downgrade confirmation */}
+      <AlertDialog open={!!pendingDowngrade} onOpenChange={(open) => !open && setPendingDowngrade(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Downgrade to Free?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This user will lose access to Pro features.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDowngrade}>
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 }
