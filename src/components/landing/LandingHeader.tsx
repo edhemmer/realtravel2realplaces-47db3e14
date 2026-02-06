@@ -11,7 +11,7 @@ export default function LandingHeader() {
               Real Travel <span className="italic">to Real Places</span>
             </span>
             <span className="text-[10px] sm:text-xs text-[hsl(var(--landing-text-muted))] -mt-0.5">
-              For travelers who actually go.
+              For Real Travel going to Real Places
             </span>
           </Link>
 
