@@ -118,13 +118,30 @@ interface SummaryTabProps {
 
 ### BookingsTab (`src/components/trips/tabs/BookingsTab.tsx`)
 
-Booking management (flights, stays, rentals, activities).
+Booking management (flights, stays, rentals, transport, activities).
+
+**Booking Types:**
+- ✈️ Flight - Airlines with passenger and TSA info
+- 🏨 Stay - Hotels, Airbnb, VRBO
+- 🚗 Car Rental - Rental vehicles
+- 🚆 Transport - Train, bus, metro, ferry (v2.1.37)
+- 🎉 Activity - Tours and events
 
 **Features:**
 - Add booking via AI parsing
 - Manual booking creation
 - Edit/delete bookings
 - Companion assignment
+- Drill-through highlighting (v2.0.7)
+
+**Transport Mode Fields (v2.1.37):**
+```typescript
+// Transport-specific form fields
+transport_mode: 'train' | 'bus' | 'metro' | 'ferry' | 'other'
+from_location: string  // Origin city/station
+to_location: string    // Destination city/station  
+operator: string       // e.g., "SNCB", "Eurostar"
+```
 
 ---
 

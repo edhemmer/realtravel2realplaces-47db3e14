@@ -1,3 +1,21 @@
+/**
+ * useIdleLogout.ts
+ * 
+ * v2.1.39: Security feature - Auto-logout after 2 hours of inactivity.
+ * 
+ * "Inactivity" is defined as no user interaction events:
+ * - No clicks/taps
+ * - No keypresses
+ * - No touch events
+ * - No mouse movement
+ * - No scrolling
+ * - No navigation within the app
+ * 
+ * When timeout fires:
+ * 1. User is logged out via signOut()
+ * 2. Redirected to /auth?reason=idle
+ * 3. Auth page shows security message
+ */
 import { useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,9 +25,9 @@ const IDLE_TIMEOUT_MS = 120 * 60 * 1000;
 
 /**
  * Hook to auto-logout users after 2 hours of inactivity.
- * "Inactivity" = no clicks, keypresses, touch events, or navigation.
  * 
- * Usage: Call this hook once in your authenticated layout.
+ * Usage: Call this hook once in your authenticated layout (e.g., Layout.tsx).
+ * The hook only runs when a user is authenticated.
  */
 export function useIdleLogout() {
   const { user, signOut } = useAuth();
