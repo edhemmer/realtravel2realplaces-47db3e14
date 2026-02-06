@@ -5,6 +5,7 @@ import { useBookingCompanionsByTrip, useSetBookingCompanions } from '@/hooks/use
 import { useTrip, useUpdateTrip } from '@/hooks/useTrips';
 import { useTripDateSync, calculateFlightDateRange, calculateNonFlightDateRange } from '@/hooks/useTripDateSync';
 import { useCreateExpense } from '@/hooks/useExpenses';
+import { useMarkTicketsPurchased } from '@/hooks/useActivityBooking';
 import { Booking, BookingType, StayType, Companion } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,7 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { 
   Plus, Plane, Building2, Car, PartyPopper, Trash2, Pencil,
   ExternalLink, MapPin, AlertTriangle, Link2, Upload, FileText, Users,
-  ClipboardPaste, Loader2, Scan, CircleParking
+  ClipboardPaste, Loader2, Scan, CircleParking, Ticket, CheckCircle2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isBefore, isAfter, startOfDay } from 'date-fns';
@@ -69,6 +70,7 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
   const updateTrip = useUpdateTrip();
   const setBookingCompanions = useSetBookingCompanions();
   const createExpense = useCreateExpense();
+  const markTicketsPurchased = useMarkTicketsPurchased();
   
   // Hook to sync trip dates when bookings are added
   const { syncTripDates } = useTripDateSync(tripId, bookings, trip, canEdit);
@@ -784,6 +786,45 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                         </Badge>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {/* Activity ticket status (v2.1.17) */}
+                {booking.booking_type === 'activity' && (booking.ticket_required || booking.advance_recommended) && (
+                  <div className="flex items-center gap-2 pt-2 border-t">
+                    {booking.tickets_purchased ? (
+                      <Badge variant="outline" className="gap-1 text-xs bg-accent">
+                        <CheckCircle2 className="w-3 h-3 text-primary" />
+                        Tickets purchased
+                      </Badge>
+                    ) : canEdit ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs gap-1"
+                        onClick={() => markTicketsPurchased.mutate({ bookingId: booking.id, tripId })}
+                        disabled={markTicketsPurchased.isPending}
+                      >
+                        <Ticket className="w-3 h-3" />
+                        Mark tickets purchased
+                      </Button>
+                    ) : (
+                      <Badge variant="secondary" className="gap-1 text-xs">
+                        <Ticket className="w-3 h-3" />
+                        Tickets needed
+                      </Badge>
+                    )}
+                    {booking.booking_url && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs gap-1"
+                        onClick={() => openExternalUrl(booking.booking_url)}
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        Book
+                      </Button>
+                    )}
                   </div>
                 )}
 

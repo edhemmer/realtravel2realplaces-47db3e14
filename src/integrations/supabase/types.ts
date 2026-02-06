@@ -52,15 +52,20 @@ export type Database = {
       }
       bookings: {
         Row: {
+          activity_source: string | null
           address: string | null
+          advance_recommended: boolean | null
           airline: string | null
+          booking_pattern: string | null
           booking_type: Database["public"]["Enums"]["booking_type"]
+          booking_url: string | null
           confirmation_number: string | null
           created_at: string
           end_datetime: string | null
           frequent_flyer_number: string | null
           id: string
           link_url: string | null
+          location_summary: string | null
           my_share: number | null
           notes: string | null
           passenger_name: string | null
@@ -70,6 +75,8 @@ export type Database = {
           return_location: string | null
           start_datetime: string
           stay_type: Database["public"]["Enums"]["stay_type"] | null
+          ticket_required: boolean | null
+          tickets_purchased: boolean | null
           total_cost: number | null
           trip_id: string
           tsa_precheck_number: string | null
@@ -77,15 +84,20 @@ export type Database = {
           vendor_name: string
         }
         Insert: {
+          activity_source?: string | null
           address?: string | null
+          advance_recommended?: boolean | null
           airline?: string | null
+          booking_pattern?: string | null
           booking_type: Database["public"]["Enums"]["booking_type"]
+          booking_url?: string | null
           confirmation_number?: string | null
           created_at?: string
           end_datetime?: string | null
           frequent_flyer_number?: string | null
           id?: string
           link_url?: string | null
+          location_summary?: string | null
           my_share?: number | null
           notes?: string | null
           passenger_name?: string | null
@@ -95,6 +107,8 @@ export type Database = {
           return_location?: string | null
           start_datetime: string
           stay_type?: Database["public"]["Enums"]["stay_type"] | null
+          ticket_required?: boolean | null
+          tickets_purchased?: boolean | null
           total_cost?: number | null
           trip_id: string
           tsa_precheck_number?: string | null
@@ -102,15 +116,20 @@ export type Database = {
           vendor_name: string
         }
         Update: {
+          activity_source?: string | null
           address?: string | null
+          advance_recommended?: boolean | null
           airline?: string | null
+          booking_pattern?: string | null
           booking_type?: Database["public"]["Enums"]["booking_type"]
+          booking_url?: string | null
           confirmation_number?: string | null
           created_at?: string
           end_datetime?: string | null
           frequent_flyer_number?: string | null
           id?: string
           link_url?: string | null
+          location_summary?: string | null
           my_share?: number | null
           notes?: string | null
           passenger_name?: string | null
@@ -120,6 +139,8 @@ export type Database = {
           return_location?: string | null
           start_datetime?: string
           stay_type?: Database["public"]["Enums"]["stay_type"] | null
+          ticket_required?: boolean | null
+          tickets_purchased?: boolean | null
           total_cost?: number | null
           trip_id?: string
           tsa_precheck_number?: string | null
@@ -401,6 +422,54 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      ticket_reminders: {
+        Row: {
+          booking_id: string
+          created_at: string | null
+          id: string
+          reminder_date: string
+          reminder_sent: boolean | null
+          trip_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string | null
+          id?: string
+          reminder_date: string
+          reminder_sent?: boolean | null
+          trip_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string | null
+          id?: string
+          reminder_date?: string
+          reminder_sent?: boolean | null
+          trip_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_reminders_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_reminders_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       trip_events: {
         Row: {

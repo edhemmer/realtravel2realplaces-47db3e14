@@ -61,6 +61,14 @@ export interface Booking {
   rental_company?: string;
   pickup_location?: string;
   return_location?: string;
+  // Activity specific (Patch 2.1.17)
+  activity_source?: 'explore' | 'confirmation' | null;
+  ticket_required?: boolean;
+  advance_recommended?: boolean;
+  booking_pattern?: 'first-come' | 'time-slot' | 'lottery' | 'unknown' | null;
+  booking_url?: string;
+  tickets_purchased?: boolean;
+  location_summary?: string;
   created_at: string;
   updated_at: string;
 }
