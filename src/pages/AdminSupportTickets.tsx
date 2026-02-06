@@ -37,7 +37,7 @@ import { Link } from 'react-router-dom';
 type TicketStatus = 'open' | 'in_progress' | 'closed';
 
 const statusColors: Record<TicketStatus, string> = {
-  open: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+  open: 'bg-muted text-muted-foreground',
   in_progress: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
   closed: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
 };
@@ -46,6 +46,11 @@ const statusLabels: Record<TicketStatus, string> = {
   open: 'Open',
   in_progress: 'In Progress',
   closed: 'Closed',
+};
+
+const planColors: Record<string, string> = {
+  free: 'bg-muted text-muted-foreground',
+  pro: 'bg-primary/10 text-primary',
 };
 
 export default function AdminSupportTickets() {
@@ -213,7 +218,7 @@ export default function AdminSupportTickets() {
 
               <Separator />
 
-              {/* Metadata */}
+              {/* User Info */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -231,9 +236,11 @@ export default function AdminSupportTickets() {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    App Version
+                    Last Updated
                   </label>
-                  <p className="mt-1 text-sm">{selectedTicket.app_version || '—'}</p>
+                  <p className="mt-1 text-sm">
+                    {format(parseISO(selectedTicket.updated_at), 'MMM d, yyyy h:mm a')}
+                  </p>
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -256,6 +263,45 @@ export default function AdminSupportTickets() {
                         <SelectItem value="closed">Closed</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Context Section */}
+              <div>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2 block">
+                  Context
+                </label>
+                <div className="bg-muted/30 rounded-md p-3 space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">App Version</span>
+                    <span>{selectedTicket.app_version || '—'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">User Plan</span>
+                    <Badge variant="secondary" className={planColors[selectedTicket.user_plan || 'free'] || ''}>
+                      {selectedTicket.user_plan || 'free'}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Page Path</span>
+                    <span className="font-mono text-xs">{selectedTicket.page_path || '—'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Trip ID</span>
+                    {selectedTicket.trip_id ? (
+                      <Link 
+                        to={`/trip/${selectedTicket.trip_id}`} 
+                        className="text-primary hover:underline font-mono text-xs"
+                        onClick={() => setSelectedTicket(null)}
+                      >
+                        {selectedTicket.trip_id.slice(0, 8)}...
+                      </Link>
+                    ) : (
+                      <span>—</span>
+                    )}
                   </div>
                 </div>
               </div>
