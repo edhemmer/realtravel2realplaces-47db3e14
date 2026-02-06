@@ -1,15 +1,19 @@
- import { Trip, TripState } from '@/types/database';
- import { useIsPro } from '@/hooks/useSubscription';
- import { Badge } from '@/components/ui/badge';
- import { Lock, Archive, Crown, Clock, Moon } from 'lucide-react';
- import { differenceInDays, parseISO, startOfDay, isBefore } from 'date-fns';
- import { cn } from '@/lib/utils';
- 
- interface TripStatusHeroBarProps {
-   trip: Trip;
- }
- 
- export function TripStatusHeroBar({ trip }: TripStatusHeroBarProps) {
+import { Trip, TripState } from '@/types/database';
+import { useIsPro } from '@/hooks/useSubscription';
+import { Badge } from '@/components/ui/badge';
+import { Lock, Archive, Clock, Moon } from 'lucide-react';
+import { differenceInDays, parseISO, startOfDay, isBefore } from 'date-fns';
+import { cn } from '@/lib/utils';
+
+interface TripStatusHeroBarProps {
+  trip: Trip;
+}
+
+/**
+ * v2.1.40: Removed PRO badge from trip bar - plan is account-level, not per-trip.
+ * Status badge (Active/Inactive/Locked/Closed) remains.
+ */
+export function TripStatusHeroBar({ trip }: TripStatusHeroBarProps) {
    const isPro = useIsPro();
    const tripState = (trip.trip_state || 'active') as TripState;
    
@@ -74,31 +78,18 @@
            {/* Trip name */}
            <h2 className="font-semibold text-lg truncate">{trip.name}</h2>
  
-           {/* Plan + Status badges */}
-           <div className="flex items-center gap-2">
-             {/* Plan Badge - only show for Pro users */}
-             {isPro && (
-               <Badge 
-                 className="bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0 shadow-md shadow-purple-500/20 flex items-center gap-1"
-               >
-                 <Crown className="w-3 h-3" />
-                 PRO
-               </Badge>
-             )}
- 
-             {/* Status Badge */}
-             <Badge 
-               variant="outline"
-               className={cn(
-                 'flex items-center gap-1 border transition-all duration-300',
-                 statusConfig.className,
-                 isUrgent && 'animate-pulse'
-               )}
-             >
-               {statusConfig.icon}
-               {statusConfig.label}
-             </Badge>
-           </div>
+            {/* Status Badge - v2.1.40: Plan badge removed, only status shown */}
+            <Badge 
+              variant="outline"
+              className={cn(
+                'flex items-center gap-1 border transition-all duration-300',
+                statusConfig.className,
+                isUrgent && 'animate-pulse'
+              )}
+            >
+              {statusConfig.icon}
+              {statusConfig.label}
+            </Badge>
          </div>
  
          {/* Retention warning line for Pro closed trips */}
