@@ -19,7 +19,7 @@ export default function LandingHeader() {
           <div className="flex items-center gap-2 sm:gap-4">
             <Link
               to="/auth"
-              className="landing-btn-secondary text-sm px-3 py-2 sm:px-6 sm:py-2.5"
+              className="text-sm sm:text-base font-medium text-[hsl(var(--landing-text))] hover:text-[hsl(var(--landing-accent))] transition-colors px-2 py-2"
             >
               Log in
             </Link>
@@ -27,7 +27,7 @@ export default function LandingHeader() {
               to="/auth"
               className="landing-btn-primary text-sm px-3 py-2 sm:px-6 sm:py-2.5"
             >
-              Start free
+              Get started
             </Link>
           </div>
         </div>

@@ -24,17 +24,22 @@ export default function LandingHero() {
             <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-white leading-tight mb-4">
               We don't plan your trip.{' '}
               <br className="hidden sm:block" />
-              We <span className="landing-gradient-text">manage</span> it.
+              We <span className="landing-gradient-text text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold">manage it.</span>
             </h1>
 
             {/* Subheadline */}
-            <p className="text-xl sm:text-2xl font-medium text-white/90 mb-4">
+            <p className="text-lg sm:text-xl lg:text-2xl font-medium text-white/90 mb-4">
               You're always in control.
             </p>
 
             {/* Supporting text */}
-            <p className="text-base sm:text-lg text-[hsl(var(--landing-text-muted))] max-w-lg mx-auto lg:mx-0 mb-8">
+            <p className="text-base sm:text-lg text-[hsl(var(--landing-text-muted))] max-w-lg mx-auto lg:mx-0 leading-relaxed mb-3">
               Add your travel confirmations and we help manage flights, stays, expenses, and packing in one calm, reliable view.
+            </p>
+
+            {/* SaaS framing line */}
+            <p className="text-sm sm:text-base text-[hsl(var(--landing-text-muted))] max-w-lg mx-auto lg:mx-0 mb-8 opacity-80">
+              Built like the tools teams rely on every day, but focused on your trips.
             </p>
 
             {/* CTAs */}
@@ -53,6 +58,14 @@ export default function LandingHero() {
                 <ArrowDown className="w-4 h-4" />
               </button>
             </div>
+
+            {/* Returning user login link */}
+            <p className="text-sm text-[hsl(var(--landing-text-muted))] mb-4 text-center lg:text-left">
+              Already using Real Travel <span className="italic">to Real Places</span>?{' '}
+              <Link to="/auth" className="text-[hsl(var(--landing-accent))] hover:underline font-medium">
+                Log in
+              </Link>
+            </p>
 
             {/* Trust text */}
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 justify-center lg:justify-start text-sm text-[hsl(var(--landing-text-muted))]">
