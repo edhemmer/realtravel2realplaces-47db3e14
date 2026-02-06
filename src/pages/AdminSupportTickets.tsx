@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState, useMemo, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsAdmin } from '@/hooks/useAdminUsers';
 import { useAdminSupportTickets, useUpdateTicketStatus, SupportTicket } from '@/hooks/useAdminSupportTickets';
@@ -30,16 +30,24 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { format, parseISO } from 'date-fns';
-import { MessageSquare, ArrowLeft } from 'lucide-react';
+import { MessageSquare, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 
 type TicketStatus = 'open' | 'in_progress' | 'closed';
+type PlanFilter = 'all' | 'free' | 'pro';
+type StatusFilter = 'all' | TicketStatus;
 
 const statusColors: Record<TicketStatus, string> = {
   open: 'bg-muted text-muted-foreground',
   in_progress: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
   closed: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+};
+
+const statusIndicatorColors: Record<TicketStatus, string> = {
+  open: 'bg-muted-foreground/50',
+  in_progress: 'bg-blue-500',
+  closed: 'bg-green-500',
 };
 
 const statusLabels: Record<TicketStatus, string> = {
@@ -55,12 +63,61 @@ const planColors: Record<string, string> = {
 
 export default function AdminSupportTickets() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const { data: isAdmin, isLoading: adminLoading } = useIsAdmin();
   const { data: tickets = [], isLoading: ticketsLoading } = useAdminSupportTickets();
   const updateStatusMutation = useUpdateTicketStatus();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollPositionRef = useRef<number>(0);
 
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+
+  // Get filters from URL params (persists across navigation)
+  const statusFilter = (searchParams.get('status') as StatusFilter) || 'all';
+  const planFilter = (searchParams.get('plan') as PlanFilter) || 'all';
+
+  // Update URL params when filters change
+  const updateFilter = (key: string, value: string) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (value === 'all') {
+      newParams.delete(key);
+    } else {
+      newParams.set(key, value);
+    }
+    setSearchParams(newParams, { replace: true });
+  };
+
+  // Filter tickets client-side
+  const filteredTickets = useMemo(() => {
+    return tickets.filter(ticket => {
+      const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter;
+      const matchesPlan = planFilter === 'all' || (ticket.user_plan || 'free') === planFilter;
+      return matchesStatus && matchesPlan;
+    });
+  }, [tickets, statusFilter, planFilter]);
+
+  // Count open tickets for empty state
+  const openTicketsCount = useMemo(() => {
+    return tickets.filter(t => t.status === 'open').length;
+  }, [tickets]);
+
+  // Save scroll position before opening dialog
+  const handleTicketClick = (ticket: SupportTicket) => {
+    if (scrollContainerRef.current) {
+      scrollPositionRef.current = window.scrollY;
+    }
+    setSelectedTicket(ticket);
+  };
+
+  // Restore scroll position after closing dialog
+  const handleDialogClose = () => {
+    setSelectedTicket(null);
+    // Restore scroll position on next tick
+    requestAnimationFrame(() => {
+      window.scrollTo(0, scrollPositionRef.current);
+    });
+  };
 
   // Redirect non-admin users
   useEffect(() => {
@@ -80,7 +137,7 @@ export default function AdminSupportTickets() {
       
       // Update selected ticket if it's the one being modified
       if (selectedTicket?.id === ticketId) {
-        setSelectedTicket(prev => prev ? { ...prev, status: newStatus } : null);
+        setSelectedTicket(prev => prev ? { ...prev, status: newStatus, updated_at: new Date().toISOString() } : null);
       }
     } catch (error) {
       console.error('Failed to update status:', error);
@@ -106,7 +163,7 @@ export default function AdminSupportTickets() {
 
   return (
     <Layout>
-      <div className="container mx-auto py-8 px-4 max-w-5xl">
+      <div ref={scrollContainerRef} className="container mx-auto py-8 px-4 max-w-5xl">
         {/* Back to Plans link */}
         <div className="mb-4">
           <Link 
@@ -137,58 +194,140 @@ export default function AdminSupportTickets() {
               </div>
             ) : tickets.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>No support tickets yet</p>
+                <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-green-500 opacity-70" />
+                <p className="font-medium">No open support tickets</p>
+                <p className="text-sm mt-1">You're all caught up.</p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Subject</TableHead>
-                    <TableHead>User Email</TableHead>
-                    <TableHead>App Version</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {tickets.map((ticket) => (
-                    <TableRow 
-                      key={ticket.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => setSelectedTicket(ticket)}
+              <>
+                {/* Filters */}
+                <div className="flex flex-wrap gap-3 mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Status:</span>
+                    <Select
+                      value={statusFilter}
+                      onValueChange={(value: StatusFilter) => updateFilter('status', value)}
                     >
-                      <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                        {format(parseISO(ticket.created_at), 'MMM d, yyyy h:mm a')}
-                      </TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant="secondary" 
-                          className={statusColors[ticket.status as TicketStatus]}
-                        >
-                          {statusLabels[ticket.status as TicketStatus] || ticket.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium max-w-[200px] truncate">
-                        {ticket.subject}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {ticket.email}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {ticket.app_version || '—'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      <SelectTrigger className="w-32 h-8 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="open">Open</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="closed">Closed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Plan:</span>
+                    <Select
+                      value={planFilter}
+                      onValueChange={(value: PlanFilter) => updateFilter('plan', value)}
+                    >
+                      <SelectTrigger className="w-24 h-8 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="free">Free</SelectItem>
+                        <SelectItem value="pro">Pro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {(statusFilter !== 'all' || planFilter !== 'all') && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 text-xs"
+                      onClick={() => setSearchParams({}, { replace: true })}
+                    >
+                      Clear filters
+                    </Button>
+                  )}
+                </div>
+
+                {filteredTickets.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    {statusFilter === 'open' && openTicketsCount === 0 ? (
+                      <>
+                        <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-green-500 opacity-70" />
+                        <p className="font-medium">No open support tickets</p>
+                        <p className="text-sm mt-1">You're all caught up.</p>
+                      </>
+                    ) : (
+                      <>
+                        <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                        <p>No tickets match your filters</p>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[3px] p-0"></TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Subject</TableHead>
+                        <TableHead>User Email</TableHead>
+                        <TableHead>Plan</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredTickets.map((ticket) => {
+                        const isOpen = ticket.status === 'open';
+                        return (
+                          <TableRow 
+                            key={ticket.id}
+                            className={`cursor-pointer hover:bg-muted/50 ${isOpen ? 'bg-muted/20' : ''}`}
+                            onClick={() => handleTicketClick(ticket)}
+                          >
+                            {/* Status indicator bar */}
+                            <TableCell className="p-0 w-[3px]">
+                              <div 
+                                className={`w-[3px] h-full min-h-[48px] ${statusIndicatorColors[ticket.status as TicketStatus]}`}
+                              />
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                              {format(parseISO(ticket.created_at), 'MMM d, yyyy h:mm a')}
+                            </TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant="secondary" 
+                                className={statusColors[ticket.status as TicketStatus]}
+                              >
+                                {statusLabels[ticket.status as TicketStatus] || ticket.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className={`max-w-[200px] truncate ${isOpen ? 'font-semibold' : 'font-medium'}`}>
+                              {ticket.subject}
+                            </TableCell>
+                            <TableCell className="text-sm">
+                              {ticket.email}
+                            </TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant="secondary" 
+                                className={planColors[(ticket.user_plan || 'free')] || planColors.free}
+                              >
+                                {ticket.user_plan || 'free'}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
       </div>
 
       {/* Ticket Detail Dialog */}
-      <Dialog open={!!selectedTicket} onOpenChange={(open) => !open && setSelectedTicket(null)}>
+      <Dialog open={!!selectedTicket} onOpenChange={(open) => !open && handleDialogClose()}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Support Ticket</DialogTitle>
@@ -308,7 +447,7 @@ export default function AdminSupportTickets() {
 
               {/* Close button */}
               <div className="flex justify-end pt-2">
-                <Button variant="outline" onClick={() => setSelectedTicket(null)}>
+                <Button variant="outline" onClick={handleDialogClose}>
                   Close
                 </Button>
               </div>
