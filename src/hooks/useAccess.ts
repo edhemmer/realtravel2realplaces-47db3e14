@@ -1,7 +1,7 @@
 /**
  * useAccess - Centralized UI access control hook
  * 
- * Patch 2.6.2: Commercial Code Integrity Documentation
+ * Patch 2.6.8: Tester Business Overrides
  * 
  * PLAN GATING ARCHITECTURE:
  * - UI gating is enforced via useAccess() hook and wrapper components
@@ -13,10 +13,15 @@
  * - PRO: Unlimited trips, timeline, weather, airport intelligence
  * - BUSINESS: Pro + Tour/Stops, Stop-level expense assignment, Advanced Reports
  * 
- * ADMIN OVERRIDE:
- * - isAdmin (from user_roles table) grants Business access for testing/support
- * - Admin status is validated via security-definer functions (has_role, is_admin)
- * - Admin check uses database role lookup, NOT localStorage/client state
+ * BUSINESS ACCESS GRANTS:
+ * 1. Admin role (from user_roles table) - for support/development
+ * 2. Business tester override (from businessTesters.ts) - for trusted testers
+ * 3. Future: Active Business subscription via Stripe (not yet implemented)
+ * 
+ * TESTER OVERRIDE (Patch 2.6.8):
+ * - Trusted testers listed in src/config/businessTesters.ts get Business access
+ * - This is a UI-level override and does NOT modify subscription records
+ * - Completely separate from future Stripe billing integration
  * 
  * COMPONENT USAGE:
  * - <ProOnly>: Wraps Pro-tier features (currently unenforced in UI)
@@ -34,6 +39,8 @@
 
 import { useSubscription, useIsPro } from '@/hooks/useSubscription';
 import { useIsAdmin } from '@/hooks/useAdminUsers';
+import { useAuth } from '@/contexts/AuthContext';
+import { isBusinessTester } from '@/config/businessTesters';
 
 export interface AccessState {
   /** Whether the user's plan includes Pro features */
@@ -56,6 +63,7 @@ export interface AccessState {
 }
 
 export function useAccess(): AccessState {
+  const { user } = useAuth();
   const { data: subscription, isLoading: subscriptionLoading } = useSubscription();
   const isPro = useIsPro();
   const { data: isAdmin, isLoading: adminLoading } = useIsAdmin();
@@ -63,10 +71,15 @@ export function useAccess(): AccessState {
   const isLoading = subscriptionLoading || adminLoading;
   const tier = subscription?.tier || null;
   
-  // Patch 2.3.9: Business tier gating enforcement enabled.
-  // Business access is granted to admins (owner/developer).
-  // This will be updated when the Business tier is added to the database.
-  const canAccessBusinessFeatures = isAdmin === true;
+  // Patch 2.6.8: Business tester override check
+  // Testers listed in src/config/businessTesters.ts get Business access
+  const isTester = isBusinessTester(user?.email);
+  
+  // Patch 2.6.8: Business access is granted via:
+  // 1. Admin role (from user_roles table)
+  // 2. Tester override (from businessTesters.ts config)
+  // 3. Future: Active Business subscription (not yet implemented)
+  const canAccessBusinessFeatures = isAdmin === true || isTester;
   
   return {
     isPro,
