@@ -37,6 +37,7 @@ import {
   Info,
   PlaneTakeoff,
   PlaneLanding,
+  Home,
 } from 'lucide-react';
 
 interface TravelEducationDrawerProps {
@@ -403,6 +404,91 @@ function InternationalGuideContent() {
           <StepItem number={3} title="Baggage Claim" description="Collect checked luggage from the carousel" />
           <StepItem number={4} title="Customs" description="Declare items if required, or proceed through 'Nothing to Declare'" />
           <StepItem number={5} title="Exit to Arrivals" description="Ground transportation, meeters/greeters" />
+        </div>
+      </section>
+
+      {/* Returning Home */}
+      <section id="return-home">
+        <h3 className="flex items-center gap-2 text-sm font-semibold mb-3">
+          <Home className="h-4 w-4 text-primary" />
+          Returning to Your Home Country
+        </h3>
+        <p className="text-sm text-muted-foreground mb-3">
+          When returning home after international travel, the process differs 
+          from arriving in a foreign country:
+        </p>
+        <div className="rounded-lg bg-muted/50 p-4 space-y-3">
+          <div>
+            <p className="font-medium text-sm">Passport Control</p>
+            <p className="text-sm text-muted-foreground">
+              Citizens and permanent residents often have separate, faster lanes. 
+              Some countries offer automated passport gates for eligible travelers.
+            </p>
+          </div>
+          <Separator />
+          <div>
+            <p className="font-medium text-sm">Customs Still Applies</p>
+            <p className="text-sm text-muted-foreground">
+              Even when returning home, you must clear customs. Declare items 
+              purchased abroad that exceed duty-free limits. "Nothing to Declare" 
+              lanes are typically available for most travelers.
+            </p>
+          </div>
+          <Separator />
+          <div>
+            <p className="font-medium text-sm">Declaration Forms</p>
+            <p className="text-sm text-muted-foreground">
+              Many countries require a customs declaration form on arrival. 
+              This may be provided on the flight or available at kiosks.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Baggage & Connections */}
+      <section id="baggage-connections">
+        <h3 className="flex items-center gap-2 text-sm font-semibold mb-3">
+          <Luggage className="h-4 w-4 text-primary" />
+          Baggage & Domestic Connections
+        </h3>
+        <div className="space-y-3 text-sm text-muted-foreground">
+          <p>
+            When arriving from an international flight with a domestic connection:
+          </p>
+          <div className="rounded-lg border p-4 space-y-2">
+            <div className="flex items-start gap-2">
+              <div className="h-2 w-2 rounded-full bg-primary mt-1.5 shrink-0" />
+              <span>
+                <span className="font-medium text-foreground">Collect your bags</span>{' '}
+                at the first port of entry, even if your final destination is elsewhere
+              </span>
+            </div>
+            <div className="flex items-start gap-2">
+              <div className="h-2 w-2 rounded-full bg-primary mt-1.5 shrink-0" />
+              <span>
+                <span className="font-medium text-foreground">Clear customs</span>{' '}
+                with your luggage before proceeding to your connecting flight
+              </span>
+            </div>
+            <div className="flex items-start gap-2">
+              <div className="h-2 w-2 rounded-full bg-primary mt-1.5 shrink-0" />
+              <span>
+                <span className="font-medium text-foreground">Re-check bags</span>{' '}
+                at the designated re-check area after customs clearance
+              </span>
+            </div>
+            <div className="flex items-start gap-2">
+              <div className="h-2 w-2 rounded-full bg-primary mt-1.5 shrink-0" />
+              <span>
+                <span className="font-medium text-foreground">Re-clear security</span>{' '}
+                to access the domestic departure gates
+              </span>
+            </div>
+          </div>
+          <p className="text-xs italic">
+            Allow extra connection time for international arrivals—90 minutes minimum 
+            is often recommended. Exact steps vary by airport.
+          </p>
         </div>
       </section>
 
