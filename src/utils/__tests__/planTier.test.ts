@@ -1,10 +1,12 @@
 /**
  * Plan Tier Resolution Tests
  * 
- * Patch 2.6.21: Single Source of Truth for Effective Plan Tier
+ * Patch 2.6.23: Single Source of Truth for Effective Plan Tier
  * 
  * These tests validate the resolveEffectiveTier function which is
  * the single source of truth for computing effective plan tiers.
+ * 
+ * Subscription tier is the ONLY driver - no tester overrides.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -19,43 +21,21 @@ import {
 } from '../planTier';
 
 describe('resolveEffectiveTier', () => {
-  describe('Priority order', () => {
-    it('should return "free" when no tier and no overrides', () => {
+  describe('Subscription tier as single source', () => {
+    it('should return "free" when no tier provided', () => {
       const result = resolveEffectiveTier({});
       expect(result).toBe('free');
     });
 
-    it('should return "free" when subscriptionTier is null and no overrides', () => {
+    it('should return "free" when subscriptionTier is null', () => {
       const result = resolveEffectiveTier({ subscriptionTier: null });
       expect(result).toBe('free');
     });
 
-    it('should return subscriptionTier when set and no overrides', () => {
+    it('should return subscriptionTier when set', () => {
       expect(resolveEffectiveTier({ subscriptionTier: 'free' })).toBe('free');
       expect(resolveEffectiveTier({ subscriptionTier: 'pro' })).toBe('pro');
       expect(resolveEffectiveTier({ subscriptionTier: 'business' })).toBe('business');
-    });
-
-    it('should return "business" when isTester is true (tester override)', () => {
-      const result = resolveEffectiveTier({ 
-        subscriptionTier: 'free', 
-        isTester: true 
-      });
-      expect(result).toBe('business');
-    });
-
-    it('should prioritize tester override over subscription tier', () => {
-      // Free subscription + tester = Business
-      expect(resolveEffectiveTier({ 
-        subscriptionTier: 'free', 
-        isTester: true 
-      })).toBe('business');
-
-      // Pro subscription + tester = Business
-      expect(resolveEffectiveTier({ 
-        subscriptionTier: 'pro', 
-        isTester: true 
-      })).toBe('business');
     });
   });
 
@@ -63,26 +43,16 @@ describe('resolveEffectiveTier', () => {
     // These tests simulate the same PlanContext that Admin Plan Management
     // would use, ensuring header PlanPill and Admin table always agree
 
-    it('should show Free for user with free subscription and no overrides', () => {
+    it('should show Free for user with free subscription', () => {
       const context: PlanContext = {
         subscriptionTier: 'free',
-        isTester: false,
       };
       expect(resolveEffectiveTier(context)).toBe('free');
     });
 
-    it('should show Business for user with free subscription but tester override', () => {
-      const context: PlanContext = {
-        subscriptionTier: 'free',
-        isTester: true,
-      };
-      expect(resolveEffectiveTier(context)).toBe('business');
-    });
-
-    it('should show Pro for user with pro subscription and no overrides', () => {
+    it('should show Pro for user with pro subscription', () => {
       const context: PlanContext = {
         subscriptionTier: 'pro',
-        isTester: false,
       };
       expect(resolveEffectiveTier(context)).toBe('pro');
     });
@@ -90,7 +60,6 @@ describe('resolveEffectiveTier', () => {
     it('should show Business for user with business subscription', () => {
       const context: PlanContext = {
         subscriptionTier: 'business',
-        isTester: false,
       };
       expect(resolveEffectiveTier(context)).toBe('business');
     });
