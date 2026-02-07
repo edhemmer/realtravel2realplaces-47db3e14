@@ -4,6 +4,7 @@ import { useParking } from '@/hooks/useParking';
 import { useExpenses } from '@/hooks/useExpenses';
 import { useBookings } from '@/hooks/useBookings';
 import { calculateTripCostSummary } from '@/lib/expenseCalculations';
+import { formatCurrency, TRIP_TOTAL_LABEL } from '@/lib/displayFormats';
 import { Trip, Parking } from '@/types/database';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -98,18 +99,18 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <DollarSign className="w-4 h-4 text-primary" />
-            Cost Summary
+            {TRIP_TOTAL_LABEL}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Total Trip Cost</span>
-              <span className="text-xl font-bold">${totalCost.toFixed(2)}</span>
+              <span className="text-sm text-muted-foreground">Total</span>
+              <span className="text-xl font-bold">{formatCurrency(totalCost)}</span>
             </div>
             <div className="flex justify-between items-center text-xs text-muted-foreground">
-              <span>Bookings: ${bookingsTotal.toFixed(2)}</span>
-              <span>Expenses: ${expensesTotal.toFixed(2)}</span>
+              <span>Bookings: {formatCurrency(bookingsTotal)}</span>
+              <span>Expenses: {formatCurrency(expensesTotal)}</span>
             </div>
           </div>
         </CardContent>

@@ -4,9 +4,10 @@ import { useSharedTrips, SharedTrip } from '@/hooks/useSharedTrips';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
- import { Plus, MapPin, Calendar, Plane, Trash2, Users, ChevronRight } from 'lucide-react';
- import { Link, useNavigate } from 'react-router-dom';
-import { format, isBefore, startOfDay, parseISO } from 'date-fns';
+import { Plus, MapPin, Calendar, Plane, Trash2, Users, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { isBefore, startOfDay, parseISO } from 'date-fns';
+import { formatTripDateRange } from '@/lib/displayFormats';
 import { Trip } from '@/types/database';
 import { CreateTripDialog } from '@/components/trips/CreateTripDialog';
 import { TripLifecycleBadges, getTripCardLifecycleStyles } from '@/components/trips/TripLifecycleBadges';
@@ -119,7 +120,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
             <Calendar className="w-4 h-4" />
             <span>
-              {format(new Date(trip.start_date), 'MMM d')} - {format(new Date(trip.end_date), 'MMM d, yyyy')}
+              {formatTripDateRange(trip.start_date, trip.end_date)}
             </span>
           </div>
            <div className="flex items-center justify-between">

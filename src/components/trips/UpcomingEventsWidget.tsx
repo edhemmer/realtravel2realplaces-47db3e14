@@ -4,9 +4,10 @@ import { useParking } from '@/hooks/useParking';
 import { useAccess } from '@/hooks/useAccess';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { TripEventType } from '@/types/tripEvent';
-import { format, parseISO, isAfter } from 'date-fns';
+import { parseISO, isAfter } from 'date-fns';
 import { Plane, Building2, Car, CircleParking, Clock, ChevronRight } from 'lucide-react';
-import { parseDatetimeForDisplay, hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
+import { formatEventDatetime, DatetimeFormatPreference } from '@/lib/displayFormats';
+import { parseDatetimeForDisplay } from '@/lib/datetimeIntegrity';
 import type { DrillThroughTarget } from '@/pages/TripDetail';
 
 interface UpcomingEventsWidgetProps {
@@ -87,41 +88,8 @@ const getEventLabel = (
 };
 
 /**
- * Format datetime based on user preference
- * v2.2.0: Uses safe datetime parsing to preserve original dates
- * Formats: "MM/DD/YYYY 12h" or "DD/MM/YYYY 24h"
- */
-const formatEventDatetime = (datetime: string, preferredFormat: string | null | undefined): string => {
-  // v2.2.0: Use safe parsing that preserves the original date
-  const parsed = parseDatetimeForDisplay(datetime);
-  if (!parsed) return '--';
-  
-  const hasTime = hasExplicitTime(datetime);
-  
-  // If no explicit time, show date only with placeholder
-  if (!hasTime) {
-    if (!preferredFormat || preferredFormat === 'MM/DD/YYYY 12h') {
-      return `${format(parsed, 'EEE, MMM d')} · ${UNKNOWN_TIME_PLACEHOLDER}`;
-    }
-    return `${format(parsed, 'EEE, d MMM')} · ${UNKNOWN_TIME_PLACEHOLDER}`;
-  }
-  
-  // Default format: EEE, MMM d · h:mm a (e.g., "Mon, Jan 15 · 3:30 PM")
-  if (!preferredFormat || preferredFormat === 'MM/DD/YYYY 12h') {
-    return format(parsed, 'EEE, MMM d · h:mm a');
-  }
-  
-  // 24-hour format: EEE, d MMM · HH:mm (e.g., "Mon, 15 Jan · 15:30")
-  if (preferredFormat === 'DD/MM/YYYY 24h') {
-    return format(parsed, 'EEE, d MMM · HH:mm');
-  }
-  
-  // Fallback
-  return format(parsed, 'EEE, MMM d · h:mm a');
-};
-
-/**
  * v2.1.1: Pro-only Upcoming Events strip powered by TripEvents
+ * v2.0.8: Uses unified formatEventDatetime for consistent display
  * 
  * - Read-only display of next 3-5 upcoming TripEvents
  * - Only visible for Pro users
@@ -173,7 +141,7 @@ export function UpcomingEventsWidget({ tripId, onDrillThrough }: UpcomingEventsW
         <div className="space-y-2">
           {upcomingEvents.map(event => {
             const label = getEventLabel(event.event_type, event.source_id, bookings, parkingList);
-            const formattedTime = formatEventDatetime(event.event_datetime, userProfile?.preferred_datetime_format);
+            const formattedTime = formatEventDatetime(event.event_datetime, userProfile?.preferred_datetime_format as DatetimeFormatPreference);
             const isClickable = !!onDrillThrough;
             
             return (
