@@ -1,13 +1,13 @@
 /**
  * Reports Page - Business-only Advanced Reports
  * 
- * Patch 2.4.1: Flexible reporting workspace for filtering and comparing
- * data across multiple trips with PDF and CSV export.
+ * Patch 2.4.3: UI-only reporting workspace with filters, sortable table,
+ * and export control placeholders. Export logic to be implemented later.
  * 
  * Features:
  * - Multi-trip filtering by date range, trip, companion, Stop, category
  * - Sortable results table
- * - Export current view as PDF or CSV
+ * - Export buttons (PDF & CSV) - UI only, no export logic yet
  */
 
 import { useState, useMemo } from 'react';
@@ -17,7 +17,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Layout } from '@/components/Layout';
-import { BusinessOnly } from '@/components/access/AccessGate';
 import { useAccess } from '@/hooks/useAccess';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,7 +39,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  FileDown,
   FileText,
   FileSpreadsheet,
   Filter,
@@ -50,9 +48,9 @@ import {
   BarChart3,
   X,
 } from 'lucide-react';
-import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
-import jsPDF from 'jspdf';
-import { Expense, Companion, Trip } from '@/types/database';
+import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
+import { Expense, Companion } from '@/types/database';
 import { Engagement } from '@/hooks/useEngagements';
 
 // Category display labels
@@ -101,8 +99,8 @@ export default function Reports() {
   const [sortColumn, setSortColumn] = useState<SortColumn>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
-  // Exporting state
-  const [exporting, setExporting] = useState<'pdf' | 'csv' | null>(null);
+  // Toast for placeholder exports
+  const { toast } = useToast();
 
   // Fetch all expenses for user's trips
   const { data: allExpenses = [], isLoading: expensesLoading } = useQuery({
@@ -281,184 +279,19 @@ export default function Reports() {
       : <ChevronUp className="w-4 h-4 ml-1" />;
   };
 
-  // Build filter summary for exports
-  const getFilterSummary = (): string => {
-    const parts: string[] = [];
-    if (dateFrom) parts.push(`From: ${format(parseISO(dateFrom), 'MMM d, yyyy')}`);
-    if (dateTo) parts.push(`To: ${format(parseISO(dateTo), 'MMM d, yyyy')}`);
-    if (selectedTrips.length > 0) {
-      const tripNames = selectedTrips.map(id => trips.find(t => t.id === id)?.name).filter(Boolean);
-      parts.push(`Trips: ${tripNames.join(', ')}`);
-    }
-    if (selectedStop !== 'all') {
-      if (selectedStop === 'none') {
-        parts.push('Stop: Not assigned');
-      } else {
-        const stopName = allEngagements.find(e => e.id === selectedStop)?.name;
-        parts.push(`Stop: ${stopName}`);
-      }
-    }
-    if (selectedCategory !== 'all') {
-      parts.push(`Category: ${CATEGORY_LABELS[selectedCategory] || selectedCategory}`);
-    }
-    return parts.length > 0 ? parts.join(' • ') : 'All data (no filters)';
+  // Placeholder export handlers - UI only, logic to be implemented later
+  const handleExportPDF = () => {
+    toast({
+      title: "Export PDF",
+      description: "PDF export will generate a branded report with your current filters and data.",
+    });
   };
 
-  // Export as CSV
-  const exportCSV = () => {
-    setExporting('csv');
-    
-    try {
-      const headers = ['Date', 'Trip', 'Stop', 'Category', 'Description', 'Amount', 'My Share'];
-      const rows = sortedRows.map(row => [
-        row.date,
-        row.tripName,
-        row.stopName || '',
-        CATEGORY_LABELS[row.category] || row.category,
-        row.description,
-        row.amount.toFixed(2),
-        row.myShare.toFixed(2),
-      ]);
-
-      const csvContent = [
-        headers.join(','),
-        ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')),
-      ].join('\n');
-
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = `RT2RP-Report-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-      link.click();
-    } finally {
-      setExporting(null);
-    }
-  };
-
-  // Export as PDF
-  const exportPDF = () => {
-    setExporting('pdf');
-
-    try {
-      const pdf = new jsPDF('l', 'mm', 'a4'); // Landscape for table width
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 15;
-      const contentWidth = pageWidth - (margin * 2);
-      let y = margin;
-
-      // ========== HEADER ==========
-      pdf.setFillColor(20, 184, 166); // Teal-500
-      pdf.rect(0, 0, pageWidth, 25, 'F');
-      
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(16);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Real Travel 2 Real Places', margin, 12);
-      
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'normal');
-      pdf.text('Advanced Report', margin, 19);
-      
-      y = 35;
-
-      // ========== SUMMARY BLOCK ==========
-      pdf.setTextColor(0, 0, 0);
-      pdf.setFillColor(248, 250, 252);
-      pdf.roundedRect(margin, y, contentWidth, 20, 2, 2, 'F');
-
-      pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Report Summary', margin + 5, y + 7);
-
-      pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(9);
-      pdf.text(`Total Amount: $${totals.totalAmount.toFixed(2)}`, margin + 5, y + 14);
-      pdf.text(`My Share: $${totals.totalMyShare.toFixed(2)}`, margin + 70, y + 14);
-      pdf.text(`Rows: ${sortedRows.length}`, margin + 130, y + 14);
-
-      y += 25;
-
-      // Filter summary
-      pdf.setFontSize(8);
-      pdf.setTextColor(100, 100, 100);
-      pdf.text(`Filters: ${getFilterSummary()}`, margin, y);
-      y += 8;
-
-      // ========== TABLE ==========
-      const colWidths = [22, 50, 35, 25, 80, 25, 25]; // Date, Trip, Stop, Category, Description, Amount, Share
-      const headers = ['Date', 'Trip', 'Stop', 'Category', 'Description', 'Amount', 'My Share'];
-
-      // Table header
-      pdf.setFillColor(240, 240, 240);
-      pdf.rect(margin, y, contentWidth, 8, 'F');
-      
-      pdf.setTextColor(60, 60, 60);
-      pdf.setFontSize(8);
-      pdf.setFont('helvetica', 'bold');
-      
-      let x = margin + 2;
-      headers.forEach((header, i) => {
-        pdf.text(header, x, y + 5);
-        x += colWidths[i];
-      });
-      
-      y += 10;
-
-      // Table rows
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(40, 40, 40);
-
-      for (const row of sortedRows) {
-        // Check for page break
-        if (y > pageHeight - 25) {
-          pdf.addPage();
-          y = margin;
-        }
-
-        x = margin + 2;
-        
-        const rowData = [
-          format(parseISO(row.date), 'MM/dd/yy'),
-          row.tripName.substring(0, 25),
-          (row.stopName || '-').substring(0, 15),
-          CATEGORY_LABELS[row.category] || row.category,
-          row.description.substring(0, 45),
-          `$${row.amount.toFixed(2)}`,
-          `$${row.myShare.toFixed(2)}`,
-        ];
-
-        rowData.forEach((cell, i) => {
-          pdf.text(cell, x, y);
-          x += colWidths[i];
-        });
-
-        y += 6;
-      }
-
-      // ========== FOOTER ON ALL PAGES ==========
-      const pageCount = pdf.internal.pages.length - 1;
-      for (let i = 1; i <= pageCount; i++) {
-        pdf.setPage(i);
-        pdf.setFontSize(7);
-        pdf.setFont('helvetica', 'normal');
-        pdf.setTextColor(150, 150, 150);
-        pdf.text(
-          `Generated on ${format(new Date(), 'MMMM d, yyyy')} • Real Travel 2 Real Places`,
-          margin,
-          pageHeight - 8
-        );
-        pdf.text(
-          `Page ${i} of ${pageCount}`,
-          pageWidth - margin - 18,
-          pageHeight - 8
-        );
-      }
-
-      pdf.save(`RT2RP-Report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
-    } finally {
-      setExporting(null);
-    }
+  const handleExportCSV = () => {
+    toast({
+      title: "Export CSV",
+      description: "CSV export will include all visible columns in a machine-readable format.",
+    });
   };
 
   // Clear all filters
@@ -525,22 +358,22 @@ export default function Reports() {
             <Button
               variant="outline"
               size="sm"
-              onClick={exportPDF}
-              disabled={exporting !== null || sortedRows.length === 0}
+              onClick={handleExportPDF}
+              disabled={sortedRows.length === 0}
               className="rounded-full"
             >
               <FileText className="w-4 h-4 mr-1" />
-              {exporting === 'pdf' ? 'Exporting...' : 'Export PDF'}
+              Export PDF
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={exportCSV}
-              disabled={exporting !== null || sortedRows.length === 0}
+              onClick={handleExportCSV}
+              disabled={sortedRows.length === 0}
               className="rounded-full"
             >
               <FileSpreadsheet className="w-4 h-4 mr-1" />
-              {exporting === 'csv' ? 'Exporting...' : 'Export CSV'}
+              Export CSV
             </Button>
           </div>
         </div>
