@@ -26,6 +26,7 @@ import { Upload, FileText, Clock, MapPin, Check, AlertCircle, Trash2 } from 'luc
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useCreateEngagement } from '@/hooks/useEngagements';
+import { ParseOriginHint, ParseOrigin } from '@/components/trips/ParseHint';
 
 interface BulkStopsDialogProps {
   open: boolean;
@@ -160,8 +161,8 @@ export function BulkStopsDialog({ open, onOpenChange, tripId, defaultDate }: Bul
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // v2.1.3: Track parse source for confidence indicators
-  const [parseSource, setParseSource] = useState<'file' | 'text' | null>(null);
+  // v2.1.3: Track parse source for confidence indicators (Tour context)
+  const [parseSource, setParseSource] = useState<ParseOrigin>(null);
   
   const createStop = useCreateEngagement();
   
@@ -196,7 +197,7 @@ export function BulkStopsDialog({ open, onOpenChange, tripId, defaultDate }: Bul
     
     setParsedStops(stops);
     setShowPreview(true);
-    setParseSource('text');
+    setParseSource('bulk_import');
   }, [inputText]);
   
   const handleRemoveStop = useCallback((id: string) => {
@@ -264,7 +265,7 @@ export function BulkStopsDialog({ open, onOpenChange, tripId, defaultDate }: Bul
       if (stops.length > 0) {
         setParsedStops(stops);
         setShowPreview(true);
-        setParseSource('file');
+        setParseSource('bulk_import');
         toast.success(`Parsed ${stops.length} stop${stops.length !== 1 ? 's' : ''} from file`);
       }
     };
@@ -400,10 +401,7 @@ Conference call 3:30 PM`}
             
             {/* v2.1.3: Parsed-from indicator */}
             {parseSource && (
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <FileText className="w-3 h-3" />
-                <span>Parsed from {parseSource === 'file' ? 'file' : 'pasted text'}</span>
-              </div>
+              <ParseOriginHint origin={parseSource} />
             )}
             
             {/* Parsed stops list */}

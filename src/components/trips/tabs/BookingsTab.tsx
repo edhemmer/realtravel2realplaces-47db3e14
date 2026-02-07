@@ -42,6 +42,7 @@ import { useTripPermission } from '@/pages/TripDetail';
 import { ManualStepHint, MANUAL_STEP_HINTS } from '@/components/trips/ManualStepHint';
 import { CompanionDetailDialog } from '@/components/trips/CompanionDetailDialog';
 import { isEmailFile, extractEmailBody } from '@/lib/emailBody';
+import { ParseOriginHint, EstimatedHint, ParseOrigin } from '@/components/trips/ParseHint';
 
 // Helper to safely open external URLs in new tab
 const openExternalUrl = (url: string | null | undefined) => {
@@ -93,7 +94,7 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   // v2.1.3: Parsing confidence state
-  const [parseSource, setParseSource] = useState<'email' | 'text' | null>(null);
+  const [parseSource, setParseSource] = useState<ParseOrigin>(null);
   const [timeIsEstimated, setTimeIsEstimated] = useState(false);
   
   // Companion detail dialog state
@@ -281,7 +282,7 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
 
   // Shared parsing logic for both drag-drop and paste (mirrors Create Trip)
   // v2.1.3: Added source parameter for confidence indicators
-  const parseBookingText = useCallback(async (text: string, source: 'email' | 'text' = 'text') => {
+  const parseBookingText = useCallback(async (text: string, source: ParseOrigin = 'pasted_text') => {
     if (!text.trim()) {
       toast.warning('Please paste your confirmation text first.');
       return;
@@ -486,7 +487,7 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
         reader.onload = async (event) => {
           const text = event.target?.result as string;
           if (text) {
-            await parseBookingText(text, 'text');
+            await parseBookingText(text, 'pasted_text');
           }
         };
         reader.readAsText(file);
@@ -501,13 +502,13 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
       return;
     }
 
-    await parseBookingText(text, 'text');
+    await parseBookingText(text, 'pasted_text');
   }, [parseBookingText]);
 
   // Paste handlers (mirrors Create Trip)
   const handlePasteAndScan = useCallback(async () => {
-    setParseSource('text');
-    await parseBookingText(pastedText, 'text');
+    setParseSource('pasted_text');
+    await parseBookingText(pastedText, 'pasted_text');
   }, [pastedText, parseBookingText]);
 
   const openEditDialog = (booking: Booking) => {
@@ -1148,10 +1149,7 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
 
               {/* v2.1.3: Parsed-from indicator */}
               {parseSource && formData.vendor_name && !showPasteInput && !isParsing && (
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <FileText className="w-3 h-3" />
-                  <span>Parsed from {parseSource === 'email' ? 'email' : 'pasted text'}</span>
-                </div>
+                <ParseOriginHint origin={parseSource} />
               )}
 
               {/* Patch 2.6.7: Contextual education for parsed data review */}

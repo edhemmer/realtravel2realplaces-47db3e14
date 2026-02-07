@@ -51,6 +51,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useTripPermission } from '@/pages/TripDetail';
+import { ParseOriginHint, inferExpenseOrigin } from '@/components/trips/ParseHint';
 
 interface ExpensesTabProps {
   tripId: string;
@@ -731,6 +732,10 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
                                 <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium">
                                   From Booking
                                 </span>
+                              )}
+                              {/* v2.1.3: Origin hint for parsed expenses (receipt, email) */}
+                              {!isFromBooking && inferExpenseOrigin(expense.notes) && (
+                                <ParseOriginHint origin={inferExpenseOrigin(expense.notes)} />
                               )}
                               {/* v1.3.0: Show Business/Personal badge for mixed trips */}
                               {trip?.trip_type === 'mixed' && expense.expense_purpose && (
