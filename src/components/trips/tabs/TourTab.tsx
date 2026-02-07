@@ -222,19 +222,25 @@ export function TourTab({ tripId }: TourTabProps) {
         </Alert>
       )}
 
-      {/* Stops list */}
+      {/* Stops list - Patch 2.6.1: Improved empty state */}
       {stops.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <MapPin className="h-10 w-10 text-muted-foreground/50 mb-4" />
-            <p className="text-muted-foreground mb-2">No stops added yet</p>
-            <p className="text-sm text-muted-foreground/70 mb-4">
-              Add your work locations and scheduled meetings
+            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <MapPin className="h-7 w-7 text-primary" />
+            </div>
+            <h4 className="text-base font-medium mb-1">No stops added</h4>
+            <p className="text-sm text-muted-foreground mb-2 max-w-sm">
+              Stops are work locations and scheduled meetings during your trip. 
+              They will appear here once added.
+            </p>
+            <p className="text-xs text-muted-foreground mb-4">
+              Use the Bookings tab for lodging and Stays.
             </p>
             {canEdit && (
-              <Button variant="outline" onClick={openAddDialog}>
+              <Button onClick={openAddDialog} className="bg-gradient-ocean hover:opacity-90">
                 <Plus className="w-4 h-4 mr-2" />
-                Add Your First Stop
+                Add Stop
               </Button>
             )}
           </CardContent>
