@@ -91,6 +91,7 @@ export interface Expense {
   notes?: string;
   receipt_url?: string;
   expense_purpose?: ExpensePurpose; // v1.3.0: For mixed trips only
+  engagement_id?: string | null; // Patch 2.3.8: Optional Stop assignment
   created_at: string;
   updated_at: string;
 }

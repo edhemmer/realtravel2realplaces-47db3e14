@@ -2,7 +2,9 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useExpenses, useCreateExpense, useUpdateExpense, useDeleteExpense } from '@/hooks/useExpenses';
 import { useBookings } from '@/hooks/useBookings';
 import { useTrip } from '@/hooks/useTrips';
+import { useEngagements } from '@/hooks/useEngagements';
 import { Expense, ExpenseCategory, ExpenseSubCategory, ExpensePurpose } from '@/types/database';
+import { BusinessOnly } from '@/components/access';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   calculateCategorySummary,
@@ -28,7 +30,7 @@ import {
   Plus, Trash2, Receipt, Utensils, Car, PartyPopper, ShoppingBag, 
   ParkingCircle, MoreHorizontal, Upload, Sparkles, Camera, AlertCircle,
   CheckCircle, RefreshCw, Image as ImageIcon, Fuel, Link2, Pencil,
-  Briefcase, Home
+  Briefcase, Home, MapPin
 } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { GasExpenseDialog } from '@/components/trips/GasExpenseDialog';
@@ -117,6 +119,7 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
   const { data: expenses = [], isLoading } = useExpenses(tripId);
   const { data: bookings = [], isLoading: bookingsLoading } = useBookings(tripId);
   const { data: trip } = useTrip(tripId);
+  const { data: engagements = [] } = useEngagements(tripId); // Patch 2.3.8: Fetch Stops for selector
   const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
   const deleteExpense = useDeleteExpense();
@@ -145,6 +148,7 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
     notes: '',
     receipt_url: '',
     expense_purpose: '' as ExpensePurpose | '',
+    engagement_id: '' as string, // Patch 2.3.8: Optional Stop assignment
   });
 
   const resetForm = () => {
@@ -158,6 +162,7 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
       notes: '',
       receipt_url: '',
       expense_purpose: '',
+      engagement_id: '',
     });
     setPreviewImage(null);
     setParseError(null);
@@ -176,6 +181,7 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
       notes: '',
       receipt_url: '',
       expense_purpose: '',
+      engagement_id: '',
     });
     setPreviewImage(null);
     setParseError(null);
@@ -196,6 +202,7 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
       notes: getCleanNotesForDisplay(expense.notes) || '',
       receipt_url: expense.receipt_url || '',
       expense_purpose: (expense.expense_purpose || '') as ExpensePurpose | '',
+      engagement_id: expense.engagement_id || '', // Patch 2.3.8: Load existing Stop assignment
     });
     setPreviewImage(expense.receipt_url || null);
     setParseError(null);
@@ -233,6 +240,7 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
         notes: formData.notes || undefined,
         receipt_url: formData.receipt_url || undefined,
         expense_purpose: isMixedTrip && formData.expense_purpose ? formData.expense_purpose : undefined,
+        engagement_id: formData.engagement_id || null, // Patch 2.3.8: Save Stop assignment
       });
     } else {
       await createExpense.mutateAsync({
@@ -246,6 +254,7 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
         notes: formData.notes || undefined,
         receipt_url: formData.receipt_url || undefined,
         expense_purpose: isMixedTrip && formData.expense_purpose ? formData.expense_purpose : undefined,
+        engagement_id: formData.engagement_id || undefined, // Patch 2.3.8: Save Stop assignment
       });
     }
     
@@ -731,6 +740,18 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
                                   {expense.expense_purpose === 'business' ? '💼 Business' : '🏠 Personal'}
                                 </span>
                               )}
+                              {/* Patch 2.3.8: Show Stop name when assigned (Business only) */}
+                              <BusinessOnly>
+                                {expense.engagement_id && (() => {
+                                  const stop = engagements.find(e => e.id === expense.engagement_id);
+                                  return stop ? (
+                                    <span className="text-[10px] px-1.5 py-0.5 bg-accent text-accent-foreground rounded-full font-medium flex items-center gap-0.5">
+                                      <MapPin className="w-2.5 h-2.5" />
+                                      {stop.name}
+                                    </span>
+                                  ) : null;
+                                })()}
+                              </BusinessOnly>
                             </div>
                             <p className="text-sm text-muted-foreground">
                               {format(parseISO(expense.date), 'MMM d, yyyy')}
@@ -1000,6 +1021,40 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
                 </Select>
               </div>
             )}
+
+            {/* Patch 2.3.8: Stop selector for Business users */}
+            <BusinessOnly>
+              {engagements.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Assign to Stop (optional)</Label>
+                  <Select 
+                    value={formData.engagement_id} 
+                    onValueChange={(v) => setFormData({ ...formData, engagement_id: v === 'none' ? '' : v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Not assigned" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Not assigned</SelectItem>
+                      {engagements.map((engagement) => (
+                        <SelectItem key={engagement.id} value={engagement.id}>
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-3 h-3" />
+                            <span>{engagement.name}</span>
+                            <span className="text-muted-foreground text-xs">
+                              ({engagement.date})
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Assigning expenses to Stops helps with location-based reporting.
+                  </p>
+                </div>
+              )}
+            </BusinessOnly>
 
             <div className="space-y-2">
               <Label>Description</Label>
