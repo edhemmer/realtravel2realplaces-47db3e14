@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsPro } from '@/hooks/useSubscription';
 import { useIsAdmin } from '@/hooks/useAdminUsers';
+import { useAccess } from '@/hooks/useAccess';
 import { useIdleLogout } from '@/hooks/useIdleLogout';
 import { Button } from '@/components/ui/button';
-import { Plane, LogOut, User, Settings, Crown, MessageCircleQuestion, ShieldCheck } from 'lucide-react';
+import { Plane, LogOut, User, Settings, Crown, MessageCircleQuestion, ShieldCheck, BarChart3 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -23,6 +24,7 @@ export function Layout({ children }: LayoutProps) {
   const { user, signOut } = useAuth();
   const isPro = useIsPro();
   const { data: isAdmin } = useIsAdmin();
+  const { canAccessBusinessFeatures } = useAccess();
   const navigate = useNavigate();
   const [supportDialogOpen, setSupportDialogOpen] = useState(false);
 
@@ -77,6 +79,15 @@ export function Layout({ children }: LayoutProps) {
                   <MessageCircleQuestion className="w-4 h-4 mr-2" />
                   Contact support
                 </DropdownMenuItem>
+                {canAccessBusinessFeatures && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => navigate('/reports')} className="cursor-pointer">
+                      <BarChart3 className="w-4 h-4 mr-2" />
+                      Reports
+                    </DropdownMenuItem>
+                  </>
+                )}
                 {isAdmin && (
                   <>
                     <DropdownMenuSeparator />
