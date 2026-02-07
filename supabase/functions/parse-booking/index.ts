@@ -1,5 +1,19 @@
+/**
+ * v2.6.3: Parse Booking Edge Function
+ * 
+ * PERFORMANCE OPTIMIZATIONS:
+ * - Uses shared datetime-utils for pre-compiled regex and short-circuit evaluations
+ * - Reduced redundant parsing operations
+ * - Error handling preserves existing behavior
+ */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { 
+  normalizeDatetime, 
+  normalizeReceiptDate, 
+  cleanNullStrings,
+  hasServiceDates 
+} from "../_shared/datetime-utils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -352,65 +366,15 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
       try {
         const parsed = JSON.parse(toolCall.function.arguments);
         
-        // Post-process: Clean up "null" strings to actual null values
-        for (const key of Object.keys(parsed)) {
-          if (parsed[key] === "null" || parsed[key] === "NULL") {
-            parsed[key] = null;
-          }
-        }
+        // v2.6.3: Use optimized shared utilities for post-processing
+        // Clean up "null" strings to actual null values
+        cleanNullStrings(parsed);
         
-        // v2.2.0: DATETIME INTEGRITY POST-PROCESSING
-        // Normalize datetime fields to preserve original dates and handle missing times correctly
-        const normalizeDatetime = (dt: string | null | undefined): string | null => {
-          if (!dt) return null;
-          
-          // If it's already date-only (YYYY-MM-DD), keep it that way
-          if (/^\d{4}-\d{2}-\d{2}$/.test(dt)) {
-            return dt;
-          }
-          
-          // Parse and check for explicit time
-          try {
-            const parsed = new Date(dt);
-            if (isNaN(parsed.getTime())) return null;
-            
-            const hours = parsed.getHours();
-            const minutes = parsed.getMinutes();
-            const seconds = parsed.getSeconds();
-            
-            // If time is midnight (00:00:00), treat as date-only
-            // This prevents false times from being stored
-            if (hours === 0 && minutes === 0 && seconds === 0) {
-              // Check if original string had explicit midnight time
-              if (dt.includes('T')) {
-                const timePart = dt.split('T')[1];
-                if (timePart?.startsWith('00:00:00') || timePart?.startsWith('00:00')) {
-                  // Likely defaulted, store as date-only
-                  return dt.split('T')[0];
-                }
-              }
-              // No T separator or midnight time - store as date-only
-              return dt.split('T')[0] || dt.substring(0, 10);
-            }
-            
-            // Has explicit non-midnight time, return full datetime
-            return parsed.toISOString();
-          } catch {
-            return null;
-          }
-        };
-        
-        // Apply normalization to datetime fields
-        if (parsed.start_datetime) {
-          parsed.start_datetime = normalizeDatetime(parsed.start_datetime);
-        }
-        if (parsed.end_datetime) {
-          parsed.end_datetime = normalizeDatetime(parsed.end_datetime);
-        }
-        if (parsed.receipt_date) {
-          // Receipt date should always be date-only
-          parsed.receipt_date = parsed.receipt_date?.split('T')[0] || parsed.receipt_date?.substring(0, 10) || parsed.receipt_date;
-        }
+        // v2.6.3: Apply optimized datetime normalization
+        // Uses pre-compiled regex and short-circuit evaluations
+        parsed.start_datetime = normalizeDatetime(parsed.start_datetime);
+        parsed.end_datetime = normalizeDatetime(parsed.end_datetime);
+        parsed.receipt_date = normalizeReceiptDate(parsed.receipt_date);
         
         // Check if this is a receipt-only document
         if (parsed.is_receipt_only === true) {
@@ -425,32 +389,21 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
           });
         }
         
-        // For non-receipt bookings, validate that we have service dates
-        // If booking_type is set but no start_datetime, treat as receipt
-        if (!parsed.start_datetime && parsed.total_cost) {
-          parsed.is_receipt_only = true;
-          return new Response(JSON.stringify({ 
-            success: true, 
-            data: parsed,
-            is_receipt_only: true,
-            message: "This appears to be a payment receipt without service dates. An expense will be created instead." 
-          }), {
-            status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        
-        // Validate stay bookings have actual check-in/check-out dates (not just payment dates)
-        if (parsed.booking_type === 'stay') {
-          const hasValidDates = parsed.start_datetime && parsed.end_datetime;
-          if (!hasValidDates) {
-            // Treat as receipt if missing dates
+        // v2.6.3: Use optimized hasServiceDates for validation
+        // Consolidates service date checks with short-circuit evaluation
+        if (!hasServiceDates(parsed)) {
+          // No valid service dates - treat as receipt if has cost
+          if (parsed.total_cost) {
             parsed.is_receipt_only = true;
+            const message = parsed.booking_type === 'stay'
+              ? "This appears to be a payment confirmation without check-in/check-out dates. An expense will be created. To add timeline entries, please upload the full booking confirmation."
+              : "This appears to be a payment receipt without service dates. An expense will be created instead.";
+            
             return new Response(JSON.stringify({ 
               success: true, 
               data: parsed,
               is_receipt_only: true,
-              message: "This appears to be a payment confirmation without check-in/check-out dates. An expense will be created. To add timeline entries, please upload the full booking confirmation." 
+              message
             }), {
               status: 200,
               headers: { ...corsHeaders, "Content-Type": "application/json" },

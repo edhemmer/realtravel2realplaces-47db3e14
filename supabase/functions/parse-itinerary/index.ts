@@ -1,5 +1,18 @@
+/**
+ * v2.6.3: Parse Itinerary Edge Function
+ * 
+ * PERFORMANCE OPTIMIZATIONS:
+ * - Uses shared datetime-utils for pre-compiled regex and short-circuit evaluations
+ * - Batch datetime normalization for booking arrays
+ * - Reduced redundant parsing operations
+ */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { 
+  normalizeDatetime, 
+  normalizeBatchDatetimes,
+  extractDatePortion 
+} from "../_shared/datetime-utils.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -276,58 +289,23 @@ Return a JSON object with trip info and an array of bookings. Use null for any f
       try {
         const parsed = JSON.parse(toolCall.function.arguments);
         
-        // v2.2.0: DATETIME INTEGRITY POST-PROCESSING
-        // Normalize datetime fields to preserve original dates and handle missing times correctly
-        const normalizeDatetime = (dt: string | null | undefined): string | null => {
-          if (!dt) return null;
-          
-          // If it's already date-only (YYYY-MM-DD), keep it that way
-          if (/^\d{4}-\d{2}-\d{2}$/.test(dt)) {
-            return dt;
-          }
-          
-          // Parse and check for explicit time
-          try {
-            const parsedDate = new Date(dt);
-            if (isNaN(parsedDate.getTime())) return null;
-            
-            const hours = parsedDate.getHours();
-            const minutes = parsedDate.getMinutes();
-            const seconds = parsedDate.getSeconds();
-            
-            // If time is midnight (00:00:00), treat as date-only
-            if (hours === 0 && minutes === 0 && seconds === 0) {
-              if (dt.includes('T')) {
-                const timePart = dt.split('T')[1];
-                if (timePart?.startsWith('00:00:00') || timePart?.startsWith('00:00')) {
-                  return dt.split('T')[0];
-                }
-              }
-              return dt.split('T')[0] || dt.substring(0, 10);
-            }
-            
-            // Has explicit non-midnight time
-            return parsedDate.toISOString();
-          } catch {
-            return null;
-          }
-        };
+        // v2.6.3: Use optimized shared datetime utilities
+        // Pre-compiled regex and short-circuit evaluations for performance
         
         // Normalize trip dates (always date-only)
         if (parsed.trip?.start_date) {
-          parsed.trip.start_date = parsed.trip.start_date.split('T')[0] || parsed.trip.start_date.substring(0, 10);
+          parsed.trip.start_date = extractDatePortion(parsed.trip.start_date);
         }
         if (parsed.trip?.end_date) {
-          parsed.trip.end_date = parsed.trip.end_date.split('T')[0] || parsed.trip.end_date.substring(0, 10);
+          parsed.trip.end_date = extractDatePortion(parsed.trip.end_date);
         }
         
-        // Normalize booking datetimes
+        // v2.6.3: Batch normalize booking datetimes in single pass
         if (Array.isArray(parsed.bookings)) {
-          parsed.bookings = parsed.bookings.map((booking: Record<string, unknown>) => ({
-            ...booking,
-            start_datetime: normalizeDatetime(booking.start_datetime as string),
-            end_datetime: normalizeDatetime(booking.end_datetime as string),
-          }));
+          parsed.bookings = normalizeBatchDatetimes(
+            parsed.bookings,
+            ['start_datetime', 'end_datetime']
+          );
         }
         
         return new Response(JSON.stringify({ 
