@@ -12,7 +12,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Check, Crown, Briefcase, User, Sparkles, ArrowLeft } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Check, Crown, Briefcase, User, Sparkles, ArrowLeft, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface PlanFeature {
@@ -228,16 +234,44 @@ export default function Plans() {
               <Sparkles className="w-5 h-5 text-primary" />
               Upgrades Coming Soon
             </DialogTitle>
-            <DialogDescription className="pt-2">
-              We're working hard to bring you Pro and Business plans with advanced features, 
-              unlimited trips, and powerful insights.
-              <br /><br />
-              For now, enjoy the Free plan and we'll notify you when upgrades are available!
+            <DialogDescription className="pt-2 space-y-3">
+              <p>
+                We're working hard to bring you Pro and Business plans with advanced features, 
+                unlimited trips, and powerful insights.
+              </p>
+              <p>
+                For now, enjoy the Free plan and we'll notify you when upgrades are available.
+              </p>
             </DialogDescription>
           </DialogHeader>
-          <div className="flex justify-end pt-4">
-            <Button onClick={() => setUpgradeDialogOpen(false)}>
-              Got it
+          
+          {/* Disabled upgrade action with explanation */}
+          <div className="pt-2 space-y-3">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <Button className="w-full" disabled>
+                      <Crown className="w-4 h-4 mr-2" />
+                      Upgrade to Pro
+                    </Button>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                  <p>Billing is not active yet. Upgrades will be available soon.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1">
+              <Info className="w-3 h-3" />
+              Billing is not active yet
+            </p>
+          </div>
+          
+          <div className="flex justify-end pt-2">
+            <Button variant="outline" onClick={() => setUpgradeDialogOpen(false)}>
+              Close
             </Button>
           </div>
         </DialogContent>
