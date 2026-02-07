@@ -71,18 +71,18 @@ export function TripStatusHeroBar({ trip }: TripStatusHeroBarProps) {
  
    const statusConfig = getStatusConfig();
  
-   return (
-     <div className="sticky top-16 z-40 -mx-4 px-4 sm:-mx-0 sm:px-0">
-       <div className="bg-card/95 backdrop-blur-md border rounded-lg shadow-sm">
-         <div className="flex items-center justify-between px-4 py-3">
-           {/* Trip name */}
-           <h2 className="font-semibold text-lg truncate">{trip.name}</h2>
- 
-            {/* Status Badge - v2.1.40: Plan badge removed, only status shown */}
+    return (
+      <div className="sticky top-16 z-40 -mx-4 px-4 sm:-mx-0 sm:px-0">
+        <div className="bg-card/95 backdrop-blur-md border border-border/50 rounded-lg shadow-sm">
+          <div className="flex items-center justify-between gap-4 px-5 py-3.5">
+            {/* Trip name - primary focal point */}
+            <h2 className="font-bold text-xl truncate flex-1">{trip.name}</h2>
+  
+            {/* Status Badge - clearly aligned right with comfortable spacing */}
             <Badge 
               variant="outline"
               className={cn(
-                'flex items-center gap-1 border transition-all duration-300',
+                'flex items-center gap-1.5 border transition-all duration-300 shrink-0 px-3 py-1',
                 statusConfig.className,
                 isUrgent && 'animate-pulse'
               )}
@@ -90,26 +90,26 @@ export function TripStatusHeroBar({ trip }: TripStatusHeroBarProps) {
               {statusConfig.icon}
               {statusConfig.label}
             </Badge>
-         </div>
- 
-         {/* Retention warning line for Pro closed trips */}
-         {showRetentionWarning && (
-           <div className="px-4 pb-3 -mt-1">
-             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-               <Clock className="w-3.5 h-3.5" />
-               <span>
-                 This trip is closed. Data will be retained for{' '}
-                 <span className={cn(
-                   'font-medium',
-                   isUrgent ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'
-                 )}>
-                   {daysUntilDeletion} day{daysUntilDeletion !== 1 ? 's' : ''}
-                 </span>.
-               </span>
-             </div>
-           </div>
-         )}
-       </div>
-     </div>
-   );
- }
+          </div>
+  
+          {/* Retention warning line for Pro closed trips */}
+          {showRetentionWarning && (
+            <div className="px-5 pb-3 -mt-1">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Clock className="w-3.5 h-3.5" />
+                <span>
+                  Data retained for{' '}
+                  <span className={cn(
+                    'font-medium',
+                    isUrgent ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'
+                  )}>
+                    {daysUntilDeletion} day{daysUntilDeletion !== 1 ? 's' : ''}
+                  </span>
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }

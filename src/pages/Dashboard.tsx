@@ -62,21 +62,29 @@ export default function Dashboard() {
     const { cardClassName, isLocked } = getTripCardLifecycleStyles(trip as Trip, isPro);
     const tripState = (trip as Trip).trip_state || 'active';
     
-     // v2.1.7: Hide delete for Free users
-     const canDelete = isPro && !isShared && tripState === 'active';
+    // v2.0.2: Determine if trip is in the past for visual de-emphasis
+    const tripEndDate = startOfDay(parseISO(trip.end_date));
+    const today = startOfDay(new Date());
+    const isPastTrip = isBefore(tripEndDate, today);
+    
+    // v2.1.7: Hide delete for Free users
+    const canDelete = isPro && !isShared && tripState === 'active';
 
-     const handleCardClick = () => {
-       navigate(`/trip/${trip.id}`);
-     };
+    const handleCardClick = () => {
+      navigate(`/trip/${trip.id}`);
+    };
+
+    // v2.0.2: Past trips get muted styling for visual hierarchy
+    const pastTripStyles = isPastTrip ? 'opacity-60 bg-muted/30' : '';
 
     return (
       <Card 
         key={trip.id} 
-         className={`group cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-300 overflow-hidden animate-fade-in ${cardClassName}`}
+        className={`group cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-300 overflow-hidden animate-fade-in ${cardClassName} ${pastTripStyles}`}
         style={{
           animationDelay: `${index * 50}ms`
         }}
-         onClick={handleCardClick}
+        onClick={handleCardClick}
       >
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between">
