@@ -75,14 +75,15 @@ export function useAccess(): AccessState {
   // Testers listed in src/config/businessTesters.ts get Business access
   const isTester = isBusinessTester(user?.email);
   
-  // Patch 2.6.8: Business access is granted via:
+  // Patch 2.6.12: Business access is granted via:
   // 1. Admin role (from user_roles table)
   // 2. Tester override (from businessTesters.ts config)
-  // 3. Future: Active Business subscription (not yet implemented)
-  const canAccessBusinessFeatures = isAdmin === true || isTester;
+  // 3. Database subscription_tier = 'business' (admin-assigned override)
+  const hasBusinessTier = tier === 'business';
+  const canAccessBusinessFeatures = isAdmin === true || isTester || hasBusinessTier;
   
   return {
-    isPro,
+    isPro: isPro || hasBusinessTier, // Business tier includes Pro features
     canAccessBusinessFeatures,
     isAdminUser: isAdmin === true,
     isLoading,

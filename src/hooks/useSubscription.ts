@@ -82,8 +82,9 @@ export function useSubscription() {
 }
 
 /**
- * Helper hook to check if current user is Pro
+ * Helper hook to check if current user is Pro or Business
  * Includes owner override: edhemmer@gmail.com is always Pro
+ * Business tier users also get Pro access (Business includes Pro features)
  */
 export function useIsPro(): boolean {
   const { user } = useAuth();
@@ -93,5 +94,6 @@ export function useIsPro(): boolean {
   const isOwner = user?.email?.toLowerCase() === OWNER_EMAIL.toLowerCase();
   if (isOwner) return true;
   
-  return data?.tier === 'pro';
+  // Pro or Business tier both grant Pro-level access
+  return data?.tier === 'pro' || data?.tier === 'business';
 }

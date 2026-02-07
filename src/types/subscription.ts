@@ -1,6 +1,6 @@
-// v2.0.0a: Simplified subscription tier types (lifetime trip limits only)
+// v2.6.12: Added 'business' tier for admin override (non-billed)
 
-export type SubscriptionTier = 'free' | 'pro';
+export type SubscriptionTier = 'free' | 'pro' | 'business';
 
 export interface SubscriptionLimits {
   maxTripsLifetime: number; // -1 means unlimited
@@ -11,6 +11,9 @@ export const TIER_LIMITS: Record<SubscriptionTier, SubscriptionLimits> = {
     maxTripsLifetime: 5,
   },
   pro: {
+    maxTripsLifetime: -1, // unlimited
+  },
+  business: {
     maxTripsLifetime: -1, // unlimited
   },
 };
