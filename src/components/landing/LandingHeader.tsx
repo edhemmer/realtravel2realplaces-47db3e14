@@ -19,7 +19,7 @@ Real Places</span>
             <Link to="/auth" className="text-xs sm:text-sm text-[hsl(var(--landing-text-muted))] hover:text-[hsl(var(--landing-text))] transition-colors px-2 py-2">
               Log in
             </Link>
-            <Link to="/auth" className="landing-btn-primary text-sm px-3 py-2 sm:px-6 sm:py-2.5">
+            <Link to="/auth?tab=signup" className="landing-btn-primary text-sm px-3 py-2 sm:px-6 sm:py-2.5">
               Get started
             </Link>
           </div>
