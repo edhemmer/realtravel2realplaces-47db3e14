@@ -10,12 +10,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Mail, Crown, User, Lock, CheckCircle, ChevronRight, ShieldCheck, BookOpen } from 'lucide-react';
+import { Mail, Crown, User, Lock, CheckCircle, ChevronRight, ShieldCheck, BookOpen, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { TravelPreferencesCard } from '@/components/account/TravelPreferencesCard';
+import { UpgradePlanDialog } from '@/components/account/UpgradePlanDialog';
 import { resetOnboarding } from './Onboarding';
-
 export default function Account() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -24,6 +24,7 @@ export default function Account() {
   const { data: isAdmin } = useIsAdmin();
   const [isResetting, setIsResetting] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
 
   const handleResetPassword = async () => {
     if (!user?.email) return;
@@ -141,6 +142,22 @@ export default function Account() {
                     </>
                   )}
                 </p>
+                
+                {/* Upgrade CTA for non-Pro users */}
+                {!isPro && (
+                  <Button 
+                    variant="default"
+                    className="w-full justify-between"
+                    onClick={() => setUpgradeDialogOpen(true)}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4" />
+                      Upgrade plan
+                    </span>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                )}
+                
                 <Button 
                   variant="outline" 
                   className="w-full justify-between"
@@ -218,6 +235,12 @@ export default function Account() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Upgrade Plan Dialog */}
+      <UpgradePlanDialog 
+        open={upgradeDialogOpen} 
+        onOpenChange={setUpgradeDialogOpen} 
+      />
     </Layout>
   );
 }
