@@ -17,6 +17,8 @@ import { PackingTab } from '@/components/trips/tabs/PackingTab';
 import { CompanionsTab } from '@/components/trips/tabs/CompanionsTab';
 import { NotesTab } from '@/components/trips/tabs/NotesTab';
 import { ExploreTab } from '@/components/trips/tabs/ExploreTab';
+import { TourTab } from '@/components/trips/tabs/TourTab';
+import { BusinessOnly } from '@/components/access';
 import { TripHeaderWidgets } from '@/components/trips/TripHeaderWidgets';
 import { TripStatusHeroBar } from '@/components/trips/TripStatusHeroBar';
 import { ProRetentionCountdownCard } from '@/components/trips/ProRetentionCountdownCard';
@@ -178,23 +180,10 @@ export default function TripDetail() {
                   </Badge>
                 )}
               </TabsTrigger>
-              {/* 
-                FUTURE (Business-only): Tour Tab
-                ================================
-                The Tour tab will enable multi-stop itinerary management for Business users.
-                It will appear here after the Explore tab when Business tier gating is enabled.
-                
-                Implementation checklist:
-                - Create TourTab component in src/components/trips/tabs/TourTab.tsx
-                - Add 'tour' to DrillThroughTarget type
-                - Wrap TabsTrigger with <BusinessOnly> from src/components/access
-                - Add TabsContent for tour tab
-                
-                Example (when ready to implement):
-                <BusinessOnly>
-                  <TabsTrigger value="tour">Tour</TabsTrigger>
-                </BusinessOnly>
-              */}
+              {/* v2.3.5: Tour tab for Business users - Stops management */}
+              <BusinessOnly>
+                <TabsTrigger value="tour">Tour</TabsTrigger>
+              </BusinessOnly>
             </TabsList>
 
             <div className="mt-6">
@@ -230,18 +219,12 @@ export default function TripDetail() {
               <TabsContent value="explore">
                 <ExploreTab tripId={trip.id} trip={trip} />
               </TabsContent>
-              {/* 
-                FUTURE (Business-only): Tour Tab Content
-                ========================================
-                The Tour tab content will render here when Business tier is enabled.
-                
-                Example (when ready to implement):
-                <BusinessOnly>
-                  <TabsContent value="tour">
-                    <TourTab tripId={trip.id} trip={trip} />
-                  </TabsContent>
-                </BusinessOnly>
-              */}
+              {/* v2.3.5: Tour tab content for Business users */}
+              <BusinessOnly>
+                <TabsContent value="tour">
+                  <TourTab tripId={trip.id} />
+                </TabsContent>
+              </BusinessOnly>
             </div>
           </Tabs>
         </div>
