@@ -1,5 +1,5 @@
  import { Trip, TripState } from '@/types/database';
- import { useIsPro } from '@/hooks/useSubscription';
+ import { useAccess } from '@/hooks/useAccess';
  import { Button } from '@/components/ui/button';
  import { Card } from '@/components/ui/card';
  import { FileText, Sheet, Trash2, Calendar, Download } from 'lucide-react';
@@ -11,7 +11,7 @@
  }
  
  export function ProRetentionCountdownCard({ trip }: ProRetentionCountdownCardProps) {
-   const isPro = useIsPro();
+   const { isPro } = useAccess();
    const tripState = (trip.trip_state || 'active') as TripState;
    
    // Calculate days until deletion

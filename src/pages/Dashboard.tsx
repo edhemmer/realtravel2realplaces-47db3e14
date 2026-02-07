@@ -10,7 +10,7 @@ import { format, isBefore, startOfDay, parseISO } from 'date-fns';
 import { Trip } from '@/types/database';
 import { CreateTripDialog } from '@/components/trips/CreateTripDialog';
 import { TripLifecycleBadges, getTripCardLifecycleStyles } from '@/components/trips/TripLifecycleBadges';
-import { useIsPro } from '@/hooks/useSubscription';
+import { useAccess } from '@/hooks/useAccess';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { hasCompletedOnboarding } from './Onboarding';
 
@@ -25,7 +25,7 @@ export default function Dashboard() {
     isLoading: sharedLoading
   } = useSharedTrips();
   const deleteTrip = useDeleteTrip();
-  const isPro = useIsPro();
+  const { isPro } = useAccess();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [tripToDelete, setTripToDelete] = useState<string | null>(null);
 

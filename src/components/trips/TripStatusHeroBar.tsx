@@ -1,5 +1,5 @@
 import { Trip, TripState } from '@/types/database';
-import { useIsPro } from '@/hooks/useSubscription';
+import { useAccess } from '@/hooks/useAccess';
 import { Badge } from '@/components/ui/badge';
 import { Lock, Archive, Clock, Moon } from 'lucide-react';
 import { differenceInDays, parseISO, startOfDay, isBefore } from 'date-fns';
@@ -14,7 +14,7 @@ interface TripStatusHeroBarProps {
  * Status badge (Active/Inactive/Locked/Closed) remains.
  */
 export function TripStatusHeroBar({ trip }: TripStatusHeroBarProps) {
-   const isPro = useIsPro();
+   const { isPro } = useAccess();
    const tripState = (trip.trip_state || 'active') as TripState;
    
    // Calculate days until deletion for Pro closed trips

@@ -9,7 +9,7 @@ import { useState, useCallback } from 'react';
 import { Trip } from '@/types/database';
 import { AttractionSuggestion } from '@/types/attraction';
 import { useAttractions } from '@/hooks/useAttractions';
-import { useIsPro } from '@/hooks/useSubscription';
+import { useAccess } from '@/hooks/useAccess';
 import { useTripPermission } from '@/pages/TripDetail';
 import { AttractionCard } from '@/components/trips/explore/AttractionCard';
 import { AddToTripModal } from '@/components/trips/explore/AddToTripModal';
@@ -35,7 +35,7 @@ interface GpsState {
 }
 
 export function ExploreTab({ tripId, trip }: ExploreTabProps) {
-  const isPro = useIsPro();
+  const { isPro } = useAccess();
   const { canEdit } = useTripPermission();
   
   const [locationMode, setLocationMode] = useState<LocationMode>('stay');

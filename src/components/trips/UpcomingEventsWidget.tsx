@@ -1,7 +1,7 @@
 import { useTripEvents } from '@/hooks/useTripEvents';
 import { useBookings } from '@/hooks/useBookings';
 import { useParking } from '@/hooks/useParking';
-import { useIsPro } from '@/hooks/useSubscription';
+import { useAccess } from '@/hooks/useAccess';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { TripEventType } from '@/types/tripEvent';
 import { format, parseISO, isAfter } from 'date-fns';
@@ -129,7 +129,7 @@ const formatEventDatetime = (datetime: string, preferredFormat: string | null | 
  * - Shows "No upcoming events" when empty
  */
 export function UpcomingEventsWidget({ tripId, onDrillThrough }: UpcomingEventsWidgetProps) {
-  const isPro = useIsPro();
+  const { isPro } = useAccess();
   const { data: events = [] } = useTripEvents(tripId);
   const { data: bookings = [] } = useBookings(tripId);
   const { data: parkingList = [] } = useParking(tripId);

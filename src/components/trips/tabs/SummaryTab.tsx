@@ -6,7 +6,7 @@ import { useCompanions } from '@/hooks/useCompanions';
 import { useBookingCompanionsByTrip } from '@/hooks/useBookingCompanions';
 import { useTripWeather } from '@/hooks/useWeather';
 import { useTravelAlerts } from '@/hooks/useTravelAlerts';
-import { useIsPro } from '@/hooks/useSubscription';
+import { useAccess } from '@/hooks/useAccess';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { Trip, Booking, Parking, Companion } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -129,7 +129,7 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
   const { data: companions = [] } = useCompanions(tripId);
   const { data: bookingCompanions = [] } = useBookingCompanionsByTrip(tripId);
   const { data: userProfile } = useUserProfile();
-  const isPro = useIsPro();
+  const { isPro } = useAccess();
   const { tripForecast, weatherAnalysis, isLoading: weatherLoading } = useTripWeather(
     trip.destination_city,
     trip.destination_country,

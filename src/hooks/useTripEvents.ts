@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useIsPro } from '@/hooks/useSubscription';
+import { useAccess } from '@/hooks/useAccess';
 import { TripEvent } from '@/types/tripEvent';
 
 /**
@@ -10,7 +10,7 @@ import { TripEvent } from '@/types/tripEvent';
  * Events are auto-synced via database triggers when bookings/parking change.
  */
 export function useTripEvents(tripId: string | undefined) {
-  const isPro = useIsPro();
+  const { isPro } = useAccess();
 
   return useQuery({
     queryKey: ['trip-events', tripId],

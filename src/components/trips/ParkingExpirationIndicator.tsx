@@ -1,5 +1,5 @@
 import { useTripEvents } from '@/hooks/useTripEvents';
-import { useIsPro } from '@/hooks/useSubscription';
+import { useAccess } from '@/hooks/useAccess';
 import { format, parseISO, isAfter } from 'date-fns';
 import { Clock } from 'lucide-react';
 
@@ -18,7 +18,7 @@ interface ParkingExpirationIndicatorProps {
  * - No warnings, countdowns, or urgent styling
  */
 export function ParkingExpirationIndicator({ tripId, parkingId }: ParkingExpirationIndicatorProps) {
-  const isPro = useIsPro();
+  const { isPro } = useAccess();
   const { data: events = [] } = useTripEvents(tripId);
 
   // Not visible for Free users
