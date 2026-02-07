@@ -1,7 +1,15 @@
 /**
  * useAccess - Centralized UI access control hook
  * 
- * Patch 2.6.24: Simple Plan Model (Single Source of Truth)
+ * Patch 2.6.27: Plan Tier Consistency (Desktop + Mobile)
+ * 
+ * This is the SINGLE resolver for all plan tier access across the application.
+ * ALL components must use useAccess() instead of useIsPro() or direct useSubscription().
+ * 
+ * CONSISTENCY GUARANTEE:
+ * - Desktop and mobile always display the same plan tier
+ * - All feature gates read from the same cached subscription query
+ * - Cache invalidation broadcasts to all components using useAccess()
  * 
  * PLAN GATING ARCHITECTURE:
  * - UI gating is enforced via useAccess() hook and wrapper components
@@ -44,7 +52,7 @@
  * }
  */
 
-import { useSubscription, useIsPro } from '@/hooks/useSubscription';
+import { useSubscription } from '@/hooks/useSubscription';
 import { useIsAdmin } from '@/hooks/useAdminUsers';
 import { 
   resolveEffectiveTier, 
@@ -76,13 +84,12 @@ export interface AccessState {
 
 export function useAccess(): AccessState {
   const { data: subscription, isLoading: subscriptionLoading } = useSubscription();
-  const isPro = useIsPro();
   const { data: isAdmin, isLoading: adminLoading } = useIsAdmin();
 
   const isLoading = subscriptionLoading || adminLoading;
   const rawTier = (subscription?.tier || null) as PlanTier | null;
   
-  // Patch 2.6.24: tier is simply the subscription tier from DB (no overrides)
+  // Patch 2.6.27: tier is simply the subscription tier from DB (no overrides)
   // resolveEffectiveTier just ensures we have a valid tier or default to 'free'
   const tier = rawTier !== null
     ? resolveEffectiveTier({
@@ -90,12 +97,13 @@ export function useAccess(): AccessState {
       })
     : null;
   
-  // Derive access flags from tier using shared utilities
+  // Patch 2.6.27: Derive all access flags from the single tier source
+  // This ensures desktop and mobile always see identical values
   const canAccessBusinessFeatures = tier !== null && tierIncludesBusiness(tier);
   const hasProAccess = tier !== null && tierIncludesPro(tier);
   
   return {
-    isPro: isPro || hasProAccess, // Business tier includes Pro features
+    isPro: hasProAccess, // Pro OR Business tier includes Pro features
     canAccessBusinessFeatures,
     isAdminUser: isAdmin === true, // Admin status is separate from plan tier
     isLoading,

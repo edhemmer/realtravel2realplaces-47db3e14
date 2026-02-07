@@ -33,9 +33,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
 // Mock modules before importing the hook
+// Patch 2.6.27: useAccess no longer uses useIsPro internally - it derives isPro from subscription tier
 vi.mock('@/hooks/useSubscription', () => ({
   useSubscription: vi.fn(),
-  useIsPro: vi.fn(),
 }));
 
 vi.mock('@/hooks/useAdminUsers', () => ({
@@ -43,7 +43,7 @@ vi.mock('@/hooks/useAdminUsers', () => ({
 }));
 
 import { useAccess, canAccessFeature } from '../useAccess';
-import { useSubscription, useIsPro } from '@/hooks/useSubscription';
+import { useSubscription } from '@/hooks/useSubscription';
 import { useIsAdmin } from '@/hooks/useAdminUsers';
 
 // Create a wrapper for React Query
@@ -69,7 +69,6 @@ describe('useAccess', () => {
         data: { tier: 'free', limits: { maxTripsLifetime: 5 } },
         isLoading: false,
       } as ReturnType<typeof useSubscription>);
-      vi.mocked(useIsPro).mockReturnValue(false);
       vi.mocked(useIsAdmin).mockReturnValue({
         data: false,
         isLoading: false,
@@ -108,7 +107,6 @@ describe('useAccess', () => {
         data: { tier: 'pro', limits: { maxTripsLifetime: -1 } },
         isLoading: false,
       } as ReturnType<typeof useSubscription>);
-      vi.mocked(useIsPro).mockReturnValue(true);
       vi.mocked(useIsAdmin).mockReturnValue({
         data: false,
         isLoading: false,
@@ -142,7 +140,6 @@ describe('useAccess', () => {
         data: { tier: 'business', limits: { maxTripsLifetime: -1 } },
         isLoading: false,
       } as ReturnType<typeof useSubscription>);
-      vi.mocked(useIsPro).mockReturnValue(true); // Business includes Pro
       vi.mocked(useIsAdmin).mockReturnValue({
         data: false,
         isLoading: false,
@@ -177,7 +174,6 @@ describe('useAccess', () => {
         data: { tier: 'free', limits: { maxTripsLifetime: 5 } },
         isLoading: false,
       } as ReturnType<typeof useSubscription>);
-      vi.mocked(useIsPro).mockReturnValue(false);
       vi.mocked(useIsAdmin).mockReturnValue({
         data: true, // Admin role active
         isLoading: false,
@@ -212,7 +208,6 @@ describe('useAccess', () => {
         data: { tier: 'pro', limits: { maxTripsLifetime: -1 } },
         isLoading: false,
       } as ReturnType<typeof useSubscription>);
-      vi.mocked(useIsPro).mockReturnValue(true);
       vi.mocked(useIsAdmin).mockReturnValue({
         data: true,
         isLoading: false,
@@ -247,7 +242,6 @@ describe('useAccess', () => {
         data: { tier: 'business', limits: { maxTripsLifetime: -1 } },
         isLoading: false,
       } as ReturnType<typeof useSubscription>);
-      vi.mocked(useIsPro).mockReturnValue(true);
       vi.mocked(useIsAdmin).mockReturnValue({
         data: true,
         isLoading: false,
@@ -276,7 +270,6 @@ describe('useAccess', () => {
         data: undefined,
         isLoading: true,
       } as ReturnType<typeof useSubscription>);
-      vi.mocked(useIsPro).mockReturnValue(false);
       vi.mocked(useIsAdmin).mockReturnValue({
         data: undefined,
         isLoading: true,
@@ -300,7 +293,6 @@ describe('useAccess', () => {
         data: undefined,
         isLoading: false,
       } as ReturnType<typeof useSubscription>);
-      vi.mocked(useIsPro).mockReturnValue(false);
       vi.mocked(useIsAdmin).mockReturnValue({
         data: false,
         isLoading: false,
@@ -374,12 +366,12 @@ describe('Tier Transition Tests', () => {
     vi.clearAllMocks();
   });
 
+  // Patch 2.6.27: Simplified mock - no more useIsPro
   const mockTier = (tier: 'free' | 'pro' | 'business') => {
     vi.mocked(useSubscription).mockReturnValue({
       data: { tier, limits: { maxTripsLifetime: tier === 'free' ? 5 : -1 } },
       isLoading: false,
     } as ReturnType<typeof useSubscription>);
-    vi.mocked(useIsPro).mockReturnValue(tier === 'pro' || tier === 'business');
     vi.mocked(useIsAdmin).mockReturnValue({
       data: true, // Admin performing the test
       isLoading: false,
