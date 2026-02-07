@@ -2,17 +2,25 @@
  * useAccess Hook Unit Tests
  * 
  * Patch 2.6.17: Plan Gating Verification Tests
+ * Patch 2.6.19: Updated to reflect decoupled admin/plan behavior
  * 
  * This test suite validates that the access control logic correctly computes
  * effectiveTier and access flags for all tier/override combinations.
+ * 
+ * KEY BEHAVIOR (Patch 2.6.19):
+ * - Admin role controls admin UI only (isAdminUser flag)
+ * - Plan-based features depend on effectiveTier, NOT admin status
+ * - Admins experience their actual plan (Free/Pro/Business)
+ * - Only tester override forces Business tier
  * 
  * TEST MATRIX:
  * - Free user (no overrides)
  * - Pro user (no overrides)
  * - Business user (no overrides)
- * - Free user with admin override
- * - Free user with tester override
- * - Admin user
+ * - Admin user with Free plan (should see Free behavior + admin UI)
+ * - Admin user with Pro plan (should see Pro behavior + admin UI)
+ * - Admin user with Business plan (should see Business behavior + admin UI)
+ * - Free user with tester override (should see Business behavior)
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -180,7 +188,8 @@ describe('useAccess', () => {
     });
   });
 
-  describe('Free user with admin override', () => {
+  // Patch 2.6.19: Admin with Free plan - should experience Free behavior
+  describe('Admin user with Free plan (decoupled behavior)', () => {
     beforeEach(() => {
       vi.mocked(useAuth).mockReturnValue({ 
         user: { email: 'admin@example.com', id: 'admin-1' } 
@@ -197,17 +206,90 @@ describe('useAccess', () => {
       vi.mocked(isBusinessTester).mockReturnValue(false);
     });
 
-    it('should have effectiveTier = "business" (admin override)', () => {
+    it('should have effectiveTier = "free" (admin does NOT elevate tier)', () => {
       const { result } = renderHook(() => useAccess(), { wrapper: createWrapper() });
-      expect(result.current.tier).toBe('business');
+      expect(result.current.tier).toBe('free');
     });
 
-    it('should have isPro = true (admin gets Business, which includes Pro)', () => {
+    it('should have isPro = false (admin does NOT grant Pro)', () => {
+      const { result } = renderHook(() => useAccess(), { wrapper: createWrapper() });
+      expect(result.current.isPro).toBe(false);
+    });
+
+    it('should have canAccessBusinessFeatures = false (admin does NOT grant Business)', () => {
+      const { result } = renderHook(() => useAccess(), { wrapper: createWrapper() });
+      expect(result.current.canAccessBusinessFeatures).toBe(false);
+    });
+
+    it('should have isAdminUser = true (admin can access admin UI)', () => {
+      const { result } = renderHook(() => useAccess(), { wrapper: createWrapper() });
+      expect(result.current.isAdminUser).toBe(true);
+    });
+  });
+
+  // Patch 2.6.19: Admin with Pro plan
+  describe('Admin user with Pro plan (decoupled behavior)', () => {
+    beforeEach(() => {
+      vi.mocked(useAuth).mockReturnValue({ 
+        user: { email: 'proadmin@example.com', id: 'proadmin-1' } 
+      } as ReturnType<typeof useAuth>);
+      vi.mocked(useSubscription).mockReturnValue({
+        data: { tier: 'pro', limits: { maxTripsLifetime: -1 } }, // DB says Pro
+        isLoading: false,
+      } as ReturnType<typeof useSubscription>);
+      vi.mocked(useIsPro).mockReturnValue(true);
+      vi.mocked(useIsAdmin).mockReturnValue({
+        data: true, // Admin role active
+        isLoading: false,
+      } as ReturnType<typeof useIsAdmin>);
+      vi.mocked(isBusinessTester).mockReturnValue(false);
+    });
+
+    it('should have effectiveTier = "pro" (admin sees actual plan)', () => {
+      const { result } = renderHook(() => useAccess(), { wrapper: createWrapper() });
+      expect(result.current.tier).toBe('pro');
+    });
+
+    it('should have isPro = true', () => {
       const { result } = renderHook(() => useAccess(), { wrapper: createWrapper() });
       expect(result.current.isPro).toBe(true);
     });
 
-    it('should have canAccessBusinessFeatures = true', () => {
+    it('should have canAccessBusinessFeatures = false (Pro does NOT grant Business)', () => {
+      const { result } = renderHook(() => useAccess(), { wrapper: createWrapper() });
+      expect(result.current.canAccessBusinessFeatures).toBe(false);
+    });
+
+    it('should have isAdminUser = true', () => {
+      const { result } = renderHook(() => useAccess(), { wrapper: createWrapper() });
+      expect(result.current.isAdminUser).toBe(true);
+    });
+  });
+
+  // Patch 2.6.19: Admin with Business plan
+  describe('Admin user with Business plan', () => {
+    beforeEach(() => {
+      vi.mocked(useAuth).mockReturnValue({ 
+        user: { email: 'businessadmin@example.com', id: 'businessadmin-1' } 
+      } as ReturnType<typeof useAuth>);
+      vi.mocked(useSubscription).mockReturnValue({
+        data: { tier: 'business', limits: { maxTripsLifetime: -1 } }, // DB says Business
+        isLoading: false,
+      } as ReturnType<typeof useSubscription>);
+      vi.mocked(useIsPro).mockReturnValue(true);
+      vi.mocked(useIsAdmin).mockReturnValue({
+        data: true, // Admin role active
+        isLoading: false,
+      } as ReturnType<typeof useIsAdmin>);
+      vi.mocked(isBusinessTester).mockReturnValue(false);
+    });
+
+    it('should have effectiveTier = "business"', () => {
+      const { result } = renderHook(() => useAccess(), { wrapper: createWrapper() });
+      expect(result.current.tier).toBe('business');
+    });
+
+    it('should have canAccessBusinessFeatures = true (via Business tier, not admin)', () => {
       const { result } = renderHook(() => useAccess(), { wrapper: createWrapper() });
       expect(result.current.canAccessBusinessFeatures).toBe(true);
     });
@@ -253,34 +335,6 @@ describe('useAccess', () => {
     it('should have isAdminUser = false (tester is not admin)', () => {
       const { result } = renderHook(() => useAccess(), { wrapper: createWrapper() });
       expect(result.current.isAdminUser).toBe(false);
-    });
-  });
-
-  describe('Pro user with admin override', () => {
-    beforeEach(() => {
-      vi.mocked(useAuth).mockReturnValue({ 
-        user: { email: 'proadmin@example.com', id: 'proadmin-1' } 
-      } as ReturnType<typeof useAuth>);
-      vi.mocked(useSubscription).mockReturnValue({
-        data: { tier: 'pro', limits: { maxTripsLifetime: -1 } }, // DB says Pro
-        isLoading: false,
-      } as ReturnType<typeof useSubscription>);
-      vi.mocked(useIsPro).mockReturnValue(true);
-      vi.mocked(useIsAdmin).mockReturnValue({
-        data: true, // Admin role active
-        isLoading: false,
-      } as ReturnType<typeof useIsAdmin>);
-      vi.mocked(isBusinessTester).mockReturnValue(false);
-    });
-
-    it('should have effectiveTier = "business" (admin override elevates to Business)', () => {
-      const { result } = renderHook(() => useAccess(), { wrapper: createWrapper() });
-      expect(result.current.tier).toBe('business');
-    });
-
-    it('should have canAccessBusinessFeatures = true', () => {
-      const { result } = renderHook(() => useAccess(), { wrapper: createWrapper() });
-      expect(result.current.canAccessBusinessFeatures).toBe(true);
     });
   });
 

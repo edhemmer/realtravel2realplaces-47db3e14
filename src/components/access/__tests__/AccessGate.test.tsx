@@ -191,25 +191,49 @@ describe('BusinessOnly', () => {
     });
   });
 
-  describe('Admin user with override', () => {
+  // Patch 2.6.19: Admin with Business tier (via DB assignment, not automatic)
+  describe('Admin user with Business tier', () => {
     beforeEach(() => {
       vi.mocked(useAccess).mockReturnValue({
         isPro: true,
-        canAccessBusinessFeatures: true, // Admin override grants Business access
+        canAccessBusinessFeatures: true, // Via Business tier, NOT admin status
         isAdminUser: true,
         isLoading: false,
         isAuthenticated: true,
-        tier: 'business', // Effective tier is Business
+        tier: 'business', // Admin has Business tier assigned in DB
       });
     });
 
-    it('should render children (admin has Business access)', () => {
+    it('should render children (admin has Business tier)', () => {
       const { queryByTestId } = render(
         <BusinessOnly>
           <div data-testid="business-content">Business Content</div>
         </BusinessOnly>
       );
       expect(queryByTestId('business-content')).toBeInTheDocument();
+    });
+  });
+
+  // Patch 2.6.19: Admin with Free plan should NOT have Business access
+  describe('Admin user with Free plan (decoupled)', () => {
+    beforeEach(() => {
+      vi.mocked(useAccess).mockReturnValue({
+        isPro: false,
+        canAccessBusinessFeatures: false, // Admin does NOT auto-grant Business
+        isAdminUser: true,
+        isLoading: false,
+        isAuthenticated: true,
+        tier: 'free', // Admin has Free plan
+      });
+    });
+
+    it('should NOT render children (admin with Free has no Business access)', () => {
+      const { queryByTestId } = render(
+        <BusinessOnly>
+          <div data-testid="business-content">Business Content</div>
+        </BusinessOnly>
+      );
+      expect(queryByTestId('business-content')).not.toBeInTheDocument();
     });
   });
 
@@ -507,20 +531,53 @@ describe('Feature Matrix', () => {
     });
   });
 
-  describe('Admin override follows effectiveTier', () => {
+  // Patch 2.6.19: Admin with Free plan - has admin UI, but NOT Business features
+  describe('Admin with Free plan (decoupled behavior)', () => {
     beforeEach(() => {
-      // Admin with Free DB tier, but effectiveTier is Business
+      // Admin with Free DB tier - should experience Free behavior
       vi.mocked(useAccess).mockReturnValue({
-        isPro: true,
-        canAccessBusinessFeatures: true,
+        isPro: false,
+        canAccessBusinessFeatures: false, // Admin does NOT auto-grant Business
         isAdminUser: true,
         isLoading: false,
         isAuthenticated: true,
-        tier: 'business', // Effective tier, not raw DB tier
+        tier: 'free', // Admin has Free plan
       });
     });
 
-    it('should show Business features for admin override', () => {
+    it('should NOT show Business features for admin with Free plan', () => {
+      const { queryByTestId } = render(
+        <BusinessOnly>
+          <div data-testid="tour-tab">Tour Tab</div>
+        </BusinessOnly>
+      );
+      expect(queryByTestId('tour-tab')).not.toBeInTheDocument();
+    });
+
+    it('should still show Admin features', () => {
+      const { queryByTestId } = render(
+        <AdminOnly>
+          <div data-testid="admin-panel">Admin Panel</div>
+        </AdminOnly>
+      );
+      expect(queryByTestId('admin-panel')).toBeInTheDocument();
+    });
+  });
+
+  // Patch 2.6.19: Admin with Business tier - has both admin UI and Business features
+  describe('Admin with Business tier', () => {
+    beforeEach(() => {
+      vi.mocked(useAccess).mockReturnValue({
+        isPro: true,
+        canAccessBusinessFeatures: true, // Via Business tier
+        isAdminUser: true,
+        isLoading: false,
+        isAuthenticated: true,
+        tier: 'business', // Admin has Business tier assigned
+      });
+    });
+
+    it('should show Business features for admin with Business tier', () => {
       const { queryByTestId } = render(
         <BusinessOnly>
           <div data-testid="tour-tab">Tour Tab</div>
