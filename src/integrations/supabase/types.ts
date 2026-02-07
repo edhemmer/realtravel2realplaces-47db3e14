@@ -228,6 +228,56 @@ export type Database = {
           },
         ]
       }
+      engagements: {
+        Row: {
+          created_at: string
+          date: string
+          end_time: string | null
+          id: string
+          location: string | null
+          name: string
+          notes: string | null
+          reference_id: string | null
+          start_time: string
+          trip_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          end_time?: string | null
+          id?: string
+          location?: string | null
+          name: string
+          notes?: string | null
+          reference_id?: string | null
+          start_time: string
+          trip_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          end_time?: string | null
+          id?: string
+          location?: string | null
+          name?: string
+          notes?: string | null
+          reference_id?: string | null
+          start_time?: string
+          trip_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engagements_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expenses: {
         Row: {
           amount: number
@@ -235,6 +285,7 @@ export type Database = {
           created_at: string
           date: string
           description: string | null
+          engagement_id: string | null
           expense_purpose: string | null
           id: string
           my_share: number | null
@@ -252,6 +303,7 @@ export type Database = {
           created_at?: string
           date: string
           description?: string | null
+          engagement_id?: string | null
           expense_purpose?: string | null
           id?: string
           my_share?: number | null
@@ -269,6 +321,7 @@ export type Database = {
           created_at?: string
           date?: string
           description?: string | null
+          engagement_id?: string | null
           expense_purpose?: string | null
           id?: string
           my_share?: number | null
@@ -281,6 +334,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "expenses_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "engagements"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "expenses_trip_id_fkey"
             columns: ["trip_id"]
