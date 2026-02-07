@@ -752,6 +752,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_delete_user: { Args: { p_user_id: string }; Returns: Json }
       admin_get_all_users: {
         Args: never
         Returns: {
@@ -764,6 +765,10 @@ export type Database = {
           subscription_tier: Database["public"]["Enums"]["subscription_tier"]
           user_id: string
         }[]
+      }
+      admin_update_user_name: {
+        Args: { p_first_name: string; p_last_name: string; p_user_id: string }
+        Returns: boolean
       }
       admin_update_user_tier: {
         Args: {
