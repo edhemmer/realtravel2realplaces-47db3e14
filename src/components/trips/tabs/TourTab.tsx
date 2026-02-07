@@ -37,6 +37,7 @@ import { useTripPermission } from '@/pages/TripDetail';
 import { ManualStepHint } from '@/components/trips/ManualStepHint';
 import { BulkStopsDialog } from '@/components/trips/BulkStopsDialog';
 import { Booking, Trip } from '@/types/database';
+import { StopSourceHint, inferStopSource } from '@/components/trips/ParseHint';
 
 interface TourTabProps {
   tripId: string;
@@ -544,8 +545,10 @@ export function TourTab({ tripId, trip, bookings = [] }: TourTabProps) {
                           <span className="truncate max-w-[200px]">{stop.location}</span>
                         </span>
                       )}
+                      {/* v2.1.3: Origin hint for non-manual stops */}
+                      <StopSourceHint source={inferStopSource(stop.notes)} />
                     </div>
-                    {stop.notes && !stop.notes.startsWith('Auto-drafted') && (
+                    {stop.notes && !stop.notes.startsWith('Auto-drafted') && !stop.notes.toLowerCase().includes('imported') && (
                       <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
                         {stop.notes}
                       </p>
