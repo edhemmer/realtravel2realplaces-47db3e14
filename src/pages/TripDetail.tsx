@@ -235,7 +235,7 @@ export default function TripDetail() {
               {/* Tour content - Business only */}
               {canAccessBusinessFeatures && (
                 <TabsContent value="tour">
-                  <TourTab tripId={trip.id} bookings={bookings} />
+                  <TourTab tripId={trip.id} trip={trip} bookings={bookings} />
                 </TabsContent>
               )}
               

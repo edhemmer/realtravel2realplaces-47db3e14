@@ -2,6 +2,7 @@
  * TourTab - Business-tier Stops UI
  * 
  * Patch 2.6.25: Tour auto-draft from bookings
+ * v2.0.9: Bulk stop ingestion + Google Maps integration
  * 
  * Allows Business users to add, view, and edit Stops (work locations) on a trip.
  * Stops are distinct from Stays (lodging) and represent places where work is done.
@@ -29,15 +30,17 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, MapPin, Clock, Trash2, Pencil, X, Info, RefreshCw, Plane, Building2, Car } from 'lucide-react';
+import { Plus, MapPin, Clock, Trash2, Pencil, X, Info, RefreshCw, Plane, Building2, Car, ListPlus, Navigation } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { useTripPermission } from '@/pages/TripDetail';
 import { ManualStepHint } from '@/components/trips/ManualStepHint';
-import { Booking } from '@/types/database';
+import { BulkStopsDialog } from '@/components/trips/BulkStopsDialog';
+import { Booking, Trip } from '@/types/database';
 
 interface TourTabProps {
   tripId: string;
+  trip?: Trip;
   bookings?: Booking[];
 }
 
@@ -182,7 +185,7 @@ function generateDraftStops(bookings: Booking[]): DraftStop[] {
   return drafts;
 }
 
-export function TourTab({ tripId, bookings = [] }: TourTabProps) {
+export function TourTab({ tripId, trip, bookings = [] }: TourTabProps) {
   const { canEdit } = useTripPermission();
   const { data: stops = [], isLoading } = useEngagements(tripId);
   const createStop = useCreateEngagement();
@@ -191,6 +194,7 @@ export function TourTab({ tripId, bookings = [] }: TourTabProps) {
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const [editingStop, setEditingStop] = useState<Engagement | null>(null);
   const [stopToDelete, setStopToDelete] = useState<string | null>(null);
   const [formData, setFormData] = useState<StopFormData>(EMPTY_FORM);
@@ -198,6 +202,9 @@ export function TourTab({ tripId, bookings = [] }: TourTabProps) {
   // Auto-draft state
   const [isAutoDrafting, setIsAutoDrafting] = useState(false);
   const autoDraftKey = `${AUTO_DRAFT_OFFERED_PREFIX}${tripId}`;
+  
+  // Default date for bulk stops (trip start date or today)
+  const defaultBulkDate = trip?.start_date || format(new Date(), 'yyyy-MM-dd');
 
   // Helper message dismissal
   const [helperDismissed, setHelperDismissed] = useState(() => {
@@ -387,6 +394,16 @@ export function TourTab({ tripId, bookings = [] }: TourTabProps) {
     return format(parseISO(dateStr), 'EEE, MMM d');
   };
 
+  // v2.0.9: Open Google Maps directions to a location
+  const openMapsDirections = (location: string) => {
+    const encodedLocation = encodeURIComponent(location);
+    window.open(
+      `https://www.google.com/maps/dir/?api=1&destination=${encodedLocation}`,
+      '_blank',
+      'noopener,noreferrer'
+    );
+  };
+
   // Get source icon for a stop
   const getSourceIcon = (notes: string | null) => {
     if (!notes) return null;
@@ -409,7 +426,7 @@ export function TourTab({ tripId, bookings = [] }: TourTabProps) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h3 className="text-lg font-semibold">Tour Stops</h3>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* Regenerate button - only show when there are bookings and existing stops */}
           {canEdit && hasDraftableBookings && stops.length > 0 && (
             <Button 
@@ -420,6 +437,17 @@ export function TourTab({ tripId, bookings = [] }: TourTabProps) {
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${isAutoDrafting ? 'animate-spin' : ''}`} />
               Regenerate from bookings
+            </Button>
+          )}
+          {/* v2.0.9: Bulk import button */}
+          {canEdit && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setBulkDialogOpen(true)}
+            >
+              <ListPlus className="w-4 h-4 mr-2" />
+              Bulk Add
             </Button>
           )}
           {canEdit && (
@@ -523,28 +551,43 @@ export function TourTab({ tripId, bookings = [] }: TourTabProps) {
                       </p>
                     )}
                   </div>
-                  {canEdit && (
-                    <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex items-center gap-1 shrink-0">
+                    {/* v2.0.9: Maps directions button */}
+                    {stop.location && (
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => openEditDialog(stop)}
-                        className="h-8 w-8"
+                        onClick={() => openMapsDirections(stop.location!)}
+                        className="h-8 w-8 text-primary hover:text-primary"
+                        title="Get directions"
                       >
-                        <Pencil className="h-4 w-4" />
-                        <span className="sr-only">Edit stop</span>
+                        <Navigation className="h-4 w-4" />
+                        <span className="sr-only">Get directions to {stop.location}</span>
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setStopToDelete(stop.id)}
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Delete stop</span>
-                      </Button>
-                    </div>
-                  )}
+                    )}
+                    {canEdit && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openEditDialog(stop)}
+                          className="h-8 w-8"
+                        >
+                          <Pencil className="h-4 w-4" />
+                          <span className="sr-only">Edit stop</span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setStopToDelete(stop.id)}
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Delete stop</span>
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -657,6 +700,14 @@ export function TourTab({ tripId, bookings = [] }: TourTabProps) {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* v2.0.9: Bulk Stops Dialog */}
+      <BulkStopsDialog
+        open={bulkDialogOpen}
+        onOpenChange={setBulkDialogOpen}
+        tripId={tripId}
+        defaultDate={defaultBulkDate}
+      />
 
       {/* Delete confirmation */}
       <AlertDialog open={!!stopToDelete} onOpenChange={(open) => !open && setStopToDelete(null)}>
