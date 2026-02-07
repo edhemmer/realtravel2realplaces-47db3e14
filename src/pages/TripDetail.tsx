@@ -3,6 +3,7 @@ import { useTrip } from '@/hooks/useTrips';
 import { useTripOwnership } from '@/hooks/useSharedTrips';
 import { useIsPro } from '@/hooks/useSubscription';
 import { useExploreDiscovery } from '@/hooks/useExploreDiscovery';
+import { useBookings } from '@/hooks/useBookings';
 import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -23,7 +24,8 @@ import { BusinessOnly, ProOnly } from '@/components/access';
 import { TripHeaderWidgets } from '@/components/trips/TripHeaderWidgets';
 import { TripStatusHeroBar } from '@/components/trips/TripStatusHeroBar';
 import { ProRetentionCountdownCard } from '@/components/trips/ProRetentionCountdownCard';
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { TravelHelpButton } from '@/components/trips/TravelHelpButton';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 
 // Context to share ownership info with child components
 interface TripPermissionContextType {
@@ -50,12 +52,26 @@ export default function TripDetail() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: trip, isLoading } = useTrip(tripId || '');
   const { data: ownership, isLoading: ownershipLoading } = useTripOwnership(tripId || '');
+  const { data: bookings = [] } = useBookings(tripId || '');
   const isPro = useIsPro();
   const { hasDiscovered: hasDiscoveredExplore, markDiscovered: markExploreDiscovered } = useExploreDiscovery();
   
   // v2.0.7: Tab and drill-through state
   const [activeTab, setActiveTab] = useState('summary');
   const [drillTarget, setDrillTarget] = useState<DrillThroughTarget>(null);
+
+  // v2.5.0: Determine if trip has flights or is international for Travel Guide context
+  const hasFlights = useMemo(() => {
+    return bookings.some(b => b.booking_type === 'flight');
+  }, [bookings]);
+
+  const isInternational = useMemo(() => {
+    // Consider international if destination country differs from common US patterns
+    // This is a simple heuristic - not US or USA indicates international
+    const country = trip?.destination_country?.toLowerCase() || '';
+    const isUS = country === 'usa' || country === 'us' || country === 'united states';
+    return !isUS && country.length > 0;
+  }, [trip?.destination_country]);
 
   // v2.0.7: Handle drill-through navigation from timeline
   const handleDrillThrough = useCallback((target: DrillThroughTarget) => {
@@ -145,6 +161,13 @@ export default function TripDetail() {
                   </span>
                 </div>
               </div>
+
+              {/* v2.5.0: Travel Guide Help Button */}
+              <TravelHelpButton 
+                trip={trip} 
+                hasFlights={hasFlights} 
+                isInternational={isInternational} 
+              />
             </div>
           </div>
 
