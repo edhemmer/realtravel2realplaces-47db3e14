@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTrips, useDeleteTrip } from '@/hooks/useTrips';
 import { useSharedTrips, SharedTrip } from '@/hooks/useSharedTrips';
 import { Layout } from '@/components/Layout';
@@ -12,7 +12,10 @@ import { CreateTripDialog } from '@/components/trips/CreateTripDialog';
 import { TripLifecycleBadges, getTripCardLifecycleStyles } from '@/components/trips/TripLifecycleBadges';
 import { useIsPro } from '@/hooks/useSubscription';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { hasCompletedOnboarding } from './Onboarding';
+
 export default function Dashboard() {
+  const navigate = useNavigate();
   const {
     data: trips,
     isLoading
@@ -23,9 +26,16 @@ export default function Dashboard() {
   } = useSharedTrips();
   const deleteTrip = useDeleteTrip();
   const isPro = useIsPro();
-   const navigate = useNavigate();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [tripToDelete, setTripToDelete] = useState<string | null>(null);
+
+  // Patch 2.4.2: Redirect to onboarding for first-time users
+  useEffect(() => {
+    if (!isLoading && !sharedLoading && !hasCompletedOnboarding()) {
+      navigate('/onboarding');
+    }
+  }, [isLoading, sharedLoading, navigate]);
+
   const handleDeleteTrip = () => {
     if (tripToDelete) {
       deleteTrip.mutate(tripToDelete);
