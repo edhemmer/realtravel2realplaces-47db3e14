@@ -1,15 +1,18 @@
 /**
  * TourTab - Business-tier Stops UI
  * 
- * Part of Patch 2.3.5: Tour / Stops UI
+ * Patch 2.6.25: Tour auto-draft from bookings
  * 
  * Allows Business users to add, view, and edit Stops (work locations) on a trip.
  * Stops are distinct from Stays (lodging) and represent places where work is done.
+ * 
+ * Auto-draft: When a Business user opens Tour for the first time with no stops,
+ * the system auto-generates draft stops from existing bookings (flights, stays, rentals).
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useEngagements, useCreateEngagement, useUpdateEngagement, useDeleteEngagement, Engagement } from '@/hooks/useEngagements';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,15 +29,16 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, MapPin, Clock, Trash2, Pencil, X, Info } from 'lucide-react';
+import { Plus, MapPin, Clock, Trash2, Pencil, X, Info, RefreshCw, Plane, Building2, Car } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { useTripPermission } from '@/pages/TripDetail';
-import { cn } from '@/lib/utils';
 import { ManualStepHint } from '@/components/trips/ManualStepHint';
+import { Booking } from '@/types/database';
 
 interface TourTabProps {
   tripId: string;
+  bookings?: Booking[];
 }
 
 interface StopFormData {
@@ -57,8 +61,128 @@ const EMPTY_FORM: StopFormData = {
 
 // Dismissible helper message key for localStorage
 const HELPER_DISMISSED_KEY = 'rt2rp_stops_helper_dismissed';
+// Track if auto-draft has been offered for this trip
+const AUTO_DRAFT_OFFERED_PREFIX = 'rt2rp_tour_autodraft_offered_';
 
-export function TourTab({ tripId }: TourTabProps) {
+interface DraftStop {
+  name: string;
+  date: string;
+  start_time: string;
+  end_time: string | null;
+  location: string;
+  notes: string;
+  source: 'flight' | 'stay' | 'rental';
+}
+
+/**
+ * Generate draft stops from bookings data
+ * Extracts airports from flights, locations from stays, and pickup/dropoff from rentals
+ */
+function generateDraftStops(bookings: Booking[]): DraftStop[] {
+  const drafts: DraftStop[] = [];
+
+  for (const booking of bookings) {
+    const datetime = booking.start_datetime;
+    const date = datetime.split('T')[0];
+    const timePart = datetime.split('T')[1];
+    const time = timePart ? timePart.slice(0, 5) + ':00' : '09:00:00';
+
+    if (booking.booking_type === 'flight') {
+      // Flight: Extract departure airport
+      if (booking.from_location) {
+        drafts.push({
+          name: `Depart from ${booking.from_location}`,
+          date,
+          start_time: time,
+          end_time: null,
+          location: booking.from_location,
+          notes: `Auto-drafted from ${booking.vendor_name || 'flight booking'}`,
+          source: 'flight',
+        });
+      }
+      // Flight: Extract arrival airport (use end_datetime if available)
+      if (booking.to_location) {
+        const endDatetime = booking.end_datetime || booking.start_datetime;
+        const arrivalDate = endDatetime.split('T')[0];
+        const arrivalTimePart = endDatetime.split('T')[1];
+        const arrivalTime = arrivalTimePart ? arrivalTimePart.slice(0, 5) + ':00' : '12:00:00';
+        drafts.push({
+          name: `Arrive at ${booking.to_location}`,
+          date: arrivalDate,
+          start_time: arrivalTime,
+          end_time: null,
+          location: booking.to_location,
+          notes: `Auto-drafted from ${booking.vendor_name || 'flight booking'}`,
+          source: 'flight',
+        });
+      }
+    } else if (booking.booking_type === 'stay') {
+      // Stay: Lodging check-in location
+      const location = booking.property_name || booking.address || booking.location_summary || 'Lodging';
+      drafts.push({
+        name: `Check in: ${location}`,
+        date,
+        start_time: '15:00:00', // Standard check-in time
+        end_time: null,
+        location: booking.address || location,
+        notes: `Auto-drafted from ${booking.vendor_name || 'stay booking'}`,
+        source: 'stay',
+      });
+      // Checkout
+      if (booking.end_datetime) {
+        const checkoutDate = booking.end_datetime.split('T')[0];
+        drafts.push({
+          name: `Check out: ${location}`,
+          date: checkoutDate,
+          start_time: '11:00:00', // Standard checkout time
+          end_time: null,
+          location: booking.address || location,
+          notes: `Auto-drafted from ${booking.vendor_name || 'stay booking'}`,
+          source: 'stay',
+        });
+      }
+    } else if (booking.booking_type === 'car_rental') {
+      // Rental: Pickup location
+      const pickupLocation = booking.pickup_location || booking.from_location || 'Rental pickup';
+      drafts.push({
+        name: `Pickup: ${booking.rental_company || 'Car rental'}`,
+        date,
+        start_time: time,
+        end_time: null,
+        location: pickupLocation,
+        notes: `Auto-drafted from ${booking.rental_company || booking.vendor_name || 'car rental'}`,
+        source: 'rental',
+      });
+      // Return location
+      if (booking.end_datetime) {
+        const returnDate = booking.end_datetime.split('T')[0];
+        const returnTimePart = booking.end_datetime.split('T')[1];
+        const returnTime = returnTimePart ? returnTimePart.slice(0, 5) + ':00' : '12:00:00';
+        const returnLocation = booking.return_location || booking.to_location || pickupLocation;
+        drafts.push({
+          name: `Return: ${booking.rental_company || 'Car rental'}`,
+          date: returnDate,
+          start_time: returnTime,
+          end_time: null,
+          location: returnLocation,
+          notes: `Auto-drafted from ${booking.rental_company || booking.vendor_name || 'car rental'}`,
+          source: 'rental',
+        });
+      }
+    }
+  }
+
+  // Sort by date and time
+  drafts.sort((a, b) => {
+    const dateCompare = a.date.localeCompare(b.date);
+    if (dateCompare !== 0) return dateCompare;
+    return a.start_time.localeCompare(b.start_time);
+  });
+
+  return drafts;
+}
+
+export function TourTab({ tripId, bookings = [] }: TourTabProps) {
   const { canEdit } = useTripPermission();
   const { data: stops = [], isLoading } = useEngagements(tripId);
   const createStop = useCreateEngagement();
@@ -71,10 +195,36 @@ export function TourTab({ tripId }: TourTabProps) {
   const [stopToDelete, setStopToDelete] = useState<string | null>(null);
   const [formData, setFormData] = useState<StopFormData>(EMPTY_FORM);
 
+  // Auto-draft state
+  const [isAutoDrafting, setIsAutoDrafting] = useState(false);
+  const autoDraftKey = `${AUTO_DRAFT_OFFERED_PREFIX}${tripId}`;
+
   // Helper message dismissal
   const [helperDismissed, setHelperDismissed] = useState(() => {
     return localStorage.getItem(HELPER_DISMISSED_KEY) === 'true';
   });
+
+  // Generate draft stops from bookings
+  const draftStops = useMemo(() => generateDraftStops(bookings), [bookings]);
+  const hasDraftableBookings = draftStops.length > 0;
+
+  // Auto-draft on first visit with no stops
+  useEffect(() => {
+    const hasOfferedAutoDraft = localStorage.getItem(autoDraftKey) === 'true';
+    
+    if (
+      !isLoading &&
+      stops.length === 0 &&
+      hasDraftableBookings &&
+      canEdit &&
+      !hasOfferedAutoDraft &&
+      !isAutoDrafting
+    ) {
+      // Auto-generate stops on first visit
+      handleAutoDraft();
+      localStorage.setItem(autoDraftKey, 'true');
+    }
+  }, [isLoading, stops.length, hasDraftableBookings, canEdit, autoDraftKey, isAutoDrafting]);
 
   const dismissHelper = useCallback(() => {
     localStorage.setItem(HELPER_DISMISSED_KEY, 'true');
@@ -166,6 +316,64 @@ export function TourTab({ tripId }: TourTabProps) {
     }
   };
 
+  // Auto-draft stops from bookings
+  const handleAutoDraft = async () => {
+    if (draftStops.length === 0) {
+      toast.info('No bookings available to draft stops from');
+      return;
+    }
+
+    setIsAutoDrafting(true);
+    let successCount = 0;
+
+    try {
+      for (const draft of draftStops) {
+        await createStop.mutateAsync({
+          trip_id: tripId,
+          name: draft.name,
+          date: draft.date,
+          start_time: draft.start_time,
+          end_time: draft.end_time,
+          location: draft.location || null,
+          notes: draft.notes || null,
+        });
+        successCount++;
+      }
+      toast.success(`Generated ${successCount} stops from bookings`);
+    } catch (error) {
+      console.error('Error auto-drafting stops:', error);
+      if (successCount > 0) {
+        toast.warning(`Generated ${successCount} stops, but some failed`);
+      } else {
+        toast.error('Failed to generate stops');
+      }
+    } finally {
+      setIsAutoDrafting(false);
+    }
+  };
+
+  // Regenerate (clear existing and re-draft)
+  const handleRegenerate = async () => {
+    if (draftStops.length === 0) {
+      toast.info('No bookings available to draft stops from');
+      return;
+    }
+
+    // Delete existing stops first
+    setIsAutoDrafting(true);
+    try {
+      for (const stop of stops) {
+        await deleteStop.mutateAsync({ id: stop.id, tripId });
+      }
+      // Now create new drafts
+      await handleAutoDraft();
+    } catch (error) {
+      console.error('Error regenerating stops:', error);
+      toast.error('Failed to regenerate stops');
+      setIsAutoDrafting(false);
+    }
+  };
+
   // Format time for display (HH:MM:SS -> h:mm a)
   const formatTime = (time: string) => {
     const [hours, minutes] = time.split(':').map(Number);
@@ -177,6 +385,15 @@ export function TourTab({ tripId }: TourTabProps) {
   // Format date for display
   const formatDate = (dateStr: string) => {
     return format(parseISO(dateStr), 'EEE, MMM d');
+  };
+
+  // Get source icon for a stop
+  const getSourceIcon = (notes: string | null) => {
+    if (!notes) return null;
+    if (notes.includes('flight')) return <Plane className="w-3.5 h-3.5 text-muted-foreground" />;
+    if (notes.includes('stay')) return <Building2 className="w-3.5 h-3.5 text-muted-foreground" />;
+    if (notes.includes('car rental') || notes.includes('rental')) return <Car className="w-3.5 h-3.5 text-muted-foreground" />;
+    return null;
   };
 
   if (isLoading) {
@@ -192,12 +409,26 @@ export function TourTab({ tripId }: TourTabProps) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h3 className="text-lg font-semibold">Tour Stops</h3>
-        {canEdit && (
-          <Button onClick={openAddDialog} className="bg-gradient-ocean hover:opacity-90">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Stop
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Regenerate button - only show when there are bookings and existing stops */}
+          {canEdit && hasDraftableBookings && stops.length > 0 && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleRegenerate}
+              disabled={isAutoDrafting}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isAutoDrafting ? 'animate-spin' : ''}`} />
+              Regenerate from bookings
+            </Button>
+          )}
+          {canEdit && (
+            <Button onClick={openAddDialog} className="bg-gradient-ocean hover:opacity-90">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Stop
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Helper message - dismissible */}
@@ -223,7 +454,7 @@ export function TourTab({ tripId }: TourTabProps) {
         </Alert>
       )}
 
-      {/* Stops list - Patch 2.6.1: Improved empty state */}
+      {/* Stops list */}
       {stops.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
@@ -232,18 +463,31 @@ export function TourTab({ tripId }: TourTabProps) {
             </div>
             <h4 className="text-base font-medium mb-1">No stops added</h4>
             <p className="text-sm text-muted-foreground mb-2 max-w-sm">
-              Stops are work locations and scheduled meetings during your trip. 
-              They will appear here once added.
+              {hasDraftableBookings 
+                ? 'Stops can be auto-generated from your bookings, or added manually.'
+                : 'Stops are work locations and scheduled meetings during your trip.'}
             </p>
             <p className="text-xs text-muted-foreground mb-4">
               Use the Bookings tab for lodging and Stays.
             </p>
-            {canEdit && (
-              <Button onClick={openAddDialog} className="bg-gradient-ocean hover:opacity-90">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Stop
-              </Button>
-            )}
+            <div className="flex gap-2">
+              {canEdit && hasDraftableBookings && (
+                <Button 
+                  variant="outline"
+                  onClick={handleAutoDraft}
+                  disabled={isAutoDrafting}
+                >
+                  <RefreshCw className={`w-4 h-4 mr-2 ${isAutoDrafting ? 'animate-spin' : ''}`} />
+                  Generate from bookings
+                </Button>
+              )}
+              {canEdit && (
+                <Button onClick={openAddDialog} className="bg-gradient-ocean hover:opacity-90">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Stop
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       ) : (
@@ -257,6 +501,7 @@ export function TourTab({ tripId }: TourTabProps) {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
+                      {getSourceIcon(stop.notes)}
                       <h4 className="font-medium truncate">{stop.name}</h4>
                     </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
@@ -272,7 +517,7 @@ export function TourTab({ tripId }: TourTabProps) {
                         </span>
                       )}
                     </div>
-                    {stop.notes && (
+                    {stop.notes && !stop.notes.startsWith('Auto-drafted') && (
                       <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
                         {stop.notes}
                       </p>
@@ -317,7 +562,6 @@ export function TourTab({ tripId }: TourTabProps) {
             <DialogTitle>{editingStop ? 'Edit Stop' : 'Add Stop'}</DialogTitle>
             <DialogDescription>
               {editingStop ? 'Update the details for this stop.' : 'Add a work location or scheduled meeting.'}
-              {/* Patch 2.6.7: Contextual education */}
               <ManualStepHint 
                 message="You add stops manually to ensure your schedule reflects your actual commitments." 
                 className="mt-2" 
