@@ -20,6 +20,7 @@ import Account from "./pages/Account";
 import Plans from "./pages/Plans";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
+import Reports from "./pages/Reports";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -100,6 +101,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Plans />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reports"
+        element={
+          <ProtectedRoute>
+            <Reports />
           </ProtectedRoute>
         }
       />
