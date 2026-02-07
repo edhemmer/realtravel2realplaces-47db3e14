@@ -135,11 +135,11 @@ export default function Dashboard() {
   const hasTrips = trips && trips.length > 0 || sharedTrips.length > 0;
   return <Layout>
       <div className="space-y-6 animate-fade-in">
-        {/* Header */}
+        {/* Header - Patch 2.6.1: Terminology consistency */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="font-bold text-4xl">My Trips</h1>
-            <p className="text-muted-foreground mt-1">Plan and organize your adventures</p>
+            <p className="text-muted-foreground mt-1">Manage your travel in one place</p>
           </div>
           <Button onClick={() => setCreateDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90 transition-opacity">
             <Plus className="w-4 h-4 mr-2" />
@@ -167,23 +167,21 @@ export default function Dashboard() {
             </div>
           </div>}
 
-        {/* First-Trip Empty State - v2.1.29 */}
+        {/* First-Trip Empty State - v2.1.29, Patch 2.6.1 improved copy */}
         {!hasTrips && <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-16">
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                 <Plane className="w-8 h-8 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Create your first trip</h3>
+              <h3 className="text-xl font-semibold mb-2">No trips yet</h3>
               <p className="text-muted-foreground text-center mb-6 max-w-md">
-                Add a flight, stay, or confirmation to start managing your trip in one place.
+                Your trips will appear here once created. Add your first trip to start 
+                tracking bookings, expenses, and travel details in one place.
               </p>
               <Button onClick={() => setCreateDialogOpen(true)} size="lg" className="bg-gradient-ocean hover:opacity-90">
                 <Plus className="w-4 h-4 mr-2" />
-                Add your first trip
+                Create Your First Trip
               </Button>
-              <p className="text-sm text-muted-foreground mt-4">
-                You can forward confirmations or paste them manually.
-              </p>
             </CardContent>
           </Card>}
       </div>

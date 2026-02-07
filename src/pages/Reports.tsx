@@ -617,7 +617,7 @@ export default function Reports() {
             </p>
           </div>
 
-          {/* Export Pills */}
+          {/* Export Pills - Patch 2.6.1: Clear disabled state feedback */}
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -625,9 +625,10 @@ export default function Reports() {
               onClick={handleExportPDF}
               disabled={exporting !== null || sortedRows.length === 0}
               className="rounded-full"
+              title={sortedRows.length === 0 ? 'No data to export — adjust filters or add expenses' : 'Export visible data as PDF'}
             >
               <FileText className="w-4 h-4 mr-1" />
-              {exporting === 'pdf' ? 'Exporting...' : 'Export PDF'}
+              {exporting === 'pdf' ? 'Exporting...' : 'PDF'}
             </Button>
             <Button
               variant="outline"
@@ -635,9 +636,10 @@ export default function Reports() {
               onClick={handleExportCSV}
               disabled={exporting !== null || sortedRows.length === 0}
               className="rounded-full"
+              title={sortedRows.length === 0 ? 'No data to export — adjust filters or add expenses' : 'Export visible data as CSV'}
             >
               <FileSpreadsheet className="w-4 h-4 mr-1" />
-              {exporting === 'csv' ? 'Exporting...' : 'Export CSV'}
+              {exporting === 'csv' ? 'Exporting...' : 'CSV'}
             </Button>
           </div>
         </div>
@@ -821,8 +823,18 @@ export default function Reports() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
               </div>
             ) : sortedRows.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                No expenses match your filters.
+              /* Patch 2.6.1: Improved empty state with clearer guidance */
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+                  <BarChart3 className="w-6 h-6 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground font-medium mb-1">No expenses match your filters</p>
+                <p className="text-sm text-muted-foreground max-w-sm">
+                  {allExpenses.length === 0 
+                    ? 'Add expenses to your trips to see them here. Reports aggregate data across all your trips.'
+                    : 'Try adjusting the date range, trip selection, or category filters above.'
+                  }
+                </p>
               </div>
             ) : (
               <div className="overflow-auto">

@@ -794,21 +794,25 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
               </CardContent>
             </Card>
           ) : (
+            /* Patch 2.6.1: Improved empty state with clearer guidance */
             <Card className="border-dashed">
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
                   <Receipt className="w-7 h-7 text-primary" />
                 </div>
                 <h4 className="text-base font-medium mb-1">
-                  {activeCategory === 'all' ? 'No expenses yet' : `No ${activeCategory} expenses`}
+                  {activeCategory === 'all' ? 'No expenses recorded' : `No ${activeCategory} expenses`}
                 </h4>
                 <p className="text-sm text-muted-foreground text-center max-w-sm mb-4">
-                  Track gas, food, activities, and shared costs here.
+                  {activeCategory === 'all' 
+                    ? 'Expenses you add will appear here. Track meals, transport, activities, and shared costs.'
+                    : `No expenses in this category yet. Add one or check other categories.`
+                  }
                 </p>
                 {canEdit && (
                   <Button onClick={() => setDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90">
                     <Plus className="w-4 h-4 mr-2" />
-                    Add first expense
+                    Add Expense
                   </Button>
                 )}
               </CardContent>
