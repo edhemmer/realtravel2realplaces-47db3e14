@@ -35,7 +35,6 @@ import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
 import { Shield, Users, MessageSquare, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { isBusinessTester } from '@/config/businessTesters';
 import { resolveEffectiveTier, type PlanTier } from '@/utils/planTier';
 
 /**
@@ -221,12 +220,10 @@ export default function AdminPlans() {
                       : null;
                     const isCurrentUser = u.email === user?.email;
                     
-                    // Patch 2.6.22: Use shared resolver for effective tier (single source of truth)
-                    // The dropdown displays effectiveTier, matching the header PlanPill exactly
-                    const isTester = isBusinessTester(u.email);
+                    // Patch 2.6.23: Use shared resolver for effective tier (single source of truth)
+                    // The dropdown displays subscription_tier (effectiveTier = subscription now)
                     const effectiveTier = resolveEffectiveTier({
                       subscriptionTier: u.subscription_tier as PlanTier,
-                      isTester,
                     });
                     
                     return (
