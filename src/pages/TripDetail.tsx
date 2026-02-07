@@ -1,9 +1,9 @@
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useTrip } from '@/hooks/useTrips';
 import { useTripOwnership } from '@/hooks/useSharedTrips';
-import { useIsPro } from '@/hooks/useSubscription';
 import { useExploreDiscovery } from '@/hooks/useExploreDiscovery';
 import { useBookings } from '@/hooks/useBookings';
+import { useAccess } from '@/hooks/useAccess';
 import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -20,12 +20,11 @@ import { NotesTab } from '@/components/trips/tabs/NotesTab';
 import { ExploreTab } from '@/components/trips/tabs/ExploreTab';
 import { TourTab } from '@/components/trips/tabs/TourTab';
 import { TripSummaryReportTab } from '@/components/trips/tabs/TripSummaryReportTab';
-import { BusinessOnly, ProOnly } from '@/components/access';
 import { TripHeaderWidgets } from '@/components/trips/TripHeaderWidgets';
 import { TripStatusHeroBar } from '@/components/trips/TripStatusHeroBar';
 import { ProRetentionCountdownCard } from '@/components/trips/ProRetentionCountdownCard';
 import { TravelHelpButton } from '@/components/trips/TravelHelpButton';
-import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo } from 'react';
 
 // Context to share ownership info with child components
 interface TripPermissionContextType {
@@ -53,7 +52,7 @@ export default function TripDetail() {
   const { data: trip, isLoading } = useTrip(tripId || '');
   const { data: ownership, isLoading: ownershipLoading } = useTripOwnership(tripId || '');
   const { data: bookings = [] } = useBookings(tripId || '');
-  const isPro = useIsPro();
+  const { isPro, canAccessBusinessFeatures, tier } = useAccess();
   const { hasDiscovered: hasDiscoveredExplore, markDiscovered: markExploreDiscovered } = useExploreDiscovery();
   
   // v2.0.7: Tab and drill-through state
@@ -183,18 +182,25 @@ export default function TripDetail() {
           <TripHeaderWidgets trip={trip} />
 
           {/* Tabs */}
+          {/* Patch 2.6.25: Plan-based tab visibility and ordering */}
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="w-full justify-start overflow-x-auto flex-nowrap">
+              {/* Common tabs for all plans - first block */}
               <TabsTrigger value="summary">Summary</TabsTrigger>
               <TabsTrigger value="bookings">Bookings</TabsTrigger>
+              
+              {/* Business: Tour appears after Bookings */}
+              {canAccessBusinessFeatures && (
+                <TabsTrigger value="tour">Tour</TabsTrigger>
+              )}
+              
+              {/* Common tabs continue */}
+              <TabsTrigger value="companions">Companions</TabsTrigger>
               <TabsTrigger value="expenses">Expenses</TabsTrigger>
               <TabsTrigger value="parking">Parking</TabsTrigger>
               <TabsTrigger value="packing">Packing</TabsTrigger>
-              <TabsTrigger value="companions">Companions</TabsTrigger>
-              <TabsTrigger value="notes">Notes & Safety</TabsTrigger>
               <TabsTrigger value="explore" className="relative">
                 Explore
-                {/* v2.1.29: New badge for Pro users who haven't discovered Explore */}
                 {isPro && !hasDiscoveredExplore && (
                   <Badge 
                     variant="secondary" 
@@ -204,14 +210,14 @@ export default function TripDetail() {
                   </Badge>
                 )}
               </TabsTrigger>
-              {/* v2.3.5: Tour tab for Business users - Stops management */}
-              <BusinessOnly>
-                <TabsTrigger value="tour">Tour</TabsTrigger>
-              </BusinessOnly>
-              {/* v2.4.0: Trip Summary Report for Pro & Business users */}
-              <ProOnly>
+              
+              {/* Pro & Business: Report appears before Notes */}
+              {isPro && (
                 <TabsTrigger value="report">Report</TabsTrigger>
-              </ProOnly>
+              )}
+              
+              {/* Notes & Safety is always last */}
+              <TabsTrigger value="notes">Notes & Safety</TabsTrigger>
             </TabsList>
 
             <div className="mt-6">
@@ -224,6 +230,17 @@ export default function TripDetail() {
                   highlightId={drillTarget?.tab === 'bookings' ? drillTarget.recordId : undefined}
                   onHighlightConsumed={clearDrillTarget}
                 />
+              </TabsContent>
+              
+              {/* Tour content - Business only */}
+              {canAccessBusinessFeatures && (
+                <TabsContent value="tour">
+                  <TourTab tripId={trip.id} bookings={bookings} />
+                </TabsContent>
+              )}
+              
+              <TabsContent value="companions">
+                <CompanionsTab tripId={trip.id} />
               </TabsContent>
               <TabsContent value="expenses">
                 <ExpensesTab tripId={trip.id} />
@@ -238,27 +255,20 @@ export default function TripDetail() {
               <TabsContent value="packing">
                 <PackingTab tripId={trip.id} />
               </TabsContent>
-              <TabsContent value="companions">
-                <CompanionsTab tripId={trip.id} />
-              </TabsContent>
-              <TabsContent value="notes">
-                <NotesTab tripId={trip.id} />
-              </TabsContent>
               <TabsContent value="explore">
                 <ExploreTab tripId={trip.id} trip={trip} />
               </TabsContent>
-              {/* v2.3.5: Tour tab content for Business users */}
-              <BusinessOnly>
-                <TabsContent value="tour">
-                  <TourTab tripId={trip.id} />
-                </TabsContent>
-              </BusinessOnly>
-              {/* v2.4.0: Trip Summary Report tab for Pro & Business users */}
-              <ProOnly>
+              
+              {/* Report content - Pro & Business only */}
+              {isPro && (
                 <TabsContent value="report">
                   <TripSummaryReportTab tripId={trip.id} />
                 </TabsContent>
-              </ProOnly>
+              )}
+              
+              <TabsContent value="notes">
+                <NotesTab tripId={trip.id} />
+              </TabsContent>
             </div>
           </Tabs>
         </div>
