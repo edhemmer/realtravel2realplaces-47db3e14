@@ -221,18 +221,13 @@ export default function AdminPlans() {
                       : null;
                     const isCurrentUser = u.email === user?.email;
                     
-                    // Patch 2.6.21: Use shared resolver for effective tier (single source of truth)
-                    // For the current user, this matches exactly what useAccess computes
+                    // Patch 2.6.22: Use shared resolver for effective tier (single source of truth)
+                    // The dropdown displays effectiveTier, matching the header PlanPill exactly
                     const isTester = isBusinessTester(u.email);
                     const effectiveTier = resolveEffectiveTier({
                       subscriptionTier: u.subscription_tier as PlanTier,
                       isTester,
                     });
-                    
-                    // Show "Tester override" badge if tier is elevated by tester config
-                    const hasTesterOverride = isTester && u.subscription_tier !== 'business';
-                    // Show "Admin override" for non-free DB tiers (manual elevation)
-                    const hasAdminOverride = !isTester && (u.subscription_tier === 'pro' || u.subscription_tier === 'business');
                     
                     return (
                       <TableRow key={u.user_id}>
@@ -256,34 +251,24 @@ export default function AdminPlans() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Select
-                              value={u.subscription_tier}
-                              onValueChange={(value: SubscriptionTier) => 
-                                handleTierChange(u.user_id, u.subscription_tier, value, u.email)
-                              }
-                              disabled={updateTierMutation.isPending}
-                            >
-                              <SelectTrigger className="w-28">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="free">Free</SelectItem>
-                                <SelectItem value="pro">Pro</SelectItem>
-                                <SelectItem value="business">Business</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            {hasTesterOverride && (
-                              <Badge variant="secondary" className="text-xs whitespace-nowrap bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
-                                Tester → {effectiveTier.charAt(0).toUpperCase() + effectiveTier.slice(1)}
-                              </Badge>
-                            )}
-                            {hasAdminOverride && !hasTesterOverride && (
-                              <Badge variant="secondary" className="text-xs whitespace-nowrap">
-                                Admin override
-                              </Badge>
-                            )}
-                          </div>
+                          {/* Patch 2.6.22: Display effectiveTier directly, no tester/admin badges */}
+                          {/* This matches the header PlanPill exactly */}
+                          <Select
+                            value={effectiveTier}
+                            onValueChange={(value: SubscriptionTier) => 
+                              handleTierChange(u.user_id, u.subscription_tier, value, u.email)
+                            }
+                            disabled={updateTierMutation.isPending}
+                          >
+                            <SelectTrigger className="w-28">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="free">Free</SelectItem>
+                              <SelectItem value="pro">Pro</SelectItem>
+                              <SelectItem value="business">Business</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </TableCell>
                         <TableCell className={!u.last_sign_in_at ? 'text-muted-foreground italic' : ''}>
                           {formatLastLogin(u.last_sign_in_at)}
