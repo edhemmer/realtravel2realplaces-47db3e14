@@ -35,6 +35,8 @@ import {
   Building2,
   Car,
   Info,
+  PlaneTakeoff,
+  PlaneLanding,
 } from 'lucide-react';
 
 interface TravelEducationDrawerProps {
@@ -181,6 +183,48 @@ function AirportGuideContent() {
             have separate terminals far apart, requiring shuttle transportation.
           </p>
         </div>
+      </section>
+
+      {/* Departure Flow */}
+      <section id="departure-flow">
+        <h3 className="flex items-center gap-2 text-sm font-semibold mb-3">
+          <Plane className="h-4 w-4 text-primary" />
+          Typical Departure Sequence
+        </h3>
+        <p className="text-sm text-muted-foreground mb-3">
+          When departing from an airport, you'll typically proceed through these steps:
+        </p>
+        <div className="space-y-2">
+          <FlowStepItem number={1} title="Arrive at Airport" description="Allow time based on flight type (domestic ~2h, international ~3h)" />
+          <FlowStepItem number={2} title="Check-in / Bag Drop" description="Online check-in speeds this up; bag drop for checked luggage" />
+          <FlowStepItem number={3} title="Security Screening" description="ID verification, body scan, and carry-on X-ray" />
+          <FlowStepItem number={4} title="Proceed to Gate" description="Find your gate on the departures board and allow walking time" />
+          <FlowStepItem number={5} title="Boarding" description="Listen for announcements; boarding typically starts 30-45 min before departure" />
+        </div>
+        <p className="text-xs text-muted-foreground mt-3 italic">
+          For international departures, allow extra time for document checks at the gate.
+        </p>
+      </section>
+
+      {/* Arrival Flow */}
+      <section id="arrival-flow">
+        <h3 className="flex items-center gap-2 text-sm font-semibold mb-3">
+          <ArrowRight className="h-4 w-4 text-primary" />
+          Typical Arrival Sequence
+        </h3>
+        <p className="text-sm text-muted-foreground mb-3">
+          When arriving at your destination, you'll typically proceed through these steps:
+        </p>
+        <div className="space-y-2">
+          <FlowStepItem number={1} title="Deplane" description="Exit the aircraft and follow signs toward arrivals" />
+          <FlowStepItem number={2} title="Immigration" description="International only — passport and visa verification" isOptional />
+          <FlowStepItem number={3} title="Baggage Claim" description="Collect checked luggage from the carousel" />
+          <FlowStepItem number={4} title="Customs" description="International only — declare items or proceed through 'Nothing to Declare'" isOptional />
+          <FlowStepItem number={5} title="Ground Transportation" description="Taxis, rideshare, shuttles, or public transit" />
+        </div>
+        <p className="text-xs text-muted-foreground mt-3 italic">
+          Timing and order may vary by airport and country. Domestic arrivals skip immigration and customs.
+        </p>
       </section>
 
       {/* Security Checkpoints */}
@@ -449,7 +493,7 @@ function InternationalGuideContent() {
 }
 
 /**
- * Step item for the arrival process
+ * Step item for the arrival process (international guide)
  */
 function StepItem({ number, title, description }: { number: number; title: string; description: string }) {
   return (
@@ -459,6 +503,41 @@ function StepItem({ number, title, description }: { number: number; title: strin
       </div>
       <div>
         <p className="text-sm font-medium">{title}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Flow step item for departure/arrival sequences
+ * Supports optional badge for steps that don't apply to all flights
+ */
+function FlowStepItem({ 
+  number, 
+  title, 
+  description, 
+  isOptional = false 
+}: { 
+  number: number; 
+  title: string; 
+  description: string;
+  isOptional?: boolean;
+}) {
+  return (
+    <div className="flex gap-3">
+      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+        {number}
+      </div>
+      <div className="flex-1">
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-medium">{title}</p>
+          {isOptional && (
+            <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+              INT'L
+            </span>
+          )}
+        </div>
         <p className="text-xs text-muted-foreground">{description}</p>
       </div>
     </div>
