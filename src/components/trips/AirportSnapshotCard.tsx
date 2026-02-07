@@ -1,13 +1,16 @@
 /**
  * v2.0.4: Airport Snapshot Card
  * Displays primary departure/arrival airports for trips with flights
- * Honest, expectation-setting UI - no live data or navigation promises
+ * Includes tier-aware info access and Google Maps links
  */
 
 import { Card, CardContent } from '@/components/ui/card';
-import { Plane } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Plane, MapPin, Info } from 'lucide-react';
 import { Booking } from '@/types/database';
 import { tripHasAirportSegments } from '@/lib/airportContext';
+import { getAirportByCode, Airport } from '@/lib/airportData';
+import { useIsPro } from '@/hooks/useSubscription';
 
 interface AirportSnapshotCardProps {
   bookings: Booking[];
@@ -16,6 +19,7 @@ interface AirportSnapshotCardProps {
 interface AirportDisplay {
   code: string;
   label: string; // "City" or "Airport Name" as fallback
+  airport?: Airport; // Full airport data if available
 }
 
 /**
@@ -50,24 +54,100 @@ function getPrimaryAirports(bookings: Booking[]): {
 
   // Extract departure from first flight
   if (firstFlight.departure_airport_code) {
+    const code = firstFlight.departure_airport_code.toUpperCase();
+    const airport = getAirportByCode(code);
     departure = {
-      code: firstFlight.departure_airport_code.toUpperCase(),
-      label: firstFlight.departure_airport_name || firstFlight.departure_airport_code.toUpperCase(),
+      code,
+      label: airport?.city || firstFlight.departure_airport_name || code,
+      airport: airport || undefined,
     };
   }
 
   // Extract arrival from last flight
   if (lastFlight.arrival_airport_code) {
+    const code = lastFlight.arrival_airport_code.toUpperCase();
+    const airport = getAirportByCode(code);
     arrival = {
-      code: lastFlight.arrival_airport_code.toUpperCase(),
-      label: lastFlight.arrival_airport_name || lastFlight.arrival_airport_code.toUpperCase(),
+      code,
+      label: airport?.city || lastFlight.arrival_airport_name || code,
+      airport: airport || undefined,
     };
   }
 
   return { departure, arrival };
 }
 
+/**
+ * Generates Google Maps search URL for an airport
+ */
+function getGoogleMapsUrl(code: string, name?: string): string {
+  const query = name ? `${name} Airport ${code}` : `${code} Airport`;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+interface AirportRowProps {
+  type: 'From' | 'To';
+  display: AirportDisplay;
+  isPro: boolean;
+}
+
+function AirportRow({ type, display, isPro }: AirportRowProps) {
+  const mapsUrl = getGoogleMapsUrl(display.code, display.airport?.name);
+  const infoUrl = display.airport?.officialUrl;
+  
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center gap-2 text-sm min-w-0">
+        <span className="text-muted-foreground shrink-0">{type}:</span>
+        <span className="font-medium">{display.code}</span>
+        <span className="text-muted-foreground">–</span>
+        <span className="truncate text-muted-foreground">{display.label}</span>
+      </div>
+      
+      <div className="flex items-center gap-1 shrink-0">
+        {/* Google Maps - Available to all plans */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 w-6 p-0"
+          asChild
+        >
+          <a
+            href={mapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="View airport on map"
+          >
+            <MapPin className="h-3.5 w-3.5 text-muted-foreground hover:text-primary" />
+          </a>
+        </Button>
+        
+        {/* Airport Info - Tier-aware behavior */}
+        {infoUrl && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0"
+            asChild
+          >
+            <a
+              href={infoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={isPro ? 'View airport info' : 'View airport website (upgrade for in-app tools)'}
+            >
+              <Info className={`h-3.5 w-3.5 ${isPro ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`} />
+            </a>
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function AirportSnapshotCard({ bookings }: AirportSnapshotCardProps) {
+  const isPro = useIsPro();
+  
   // Only render for trips with flight segments
   if (!tripHasAirportSegments(bookings)) {
     return null;
@@ -93,21 +173,11 @@ export function AirportSnapshotCard({ bookings }: AirportSnapshotCardProps) {
             
             <div className="space-y-1.5">
               {departure && (
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground shrink-0">From:</span>
-                  <span className="font-medium">{departure.code}</span>
-                  <span className="text-muted-foreground">–</span>
-                  <span className="truncate text-muted-foreground">{departure.label}</span>
-                </div>
+                <AirportRow type="From" display={departure} isPro={isPro} />
               )}
               
               {arrival && (
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground shrink-0">To:</span>
-                  <span className="font-medium">{arrival.code}</span>
-                  <span className="text-muted-foreground">–</span>
-                  <span className="truncate text-muted-foreground">{arrival.label}</span>
-                </div>
+                <AirportRow type="To" display={arrival} isPro={isPro} />
               )}
             </div>
 
