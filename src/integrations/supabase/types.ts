@@ -56,11 +56,15 @@ export type Database = {
           address: string | null
           advance_recommended: boolean | null
           airline: string | null
+          arrival_airport_code: string | null
+          arrival_airport_name: string | null
           booking_pattern: string | null
           booking_type: Database["public"]["Enums"]["booking_type"]
           booking_url: string | null
           confirmation_number: string | null
           created_at: string
+          departure_airport_code: string | null
+          departure_airport_name: string | null
           end_datetime: string | null
           frequent_flyer_number: string | null
           from_location: string | null
@@ -92,11 +96,15 @@ export type Database = {
           address?: string | null
           advance_recommended?: boolean | null
           airline?: string | null
+          arrival_airport_code?: string | null
+          arrival_airport_name?: string | null
           booking_pattern?: string | null
           booking_type: Database["public"]["Enums"]["booking_type"]
           booking_url?: string | null
           confirmation_number?: string | null
           created_at?: string
+          departure_airport_code?: string | null
+          departure_airport_name?: string | null
           end_datetime?: string | null
           frequent_flyer_number?: string | null
           from_location?: string | null
@@ -128,11 +136,15 @@ export type Database = {
           address?: string | null
           advance_recommended?: boolean | null
           airline?: string | null
+          arrival_airport_code?: string | null
+          arrival_airport_name?: string | null
           booking_pattern?: string | null
           booking_type?: Database["public"]["Enums"]["booking_type"]
           booking_url?: string | null
           confirmation_number?: string | null
           created_at?: string
+          departure_airport_code?: string | null
+          departure_airport_name?: string | null
           end_datetime?: string | null
           frequent_flyer_number?: string | null
           from_location?: string | null
