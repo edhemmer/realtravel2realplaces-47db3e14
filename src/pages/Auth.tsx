@@ -25,6 +25,10 @@ export default function Auth() {
   } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  
+  // Determine initial tab from URL param (e.g., /auth?tab=signup)
+  const tabParam = searchParams.get('tab');
+  const initialTab = tabParam === 'signup' ? 'signup' : 'signin';
 
   // Check for session expired or idle logout reason
   useEffect(() => {
@@ -152,7 +156,7 @@ export default function Auth() {
           <CardDescription>Sign in to manage your trips</CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="signin" className="w-full" onValueChange={clearMessages}>
+          <Tabs defaultValue={initialTab} className="w-full" onValueChange={clearMessages}>
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="signin">Sign In</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>

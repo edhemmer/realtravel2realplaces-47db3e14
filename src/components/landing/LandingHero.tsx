@@ -39,7 +39,7 @@ export default function LandingHero() {
 
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-6">
-              <Link to="/auth" className="landing-btn-primary text-base px-8 py-3 text-center">
+              <Link to="/auth?tab=signup" className="landing-btn-primary text-base px-8 py-3 text-center">
                 Get started
               </Link>
               <Link to="/auth" className="landing-btn-secondary text-base px-8 py-3 text-center">
