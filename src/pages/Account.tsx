@@ -10,10 +10,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Mail, Crown, User, Lock, CheckCircle, ChevronRight, ShieldCheck } from 'lucide-react';
+import { Mail, Crown, User, Lock, CheckCircle, ChevronRight, ShieldCheck, BookOpen } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { TravelPreferencesCard } from '@/components/account/TravelPreferencesCard';
+import { resetOnboarding } from './Onboarding';
 
 export default function Account() {
   const navigate = useNavigate();
@@ -60,6 +61,11 @@ export default function Account() {
   };
 
   const roleAnnotation = getRoleAnnotation();
+
+  const handleViewOnboarding = () => {
+    resetOnboarding();
+    navigate('/onboarding');
+  };
 
   return (
     <Layout>
@@ -158,6 +164,27 @@ export default function Account() {
             initialTemperatureUnit={profile?.temperature_unit}
           />
         )}
+
+        {/* Help / Getting Started Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <BookOpen className="w-5 h-5 text-primary" />
+              Help
+            </CardTitle>
+            <CardDescription>Resources and guides</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              variant="outline" 
+              className="w-full justify-between"
+              onClick={handleViewOnboarding}
+            >
+              Getting Started Guide
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </CardContent>
+        </Card>
 
         {/* Password Section */}
         <Card>
