@@ -1,13 +1,28 @@
 /**
  * useAccess - Centralized UI access control hook
  * 
- * Provides consistent access-checking helpers for plan-based and role-based
- * UI gating. This hook wraps existing subscription and admin checks into
- * a unified interface for conditional rendering.
+ * Patch 2.6.2: Commercial Code Integrity Documentation
  * 
- * Patch 2.3.9: Business gating enforcement is now ENABLED.
- * Business-tier features are gated to admin/owner users until the Business
- * plan tier is fully implemented.
+ * PLAN GATING ARCHITECTURE:
+ * - UI gating is enforced via useAccess() hook and wrapper components
+ * - Server-side enforcement is handled by RLS policies and DB functions
+ * - UI gating is a UX optimization; security is enforced at database level
+ * 
+ * TIER HIERARCHY:
+ * - FREE: Basic trip management, 5 lifetime trip limit
+ * - PRO: Unlimited trips, timeline, weather, airport intelligence
+ * - BUSINESS: Pro + Tour/Stops, Stop-level expense assignment, Advanced Reports
+ * 
+ * ADMIN OVERRIDE:
+ * - isAdmin (from user_roles table) grants Business access for testing/support
+ * - Admin status is validated via security-definer functions (has_role, is_admin)
+ * - Admin check uses database role lookup, NOT localStorage/client state
+ * 
+ * COMPONENT USAGE:
+ * - <ProOnly>: Wraps Pro-tier features (currently unenforced in UI)
+ * - <BusinessOnly>: Wraps Business-tier features (enforced via canAccessBusinessFeatures)
+ * - <AdminOnly>: Wraps admin-only features (always enforced)
+ * - <FeatureGate>: Custom access logic with accessCheck function
  * 
  * @example
  * const { canAccessBusinessFeatures, isAdminUser, isPro } = useAccess();

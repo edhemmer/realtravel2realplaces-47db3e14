@@ -4,6 +4,30 @@
  * Patch 2.4.5: Added export consistency validation, filter summary clarity,
  * and user-facing accuracy language.
  * 
+ * Patch 2.6.2: Commercial Code Integrity Documentation
+ * 
+ * DATA INTEGRITY:
+ * - Single data source: allExpenses query fetches from Supabase
+ * - All UI filtering (filteredRows) and sorting (sortedRows) derive from same source
+ * - PDF and CSV exports use sortedRows directly (what you see is what you export)
+ * - Pre-export validation (validateExportConsistency) confirms data hasn't changed
+ * 
+ * ERROR HANDLING:
+ * - Export failures are caught and surface via toast notifications
+ * - Validation failures prevent export and explain the issue to users
+ * - Query failures throw to React Query error boundaries
+ * 
+ * BUSINESS TIER GATING:
+ * - canAccessBusinessFeatures check redirects non-Business users
+ * - Route is accessible to all, but content is gated
+ * - This provides a clear upgrade path for non-Business users
+ * 
+ * EXPORT ACCURACY GUARANTEES:
+ * - validateExportConsistency() recalculates totals before export
+ * - If totals don't match (data changed during session), export is blocked
+ * - Users are instructed to refresh and retry
+ * - 0.01 tolerance accounts for floating point precision
+ * 
  * Features:
  * - Multi-trip filtering by date range, trip, companion, Stop, category
  * - Sortable results table
