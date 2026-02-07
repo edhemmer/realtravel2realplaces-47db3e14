@@ -2,24 +2,25 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useAccess } from '@/hooks/useAccess';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useIsAdmin } from '@/hooks/useAdminUsers';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Mail, Crown, User, Lock, CheckCircle, ChevronRight, ShieldCheck, BookOpen, Sparkles } from 'lucide-react';
+import { Mail, Crown, User, Lock, CheckCircle, ChevronRight, ShieldCheck, BookOpen, Sparkles, Briefcase } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { TravelPreferencesCard } from '@/components/account/TravelPreferencesCard';
 import { UpgradePlanDialog } from '@/components/account/UpgradePlanDialog';
+import { PlanPill } from '@/components/PlanPill';
 import { resetOnboarding } from './Onboarding';
+
 export default function Account() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { data: subscription, isLoading: isSubscriptionLoading } = useSubscription();
+  const { tier, isPro, canAccessBusinessFeatures, isLoading: isAccessLoading } = useAccess();
   const { data: profile, isLoading: isProfileLoading } = useUserProfile();
   const { data: isAdmin } = useIsAdmin();
   const [isResetting, setIsResetting] = useState(false);
@@ -50,8 +51,14 @@ export default function Account() {
     }
   };
 
-  const isPro = subscription?.tier === 'pro';
-  const isLoading = isSubscriptionLoading || isProfileLoading;
+  const isLoading = isAccessLoading || isProfileLoading;
+  
+  // Determine plan icon
+  const getPlanIcon = () => {
+    if (tier === 'business') return <Briefcase className="w-5 h-5 text-primary" />;
+    if (tier === 'pro') return <Crown className="w-5 h-5 text-primary" />;
+    return <User className="w-5 h-5 text-primary" />;
+  };
 
   // Derive display role annotation for admin users
   const getRoleAnnotation = () => {
@@ -62,11 +69,38 @@ export default function Account() {
   };
 
   const roleAnnotation = getRoleAnnotation();
+  const lifetimeTripCount = profile?.lifetime_trip_count ?? 0;
 
   const handleViewOnboarding = () => {
     resetOnboarding();
     navigate('/onboarding');
   };
+
+  // Get plan description
+  const getPlanDescription = () => {
+    if (tier === 'business') {
+      return (
+        <>
+          <span className="font-medium text-foreground">Business plan</span> – unlimited trips, stops, and advanced reports.
+        </>
+      );
+    }
+    if (tier === 'pro') {
+      return (
+        <>
+          <span className="font-medium text-foreground">Pro plan</span> – unlimited trips and advanced features.
+        </>
+      );
+    }
+    return (
+      <>
+        <span className="font-medium text-foreground">Free plan</span> – {lifetimeTripCount} of 5 lifetime trips used.
+      </>
+    );
+  };
+
+  // Show upgrade button for free users only (Pro and Business don't need it)
+  const showUpgradeButton = tier === 'free';
 
   return (
     <Layout>
@@ -103,11 +137,7 @@ export default function Account() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
-              {isPro ? (
-                <Crown className="w-5 h-5 text-primary" />
-              ) : (
-                <User className="w-5 h-5 text-primary" />
-              )}
+              {getPlanIcon()}
               Current Plan
             </CardTitle>
             <CardDescription>Your subscription status</CardDescription>
@@ -118,12 +148,7 @@ export default function Account() {
             ) : (
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <Badge
-                    variant={isPro ? 'default' : 'secondary'}
-                    className={isPro ? 'bg-primary hover:bg-primary/90' : ''}
-                  >
-                    {isPro ? 'Pro' : 'Free'}
-                  </Badge>
+                  <PlanPill showTripLimit />
                   {roleAnnotation && (
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <ShieldCheck className="w-3 h-3" />
@@ -132,19 +157,11 @@ export default function Account() {
                   )}
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {isPro ? (
-                    <>
-                      <span className="font-medium text-foreground">Pro plan</span> – unlimited trips and advanced features.
-                    </>
-                  ) : (
-                    <>
-                      <span className="font-medium text-foreground">Free plan</span> – up to 5 lifetime trips.
-                    </>
-                  )}
+                  {getPlanDescription()}
                 </p>
                 
-                {/* Upgrade CTA for non-Pro users */}
-                {!isPro && (
+                {/* Upgrade CTA for Free users only */}
+                {showUpgradeButton && (
                   <Button 
                     variant="default"
                     className="w-full justify-between"

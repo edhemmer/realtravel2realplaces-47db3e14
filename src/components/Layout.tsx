@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useIsPro } from '@/hooks/useSubscription';
 import { useIsAdmin } from '@/hooks/useAdminUsers';
 import { useAccess } from '@/hooks/useAccess';
 import { useIdleLogout } from '@/hooks/useIdleLogout';
 import { Button } from '@/components/ui/button';
-import { Plane, LogOut, User, Settings, Crown, MessageCircleQuestion, ShieldCheck, BarChart3 } from 'lucide-react';
+import { Plane, LogOut, User, Settings, MessageCircleQuestion, ShieldCheck, BarChart3 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -15,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ContactSupportDialog } from '@/components/support/ContactSupportDialog';
+import { PlanPill } from '@/components/PlanPill';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -22,7 +22,6 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   const { user, signOut } = useAuth();
-  const isPro = useIsPro();
   const { data: isAdmin } = useIsAdmin();
   const { canAccessBusinessFeatures } = useAccess();
   const navigate = useNavigate();
@@ -49,12 +48,8 @@ export function Layout({ children }: LayoutProps) {
                <h1 className="text-lg font-bold text-gradient-ocean leading-tight">
                  Real Travel 2 <span className="italic">Real Places</span>
                </h1>
-               {isPro && (
-                 <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-sm shadow-purple-500/25">
-                   <Crown className="w-3 h-3" />
-                   PRO
-                 </span>
-               )}
+               {/* Patch 2.6.13: Accurate plan pill showing Free, Pro, or Business */}
+               {user && <PlanPill showTripLimit />}
              </div>
           </Link>
 
