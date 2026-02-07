@@ -1007,7 +1007,7 @@ export type Database = {
       parking_billing: "hourly" | "daily" | "per_trip" | "other"
       parking_type: "airport" | "beach" | "city_garage" | "hotel" | "other"
       stay_type: "hotel" | "airbnb" | "vrbo" | "other"
-      subscription_tier: "free" | "pro"
+      subscription_tier: "free" | "pro" | "business"
       transport_mode: "train" | "bus" | "metro" | "ferry" | "other"
       transportation_mode: "flight" | "drive" | "unspecified"
       trip_event_type:
@@ -1189,7 +1189,7 @@ export const Constants = {
       parking_billing: ["hourly", "daily", "per_trip", "other"],
       parking_type: ["airport", "beach", "city_garage", "hotel", "other"],
       stay_type: ["hotel", "airbnb", "vrbo", "other"],
-      subscription_tier: ["free", "pro"],
+      subscription_tier: ["free", "pro", "business"],
       transport_mode: ["train", "bus", "metro", "ferry", "other"],
       transportation_mode: ["flight", "drive", "unspecified"],
       trip_event_type: [
