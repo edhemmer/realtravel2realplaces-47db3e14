@@ -540,6 +540,131 @@ export function getCanonicalTripState(
 }
 
 // ============================================================================
+// TOUR DRAFT GENERATION FROM CANONICAL EVENTS
+// ============================================================================
+
+/**
+ * Tour draft stop structure
+ * Used to generate Tour stops from canonical timeline events
+ */
+export interface TourDraftStop {
+  name: string;
+  date: string;
+  start_time: string;
+  end_time: string | null;
+  location: string;
+  notes: string;
+  source: 'flight' | 'stay' | 'rental';
+}
+
+/**
+ * Generate Tour draft stops from canonical timeline events
+ * 
+ * v2.1.6: This function decouples Tour from Bookings by using canonical timeline events
+ * instead of directly reading booking records. Tour only knows about events,
+ * not about the underlying booking structure.
+ * 
+ * RULES:
+ * - Only generates drafts from flight, stay, and car_rental events
+ * - Does NOT read booking records directly
+ * - Creates independent Tour stops that are not live pointers to bookings
+ * 
+ * @param timelineEvents - Canonical timeline events from getCanonicalTripState
+ * @returns Array of draft stops for Tour auto-generation
+ */
+export function generateTourDraftFromCanonicalEvents(
+  timelineEvents: CanonicalTimelineEvent[]
+): TourDraftStop[] {
+  const drafts: TourDraftStop[] = [];
+  
+  for (const event of timelineEvents) {
+    const dateStr = event.datetime.toISOString().split('T')[0];
+    const timeStr = event.datetime.toTimeString().slice(0, 8); // HH:MM:SS
+    
+    // Map timeline event types to Tour draft stops
+    switch (event.eventType) {
+      case 'flight_departure':
+        drafts.push({
+          name: `Depart: ${event.title}`,
+          date: dateStr,
+          start_time: timeStr,
+          end_time: null,
+          location: event.address || event.title,
+          notes: `Auto-drafted from flight`,
+          source: 'flight',
+        });
+        break;
+        
+      case 'flight_arrival':
+        drafts.push({
+          name: `Arrive: ${event.title}`,
+          date: dateStr,
+          start_time: timeStr,
+          end_time: null,
+          location: event.address || event.title,
+          notes: `Auto-drafted from flight`,
+          source: 'flight',
+        });
+        break;
+        
+      case 'hotel_checkin':
+        drafts.push({
+          name: `Check in: ${event.title}`,
+          date: dateStr,
+          start_time: timeStr,
+          end_time: null,
+          location: event.address || event.title,
+          notes: `Auto-drafted from stay`,
+          source: 'stay',
+        });
+        break;
+        
+      case 'hotel_checkout':
+        drafts.push({
+          name: `Check out: ${event.title}`,
+          date: dateStr,
+          start_time: timeStr,
+          end_time: null,
+          location: event.address || event.title,
+          notes: `Auto-drafted from stay`,
+          source: 'stay',
+        });
+        break;
+        
+      case 'rental_pickup':
+        drafts.push({
+          name: `Pickup: ${event.title}`,
+          date: dateStr,
+          start_time: timeStr,
+          end_time: null,
+          location: event.address || event.title,
+          notes: `Auto-drafted from car rental`,
+          source: 'rental',
+        });
+        break;
+        
+      case 'rental_dropoff':
+        drafts.push({
+          name: `Return: ${event.title}`,
+          date: dateStr,
+          start_time: timeStr,
+          end_time: null,
+          location: event.address || event.title,
+          notes: `Auto-drafted from car rental`,
+          source: 'rental',
+        });
+        break;
+        
+      // Skip activity, transport, and parking events - these are not Tour stops
+      default:
+        break;
+    }
+  }
+  
+  return drafts;
+}
+
+// ============================================================================
 // LEGACY COMPATIBILITY
 // ============================================================================
 

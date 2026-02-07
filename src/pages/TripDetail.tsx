@@ -233,9 +233,10 @@ export default function TripDetail() {
               </TabsContent>
               
               {/* Tour content - Business only */}
+              {/* v2.1.6: Tour no longer receives bookings prop - fetches canonical state internally */}
               {canAccessBusinessFeatures && (
                 <TabsContent value="tour">
-                  <TourTab tripId={trip.id} trip={trip} bookings={bookings} />
+                  <TourTab tripId={trip.id} trip={trip} />
                 </TabsContent>
               )}
               

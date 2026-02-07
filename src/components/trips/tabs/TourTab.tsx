@@ -1,18 +1,23 @@
 /**
  * TourTab - Business-tier Stops UI
  * 
- * Patch 2.6.25: Tour auto-draft from bookings
+ * v2.1.6: Tour/Bookings separation via canonical state
+ * - Tour no longer depends on Booking models directly
+ * - Auto-draft uses canonical timeline events, not booking records
+ * - Tour stops are independent records, not live pointers to bookings
+ * 
+ * Patch 2.6.25: Tour auto-draft from bookings (via canonical events)
  * v2.0.9: Bulk stop ingestion + Google Maps integration
  * 
  * Allows Business users to add, view, and edit Stops (work locations) on a trip.
  * Stops are distinct from Stays (lodging) and represent places where work is done.
- * 
- * Auto-draft: When a Business user opens Tour for the first time with no stops,
- * the system auto-generates draft stops from existing bookings (flights, stays, rentals).
  */
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useEngagements, useCreateEngagement, useUpdateEngagement, useDeleteEngagement, Engagement } from '@/hooks/useEngagements';
+import { useBookings } from '@/hooks/useBookings';
+import { useExpenses } from '@/hooks/useExpenses';
+import { useParking } from '@/hooks/useParking';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,13 +41,21 @@ import { toast } from 'sonner';
 import { useTripPermission } from '@/pages/TripDetail';
 import { ManualStepHint } from '@/components/trips/ManualStepHint';
 import { BulkStopsDialog } from '@/components/trips/BulkStopsDialog';
-import { Booking, Trip } from '@/types/database';
+import { Trip } from '@/types/database';
 import { StopSourceHint, inferStopSource } from '@/components/trips/ParseHint';
+import { 
+  getCanonicalTripState, 
+  generateTourDraftFromCanonicalEvents,
+  TourDraftStop,
+} from '@/lib/canonicalTripState';
 
+/**
+ * v2.1.6: TourTab props no longer include bookings
+ * Tour fetches its own canonical state to maintain separation
+ */
 interface TourTabProps {
   tripId: string;
   trip?: Trip;
-  bookings?: Booking[];
 }
 
 interface StopFormData {
@@ -68,130 +81,18 @@ const HELPER_DISMISSED_KEY = 'rt2rp_stops_helper_dismissed';
 // Track if auto-draft has been offered for this trip
 const AUTO_DRAFT_OFFERED_PREFIX = 'rt2rp_tour_autodraft_offered_';
 
-interface DraftStop {
-  name: string;
-  date: string;
-  start_time: string;
-  end_time: string | null;
-  location: string;
-  notes: string;
-  source: 'flight' | 'stay' | 'rental';
-}
-
-/**
- * Generate draft stops from bookings data
- * Extracts airports from flights, locations from stays, and pickup/dropoff from rentals
- */
-function generateDraftStops(bookings: Booking[]): DraftStop[] {
-  const drafts: DraftStop[] = [];
-
-  for (const booking of bookings) {
-    const datetime = booking.start_datetime;
-    const date = datetime.split('T')[0];
-    const timePart = datetime.split('T')[1];
-    const time = timePart ? timePart.slice(0, 5) + ':00' : '09:00:00';
-
-    if (booking.booking_type === 'flight') {
-      // Flight: Extract departure airport
-      if (booking.from_location) {
-        drafts.push({
-          name: `Depart from ${booking.from_location}`,
-          date,
-          start_time: time,
-          end_time: null,
-          location: booking.from_location,
-          notes: `Auto-drafted from ${booking.vendor_name || 'flight booking'}`,
-          source: 'flight',
-        });
-      }
-      // Flight: Extract arrival airport (use end_datetime if available)
-      if (booking.to_location) {
-        const endDatetime = booking.end_datetime || booking.start_datetime;
-        const arrivalDate = endDatetime.split('T')[0];
-        const arrivalTimePart = endDatetime.split('T')[1];
-        const arrivalTime = arrivalTimePart ? arrivalTimePart.slice(0, 5) + ':00' : '12:00:00';
-        drafts.push({
-          name: `Arrive at ${booking.to_location}`,
-          date: arrivalDate,
-          start_time: arrivalTime,
-          end_time: null,
-          location: booking.to_location,
-          notes: `Auto-drafted from ${booking.vendor_name || 'flight booking'}`,
-          source: 'flight',
-        });
-      }
-    } else if (booking.booking_type === 'stay') {
-      // Stay: Lodging check-in location
-      const location = booking.property_name || booking.address || booking.location_summary || 'Lodging';
-      drafts.push({
-        name: `Check in: ${location}`,
-        date,
-        start_time: '15:00:00', // Standard check-in time
-        end_time: null,
-        location: booking.address || location,
-        notes: `Auto-drafted from ${booking.vendor_name || 'stay booking'}`,
-        source: 'stay',
-      });
-      // Checkout
-      if (booking.end_datetime) {
-        const checkoutDate = booking.end_datetime.split('T')[0];
-        drafts.push({
-          name: `Check out: ${location}`,
-          date: checkoutDate,
-          start_time: '11:00:00', // Standard checkout time
-          end_time: null,
-          location: booking.address || location,
-          notes: `Auto-drafted from ${booking.vendor_name || 'stay booking'}`,
-          source: 'stay',
-        });
-      }
-    } else if (booking.booking_type === 'car_rental') {
-      // Rental: Pickup location
-      const pickupLocation = booking.pickup_location || booking.from_location || 'Rental pickup';
-      drafts.push({
-        name: `Pickup: ${booking.rental_company || 'Car rental'}`,
-        date,
-        start_time: time,
-        end_time: null,
-        location: pickupLocation,
-        notes: `Auto-drafted from ${booking.rental_company || booking.vendor_name || 'car rental'}`,
-        source: 'rental',
-      });
-      // Return location
-      if (booking.end_datetime) {
-        const returnDate = booking.end_datetime.split('T')[0];
-        const returnTimePart = booking.end_datetime.split('T')[1];
-        const returnTime = returnTimePart ? returnTimePart.slice(0, 5) + ':00' : '12:00:00';
-        const returnLocation = booking.return_location || booking.to_location || pickupLocation;
-        drafts.push({
-          name: `Return: ${booking.rental_company || 'Car rental'}`,
-          date: returnDate,
-          start_time: returnTime,
-          end_time: null,
-          location: returnLocation,
-          notes: `Auto-drafted from ${booking.rental_company || booking.vendor_name || 'car rental'}`,
-          source: 'rental',
-        });
-      }
-    }
-  }
-
-  // Sort by date and time
-  drafts.sort((a, b) => {
-    const dateCompare = a.date.localeCompare(b.date);
-    if (dateCompare !== 0) return dateCompare;
-    return a.start_time.localeCompare(b.start_time);
-  });
-
-  return drafts;
-}
-
-export function TourTab({ tripId, trip, bookings = [] }: TourTabProps) {
+export function TourTab({ tripId, trip }: TourTabProps) {
   const { canEdit } = useTripPermission();
   const { data: stops = [], isLoading } = useEngagements(tripId);
   const createStop = useCreateEngagement();
   const updateStop = useUpdateEngagement();
   const deleteStop = useDeleteEngagement();
+
+  // v2.1.6: Fetch canonical data internally to maintain separation
+  // Tour only knows about canonical events, not booking structures
+  const { data: bookings = [], isLoading: bookingsLoading } = useBookings(tripId);
+  const { data: expenses = [] } = useExpenses(tripId);
+  const { data: parkingList = [] } = useParking(tripId);
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -212,8 +113,14 @@ export function TourTab({ tripId, trip, bookings = [] }: TourTabProps) {
     return localStorage.getItem(HELPER_DISMISSED_KEY) === 'true';
   });
 
-  // Generate draft stops from bookings
-  const draftStops = useMemo(() => generateDraftStops(bookings), [bookings]);
+  // v2.1.6: Generate draft stops from CANONICAL EVENTS, not direct bookings
+  // This enforces separation - Tour knows about events, not booking structure
+  const draftStops = useMemo<TourDraftStop[]>(() => {
+    if (!trip) return [];
+    const canonicalState = getCanonicalTripState(trip, bookings, expenses, parkingList);
+    return generateTourDraftFromCanonicalEvents(canonicalState.timelineEvents);
+  }, [trip, bookings, expenses, parkingList]);
+  
   const hasDraftableBookings = draftStops.length > 0;
 
   // Auto-draft on first visit with no stops
@@ -222,6 +129,7 @@ export function TourTab({ tripId, trip, bookings = [] }: TourTabProps) {
     
     if (
       !isLoading &&
+      !bookingsLoading &&
       stops.length === 0 &&
       hasDraftableBookings &&
       canEdit &&
@@ -232,7 +140,7 @@ export function TourTab({ tripId, trip, bookings = [] }: TourTabProps) {
       handleAutoDraft();
       localStorage.setItem(autoDraftKey, 'true');
     }
-  }, [isLoading, stops.length, hasDraftableBookings, canEdit, autoDraftKey, isAutoDrafting]);
+  }, [isLoading, bookingsLoading, stops.length, hasDraftableBookings, canEdit, autoDraftKey, isAutoDrafting]);
 
   const dismissHelper = useCallback(() => {
     localStorage.setItem(HELPER_DISMISSED_KEY, 'true');
@@ -324,7 +232,7 @@ export function TourTab({ tripId, trip, bookings = [] }: TourTabProps) {
     }
   };
 
-  // Auto-draft stops from bookings
+  // v2.1.6: Auto-draft stops from canonical events
   const handleAutoDraft = async () => {
     if (draftStops.length === 0) {
       toast.info('No bookings available to draft stops from');
@@ -414,7 +322,7 @@ export function TourTab({ tripId, trip, bookings = [] }: TourTabProps) {
     return null;
   };
 
-  if (isLoading) {
+  if (isLoading || bookingsLoading) {
     return (
       <div className="flex justify-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
