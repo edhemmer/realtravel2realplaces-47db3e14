@@ -76,6 +76,9 @@ export function useAdminUsers() {
 
 /**
  * Hook to update a user's subscription tier (admin only)
+ * 
+ * Patch 2.6.18: Also invalidates subscription and isAdmin queries
+ * to immediately rehydrate access state after plan changes.
  */
 export function useUpdateUserTier() {
   const queryClient = useQueryClient();
@@ -92,10 +95,19 @@ export function useUpdateUserTier() {
         throw error;
       }
 
-      return data;
+      return { data, userId, tier };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      // Invalidate admin user list
       queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+      
+      // Patch 2.6.18: Invalidate subscription and admin queries for the affected user
+      // This rehydrates useAccess and updates PlanPill, Account page, and feature gates
+      queryClient.invalidateQueries({ queryKey: ['subscription', result.userId] });
+      queryClient.invalidateQueries({ queryKey: ['isAdmin', result.userId] });
+      
+      // Also invalidate all subscription queries to ensure UI consistency
+      queryClient.invalidateQueries({ queryKey: ['subscription'] });
     },
   });
 }
