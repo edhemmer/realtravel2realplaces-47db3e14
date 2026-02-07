@@ -848,6 +848,7 @@ export type Database = {
           email: string
           first_name: string
           last_name: string
+          last_sign_in_at: string
           lifetime_trip_count: number
           subscription_tier: Database["public"]["Enums"]["subscription_tier"]
           user_id: string
