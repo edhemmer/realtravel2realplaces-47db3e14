@@ -2,10 +2,29 @@
  * Centralized expense calculation utilities
  * Single source of truth for all expense math
  * 
- * v2.1.10 - Legacy Airfare Normalizer:
- * - Added calculation-time fallback to detect legacy duplicated flight costs
- * - Trips created before 2.1.9 may have per-leg costs duplicated (same total on each leg)
- * - This normalizer detects the pattern and counts the cost only once at calculation time
+ * Patch 2.6.2: Commercial Code Integrity Documentation
+ * 
+ * DATA INTEGRITY - SINGLE SOURCE OF TRUTH:
+ * - calculateTripCostSummary() is the ONLY function for trip cost aggregation
+ * - All UI summaries (TripSummaryTab, ExpensesTab) use this function
+ * - All exports (Trip Summary Report PDF) use this function
+ * - This ensures UI and exports always match
+ * 
+ * CALCULATION PHILOSOPHY:
+ * - Bookings: Calculated at booking-level, NOT segment-level
+ * - Expenses: Only out-of-pocket (excludes booking-linked to prevent double counting)
+ * - Parking: Tracked separately, NOT included in Total Trip Cost
+ * - Total = Bookings + Out-of-pocket Expenses
+ * 
+ * ERROR PREVENTION:
+ * - safeNumber() guards ensure all returned values are finite and non-negative
+ * - Invalid inputs (NaN, Infinity, negative) fallback to 0
+ * - This prevents UI rendering errors and export corruption
+ * 
+ * LEGACY DATA HANDLING:
+ * - v2.1.10 Legacy Airfare Normalizer detects pre-v2.1.9 duplicated flight costs
+ * - Trips created before v2.1.9 may have per-leg costs duplicated (same total on each leg)
+ * - The normalizer counts duplicated costs only ONCE at calculation time
  * - No data migration required - this is a read-time safeguard
  * 
  * v2.1.9 - Airfare Cost Duplication Fix:

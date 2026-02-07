@@ -1,3 +1,31 @@
+/**
+ * useTrips - Trip data access layer
+ * 
+ * Patch 2.6.2: Commercial Code Integrity Documentation
+ * 
+ * DATA INTEGRITY:
+ * - Single source of truth for trip data
+ * - useTrips() returns all user-owned trips
+ * - useTrip(tripId) returns a single trip (including shared trips via RLS)
+ * - Dashboard and TripDetail derive from these queries
+ * 
+ * ERROR HANDLING:
+ * - All mutations surface errors via toast notifications (explicit, user-safe)
+ * - Query failures throw to React Query error boundaries
+ * - No silent errors - all failures are visible to users
+ * 
+ * LIFECYCLE ENFORCEMENT:
+ * - trip_state is enforced at database level via RLS policies
+ * - ACTIVE trips: fully editable
+ * - LOCKED trips (Free users past end_date): read-only, enforced by RLS
+ * - CLOSED trips (Pro users manual close): read-only, enforced by RLS
+ * - Lifecycle transitions are validated by validate_trip_state_transition() trigger
+ * 
+ * SECURITY:
+ * - RLS policies enforce trip ownership
+ * - Shared trips are accessible via trip_shares table
+ * - Delete is only allowed for ACTIVE trips owned by the user
+ */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';

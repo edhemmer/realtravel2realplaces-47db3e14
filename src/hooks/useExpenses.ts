@@ -1,3 +1,24 @@
+/**
+ * useExpenses - Expense data access layer
+ * 
+ * Patch 2.6.2: Commercial Code Integrity Documentation
+ * 
+ * DATA INTEGRITY:
+ * - Single source of truth for expense data
+ * - All expense reads flow through useExpenses(tripId)
+ * - UI components (ExpensesTab, Reports) derive from this query
+ * - Exports (PDF/CSV) use the same filtered data path
+ * 
+ * ERROR HANDLING:
+ * - All mutations surface errors via toast notifications (explicit, user-safe)
+ * - Query failures throw to React Query error boundaries
+ * - No silent errors - all failures are visible to users
+ * 
+ * SECURITY:
+ * - RLS policies enforce trip ownership at database level
+ * - user_can_write_trip() prevents writes to locked/closed trips
+ * - Expense CRUD is gated by trip_state in RLS policies
+ */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Expense, ExpenseCategory, ExpensePurpose } from '@/types/database';

@@ -352,6 +352,93 @@ bun run test:watch     # Watch mode
 
 ---
 
+## Data Integrity & Single Source of Truth (Patch 2.6.2)
+
+### Core Principle
+
+Every data domain has a single source of truth. UI components and exports derive from these sources, ensuring consistency between what users see and what they export.
+
+| Domain | Single Source | Used By |
+|--------|---------------|---------|
+| Trips | `useTrips()`, `useTrip()` | Dashboard, TripDetail |
+| Expenses | `useExpenses()` | ExpensesTab, Reports |
+| Bookings | `useBookings()` | BookingsTab, FlightSummary |
+| Stops | `useEngagements()` | TourTab, Expense-to-Stop |
+| Calculations | `calculateTripCostSummary()` | SummaryTab, PDF Export |
+
+### Error Handling Discipline
+
+All critical paths follow explicit error handling:
+
+```typescript
+// ✅ Correct - errors surface to users
+onError: (error) => {
+  toast.error(error.message);  // User sees feedback
+  console.error(error);         // Logged for debugging
+},
+
+// ❌ Wrong - silent failures
+onError: () => {},  // NEVER do this
+```
+
+### Export Consistency
+
+Reports and exports use the same data path as the UI:
+
+```typescript
+// Reports page - single data source
+const allExpenses = useQuery({ ... });  // Source
+const filteredRows = useMemo(() => ...); // Filter (derived)
+const sortedRows = useMemo(() => ...);   // Sort (derived)
+
+// Both UI table AND exports use sortedRows
+// This guarantees "what you see is what you export"
+```
+
+### Plan Gating Layers
+
+UI gating is a UX optimization; security is enforced at the database level:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ Layer 1: UI Gating (UX Optimization)                    │
+│ - <ProOnly>, <BusinessOnly>, <AdminOnly>                │
+│ - useAccess() hook for conditional rendering            │
+│ - Hides features users can't use (better UX)            │
+├─────────────────────────────────────────────────────────┤
+│ Layer 2: Route Protection                               │
+│ - useAuth() redirect for unauthenticated users          │
+│ - canAccessBusinessFeatures check in Reports page       │
+├─────────────────────────────────────────────────────────┤
+│ Layer 3: Database Enforcement (SECURITY)                │
+│ - RLS policies enforce ownership                        │
+│ - user_can_write_trip() prevents writes to locked trips │
+│ - trip_owner_is_pro() gates Pro features at DB level    │
+│ - is_admin() uses user_roles table, not client state    │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Admin Override Documentation
+
+Admin users (from `user_roles` table) can access Business features:
+
+```typescript
+// In useAccess.ts
+const canAccessBusinessFeatures = isAdmin === true;
+
+// INTENT: Allow owner/developers to:
+// 1. Test Business features before public launch
+// 2. Support users with Business accounts
+// 3. Debug Business-specific issues
+
+// SECURITY: Admin check uses database lookup, NOT:
+// - localStorage (can be manipulated)
+// - sessionStorage (can be manipulated)
+// - hardcoded credentials (can be decompiled)
+```
+
+---
+
 ## Common Pitfalls
 
 ### 1. Timezone Issues

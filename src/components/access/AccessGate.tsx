@@ -1,13 +1,27 @@
 /**
  * AccessGate - Conditional rendering components for plan/role-based UI gating
  * 
- * These wrapper components provide a consistent pattern for gating UI elements
- * based on subscription tier or user role. They are part of the UI gating
- * framework introduced in Patch 2.2.2.
+ * Patch 2.6.2: Commercial Code Integrity Documentation
  * 
- * IMPORTANT: Enforcement is NOT enabled in this patch. All wrapped content
- * will render normally. The wrappers exist to standardize how gating will
- * work in future patches.
+ * SECURITY MODEL:
+ * - These wrappers provide UI-level gating for better UX (hide unavailable features)
+ * - CRITICAL: UI gating alone is NOT sufficient for security
+ * - All protected operations MUST have server-side enforcement via RLS/DB functions
+ * - Database-level enforcement is the primary security layer
+ * 
+ * GATING ENFORCEMENT STATUS:
+ * - ProOnly: Currently UNENFORCED (content always renders)
+ *   - Pro features are protected by RLS (trip limits, trip_state transitions)
+ * - BusinessOnly: ENFORCED via canAccessBusinessFeatures check
+ *   - Admin users bypass this gate for testing/support purposes
+ *   - Non-admin, non-Business users see fallback (null by default)
+ * - AdminOnly: ENFORCED via isAdminUser check
+ *   - Always enforced; admin features must never be visible to regular users
+ * 
+ * ADMIN OVERRIDE INTENT:
+ * - Admin users (from user_roles table) can access Business features
+ * - This allows owner/developers to test and support Business functionality
+ * - When Business tier is added to database, canAccessBusinessFeatures will include it
  * 
  * @example
  * <ProOnly>
