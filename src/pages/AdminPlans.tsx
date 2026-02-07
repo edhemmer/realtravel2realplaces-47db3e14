@@ -97,7 +97,8 @@ export default function AdminPlans() {
   const executeTierChange = async (userId: string, newTier: SubscriptionTier) => {
     try {
       await updateTierMutation.mutateAsync({ userId, tier: newTier });
-      toast.success(`Updated user to ${newTier.charAt(0).toUpperCase() + newTier.slice(1)} tier`);
+      // Patch 2.6.18: Show confirmation that access has been refreshed
+      toast.success('Plan updated. Access refreshed.');
     } catch (error) {
       console.error('Failed to update tier:', error);
       toast.error('Failed to update subscription tier');
