@@ -64,14 +64,14 @@ export function ProOnly({ children, fallback = null, showLoadingState = false }:
 /**
  * BusinessOnly - Wrapper for Business-tier features
  * 
- * NOTE: Enforcement disabled (Patch 2.2.2). Content always renders.
- * Enable enforcement by uncommenting the access check below.
+ * Patch 2.3.9: Enforcement ENABLED.
+ * Business features require Business access (currently admin/owner override).
  * 
- * Future Business-only features include:
+ * Business-only features include:
  * - Tour tab (multi-stop itineraries)
  * - Stop-level controls
- * - Advanced business reporting
- * - Team collaboration features
+ * - Expense-to-Stop assignment
+ * - Advanced business reporting (future)
  */
 export function BusinessOnly({ children, fallback = null, showLoadingState = false }: GateProps) {
   const { canAccessBusinessFeatures, isLoading } = useAccess();
@@ -80,10 +80,10 @@ export function BusinessOnly({ children, fallback = null, showLoadingState = fal
     return <div className="animate-pulse bg-muted rounded h-8 w-full" />;
   }
 
-  // TODO (Future Patch): Uncomment to enable Business gating enforcement
-  // if (!canAccessBusinessFeatures) {
-  //   return <>{fallback}</>;
-  // }
+  // Patch 2.3.9: Business gating enforcement enabled
+  if (!canAccessBusinessFeatures) {
+    return <>{fallback}</>;
+  }
 
   return <>{children}</>;
 }

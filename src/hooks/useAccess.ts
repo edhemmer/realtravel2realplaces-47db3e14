@@ -5,9 +5,9 @@
  * UI gating. This hook wraps existing subscription and admin checks into
  * a unified interface for conditional rendering.
  * 
- * IMPORTANT: This hook is part of the UI gating framework (Patch 2.2.2).
- * Enforcement will be enabled in a future patch. For now, these helpers
- * return access states but do not block any functionality.
+ * Patch 2.3.9: Business gating enforcement is now ENABLED.
+ * Business-tier features are gated to admin/owner users until the Business
+ * plan tier is fully implemented.
  * 
  * @example
  * const { canAccessBusinessFeatures, isAdminUser, isPro } = useAccess();
@@ -48,9 +48,9 @@ export function useAccess(): AccessState {
   const isLoading = subscriptionLoading || adminLoading;
   const tier = subscription?.tier || null;
   
-  // Business tier is not yet implemented in the database.
-  // For now, Business access is granted to admins (owner/developer).
-  // This will be updated when the Business tier is added.
+  // Patch 2.3.9: Business tier gating enforcement enabled.
+  // Business access is granted to admins (owner/developer).
+  // This will be updated when the Business tier is added to the database.
   const canAccessBusinessFeatures = isAdmin === true;
   
   return {
