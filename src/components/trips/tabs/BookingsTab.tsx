@@ -92,6 +92,10 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
   const dropZoneRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
+  // v2.1.3: Parsing confidence state
+  const [parseSource, setParseSource] = useState<'email' | 'text' | null>(null);
+  const [timeIsEstimated, setTimeIsEstimated] = useState(false);
+  
   // Companion detail dialog state
   const [selectedCompanion, setSelectedCompanion] = useState<Companion | null>(null);
   const [companionDialogOpen, setCompanionDialogOpen] = useState(false);
@@ -211,6 +215,9 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
     setIsParsing(false);
     setShowPasteInput(false);
     setPastedText('');
+    // v2.1.3: Reset confidence indicators
+    setParseSource(null);
+    setTimeIsEstimated(false);
   };
 
   // Helper to validate parsed dates before applying to form
@@ -273,13 +280,15 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
   };
 
   // Shared parsing logic for both drag-drop and paste (mirrors Create Trip)
-  const parseBookingText = useCallback(async (text: string) => {
+  // v2.1.3: Added source parameter for confidence indicators
+  const parseBookingText = useCallback(async (text: string, source: 'email' | 'text' = 'text') => {
     if (!text.trim()) {
       toast.warning('Please paste your confirmation text first.');
       return;
     }
 
     setIsParsing(true);
+    setParseSource(source);
     toast.info('Parsing booking confirmation...');
 
     try {
@@ -406,7 +415,13 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
         // Clear paste input and collapse on success
         setPastedText('');
         setShowPasteInput(false);
-        toast.success(data.message || 'Booking parsed! Review and save.');
+        // v2.1.3: Check if time was estimated (defaulted or inferred)
+        const hasExplicitTimeInfo = parsed.start_datetime && /T\d{2}:\d{2}/.test(parsed.start_datetime);
+        setTimeIsEstimated(!hasExplicitTimeInfo);
+        toast.success(data.message || 'Booking parsed! Review and save.', {
+          description: 'You can edit times, names, or locations after import.',
+          duration: 5000,
+        });
       } else {
         // v2.1.30: Show clearer failure message with edit CTA
         toast.warning("We couldn't fully read this confirmation.", {
@@ -460,8 +475,8 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
           return;
         }
         
-        // Parse the extracted email body text
-        await parseBookingText(result.body);
+        // Parse the extracted email body text with 'email' source
+        await parseBookingText(result.body, 'email');
         return;
       }
       
@@ -471,7 +486,7 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
         reader.onload = async (event) => {
           const text = event.target?.result as string;
           if (text) {
-            await parseBookingText(text);
+            await parseBookingText(text, 'text');
           }
         };
         reader.readAsText(file);
@@ -486,12 +501,13 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
       return;
     }
 
-    await parseBookingText(text);
+    await parseBookingText(text, 'text');
   }, [parseBookingText]);
 
   // Paste handlers (mirrors Create Trip)
   const handlePasteAndScan = useCallback(async () => {
-    await parseBookingText(pastedText);
+    setParseSource('text');
+    await parseBookingText(pastedText, 'text');
   }, [pastedText, parseBookingText]);
 
   const openEditDialog = (booking: Booking) => {
@@ -1130,6 +1146,14 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                 </div>
               )}
 
+              {/* v2.1.3: Parsed-from indicator */}
+              {parseSource && formData.vendor_name && !showPasteInput && !isParsing && (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <FileText className="w-3 h-3" />
+                  <span>Parsed from {parseSource === 'email' ? 'email' : 'pasted text'}</span>
+                </div>
+              )}
+
               {/* Patch 2.6.7: Contextual education for parsed data review */}
               {formData.vendor_name && !showPasteInput && !isParsing && (
                 <ManualStepHint message={MANUAL_STEP_HINTS.parsedDataReview} className="mb-2" />
@@ -1179,20 +1203,32 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Start Date/Time *</Label>
+                <Label className="flex items-center gap-1.5">
+                  Start Date/Time *
+                  {/* v2.1.3: Time confidence hint */}
+                  {timeIsEstimated && parseSource && formData.start_datetime && (
+                    <span className="text-xs text-muted-foreground font-normal">(estimated)</span>
+                  )}
+                </Label>
                 <Input
                   type="datetime-local"
                   value={formData.start_datetime}
-                  onChange={(e) => setFormData({ ...formData, start_datetime: e.target.value })}
+                  onChange={(e) => { setFormData({ ...formData, start_datetime: e.target.value }); setTimeIsEstimated(false); }}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label>End Date/Time</Label>
+                <Label className="flex items-center gap-1.5">
+                  End Date/Time
+                  {/* v2.1.3: Time confidence hint */}
+                  {timeIsEstimated && parseSource && formData.end_datetime && (
+                    <span className="text-xs text-muted-foreground font-normal">(estimated)</span>
+                  )}
+                </Label>
                 <Input
                   type="datetime-local"
                   value={formData.end_datetime}
-                  onChange={(e) => setFormData({ ...formData, end_datetime: e.target.value })}
+                  onChange={(e) => { setFormData({ ...formData, end_datetime: e.target.value }); setTimeIsEstimated(false); }}
                 />
               </div>
             </div>
