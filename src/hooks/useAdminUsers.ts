@@ -3,6 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { SubscriptionTier } from '@/types/subscription';
 
+/**
+ * Patch 2.6.11: Added last_sign_in_at for inactivity tracking
+ */
 interface AdminUser {
   user_id: string;
   email: string;
@@ -12,6 +15,7 @@ interface AdminUser {
   lifetime_trip_count: number;
   current_trip_count: number;
   created_at: string;
+  last_sign_in_at: string | null;
 }
 
 interface DeleteUserResult {
