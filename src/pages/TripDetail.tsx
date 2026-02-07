@@ -18,7 +18,8 @@ import { CompanionsTab } from '@/components/trips/tabs/CompanionsTab';
 import { NotesTab } from '@/components/trips/tabs/NotesTab';
 import { ExploreTab } from '@/components/trips/tabs/ExploreTab';
 import { TourTab } from '@/components/trips/tabs/TourTab';
-import { BusinessOnly } from '@/components/access';
+import { TripSummaryReportTab } from '@/components/trips/tabs/TripSummaryReportTab';
+import { BusinessOnly, ProOnly } from '@/components/access';
 import { TripHeaderWidgets } from '@/components/trips/TripHeaderWidgets';
 import { TripStatusHeroBar } from '@/components/trips/TripStatusHeroBar';
 import { ProRetentionCountdownCard } from '@/components/trips/ProRetentionCountdownCard';
@@ -184,6 +185,10 @@ export default function TripDetail() {
               <BusinessOnly>
                 <TabsTrigger value="tour">Tour</TabsTrigger>
               </BusinessOnly>
+              {/* v2.4.0: Trip Summary Report for Pro & Business users */}
+              <ProOnly>
+                <TabsTrigger value="report">Report</TabsTrigger>
+              </ProOnly>
             </TabsList>
 
             <div className="mt-6">
@@ -225,6 +230,12 @@ export default function TripDetail() {
                   <TourTab tripId={trip.id} />
                 </TabsContent>
               </BusinessOnly>
+              {/* v2.4.0: Trip Summary Report tab for Pro & Business users */}
+              <ProOnly>
+                <TabsContent value="report">
+                  <TripSummaryReportTab tripId={trip.id} />
+                </TabsContent>
+              </ProOnly>
             </div>
           </Tabs>
         </div>
