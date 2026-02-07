@@ -5,6 +5,7 @@
  * This component explains available plans without collecting payment details.
  * 
  * v2.6.4: Initial implementation with disabled billing state
+ * v2.6.5: Added upgrade intent tracking on button clicks
  */
 
 import {
@@ -19,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Check, Crown, Briefcase, Sparkles, Info } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useUpgradeIntent, type UpgradeEntryPoint } from '@/hooks/useUpgradeIntent';
 import {
   Tooltip,
   TooltipContent,
@@ -31,6 +33,8 @@ interface UpgradePlanDialogProps {
   onOpenChange: (open: boolean) => void;
   /** Which plan tab to show by default */
   defaultPlan?: 'pro' | 'business';
+  /** Where this dialog was opened from (for intent tracking) */
+  entryPoint?: UpgradeEntryPoint;
 }
 
 const proFeatures = [
@@ -55,9 +59,11 @@ const businessFeatures = [
 export function UpgradePlanDialog({ 
   open, 
   onOpenChange, 
-  defaultPlan = 'pro' 
+  defaultPlan = 'pro',
+  entryPoint = 'account_page'
 }: UpgradePlanDialogProps) {
   const { data: subscription } = useSubscription();
+  const { trackUpgradeIntent } = useUpgradeIntent();
   const currentTier = subscription?.tier || 'free';
 
   return (
@@ -114,10 +120,14 @@ export function UpgradePlanDialog({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div>
+                        {/* 
+                          v2.6.5: Track intent when disabled button is clicked
+                          Button is visually disabled but onClick still fires for tracking
+                        */}
                         <Button 
-                          className="w-full" 
-                          disabled
+                          className="w-full opacity-50 cursor-not-allowed" 
                           aria-describedby="billing-note"
+                          onClick={() => trackUpgradeIntent('pro', entryPoint)}
                         >
                           <Crown className="w-4 h-4 mr-2" />
                           Upgrade to Pro
@@ -159,10 +169,14 @@ export function UpgradePlanDialog({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <div>
+                      {/* 
+                        v2.6.5: Track intent when disabled button is clicked
+                        Button is visually disabled but onClick still fires for tracking
+                      */}
                       <Button 
-                        className="w-full" 
-                        disabled
+                        className="w-full opacity-50 cursor-not-allowed" 
                         aria-describedby="billing-note"
+                        onClick={() => trackUpgradeIntent('business', entryPoint)}
                       >
                         <Briefcase className="w-4 h-4 mr-2" />
                         Upgrade to Business

@@ -786,6 +786,33 @@ export type Database = {
         }
         Relationships: []
       }
+      upgrade_intents: {
+        Row: {
+          created_at: string
+          current_plan: string
+          entry_point: string
+          id: string
+          target_plan: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_plan: string
+          entry_point: string
+          id?: string
+          target_plan: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_plan?: string
+          entry_point?: string
+          id?: string
+          target_plan?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
