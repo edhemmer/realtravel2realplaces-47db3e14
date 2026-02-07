@@ -539,6 +539,69 @@ When modifying parsing logic:
 
 ---
 
+## Upgrade Intent Tracking (v2.6.5)
+
+The app captures user upgrade intent signals when users click disabled upgrade buttons. This data informs future billing decisions without enabling payments.
+
+### How It Works
+
+When a user clicks a disabled "Upgrade to Pro" or "Upgrade to Business" button, the `useUpgradeIntent` hook records:
+
+| Field | Description |
+|-------|-------------|
+| `user_id` | Authenticated user's ID |
+| `current_plan` | User's current tier (free/pro) |
+| `target_plan` | Clicked upgrade target (pro/business) |
+| `entry_point` | Where they clicked (account_page, plans_page, contextual_message) |
+| `created_at` | Timestamp |
+
+### Usage
+
+```typescript
+import { useUpgradeIntent } from '@/hooks/useUpgradeIntent';
+
+function UpgradeButton() {
+  const { trackUpgradeIntent } = useUpgradeIntent();
+  
+  return (
+    <Button 
+      className="opacity-50 cursor-not-allowed"
+      onClick={() => trackUpgradeIntent('pro', 'account_page')}
+    >
+      Upgrade to Pro
+    </Button>
+  );
+}
+```
+
+### Developer Notes
+
+- **Fire-and-forget**: Errors are logged but don't affect UX
+- **Non-intrusive**: No user feedback, prompts, or UI changes
+- **Deduplicated**: Same user/plan clicks are all recorded (no client-side throttling)
+- **Admin visibility**: Admins can query `upgrade_intents` table directly
+
+### Querying Intent Data
+
+```sql
+-- Get upgrade intent summary by target plan
+SELECT 
+  target_plan,
+  entry_point,
+  COUNT(*) as clicks,
+  COUNT(DISTINCT user_id) as unique_users
+FROM upgrade_intents
+GROUP BY target_plan, entry_point
+ORDER BY clicks DESC;
+
+-- Get recent intents
+SELECT * FROM upgrade_intents
+ORDER BY created_at DESC
+LIMIT 50;
+```
+
+---
+
 ## Related Documentation
 
 - [ARCHITECTURE.md](./ARCHITECTURE.md) - System architecture

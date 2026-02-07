@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useIsAdmin } from '@/hooks/useAdminUsers';
+import { useUpgradeIntent } from '@/hooks/useUpgradeIntent';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -96,6 +97,7 @@ export default function Plans() {
   const navigate = useNavigate();
   const { data: subscription, isLoading } = useSubscription();
   const { data: isAdmin } = useIsAdmin();
+  const { trackUpgradeIntent } = useUpgradeIntent();
   const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
 
   const currentTier = subscription?.tier || 'free';
@@ -245,13 +247,16 @@ export default function Plans() {
             </DialogDescription>
           </DialogHeader>
           
-          {/* Disabled upgrade action with explanation */}
+          {/* Disabled upgrade action with explanation - v2.6.5: tracks intent on click */}
           <div className="pt-2 space-y-3">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div>
-                    <Button className="w-full" disabled>
+                    <Button 
+                      className="w-full opacity-50 cursor-not-allowed"
+                      onClick={() => trackUpgradeIntent('pro', 'plans_page')}
+                    >
                       <Crown className="w-4 h-4 mr-2" />
                       Upgrade to Pro
                     </Button>
