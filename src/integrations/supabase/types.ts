@@ -885,11 +885,15 @@ export type Database = {
           address: string
           advance_recommended: boolean
           airline: string
+          arrival_airport_code: string
+          arrival_airport_name: string
           booking_pattern: string
           booking_type: string
           booking_url: string
           confirmation_number: string
           created_at: string
+          departure_airport_code: string
+          departure_airport_name: string
           end_datetime: string
           frequent_flyer_number: string
           from_location: string
