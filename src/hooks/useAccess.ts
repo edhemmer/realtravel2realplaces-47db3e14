@@ -1,7 +1,7 @@
 /**
  * useAccess - Centralized UI access control hook
  * 
- * Patch 2.6.8: Tester Business Overrides
+ * Patch 2.6.19: Decouple Admin Role from Plan Tier
  * 
  * PLAN GATING ARCHITECTURE:
  * - UI gating is enforced via useAccess() hook and wrapper components
@@ -13,27 +13,34 @@
  * - PRO: Unlimited trips, timeline, weather, airport intelligence
  * - BUSINESS: Pro + Tour/Stops, Stop-level expense assignment, Advanced Reports
  * 
- * BUSINESS ACCESS GRANTS:
- * 1. Admin role (from user_roles table) - for support/development
- * 2. Business tester override (from businessTesters.ts) - for trusted testers
- * 3. Future: Active Business subscription via Stripe (not yet implemented)
+ * ADMIN vs PLAN ACCESS (Patch 2.6.19):
+ * - isAdminUser: Controls access to /admin pages and <AdminOnly> components ONLY
+ * - effectiveTier: Controls plan-based features (Pro/Business gating)
+ * - Admin role does NOT automatically grant Business tier access
+ * - This allows admins to experience Free/Pro/Business behavior by changing their plan
  * 
- * TESTER OVERRIDE (Patch 2.6.8):
- * - Trusted testers listed in src/config/businessTesters.ts get Business access
- * - This is a UI-level override and does NOT modify subscription records
- * - Completely separate from future Stripe billing integration
+ * BUSINESS ACCESS GRANTS:
+ * 1. Business tester override (from businessTesters.ts) - for trusted testers
+ * 2. Database subscription_tier = 'business' (admin-assigned override)
+ * NOTE: Admin role is explicitly excluded from business access grants
  * 
  * COMPONENT USAGE:
  * - <ProOnly>: Wraps Pro-tier features (currently unenforced in UI)
  * - <BusinessOnly>: Wraps Business-tier features (enforced via canAccessBusinessFeatures)
- * - <AdminOnly>: Wraps admin-only features (always enforced)
+ * - <AdminOnly>: Wraps admin-only features (always enforced, uses isAdminUser)
  * - <FeatureGate>: Custom access logic with accessCheck function
  * 
  * @example
  * const { canAccessBusinessFeatures, isAdminUser, isPro } = useAccess();
  * 
+ * // Admin access to admin pages
+ * if (isAdminUser) {
+ *   // Render admin dashboard
+ * }
+ * 
+ * // Plan-based feature access (independent of admin status)
  * if (canAccessBusinessFeatures) {
- *   // Render Business-only UI
+ *   // Render Business-only UI (Tour/Stops, advanced reports)
  * }
  */
 
@@ -46,10 +53,10 @@ export interface AccessState {
   /** Whether the user's plan includes Pro features */
   isPro: boolean;
   
-  /** Whether the user has Business-tier access (future tier) */
+  /** Whether the user has Business-tier access (via tier or tester override) */
   canAccessBusinessFeatures: boolean;
   
-  /** Whether the user is an admin (owner/developer) */
+  /** Whether the user is an admin (owner/developer) - for admin UI only */
   isAdminUser: boolean;
   
   /** Whether access state is still loading */
@@ -58,7 +65,7 @@ export interface AccessState {
   /** Whether the user is authenticated */
   isAuthenticated: boolean;
   
-  /** The user's subscription tier */
+  /** The user's effective subscription tier (for UI display and gating) */
   tier: 'free' | 'pro' | 'business' | null;
 }
 
@@ -75,24 +82,26 @@ export function useAccess(): AccessState {
   // Testers listed in src/config/businessTesters.ts get Business access
   const isTester = isBusinessTester(user?.email);
   
-  // Patch 2.6.12: Business access is granted via:
-  // 1. Admin role (from user_roles table)
-  // 2. Tester override (from businessTesters.ts config)
-  // 3. Database subscription_tier = 'business' (admin-assigned override)
+  // Patch 2.6.19: Business access is granted via:
+  // 1. Tester override (from businessTesters.ts config)
+  // 2. Database subscription_tier = 'business' (admin-assigned override)
+  // NOTE: Admin role is EXCLUDED - admins experience their actual plan tier
+  // This allows admins to test Free/Pro/Business behavior by changing their plan
   const hasBusinessTier = rawTier === 'business';
-  const canAccessBusinessFeatures = isAdmin === true || isTester || hasBusinessTier;
+  const canAccessBusinessFeatures = isTester || hasBusinessTier;
   
-  // Patch 2.6.14: Compute effective tier for UI display
-  // This ensures plan pills show the correct tier including overrides
+  // Patch 2.6.19: Compute effective tier for UI display
+  // Only tester override forces Business tier - admin role does NOT
+  // This allows admins to experience Free/Pro behavior by changing their plan
   let effectiveTier: 'free' | 'pro' | 'business' | null = rawTier as 'free' | 'pro' | 'business' | null;
-  if (isAdmin === true || isTester) {
+  if (isTester) {
     effectiveTier = 'business';
   }
   
   return {
     isPro: isPro || canAccessBusinessFeatures, // Business tier includes Pro features
     canAccessBusinessFeatures,
-    isAdminUser: isAdmin === true,
+    isAdminUser: isAdmin === true, // Admin status is separate from plan tier
     isLoading,
     isAuthenticated: !!subscription,
     tier: effectiveTier,
