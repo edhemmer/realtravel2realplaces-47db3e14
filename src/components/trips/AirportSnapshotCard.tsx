@@ -117,7 +117,7 @@ function AirportInfoPill({ infoUrl, isPro, airportCode }: AirportInfoPillProps) 
     );
   }
   
-  // Free users get inline upgrade message via popover
+  // Free users get inline upgrade message via popover (same visual as Pro)
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -127,7 +127,7 @@ function AirportInfoPill({ infoUrl, isPro, airportCode }: AirportInfoPillProps) 
           className="h-6 w-6 p-0"
           title="Airport info"
         >
-          <Info className="h-3.5 w-3.5 text-muted-foreground hover:text-primary transition-colors" />
+          <Info className="h-3.5 w-3.5 text-primary" />
         </Button>
       </PopoverTrigger>
       <PopoverContent 
