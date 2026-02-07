@@ -93,6 +93,44 @@ export function AirportInfoPanel({
           </DrawerHeader>
 
           <div className="overflow-y-auto px-4 pb-6">
+            {/* About This Airport - Specific Reference Section */}
+            <section className="mb-6 rounded-lg border bg-muted/30 p-4">
+              <h4 className="flex items-center gap-2 text-sm font-semibold mb-2">
+                <Plane className="h-4 w-4 text-primary" />
+                About This Airport
+              </h4>
+              {airport ? (
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Code</span>
+                    <span className="font-mono font-semibold">{airport.code}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">City</span>
+                    <span className="font-medium">{airport.city}</span>
+                  </div>
+                  {airport.state && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">State/Region</span>
+                      <span className="font-medium">{airport.state}</span>
+                    </div>
+                  )}
+                  <Separator className="my-2" />
+                  <p className="text-xs text-muted-foreground italic">
+                    Airport-specific details (terminal maps, services) will appear here when available. 
+                    General airport guidance is shown below.
+                  </p>
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground space-y-2">
+                  <p>Airport code: <span className="font-mono font-semibold">{airportCode}</span></p>
+                  <p className="text-xs italic">
+                    Airport-specific details will appear here when available.
+                  </p>
+                </div>
+              )}
+            </section>
+
             {/* Official Website - Primary Action */}
             <div className="mb-6">
               {airport?.officialUrl ? (
@@ -151,6 +189,10 @@ export function AirportInfoPanel({
 
             {/* Standard Airport Guidance */}
             <div className="space-y-4">
+              <p className="text-xs text-muted-foreground">
+                The guidance below applies to most airports. For airport-specific 
+                information, check the official website above.
+              </p>
               <h4 className="flex items-center gap-2 text-sm font-medium">
                 <Clock className="h-4 w-4 text-muted-foreground" />
                 Arrival Timing
