@@ -23,6 +23,7 @@ import { CompanionDetailDialog } from '@/components/trips/CompanionDetailDialog'
 import { UpcomingEventsWidget } from '@/components/trips/UpcomingEventsWidget';
 import { TripHealthChecklist } from '@/components/trips/TripHealthChecklist';
 import { FirstTripHint } from '@/components/trips/FirstTripHint';
+import { AirportSnapshotCard } from '@/components/trips/AirportSnapshotCard';
 import { generateTripICS, downloadICSFile } from '@/lib/icsGenerator';
 import { calculateTripCostSummary, logExpenseDebug } from '@/lib/expenseCalculations';
 import { calculateTripDateRange } from '@/lib/tripDateCalculations';
@@ -470,7 +471,11 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
       {transportationMode === 'drive' ? (
         <DriveSummaryCard trip={trip as any} onAddGasExpense={() => setGasDialogOpen(true)} />
       ) : (
-        <FlightSummaryCard bookings={bookings} companions={companions} bookingCompanions={bookingCompanions} />
+        <>
+          <FlightSummaryCard bookings={bookings} companions={companions} bookingCompanions={bookingCompanions} />
+          {/* v2.0.4: Airport Snapshot Card - shows for trips with flights */}
+          <AirportSnapshotCard bookings={bookings} />
+        </>
       )}
 
       {/* Gas Expense Dialog for drive trips */}

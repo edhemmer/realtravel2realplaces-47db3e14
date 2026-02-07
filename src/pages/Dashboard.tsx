@@ -89,9 +89,15 @@ export default function Dashboard() {
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
-               <CardTitle className="text-lg truncate group-hover:text-primary transition-colors">
-                 {trip.name}
-               </CardTitle>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-lg truncate group-hover:text-primary transition-colors">
+                  {trip.name}
+                </CardTitle>
+                {/* v2.0.4: Flight indicator for trips with flights */}
+                {(trip as Trip).transportation_mode === 'flight' && (
+                  <Plane className={`w-3.5 h-3.5 shrink-0 ${isPastTrip ? 'text-muted-foreground/50' : 'text-primary/70'}`} />
+                )}
+              </div>
               <CardDescription className="flex items-center gap-1 mt-1">
                 <MapPin className="w-3 h-3" />
                 {trip.destination_city}, {trip.destination_country}
