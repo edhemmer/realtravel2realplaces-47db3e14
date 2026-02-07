@@ -1,13 +1,18 @@
 /**
  * PlanPill - Displays the user's current subscription plan
  * 
- * Patch 2.6.13: Plan Pill Accuracy & Free Trip Limit
+ * Patch 2.6.20: Single Source of Truth for Plan Display
  * 
  * FEATURES:
- * - Accurately reflects the effective plan (Free, Pro, Business)
- * - Derives plan from useAccess which includes admin overrides
+ * - Derives plan EXCLUSIVELY from useAccess.tier (single source of truth)
+ * - Automatically updates when access queries are invalidated
  * - Shows 5-trip lifetime limit indicator for Free users
  * - Consistent styling across all plan types
+ * 
+ * DATA FLOW:
+ * - useAccess.tier → effectiveTier (includes admin/tester overrides)
+ * - useUserProfile → lifetime_trip_count (for Free trip limit display)
+ * - Both queries are invalidated after admin plan changes for reactive updates
  * 
  * USAGE:
  * - Header: Shows plan pill next to app title

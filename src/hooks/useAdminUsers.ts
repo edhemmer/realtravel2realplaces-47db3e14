@@ -106,8 +106,12 @@ export function useUpdateUserTier() {
       queryClient.invalidateQueries({ queryKey: ['subscription', result.userId] });
       queryClient.invalidateQueries({ queryKey: ['isAdmin', result.userId] });
       
-      // Also invalidate all subscription queries to ensure UI consistency
+      // Patch 2.6.20: Also invalidate user-profile query to update PlanPill trip count
+      queryClient.invalidateQueries({ queryKey: ['user-profile', result.userId] });
+      
+      // Also invalidate all subscription and profile queries to ensure UI consistency
       queryClient.invalidateQueries({ queryKey: ['subscription'] });
+      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
     },
   });
 }

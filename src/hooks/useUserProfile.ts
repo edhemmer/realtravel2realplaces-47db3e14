@@ -8,7 +8,7 @@ export interface UserProfile {
   display_name?: string | null;
   default_tsa_precheck?: string | null;
   default_frequent_flyer?: string | null;
-  subscription_tier: 'free' | 'pro';
+  subscription_tier: 'free' | 'pro' | 'business';
   subscription_started_at?: string | null;
   lifetime_trip_count: number;
   preferred_home_airport?: string | null;
