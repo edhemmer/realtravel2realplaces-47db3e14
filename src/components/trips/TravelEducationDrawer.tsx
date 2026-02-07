@@ -117,6 +117,21 @@ export function TravelEducationDrawer({
 function AirportGuideContent() {
   return (
     <div className="space-y-6 pb-6">
+      {/* General vs Specific Guidance Notice */}
+      <section className="rounded-lg border border-dashed border-muted-foreground/30 bg-muted/30 p-4">
+        <div className="flex items-start gap-3">
+          <Info className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+          <div className="space-y-1.5 text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">About This Guide</p>
+            <p>
+              The information below applies to most airports and covers general 
+              concepts and terminology. Airport-specific details (terminal maps, 
+              services, and local procedures) may vary and will be shown separately 
+              when available.
+            </p>
+          </div>
+        </div>
+      </section>
       {/* Landside vs Airside */}
       <section>
         <h3 className="flex items-center gap-2 text-sm font-semibold mb-3">
@@ -263,6 +278,20 @@ function AirportGuideContent() {
 function InternationalGuideContent() {
   return (
     <div className="space-y-6 pb-6">
+      {/* General vs Specific Guidance Notice */}
+      <section className="rounded-lg border border-dashed border-muted-foreground/30 bg-muted/30 p-4">
+        <div className="flex items-start gap-3">
+          <Info className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
+          <div className="space-y-1.5 text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">About This Guide</p>
+            <p>
+              The information below covers general international travel concepts. 
+              Country-specific entry requirements, visa policies, and procedures 
+              vary by destination and will be noted separately when applicable.
+            </p>
+          </div>
+        </div>
+      </section>
       {/* Passport Control vs Customs */}
       <section>
         <h3 className="flex items-center gap-2 text-sm font-semibold mb-3">
