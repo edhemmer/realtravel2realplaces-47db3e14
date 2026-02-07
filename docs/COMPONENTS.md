@@ -154,6 +154,7 @@ Expense tracking and categorization.
 - Receipt image upload (OCR)
 - Category/subcategory filtering
 - Cost breakdown
+- Parse origin hints (v2.1.3): "From receipt", "From email"
 
 ---
 
@@ -165,6 +166,22 @@ Parking entry management.
 - Add parking records
 - Expiration tracking
 - Location details
+
+---
+
+### TourTab (`src/components/trips/tabs/TourTab.tsx`)
+
+Business stops/work locations (Business tier).
+
+**Features:**
+- Auto-draft from bookings via canonical events (v2.1.6)
+- "Regenerate from bookings" action
+- Manual stop creation
+- Bulk import via BulkStopsDialog
+- Source hints (v2.1.3): "From flight", "From stay", "Imported from text"
+
+**Architectural Note (v2.1.6):**
+TourTab does NOT import booking types/hooks directly. It uses `generateTourDraftFromCanonicalEvents()` to create independent stop records.
 
 ---
 
