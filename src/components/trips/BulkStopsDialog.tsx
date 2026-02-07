@@ -39,6 +39,7 @@ interface ParsedStop {
   title: string;
   location: string;
   timeHint: string | null; // e.g., "09:30" or null
+  timeIsEstimated: boolean; // v2.1.3: true if time was defaulted
   rawLine: string;
   parseError?: string;
 }
@@ -66,6 +67,7 @@ function parseLine(line: string, index: number): ParsedStop {
       title: '',
       location: '',
       timeHint: null,
+      timeIsEstimated: true,
       rawLine,
       parseError: 'Empty line',
     };
@@ -115,11 +117,15 @@ function parseLine(line: string, index: number): ParsedStop {
     location = workingText.slice(separatorIndex + 1).trim();
   }
   
+  // v2.1.3: Track if time was found or will be estimated
+  const timeIsEstimated = timeHint === null;
+  
   return {
     id,
     title: title || rawLine, // Fallback to full line if no title extracted
     location,
     timeHint,
+    timeIsEstimated,
     rawLine,
   };
 }
@@ -154,6 +160,9 @@ export function BulkStopsDialog({ open, onOpenChange, tripId, defaultDate }: Bul
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  // v2.1.3: Track parse source for confidence indicators
+  const [parseSource, setParseSource] = useState<'file' | 'text' | null>(null);
+  
   const createStop = useCreateEngagement();
   
   const resetDialog = useCallback(() => {
@@ -162,6 +171,7 @@ export function BulkStopsDialog({ open, onOpenChange, tripId, defaultDate }: Bul
     setShowPreview(false);
     setIsCreating(false);
     setIsDragOver(false);
+    setParseSource(null);
   }, []);
   
   const handleClose = useCallback((open: boolean) => {
@@ -186,6 +196,7 @@ export function BulkStopsDialog({ open, onOpenChange, tripId, defaultDate }: Bul
     
     setParsedStops(stops);
     setShowPreview(true);
+    setParseSource('text');
   }, [inputText]);
   
   const handleRemoveStop = useCallback((id: string) => {
@@ -224,7 +235,10 @@ export function BulkStopsDialog({ open, onOpenChange, tripId, defaultDate }: Bul
     }
     
     if (failCount === 0) {
-      toast.success(`Added ${successCount} stop${successCount !== 1 ? 's' : ''}`);
+      toast.success(`Added ${successCount} stop${successCount !== 1 ? 's' : ''}`, {
+        description: 'You can edit times, names, or locations after import.',
+        duration: 5000,
+      });
     } else if (successCount > 0) {
       toast.warning(`Added ${successCount} stop${successCount !== 1 ? 's' : ''}, ${failCount} failed`);
     } else {
@@ -250,6 +264,7 @@ export function BulkStopsDialog({ open, onOpenChange, tripId, defaultDate }: Bul
       if (stops.length > 0) {
         setParsedStops(stops);
         setShowPreview(true);
+        setParseSource('file');
         toast.success(`Parsed ${stops.length} stop${stops.length !== 1 ? 's' : ''} from file`);
       }
     };
@@ -383,6 +398,14 @@ Conference call 3:30 PM`}
               </Button>
             </div>
             
+            {/* v2.1.3: Parsed-from indicator */}
+            {parseSource && (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <FileText className="w-3 h-3" />
+                <span>Parsed from {parseSource === 'file' ? 'file' : 'pasted text'}</span>
+              </div>
+            )}
+            
             {/* Parsed stops list */}
             <ScrollArea className="flex-1 -mx-2 px-2">
               <div className="space-y-2">
@@ -402,6 +425,10 @@ Conference call 3:30 PM`}
                             <span className="flex items-center gap-1">
                               <Clock className="w-3 h-3" />
                               {formatTimeHint(stop.timeHint)}
+                              {/* v2.1.3: Time confidence hint */}
+                              {stop.timeIsEstimated && (
+                                <span className="text-muted-foreground/70">(estimated)</span>
+                              )}
                             </span>
                           </div>
                         </div>
