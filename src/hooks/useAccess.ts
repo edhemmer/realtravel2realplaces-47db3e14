@@ -69,7 +69,7 @@ export function useAccess(): AccessState {
   const { data: isAdmin, isLoading: adminLoading } = useIsAdmin();
 
   const isLoading = subscriptionLoading || adminLoading;
-  const tier = subscription?.tier || null;
+  const rawTier = subscription?.tier || null;
   
   // Patch 2.6.8: Business tester override check
   // Testers listed in src/config/businessTesters.ts get Business access
@@ -79,16 +79,23 @@ export function useAccess(): AccessState {
   // 1. Admin role (from user_roles table)
   // 2. Tester override (from businessTesters.ts config)
   // 3. Database subscription_tier = 'business' (admin-assigned override)
-  const hasBusinessTier = tier === 'business';
+  const hasBusinessTier = rawTier === 'business';
   const canAccessBusinessFeatures = isAdmin === true || isTester || hasBusinessTier;
   
+  // Patch 2.6.14: Compute effective tier for UI display
+  // This ensures plan pills show the correct tier including overrides
+  let effectiveTier: 'free' | 'pro' | 'business' | null = rawTier as 'free' | 'pro' | 'business' | null;
+  if (isAdmin === true || isTester) {
+    effectiveTier = 'business';
+  }
+  
   return {
-    isPro: isPro || hasBusinessTier, // Business tier includes Pro features
+    isPro: isPro || canAccessBusinessFeatures, // Business tier includes Pro features
     canAccessBusinessFeatures,
     isAdminUser: isAdmin === true,
     isLoading,
     isAuthenticated: !!subscription,
-    tier: tier as 'free' | 'pro' | 'business' | null,
+    tier: effectiveTier,
   };
 }
 
