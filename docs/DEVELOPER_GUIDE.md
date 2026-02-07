@@ -504,6 +504,41 @@ These files are managed by Lovable and should **never** be edited:
 
 ---
 
+## Parsing Performance (v2.6.3)
+
+The parsing pipeline is optimized for performance while maintaining identical output accuracy:
+
+### Shared Datetime Utilities
+
+Edge functions use centralized utilities in `supabase/functions/_shared/datetime-utils.ts`:
+
+- **Pre-compiled regex patterns**: Cached at module load, avoiding repeated compilation
+- **Short-circuit evaluations**: Early returns for common cases (null, date-only strings)
+- **Batch processing**: `normalizeBatchDatetimes()` processes arrays in single pass
+- **Minimal allocations**: Avoids creating Date objects when not needed
+
+### Performance Patterns
+
+```typescript
+// ✅ Fast path - already date-only
+if (dt.length === 10 && DATE_ONLY_REGEX.test(dt)) {
+  return dt; // No Date object created
+}
+
+// ✅ Batch normalize booking arrays
+parsed.bookings = normalizeBatchDatetimes(bookings, ['start_datetime', 'end_datetime']);
+```
+
+### Testing Parsing Changes
+
+When modifying parsing logic:
+
+1. Run Deno tests: `supabase--test-edge-functions` with pattern `datetime`
+2. Run frontend tests: `src/lib/__tests__/parsingPerformance.test.ts`
+3. Verify outputs match expected behavior documented in tests
+
+---
+
 ## Related Documentation
 
 - [ARCHITECTURE.md](./ARCHITECTURE.md) - System architecture
