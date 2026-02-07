@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Car, MapPin, Fuel, Navigation, Calculator } from 'lucide-react';
+import { ManualStepHint, MANUAL_STEP_HINTS } from '@/components/trips/ManualStepHint';
 
 interface DriveSummaryCardProps {
   trip: Trip & { 
@@ -95,6 +96,12 @@ export function DriveSummaryCard({ trip, onAddGasExpense }: DriveSummaryCardProp
             Add Gas
           </Button>
         </div>
+
+        {/* Patch 2.6.7: Contextual education for manual mileage/gas tracking */}
+        <ManualStepHint 
+          message={MANUAL_STEP_HINTS.gasExpense} 
+          className="pt-2"
+        />
       </CardContent>
     </Card>
   );

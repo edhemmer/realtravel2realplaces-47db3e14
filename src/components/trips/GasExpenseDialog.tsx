@@ -9,6 +9,7 @@ import { useCreateExpense } from '@/hooks/useExpenses';
 import { Fuel, Camera, Loader2, Receipt } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { ManualStepHint, MANUAL_STEP_HINTS } from '@/components/trips/ManualStepHint';
 
 interface GasExpenseDialogProps {
   tripId: string;
@@ -181,6 +182,9 @@ export function GasExpenseDialog({ tripId, open, onOpenChange }: GasExpenseDialo
               rows={2}
             />
           </div>
+
+          {/* Patch 2.6.7: Contextual education for gas expenses */}
+          <ManualStepHint message={MANUAL_STEP_HINTS.gasExpense} className="pt-1" />
 
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="flex-1">

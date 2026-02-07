@@ -39,6 +39,7 @@ import { getVendorUrl } from '@/lib/vendorUrls';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useTripPermission } from '@/pages/TripDetail';
+import { ManualStepHint, MANUAL_STEP_HINTS } from '@/components/trips/ManualStepHint';
 import { CompanionDetailDialog } from '@/components/trips/CompanionDetailDialog';
 
 // Helper to safely open external URLs in new tab
@@ -1088,6 +1089,11 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                     </Button>
                   </div>
                 </div>
+              )}
+
+              {/* Patch 2.6.7: Contextual education for parsed data review */}
+              {formData.vendor_name && !showPasteInput && !isParsing && (
+                <ManualStepHint message={MANUAL_STEP_HINTS.parsedDataReview} className="mb-2" />
               )}
 
               {/* Separator between parsing and manual entry */}

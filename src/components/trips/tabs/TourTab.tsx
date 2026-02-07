@@ -31,6 +31,7 @@ import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { useTripPermission } from '@/pages/TripDetail';
 import { cn } from '@/lib/utils';
+import { ManualStepHint } from '@/components/trips/ManualStepHint';
 
 interface TourTabProps {
   tripId: string;
@@ -316,6 +317,11 @@ export function TourTab({ tripId }: TourTabProps) {
             <DialogTitle>{editingStop ? 'Edit Stop' : 'Add Stop'}</DialogTitle>
             <DialogDescription>
               {editingStop ? 'Update the details for this stop.' : 'Add a work location or scheduled meeting.'}
+              {/* Patch 2.6.7: Contextual education */}
+              <ManualStepHint 
+                message="You add stops manually to ensure your schedule reflects your actual commitments." 
+                className="mt-2" 
+              />
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">

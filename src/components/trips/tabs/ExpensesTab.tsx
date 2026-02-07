@@ -32,6 +32,7 @@ import {
   CheckCircle, RefreshCw, Image as ImageIcon, Fuel, Link2, Pencil,
   Briefcase, Home, MapPin
 } from 'lucide-react';
+import { ManualStepHint, MANUAL_STEP_HINTS } from '@/components/trips/ManualStepHint';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { GasExpenseDialog } from '@/components/trips/GasExpenseDialog';
 import { format, parseISO } from 'date-fns';
@@ -954,6 +955,11 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
                 </AlertDescription>
               </Alert>
             )}
+
+            {/* Patch 2.6.7: Contextual education for manual review */}
+            {(parseSuccess || parseError) && (
+              <ManualStepHint message={MANUAL_STEP_HINTS.expenseReview} />
+            )}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -1053,9 +1059,8 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Assigning expenses to Stops helps with location-based reporting.
-                  </p>
+                  {/* Patch 2.6.7: Contextual education for stop assignment */}
+                  <ManualStepHint message={MANUAL_STEP_HINTS.stopAssignment} />
                 </div>
               )}
             </BusinessOnly>
