@@ -32,6 +32,15 @@ import {
   CanonicalTimelineEvent,
 } from '@/lib/canonicalTripState';
 import { 
+  formatTripDateRangeWithDuration,
+  formatEventTime,
+  formatEventDate,
+  formatCurrency,
+  TRIP_TOTAL_LABEL,
+  MY_SHARE_LABEL,
+  DatetimeFormatPreference,
+} from '@/lib/displayFormats';
+import { 
   Plane, Building2, Car, Calendar, MapPin, DollarSign, 
   AlertTriangle, Download, ExternalLink, Clock, PartyPopper,
   Cloud, Sun, CloudRain, Snowflake, Thermometer, Info, Globe, Utensils, Camera, Bell,
@@ -241,7 +250,7 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
             <div>
               <h2 className="text-xl font-bold">{destinationDisplay}</h2>
               <p className="text-sm text-muted-foreground">
-                {format(parseISO(trip.start_date), 'MMM d')} - {format(parseISO(trip.end_date), 'MMM d, yyyy')} • {tripDays} day{tripDays !== 1 ? 's' : ''}
+                {formatTripDateRangeWithDuration(trip.start_date, trip.end_date, tripDays)}
               </p>
             </div>
           </div>
@@ -442,12 +451,10 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
                         )}
                       </div>
                       <div className="text-right text-xs shrink-0">
-                        <p className="font-medium">{format(event.datetime, 'MMM d')}</p>
-                         {/* v2.1.8: Show "--:--" in red if no explicit time */}
+                        <p className="font-medium">{formatEventDate(event.datetime, userProfile?.preferred_datetime_format as DatetimeFormatPreference)}</p>
+                         {/* v2.0.8: Unified time format from displayFormats */}
                          <p className={event.hasExplicitTime ? 'text-muted-foreground' : 'text-destructive font-medium'}>
-                          {event.hasExplicitTime 
-                            ? format(event.datetime, 'h:mm a') 
-                             : UNKNOWN_TIME_PLACEHOLDER}
+                          {formatEventTime(event.datetime.toISOString(), userProfile?.preferred_datetime_format as DatetimeFormatPreference)}
                         </p>
                       </div>
                     </div>

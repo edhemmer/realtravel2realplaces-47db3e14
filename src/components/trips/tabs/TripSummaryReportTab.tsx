@@ -2,6 +2,7 @@
  * TripSummaryReportTab - Pro & Business Trip Summary with PDF Export
  * 
  * Patch 2.4.0: Professional trip summary for sharing with companions.
+ * v2.0.8: Uses unified display formatting for dates and costs.
  * 
  * Features:
  * - Read-only summary view with trip details
@@ -22,6 +23,12 @@ import {
   calculateCategorySummary,
   getOutOfPocketExpenses,
 } from '@/lib/expenseCalculations';
+import { 
+  formatTripDateRange, 
+  formatCurrency, 
+  TRIP_TOTAL_LABEL, 
+  MY_SHARE_LABEL 
+} from '@/lib/displayFormats';
 import { useParking } from '@/hooks/useParking';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -182,11 +189,11 @@ export function TripSummaryReportTab({ tripId }: TripSummaryReportTabProps) {
       pdf.text(trip.name, margin, y);
       y += 10;
 
-      // Trip dates and destination
+      // Trip dates and destination - v2.0.8: Use unified formatting
       pdf.setFontSize(11);
       pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(100, 100, 100);
-      const dateRange = `${format(parseISO(trip.start_date), 'MMMM d')} - ${format(parseISO(trip.end_date), 'MMMM d, yyyy')}`;
+      const dateRange = formatTripDateRange(trip.start_date, trip.end_date);
       pdf.text(dateRange, margin, y);
       y += 6;
       
@@ -195,7 +202,7 @@ export function TripSummaryReportTab({ tripId }: TripSummaryReportTabProps) {
       pdf.text(destination, margin, y);
       y += 15;
 
-      // ========== COST SUMMARY ==========
+      // ========== COST SUMMARY - v2.0.8: Unified labels ==========
       pdf.setFillColor(248, 250, 252); // Slate-50
       pdf.roundedRect(margin, y, contentWidth, 40, 3, 3, 'F');
       
@@ -207,16 +214,16 @@ export function TripSummaryReportTab({ tripId }: TripSummaryReportTabProps) {
       // Total Trip Cost
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'normal');
-      pdf.text('Total Trip Expense:', margin + 5, y + 20);
+      pdf.text(`${TRIP_TOTAL_LABEL}:`, margin + 5, y + 20);
       pdf.setFont('helvetica', 'bold');
-      pdf.text(`$${costSummary.totalCost.toFixed(2)}`, margin + 60, y + 20);
+      pdf.text(formatCurrency(costSummary.totalCost), margin + 55, y + 20);
 
       // Individual Share
       pdf.setFont('helvetica', 'normal');
-      pdf.text('Your Share:', margin + 5, y + 28);
+      pdf.text(`${MY_SHARE_LABEL}:`, margin + 5, y + 28);
       pdf.setFont('helvetica', 'bold');
       pdf.setTextColor(20, 184, 166); // Teal
-      pdf.text(`$${personShare.toFixed(2)}`, margin + 60, y + 28);
+      pdf.text(formatCurrency(personShare), margin + 55, y + 28);
       
       y += 50;
 
@@ -246,9 +253,10 @@ export function TripSummaryReportTab({ tripId }: TripSummaryReportTabProps) {
         pdf.setTextColor(100, 100, 100);
 
         for (const booking of typeBookings.slice(0, 5)) { // Limit to 5 per type
+          const costStr = booking.total_cost ? ` (${formatCurrency(booking.total_cost)})` : '';
           const bookingInfo = booking.vendor_name + 
             (booking.confirmation_number ? ` - ${booking.confirmation_number}` : '') +
-            (booking.total_cost ? ` ($${booking.total_cost.toFixed(2)})` : '');
+            costStr;
           
           // Truncate if too long
           const truncated = bookingInfo.length > 70 ? bookingInfo.substring(0, 67) + '...' : bookingInfo;
@@ -296,7 +304,7 @@ export function TripSummaryReportTab({ tripId }: TripSummaryReportTabProps) {
         pdf.setFont('helvetica', 'normal');
         pdf.setTextColor(60, 60, 60);
         pdf.text(config.label, margin + 5, y);
-        pdf.text(`$${amount.toFixed(2)}`, margin + 80, y);
+        pdf.text(formatCurrency(amount), margin + 80, y);
         y += 6;
       }
 
@@ -363,13 +371,13 @@ export function TripSummaryReportTab({ tripId }: TripSummaryReportTabProps) {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Trip Info */}
+          {/* Trip Info - v2.0.8: Unified date formatting */}
           <div className="p-4 bg-muted/50 rounded-lg">
             <h3 className="text-lg font-semibold">{trip.name}</h3>
             <div className="flex flex-wrap gap-4 mt-2 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
-                {format(parseISO(trip.start_date), 'MMM d')} - {format(parseISO(trip.end_date), 'MMM d, yyyy')}
+                {formatTripDateRange(trip.start_date, trip.end_date)}
               </span>
               <span className="flex items-center gap-1">
                 <MapPin className="w-4 h-4" />
@@ -391,20 +399,20 @@ export function TripSummaryReportTab({ tripId }: TripSummaryReportTabProps) {
         </CardContent>
       </Card>
 
-      {/* Cost Summary Card */}
+      {/* Cost Summary Card - v2.0.8: Unified labels and formatting */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Cost Summary</CardTitle>
+          <CardTitle className="text-lg">{TRIP_TOTAL_LABEL}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-6">
             <div className="p-4 bg-muted/50 rounded-lg">
-              <p className="text-sm text-muted-foreground">Total Trip Expense</p>
-              <p className="text-2xl font-bold">${costSummary.totalCost.toFixed(2)}</p>
+              <p className="text-sm text-muted-foreground">{TRIP_TOTAL_LABEL}</p>
+              <p className="text-2xl font-bold">{formatCurrency(costSummary.totalCost)}</p>
             </div>
             <div className="p-4 bg-primary/10 rounded-lg">
-              <p className="text-sm text-muted-foreground">My Share</p>
-              <p className="text-2xl font-bold text-primary">${costSummary.totalMyShare.toFixed(2)}</p>
+              <p className="text-sm text-muted-foreground">{MY_SHARE_LABEL}</p>
+              <p className="text-2xl font-bold text-primary">{formatCurrency(costSummary.totalMyShare)}</p>
             </div>
           </div>
         </CardContent>
@@ -441,7 +449,7 @@ export function TripSummaryReportTab({ tripId }: TripSummaryReportTabProps) {
                           {booking.confirmation_number && ` • ${booking.confirmation_number}`}
                         </span>
                         {booking.total_cost > 0 && (
-                          <span className="font-medium">${booking.total_cost.toFixed(2)}</span>
+                          <span className="font-medium">{formatCurrency(booking.total_cost)}</span>
                         )}
                       </div>
                     ))}
@@ -481,7 +489,7 @@ export function TripSummaryReportTab({ tripId }: TripSummaryReportTabProps) {
                     <span className="text-sm font-medium">{config.label}</span>
                   </div>
                   <p className={`text-lg font-semibold ${amount > 0 ? '' : 'text-muted-foreground'}`}>
-                    ${amount.toFixed(2)}
+                    {formatCurrency(amount)}
                   </p>
                 </div>
               );
