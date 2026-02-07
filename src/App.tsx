@@ -17,6 +17,7 @@ import AdminPlans from "./pages/AdminPlans";
 import AdminSupportTickets from "./pages/AdminSupportTickets";
 import AdminUsers from "./pages/AdminUsers";
 import Account from "./pages/Account";
+import Plans from "./pages/Plans";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import NotFound from "./pages/NotFound";
@@ -91,6 +92,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Account />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/plans"
+        element={
+          <ProtectedRoute>
+            <Plans />
           </ProtectedRoute>
         }
       />
