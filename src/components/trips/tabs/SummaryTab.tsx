@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useBookings } from '@/hooks/useBookings';
 import { useParking } from '@/hooks/useParking';
 import { useExpenses } from '@/hooks/useExpenses';
@@ -25,9 +25,12 @@ import { TripHealthChecklist } from '@/components/trips/TripHealthChecklist';
 import { FirstTripHint } from '@/components/trips/FirstTripHint';
 import { AirportSnapshotCard } from '@/components/trips/AirportSnapshotCard';
 import { generateTripICS, downloadICSFile } from '@/lib/icsGenerator';
-import { calculateTripCostSummary, logExpenseDebug } from '@/lib/expenseCalculations';
-import { calculateTripDateRange } from '@/lib/tripDateCalculations';
- import { hasExplicitTime, getTimeDisplay, UNKNOWN_TIME_PLACEHOLDER, parseDatetimeForDisplay, extractDateForDisplay } from '@/lib/datetimeIntegrity';
+import { logExpenseDebug } from '@/lib/expenseCalculations';
+import { UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
+import { 
+  getCanonicalTripState, 
+  CanonicalTimelineEvent,
+} from '@/lib/canonicalTripState';
 import { 
   Plane, Building2, Car, Calendar, MapPin, DollarSign, 
   AlertTriangle, Download, ExternalLink, Clock, PartyPopper,
@@ -65,28 +68,6 @@ interface SummaryTabProps {
  * - Stop timeline visualization
  * - Compliance status indicators
  */
-
-interface TimelineEvent {
-  id: string;
-  type: 'flight' | 'stay' | 'car_rental' | 'activity' | 'parking' | 'transport';
-  eventType?: 'check-in' | 'check-out' | 'departure' | 'pickup' | 'dropoff' | 'arrival';
-  title: string;
-  subtitle: string;
-  datetime: Date;
-  endDatetime?: Date;
-  address?: string;
-  linkUrl?: string;
-  /** v2.0.6: Track if the original datetime had an explicit time */
-  hasExplicitTime: boolean;
-  /** v2.0.7: Source record ID for drill-through */
-  sourceId: string;
-  /** v2.1.19: Activity-specific fields for timeline */
-  ticketRequired?: boolean;
-  ticketsPurchased?: boolean;
-  activitySource?: string;
-  /** v2.1.37: Transport mode for icon display */
-  transportMode?: string;
-}
 
 // Helper to safely open external URLs in new tab
 const openExternalUrl = (url: string | null | undefined) => {
@@ -138,11 +119,19 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
     trip.end_date
   );
   
+  // v2.0.7: Get canonical trip state - SINGLE SOURCE OF TRUTH for dates, times, costs
+  const canonicalState = useMemo(() => {
+    return getCanonicalTripState(trip, bookings, expenses, parkingList);
+  }, [trip, bookings, expenses, parkingList]);
+  
+  // Extract canonical values
+  const { dateRange, timelineEvents: timeline, costs: costSummary } = canonicalState;
+  
   // Travel alerts for weather changes, departure reminders, parking expiry
   const { alerts, hasAlerts, criticalCount } = useTravelAlerts(trip, bookings, parkingList);
 
   // Determine transportation mode - auto-detect if unspecified
-  const hasFlights = bookings.some(b => b.booking_type === 'flight');
+  const hasFlights = canonicalState.hasFlights;
   const transportationMode = (trip as any).transportation_mode === 'unspecified' 
     ? (hasFlights ? 'flight' : 'unspecified')
     : (trip as any).transportation_mode;
@@ -153,10 +142,7 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
     ? `${trip.destination_city}, ${trip.destination_state}, ${trip.destination_country}`
     : `${trip.destination_city}, ${trip.destination_country}`;
 
-  // Calculate costs using shared utility (single source of truth)
-  const costSummary = calculateTripCostSummary(expenses, bookings, parkingList);
-  
-  // Destructure for easier use in template
+  // v2.0.7: Use canonical cost summary (single source of truth)
   const { 
     bookingsTotal: bookingsCost, 
     parkingTotal: parkingCost, 
@@ -175,192 +161,13 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
     }
   }, [tripId, expenses, bookings, parkingList, costSummary]);
 
-  // Build timeline with correct "key times" per booking type
-  // - Flights: show DEPARTURE time (start_datetime)
-  // - Stays: show CHECK-IN time (start_datetime) AND CHECK-OUT (end_datetime as separate event)
-  // - Rentals: show PICKUP time (start_datetime)
-  // 
-  // v2.2.0: Uses parseDatetimeForDisplay to prevent timezone-related date drift
-  const buildTimelineEvents = (): TimelineEvent[] => {
-    const events: TimelineEvent[] = [];
-    
-    bookings.forEach((b: Booking) => {
-      // v2.2.0: Use safe datetime parsing that preserves original dates
-      const startDate = parseDatetimeForDisplay(b.start_datetime);
-      const endDate = b.end_datetime ? parseDatetimeForDisplay(b.end_datetime) : null;
-      
-      if (!startDate) return; // Skip if no valid start date
-      
-      if (b.booking_type === 'flight') {
-        // Flight: show departure time
-        events.push({
-          id: b.id,
-          type: 'flight',
-          eventType: 'departure',
-          title: b.airline || b.vendor_name,
-          subtitle: `Flight Departure - ${b.confirmation_number || 'No confirmation'}`,
-          datetime: startDate,
-          endDatetime: endDate || undefined,
-          address: b.address,
-          linkUrl: b.link_url,
-          hasExplicitTime: hasExplicitTime(b.start_datetime),
-          sourceId: b.id,
-        });
-      } else if (b.booking_type === 'stay') {
-        // Stay: show check-in event
-        events.push({
-          id: `${b.id}-checkin`,
-          type: 'stay',
-          eventType: 'check-in',
-          title: b.property_name || b.vendor_name,
-          subtitle: `Check In - ${b.stay_type || 'Stay'}${b.confirmation_number ? ` - ${b.confirmation_number}` : ''}`,
-          datetime: startDate,
-          address: b.address,
-          linkUrl: b.link_url,
-          hasExplicitTime: hasExplicitTime(b.start_datetime),
-          sourceId: b.id,
-        });
-        // Stay: show check-out event on end date (if available)
-        if (endDate) {
-          events.push({
-            id: `${b.id}-checkout`,
-            type: 'stay',
-            eventType: 'check-out',
-            title: b.property_name || b.vendor_name,
-            subtitle: `Check Out - ${b.stay_type || 'Stay'}`,
-            datetime: endDate,
-            address: b.address,
-            linkUrl: b.link_url,
-            hasExplicitTime: hasExplicitTime(b.end_datetime),
-            sourceId: b.id,
-          });
-        }
-      } else if (b.booking_type === 'car_rental') {
-        // Rental: show pickup time
-        events.push({
-          id: `${b.id}-pickup`,
-          type: 'car_rental',
-          eventType: 'pickup',
-          title: b.rental_company || b.vendor_name,
-          subtitle: `Car Pickup${b.confirmation_number ? ` - ${b.confirmation_number}` : ''}`,
-          datetime: startDate,
-          address: b.pickup_location || b.address,
-          linkUrl: b.link_url,
-          hasExplicitTime: hasExplicitTime(b.start_datetime),
-          sourceId: b.id,
-        });
-        // Rental: show drop-off event on end date (if available)
-        if (endDate) {
-          events.push({
-            id: `${b.id}-dropoff`,
-            type: 'car_rental',
-            eventType: 'dropoff',
-            title: b.rental_company || b.vendor_name,
-            subtitle: `Car Drop-off`,
-            datetime: endDate,
-            address: b.return_location || b.pickup_location || b.address,
-            linkUrl: b.link_url,
-            hasExplicitTime: hasExplicitTime(b.end_datetime),
-            sourceId: b.id,
-          });
-        }
-      } else if (b.booking_type === 'transport') {
-        // Transport: show departure time and arrival if available
-        events.push({
-          id: `${b.id}-departure`,
-          type: 'transport',
-          eventType: 'departure',
-          title: (b as any).operator || b.vendor_name,
-          subtitle: `${((b as any).from_location || '')} → ${((b as any).to_location || '')}`.trim() || 'Transport',
-          datetime: startDate,
-          address: b.address,
-          linkUrl: b.link_url,
-          hasExplicitTime: hasExplicitTime(b.start_datetime),
-          sourceId: b.id,
-          transportMode: (b as any).transport_mode || 'train',
-        });
-        // Add arrival event if end_datetime available
-        if (endDate) {
-          events.push({
-            id: `${b.id}-arrival`,
-            type: 'transport',
-            eventType: 'arrival',
-            title: (b as any).operator || b.vendor_name,
-            subtitle: `Arrival at ${(b as any).to_location || 'destination'}`,
-            datetime: endDate,
-            address: b.address,
-            linkUrl: b.link_url,
-            hasExplicitTime: hasExplicitTime(b.end_datetime),
-            sourceId: b.id,
-            transportMode: (b as any).transport_mode || 'train',
-          });
-        }
-      } else {
-        // Activity: use start time with v2.1.19 enhancements
-        events.push({
-          id: b.id,
-          type: 'activity',
-          title: b.vendor_name,
-          subtitle: b.location_summary || 'Activity',
-          datetime: startDate,
-          endDatetime: endDate || undefined,
-          address: b.address,
-          linkUrl: b.link_url || b.booking_url,
-          hasExplicitTime: hasExplicitTime(b.start_datetime),
-          sourceId: b.id,
-          ticketRequired: b.ticket_required || b.advance_recommended || false,
-          ticketsPurchased: b.tickets_purchased || false,
-          activitySource: b.activity_source || undefined,
-        });
-      }
-    });
-    
-    // Add parking events - v1.2.7: separate start and end events for parking
-    // v2.2.0: Uses parseDatetimeForDisplay to prevent timezone-related date drift
-    parkingList.forEach((p: Parking) => {
-      const parkingStart = parseDatetimeForDisplay(p.start_datetime);
-      const parkingEnd = p.end_datetime ? parseDatetimeForDisplay(p.end_datetime) : null;
-      
-      if (!parkingStart) return; // Skip if no valid start date
-      
-      // Parking start event
-      events.push({
-        id: `${p.id}-start`,
-        type: 'parking',
-        eventType: 'pickup', // reusing eventType for parking start
-        title: p.label,
-        subtitle: `Parking Start - ${p.parking_type}`,
-        datetime: parkingStart,
-        address: p.address,
-        hasExplicitTime: hasExplicitTime(p.start_datetime),
-        sourceId: p.id,
-      });
-      // Parking end event (if end_datetime available)
-      if (parkingEnd) {
-        events.push({
-          id: `${p.id}-end`,
-          type: 'parking',
-          eventType: 'dropoff', // reusing eventType for parking end
-          title: p.label,
-          subtitle: `Parking End - ${p.parking_type}`,
-          datetime: parkingEnd,
-          address: p.address,
-          hasExplicitTime: hasExplicitTime(p.end_datetime),
-          sourceId: p.id,
-        });
-      }
-    });
-    
-    return events.sort((a, b) => a.datetime.getTime() - b.datetime.getTime());
-  };
-  
-  const timeline = buildTimelineEvents();
+  // v2.0.7: Timeline events are now provided by canonical state - no local calculation needed
 
   // v2.0.7: Handle timeline item click for drill-through
-  const handleTimelineClick = (event: TimelineEvent) => {
+  const handleTimelineClick = (event: CanonicalTimelineEvent) => {
     if (!onDrillThrough) return;
     
-    if (event.type === 'parking') {
+    if (event.sourceType === 'parking') {
       onDrillThrough({ tab: 'parking', recordId: event.sourceId });
     } else {
       // flight, stay, car_rental, activity all go to bookings
@@ -600,7 +407,7 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
                 >
                   <div className="flex flex-col items-center">
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                      {getEventIcon(event.type, event.transportMode)}
+                      {getEventIcon(event.bookingType, event.transportMode)}
                     </div>
                     {index < timeline.length - 1 && (
                       <div className="w-px h-full bg-border mt-2 min-h-[20px]" />
@@ -612,7 +419,7 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
                         <p className="font-medium text-sm">{event.title}</p>
                         <p className="text-xs text-muted-foreground">{event.subtitle}</p>
                         {/* v2.1.19: Activity-specific badges */}
-                        {event.type === 'activity' && (
+                        {event.bookingType === 'activity' && (
                           <div className="flex flex-wrap gap-1 mt-1">
                             {event.ticketRequired && (
                               <Badge variant="secondary" className="text-[10px] h-4 px-1 gap-0.5">
