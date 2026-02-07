@@ -35,6 +35,8 @@ import { Badge } from '@/components/ui/badge';
 import { format, parseISO } from 'date-fns';
 import { Shield, Users, MessageSquare, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { isBusinessTester } from '@/config/businessTesters';
+import { resolveEffectiveTier, type PlanTier } from '@/utils/planTier';
 
 /**
  * Format last login display
@@ -218,7 +220,19 @@ export default function AdminPlans() {
                       ? `${u.first_name} ${u.last_name}`
                       : null;
                     const isCurrentUser = u.email === user?.email;
-                    const isAdminOverride = u.subscription_tier === 'pro' || u.subscription_tier === 'business';
+                    
+                    // Patch 2.6.21: Use shared resolver for effective tier (single source of truth)
+                    // For the current user, this matches exactly what useAccess computes
+                    const isTester = isBusinessTester(u.email);
+                    const effectiveTier = resolveEffectiveTier({
+                      subscriptionTier: u.subscription_tier as PlanTier,
+                      isTester,
+                    });
+                    
+                    // Show "Tester override" badge if tier is elevated by tester config
+                    const hasTesterOverride = isTester && u.subscription_tier !== 'business';
+                    // Show "Admin override" for non-free DB tiers (manual elevation)
+                    const hasAdminOverride = !isTester && (u.subscription_tier === 'pro' || u.subscription_tier === 'business');
                     
                     return (
                       <TableRow key={u.user_id}>
@@ -259,7 +273,12 @@ export default function AdminPlans() {
                                 <SelectItem value="business">Business</SelectItem>
                               </SelectContent>
                             </Select>
-                            {isAdminOverride && (
+                            {hasTesterOverride && (
+                              <Badge variant="secondary" className="text-xs whitespace-nowrap bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                                Tester → {effectiveTier.charAt(0).toUpperCase() + effectiveTier.slice(1)}
+                              </Badge>
+                            )}
+                            {hasAdminOverride && !hasTesterOverride && (
                               <Badge variant="secondary" className="text-xs whitespace-nowrap">
                                 Admin override
                               </Badge>

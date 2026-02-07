@@ -1,7 +1,7 @@
 /**
  * useAccess - Centralized UI access control hook
  * 
- * Patch 2.6.19: Decouple Admin Role from Plan Tier
+ * Patch 2.6.21: Single Source of Truth for Effective Plan Tier
  * 
  * PLAN GATING ARCHITECTURE:
  * - UI gating is enforced via useAccess() hook and wrapper components
@@ -12,6 +12,11 @@
  * - FREE: Basic trip management, 5 lifetime trip limit
  * - PRO: Unlimited trips, timeline, weather, airport intelligence
  * - BUSINESS: Pro + Tour/Stops, Stop-level expense assignment, Advanced Reports
+ * 
+ * SINGLE SOURCE OF TRUTH (Patch 2.6.21):
+ * - effectiveTier is computed via resolveEffectiveTier() from src/utils/planTier.ts
+ * - This same function is used by Admin Plan Management for the current user row
+ * - Guarantees header PlanPill and Admin table always show the same tier
  * 
  * ADMIN vs PLAN ACCESS (Patch 2.6.19):
  * - isAdminUser: Controls access to /admin pages and <AdminOnly> components ONLY
@@ -48,6 +53,13 @@ import { useSubscription, useIsPro } from '@/hooks/useSubscription';
 import { useIsAdmin } from '@/hooks/useAdminUsers';
 import { useAuth } from '@/contexts/AuthContext';
 import { isBusinessTester } from '@/config/businessTesters';
+import { 
+  resolveEffectiveTier, 
+  tierIncludesPro, 
+  tierIncludesBusiness,
+  tierMeetsRequirement,
+  type PlanTier 
+} from '@/utils/planTier';
 
 export interface AccessState {
   /** Whether the user's plan includes Pro features */
@@ -66,7 +78,7 @@ export interface AccessState {
   isAuthenticated: boolean;
   
   /** The user's effective subscription tier (for UI display and gating) */
-  tier: 'free' | 'pro' | 'business' | null;
+  tier: PlanTier | null;
 }
 
 export function useAccess(): AccessState {
@@ -76,30 +88,27 @@ export function useAccess(): AccessState {
   const { data: isAdmin, isLoading: adminLoading } = useIsAdmin();
 
   const isLoading = subscriptionLoading || adminLoading;
-  const rawTier = subscription?.tier || null;
+  const rawTier = (subscription?.tier || null) as PlanTier | null;
   
   // Patch 2.6.8: Business tester override check
   // Testers listed in src/config/businessTesters.ts get Business access
   const isTester = isBusinessTester(user?.email);
   
-  // Patch 2.6.19: Business access is granted via:
-  // 1. Tester override (from businessTesters.ts config)
-  // 2. Database subscription_tier = 'business' (admin-assigned override)
-  // NOTE: Admin role is EXCLUDED - admins experience their actual plan tier
-  // This allows admins to test Free/Pro/Business behavior by changing their plan
-  const hasBusinessTier = rawTier === 'business';
-  const canAccessBusinessFeatures = isTester || hasBusinessTier;
+  // Patch 2.6.21: Use shared resolver for effectiveTier (single source of truth)
+  // This same function is used by Admin Plan Management for the current user row
+  const effectiveTier = rawTier !== null || isTester
+    ? resolveEffectiveTier({
+        subscriptionTier: rawTier,
+        isTester,
+      })
+    : null;
   
-  // Patch 2.6.19: Compute effective tier for UI display
-  // Only tester override forces Business tier - admin role does NOT
-  // This allows admins to experience Free/Pro behavior by changing their plan
-  let effectiveTier: 'free' | 'pro' | 'business' | null = rawTier as 'free' | 'pro' | 'business' | null;
-  if (isTester) {
-    effectiveTier = 'business';
-  }
+  // Derive access flags from effectiveTier using shared utilities
+  const canAccessBusinessFeatures = effectiveTier !== null && tierIncludesBusiness(effectiveTier);
+  const hasProAccess = effectiveTier !== null && tierIncludesPro(effectiveTier);
   
   return {
-    isPro: isPro || canAccessBusinessFeatures, // Business tier includes Pro features
+    isPro: isPro || hasProAccess, // Business tier includes Pro features
     canAccessBusinessFeatures,
     isAdminUser: isAdmin === true, // Admin status is separate from plan tier
     isLoading,
@@ -116,11 +125,8 @@ export function useAccess(): AccessState {
  * @param requiredTier - The minimum tier required for the feature
  */
 export function canAccessFeature(
-  tier: 'free' | 'pro' | 'business' | null,
-  requiredTier: 'free' | 'pro' | 'business'
+  tier: PlanTier | null,
+  requiredTier: PlanTier
 ): boolean {
-  if (!tier) return false;
-  
-  const tierHierarchy = { free: 0, pro: 1, business: 2 };
-  return tierHierarchy[tier] >= tierHierarchy[requiredTier];
+  return tierMeetsRequirement(tier, requiredTier);
 }
