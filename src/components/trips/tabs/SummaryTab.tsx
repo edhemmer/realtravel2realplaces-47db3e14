@@ -424,10 +424,10 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Destination Header */}
-      <Card className="bg-gradient-to-br from-primary/10 via-accent/5 to-background border-primary/20">
-        <CardContent className="pt-6">
+      <Card className="bg-gradient-to-br from-primary/10 via-accent/5 to-background border-border/40">
+        <CardContent className="pt-6 pb-5">
           <div className="flex items-center gap-3 mb-4">
             <MapPin className="w-6 h-6 text-primary" />
             <div>
@@ -499,9 +499,12 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
         />
       )}
 
+      {/* Section Divider */}
+      <div className="border-t border-border/30" />
+
       {/* Destination Info & Recommendations */}
-      <Card>
-        <CardHeader>
+      <Card className="border-border/40">
+        <CardHeader className="pb-4">
           <CardTitle className="text-base flex items-center gap-2">
             <Info className="w-4 h-4 text-primary" />
             Destination Info & Recommendations
@@ -557,7 +560,7 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
       </Card>
 
       {/* Calendar Export */}
-      <div className="flex flex-col sm:flex-row gap-2 items-start">
+      <div className="flex flex-col sm:flex-row gap-2 items-start py-2">
         <Button onClick={downloadCalendar} variant="outline" className="w-full sm:w-auto">
           <Download className="w-4 h-4 mr-2" />
           Download Trip Calendar (.ics)
@@ -568,8 +571,11 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
         </p>
       </div>
 
+      {/* Section Divider */}
+      <div className="border-t border-border/30" />
+
       {/* Timeline */}
-      <Card>
+      <Card className="border-border/40">
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Calendar className="w-4 h-4 text-primary" />
