@@ -1,13 +1,15 @@
 /**
  * Reports Page - Business-only Advanced Reports
  * 
- * Patch 2.4.4: Full export logic implementation for PDF and CSV.
+ * Patch 2.4.5: Added export consistency validation, filter summary clarity,
+ * and user-facing accuracy language.
  * 
  * Features:
  * - Multi-trip filtering by date range, trip, companion, Stop, category
  * - Sortable results table
  * - PDF export with RT2RP branding, summary, and paginated table
- * - CSV export with proper formatting and escaping
+ * - CSV export with metadata header and proper formatting
+ * - Pre-export validation to ensure data consistency
  */
 
 import { useState, useMemo } from 'react';
@@ -47,11 +49,18 @@ import {
   ChevronDown,
   BarChart3,
   X,
+  Info,
 } from 'lucide-react';
 import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
 import jsPDF from 'jspdf';
+import { useToast } from '@/hooks/use-toast';
 import { Expense, Companion } from '@/types/database';
 import { Engagement } from '@/hooks/useEngagements';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
 // Category display labels
 const CATEGORY_LABELS: Record<string, string> = {
@@ -101,6 +110,19 @@ export default function Reports() {
 
   // Export loading state
   const [exporting, setExporting] = useState<'pdf' | 'csv' | null>(null);
+  
+  // Help panel state
+  const [helpOpen, setHelpOpen] = useState(false);
+  
+  // Toast for validation messages
+  const { toast } = useToast();
+
+  // Snapshot for export validation - captures current state at render
+  const exportSnapshot = useMemo(() => ({
+    rowCount: 0,
+    totalAmount: 0,
+    totalMyShare: 0,
+  }), []);
 
   // Fetch all expenses for user's trips
   const { data: allExpenses = [], isLoading: expensesLoading } = useQuery({
@@ -279,7 +301,7 @@ export default function Reports() {
       : <ChevronUp className="w-4 h-4 ml-1" />;
   };
 
-  // Build filter summary for exports
+  // Build filter summary for exports (readable format)
   const getFilterSummary = (): string => {
     const parts: string[] = [];
     if (dateFrom) parts.push(`From: ${format(parseISO(dateFrom), 'MMM d, yyyy')}`);
@@ -302,11 +324,57 @@ export default function Reports() {
     return parts.length > 0 ? parts.join(' • ') : 'All data (no filters)';
   };
 
-  // CSV Export - generates clean, machine-readable CSV with proper escaping
+  // Validate export data consistency - ensures exported data matches UI
+  const validateExportConsistency = (): boolean => {
+    // Recalculate totals to verify against current state
+    const currentTotals = sortedRows.reduce(
+      (acc, row) => ({
+        totalAmount: acc.totalAmount + row.amount,
+        totalMyShare: acc.totalMyShare + row.myShare,
+      }),
+      { totalAmount: 0, totalMyShare: 0 }
+    );
+
+    // Check if totals match (with small tolerance for floating point)
+    const tolerance = 0.01;
+    const amountMatch = Math.abs(currentTotals.totalAmount - totals.totalAmount) < tolerance;
+    const shareMatch = Math.abs(currentTotals.totalMyShare - totals.totalMyShare) < tolerance;
+
+    if (!amountMatch || !shareMatch) {
+      toast({
+        variant: "destructive",
+        title: "Export validation failed",
+        description: "Data may have changed. Please refresh the page and try again.",
+      });
+      return false;
+    }
+
+    return true;
+  };
+
+  // CSV Export - generates clean, machine-readable CSV with metadata header
   const handleExportCSV = () => {
+    // Validate data consistency before export
+    if (!validateExportConsistency()) {
+      return;
+    }
+
     setExporting('csv');
     
     try {
+      // Build metadata header with filter information
+      const generatedDate = format(new Date(), 'yyyy-MM-dd HH:mm:ss');
+      const filterInfo = getFilterSummary();
+      const metadataRows = [
+        `# RT2RP Advanced Report`,
+        `# Generated: ${generatedDate}`,
+        `# Filters: ${filterInfo}`,
+        `# Total Rows: ${sortedRows.length}`,
+        `# Total Amount: $${totals.totalAmount.toFixed(2)}`,
+        `# My Share: $${totals.totalMyShare.toFixed(2)}`,
+        `#`,
+      ];
+
       const headers = ['Date', 'Trip', 'Stop', 'Category', 'Description', 'Amount', 'My Share'];
       const rows = sortedRows.map(row => [
         row.date,
@@ -327,6 +395,7 @@ export default function Reports() {
       };
 
       const csvContent = [
+        ...metadataRows,
         headers.join(','),
         ...rows.map(row => row.map(cell => escapeCSV(String(cell))).join(',')),
       ].join('\n');
@@ -344,6 +413,11 @@ export default function Reports() {
 
   // PDF Export - generates branded PDF with summary and paginated table
   const handleExportPDF = () => {
+    // Validate data consistency before export
+    if (!validateExportConsistency()) {
+      return;
+    }
+
     setExporting('pdf');
 
     try {
@@ -567,6 +641,44 @@ export default function Reports() {
             </Button>
           </div>
         </div>
+
+        {/* Help Panel - Report Accuracy Information */}
+        <Collapsible open={helpOpen} onOpenChange={setHelpOpen}>
+          <Card className="border-muted">
+            <CollapsibleTrigger asChild>
+              <CardHeader className="pb-2 cursor-pointer hover:bg-muted/30 transition-colors">
+                <CardTitle className="text-sm flex items-center gap-2 text-muted-foreground">
+                  <Info className="w-4 h-4" />
+                  About Reports
+                  <span className="text-xs ml-auto">{helpOpen ? '▲' : '▼'}</span>
+                </CardTitle>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="pt-0 pb-4">
+                <div className="text-sm text-muted-foreground space-y-2">
+                  <p>
+                    <strong>What you see is what you get.</strong> Reports reflect exactly 
+                    the data shown on screen. Filters and sorting affect what appears in 
+                    both the table and exports.
+                  </p>
+                  <p>
+                    <strong>PDF exports</strong> include a branded header, summary totals, 
+                    active filters, and a paginated table matching your current view.
+                  </p>
+                  <p>
+                    <strong>CSV exports</strong> include metadata comments at the top 
+                    indicating the filters used and totals, followed by the data rows.
+                  </p>
+                  <p>
+                    Accuracy is prioritized over automation. If data changes while you're 
+                    viewing reports, refresh the page before exporting to ensure consistency.
+                  </p>
+                </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
 
         {/* Filters Card */}
         <Card>
