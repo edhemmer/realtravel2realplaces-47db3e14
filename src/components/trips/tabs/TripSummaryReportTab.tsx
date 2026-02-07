@@ -376,8 +376,15 @@ export function TripSummaryReportTab({ tripId }: TripSummaryReportTabProps) {
                 {[trip.destination_city, trip.destination_state, trip.destination_country].filter(Boolean).join(', ')}
               </span>
               <span className="flex items-center gap-1">
-                <Users className="w-4 h-4" />
-                {companions.length + 1} travelers
+                {companions.length === 0 ? (
+                  <User className="w-4 h-4" />
+                ) : (
+                  <Users className="w-4 h-4" />
+                )}
+                {companions.length === 0 
+                  ? '1 traveler' 
+                  : `${companions.length} traveler${companions.length === 1 ? '' : 's'}`
+                }
               </span>
             </div>
           </div>
