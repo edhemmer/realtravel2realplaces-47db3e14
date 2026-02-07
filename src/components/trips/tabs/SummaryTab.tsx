@@ -45,6 +45,26 @@ interface SummaryTabProps {
   onDrillThrough?: (target: DrillThroughTarget) => void;
 }
 
+/*
+ * FUTURE (Business-only): Trip Summary Enhancements
+ * ==================================================
+ * Business tier will add advanced summary capabilities:
+ * 
+ * - Stop-level breakdown (for multi-stop tours)
+ * - Business expense compliance summary
+ * - Per-diem tracking widget
+ * - Trip report generation (PDF export)
+ * - Custom branding for exported reports
+ * 
+ * Implementation will use the <BusinessOnly> wrapper from
+ * src/components/access to gate these features.
+ * 
+ * Entry points to annotate when implementing:
+ * - Report generation button in header
+ * - Stop timeline visualization
+ * - Compliance status indicators
+ */
+
 interface TimelineEvent {
   id: string;
   type: 'flight' | 'stay' | 'car_rental' | 'activity' | 'parking' | 'transport';
