@@ -31,6 +31,7 @@ interface CreateExpenseData {
   notes?: string;
   receipt_url?: string;
   expense_purpose?: ExpensePurpose; // v1.3.0: For mixed trips only
+  engagement_id?: string; // Patch 2.3.8: Optional Stop assignment
 }
 
 export function useCreateExpense() {
@@ -51,6 +52,7 @@ export function useCreateExpense() {
       if (data.notes) insertData.notes = data.notes;
       if (data.receipt_url) insertData.receipt_url = data.receipt_url;
       if (data.expense_purpose) insertData.expense_purpose = data.expense_purpose;
+      if (data.engagement_id) insertData.engagement_id = data.engagement_id;
 
       const { data: expense, error } = await supabase
         .from('expenses')
