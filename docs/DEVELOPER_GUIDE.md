@@ -65,6 +65,8 @@ During patch cycles, follow these constraints:
 v2.1.0 - Major feature (Pro Trip Health Checklist)
 v2.1.1 - Minor feature (Upcoming Events Strip)
 v2.1.2 - UX patch (Past Trips Visual De-Emphasis)
+v2.1.3 - UI: Parsing Confidence Hints (Bookings, Tour, Expenses)
+v2.1.6 - Technical: Tour/Bookings Separation via Canonical State
 ```
 
 ### Code Comments
@@ -72,8 +74,8 @@ v2.1.2 - UX patch (Past Trips Visual De-Emphasis)
 Include version tags in significant changes:
 
 ```typescript
-// v2.1.2: Determine if trip is in the past
-const isPastTrip = isBefore(tripEndDate, today);
+// v2.1.6: Tour uses canonical events, not direct booking references
+const draftStops = generateTourDraftFromCanonicalEvents(timelineEvents);
 ```
 
 ---
@@ -352,7 +354,7 @@ bun run test:watch     # Watch mode
 
 ---
 
-## Data Integrity & Single Source of Truth (Patch 2.6.2)
+## Data Integrity & Single Source of Truth (Patch 2.6.2+)
 
 ### Core Principle
 
@@ -363,8 +365,23 @@ Every data domain has a single source of truth. UI components and exports derive
 | Trips | `useTrips()`, `useTrip()` | Dashboard, TripDetail |
 | Expenses | `useExpenses()` | ExpensesTab, Reports |
 | Bookings | `useBookings()` | BookingsTab, FlightSummary |
-| Stops | `useEngagements()` | TourTab, Expense-to-Stop |
+| Tour/Stops | `useEngagements()` | TourTab, Expense-to-Stop |
 | Calculations | `calculateTripCostSummary()` | SummaryTab, PDF Export |
+| Combined Views | `getCanonicalTripState()` | Summary, Timeline, Reports |
+
+### Tour / Bookings Separation (v2.1.6)
+
+**Critical Rule:** Bookings and Tour must never import each other's types/hooks directly.
+
+```typescript
+// ✅ Correct - Tour uses canonical events
+import { generateTourDraftFromCanonicalEvents } from '@/lib/canonicalTripState';
+const draftStops = generateTourDraftFromCanonicalEvents(timelineEvents);
+
+// ❌ Wrong - Tour importing booking types directly
+import { useBookings } from '@/hooks/useBookings';
+import type { Booking } from '@/types/database';
+```
 
 ### Error Handling Discipline
 

@@ -274,6 +274,103 @@ export function useIsPro(): boolean {
 
 ---
 
+## Tour / Bookings Separation (v2.1.6)
+
+### Architectural Principle
+
+**Bookings and Tour must never mingle directly.** They only appear together in Timeline, Summary, and Reports through the canonical trip state.
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        Canonical Trip State                                  │
+│                    (getCanonicalTripState)                                   │
+│                                                                              │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐                  │
+│  │   Bookings   │    │   Parking    │    │   Expenses   │                  │
+│  │   (flights,  │    │              │    │              │                  │
+│  │    stays,    │    │              │    │              │                  │
+│  │   rentals)   │    │              │    │              │                  │
+│  └──────┬───────┘    └──────┬───────┘    └──────┬───────┘                  │
+│         │                   │                   │                           │
+│         └───────────────────┴───────────────────┘                           │
+│                             │                                                │
+│                             ▼                                                │
+│                 CanonicalTimelineEvent[]                                     │
+│                             │                                                │
+│         ┌───────────────────┼───────────────────┐                           │
+│         ▼                   ▼                   ▼                           │
+│  ┌─────────────┐    ┌─────────────────┐   ┌─────────────┐                  │
+│  │  Summary    │    │  Tour (Stops)   │   │   Reports   │                  │
+│  │  Timeline   │    │  via canonical  │   │             │                  │
+│  └─────────────┘    │  events only    │   └─────────────┘                  │
+│                     └─────────────────┘                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Enforcement Rules
+
+1. **Tour does not depend directly on Bookings models**
+   - Tour components do NOT import booking types/hooks
+   - Tour auto-draft uses `generateTourDraftFromCanonicalEvents()`
+   - Once Tour stops are created, they are independent records
+
+2. **Bookings do not depend on Tour**
+   - Bookings code does NOT import Tour types/hooks/components
+   - Bookings may trigger Tour auto-draft via canonical state, not directly
+
+3. **Shared views use canonical trip state**
+   - Summary timeline: `getCanonicalTripState()`
+   - Trip Report: Canonical aggregator
+   - No cross-module hacks
+
+### Tour Draft Generation
+
+```typescript
+import { generateTourDraftFromCanonicalEvents } from '@/lib/canonicalTripState';
+
+// Tour auto-draft from canonical events
+const { timelineEvents } = getCanonicalTripState(trip, bookings, expenses, parking);
+const draftStops = generateTourDraftFromCanonicalEvents(timelineEvents);
+```
+
+---
+
+## Parsing Confidence Hints (v2.1.3)
+
+### Shared Hint Components
+
+Located in `src/components/trips/ParseHint.tsx`:
+
+| Component | Purpose |
+|-----------|---------|
+| `ParseOriginHint` | Shows origin: "From email", "From pasted text", "From receipt" |
+| `StopSourceHint` | Tour-specific: "From flight", "From stay", "Imported from text" |
+| `EstimatedHint` | Appends "(estimated)" to inferred times/amounts |
+
+### Context-Specific Rules
+
+| Tab | Hints About |
+|-----|-------------|
+| Bookings | Money + source (email, pasted text) |
+| Expenses | Money + source (receipt, email) |
+| Tour | Source only (bookings vs bulk/email), no cost |
+
+### Usage
+
+```typescript
+import { ParseOriginHint, EstimatedHint, StopSourceHint } from '@/components/trips/ParseHint';
+
+// Bookings/Expenses - cost context
+<ParseOriginHint origin="receipt" />
+<EstimatedHint isEstimated={!hasExplicitAmount}>{amount}</EstimatedHint>
+
+// Tour - source context
+<StopSourceHint source="flight" />
+<StopSourceHint source="bulk_email" />
+```
+
+---
+
 ## Database Schema
 
 ### Core Tables
@@ -289,6 +386,7 @@ export function useIsPro(): boolean {
 | `profiles` | User preferences and subscription |
 | `trip_events` | Pro-only time-based events |
 | `trip_shares` | Trip sharing permissions |
+| `engagements` | Business stops/work locations (Tour) |
 
 ### Booking Types
 
