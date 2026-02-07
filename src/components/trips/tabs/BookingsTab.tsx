@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isBefore, isAfter, startOfDay } from 'date-fns';
- import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER, parseDatetimeForDisplay } from '@/lib/datetimeIntegrity';
+import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER, parseDatetimeForDisplay } from '@/lib/datetimeIntegrity';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,6 +41,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTripPermission } from '@/pages/TripDetail';
 import { ManualStepHint, MANUAL_STEP_HINTS } from '@/components/trips/ManualStepHint';
 import { CompanionDetailDialog } from '@/components/trips/CompanionDetailDialog';
+import { isEmailFile, extractEmailBody } from '@/lib/emailBody';
 
 // Helper to safely open external URLs in new tab
 const openExternalUrl = (url: string | null | undefined) => {
@@ -441,9 +442,47 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
     e.stopPropagation();
     setIsDragging(false);
 
+    // v2.1.2: Check for email files (.eml, .msg) first
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      
+      if (isEmailFile(file.name)) {
+        // Extract email body from .eml/.msg file
+        setIsParsing(true);
+        toast.info('Extracting email content...');
+        
+        const result = await extractEmailBody(file);
+        
+        if (!result.success) {
+          setIsParsing(false);
+          toast.warning(result.error || "This email format couldn't be read automatically. Please open it and copy/paste the confirmation text instead.");
+          return;
+        }
+        
+        // Parse the extracted email body text
+        await parseBookingText(result.body);
+        return;
+      }
+      
+      // For non-email files, try to read as text
+      if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          const text = event.target?.result as string;
+          if (text) {
+            await parseBookingText(text);
+          }
+        };
+        reader.readAsText(file);
+        return;
+      }
+    }
+
+    // Fallback: try to get plain text from drag data
     const text = e.dataTransfer.getData('text/plain');
     if (!text) {
-      toast.info('No text content found. Please drag and drop text from your confirmation email.');
+      toast.info('No text content found. Please drag and drop text from your confirmation email, or drop an email file (.eml, .msg).');
       return;
     }
 
