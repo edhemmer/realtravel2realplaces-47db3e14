@@ -14,6 +14,13 @@ interface AdminUser {
   created_at: string;
 }
 
+interface DeleteUserResult {
+  success: boolean;
+  message?: string;
+  error?: string;
+  trip_count?: number;
+}
+
 /**
  * Hook to check if current user is an admin
  */
@@ -82,6 +89,60 @@ export function useUpdateUserTier() {
       }
 
       return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+    },
+  });
+}
+
+/**
+ * Hook to update a user's display name (admin only)
+ */
+export function useUpdateUserName() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ userId, firstName, lastName }: { userId: string; firstName: string; lastName: string }) => {
+      const { data, error } = await supabase
+        .rpc('admin_update_user_name', {
+          p_user_id: userId,
+          p_first_name: firstName,
+          p_last_name: lastName,
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
+    },
+  });
+}
+
+/**
+ * Hook to delete a user (admin only)
+ * Returns result object indicating success/failure and any blocking reason
+ */
+export function useDeleteUser() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (userId: string): Promise<DeleteUserResult> => {
+      const { data, error } = await supabase
+        .rpc('admin_delete_user', {
+          p_user_id: userId,
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      // Type assertion with unknown intermediate to handle Supabase JSON return type
+      return data as unknown as DeleteUserResult;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminUsers'] });
