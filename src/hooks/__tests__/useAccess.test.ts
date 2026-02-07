@@ -1,20 +1,21 @@
 /**
  * useAccess Hook Unit Tests
  * 
- * Patch 2.6.23: Plan Gating Verification Tests (Subscription Only)
+ * Patch 2.6.24: Simple Plan Model (Single Source of Truth)
  * 
  * This test suite validates that the access control logic correctly computes
- * effectiveTier and access flags based solely on subscription tier.
+ * tier and access flags based solely on subscription tier from the database.
  * 
- * SINGLE SOURCE OF TRUTH (Patch 2.6.23):
- * - useAccess.tier is computed via resolveEffectiveTier() from src/utils/planTier.ts
- * - Subscription tier is the ONLY driver of effective tier (no tester overrides)
- * - Guarantees header PlanPill, Admin table, and Users list always show the same tier
+ * NO OVERRIDES:
+ * - No tester flags
+ * - No owner email checks  
+ * - No admin elevation
+ * - subscription_tier is the ONLY driver
  * 
  * KEY BEHAVIOR:
  * - Admin role controls admin UI only (isAdminUser flag)
- * - Plan-based features depend on effectiveTier, NOT admin status
- * - Admins experience their actual plan (Free/Pro/Business)
+ * - Plan-based features depend on tier, NOT admin status
+ * - All UI components (PlanPill, Admin table, gates) show the same tier
  * 
  * TEST MATRIX:
  * - Free user
@@ -23,6 +24,7 @@
  * - Admin user with Free plan (should see Free behavior + admin UI)
  * - Admin user with Pro plan (should see Pro behavior + admin UI)
  * - Admin user with Business plan (should see Business behavior + admin UI)
+ * - Tier transitions: Free↔Pro, Pro↔Business, Free↔Business
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -31,10 +33,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
 // Mock modules before importing the hook
-vi.mock('@/contexts/AuthContext', () => ({
-  useAuth: vi.fn(),
-}));
-
 vi.mock('@/hooks/useSubscription', () => ({
   useSubscription: vi.fn(),
   useIsPro: vi.fn(),
@@ -58,7 +56,7 @@ function createWrapper() {
   return function Wrapper({ children }: { children: React.ReactNode }) {
     return React.createElement(QueryClientProvider, { client: queryClient }, children);
   };
-};
+}
 
 describe('useAccess', () => {
   beforeEach(() => {
@@ -173,10 +171,10 @@ describe('useAccess', () => {
   });
 
   // Admin with Free plan - should experience Free behavior
-  describe('Admin user with Free plan (decoupled behavior)', () => {
+  describe('Admin user with Free plan (decoupled)', () => {
     beforeEach(() => {
       vi.mocked(useSubscription).mockReturnValue({
-        data: { tier: 'free', limits: { maxTripsLifetime: 5 } }, // DB says Free
+        data: { tier: 'free', limits: { maxTripsLifetime: 5 } },
         isLoading: false,
       } as ReturnType<typeof useSubscription>);
       vi.mocked(useIsPro).mockReturnValue(false);
@@ -186,7 +184,7 @@ describe('useAccess', () => {
       } as ReturnType<typeof useIsAdmin>);
     });
 
-    it('should have effectiveTier = "free" (admin does NOT elevate tier)', () => {
+    it('should have tier = "free" (admin does NOT elevate tier)', () => {
       const { result } = renderHook(() => useAccess(), { wrapper: createWrapper() });
       expect(result.current.tier).toBe('free');
     });
@@ -208,20 +206,20 @@ describe('useAccess', () => {
   });
 
   // Admin with Pro plan
-  describe('Admin user with Pro plan (decoupled behavior)', () => {
+  describe('Admin user with Pro plan (decoupled)', () => {
     beforeEach(() => {
       vi.mocked(useSubscription).mockReturnValue({
-        data: { tier: 'pro', limits: { maxTripsLifetime: -1 } }, // DB says Pro
+        data: { tier: 'pro', limits: { maxTripsLifetime: -1 } },
         isLoading: false,
       } as ReturnType<typeof useSubscription>);
       vi.mocked(useIsPro).mockReturnValue(true);
       vi.mocked(useIsAdmin).mockReturnValue({
-        data: true, // Admin role active
+        data: true,
         isLoading: false,
       } as ReturnType<typeof useIsAdmin>);
     });
 
-    it('should have effectiveTier = "pro" (admin sees actual plan)', () => {
+    it('should have tier = "pro" (admin sees actual plan)', () => {
       const { result } = renderHook(() => useAccess(), { wrapper: createWrapper() });
       expect(result.current.tier).toBe('pro');
     });
@@ -246,17 +244,17 @@ describe('useAccess', () => {
   describe('Admin user with Business plan', () => {
     beforeEach(() => {
       vi.mocked(useSubscription).mockReturnValue({
-        data: { tier: 'business', limits: { maxTripsLifetime: -1 } }, // DB says Business
+        data: { tier: 'business', limits: { maxTripsLifetime: -1 } },
         isLoading: false,
       } as ReturnType<typeof useSubscription>);
       vi.mocked(useIsPro).mockReturnValue(true);
       vi.mocked(useIsAdmin).mockReturnValue({
-        data: true, // Admin role active
+        data: true,
         isLoading: false,
       } as ReturnType<typeof useIsAdmin>);
     });
 
-    it('should have effectiveTier = "business"', () => {
+    it('should have tier = "business"', () => {
       const { result } = renderHook(() => useAccess(), { wrapper: createWrapper() });
       expect(result.current.tier).toBe('business');
     });
@@ -366,86 +364,109 @@ describe('canAccessFeature', () => {
 });
 
 /**
- * GUARD TESTS: Admin Plan Management Parity (Patch 2.6.23)
+ * TIER TRANSITION TESTS
  * 
- * These tests ensure that the same subscription tier produces identical
- * effectiveTier values in useAccess and Admin Plan Management, guaranteeing
- * that the header PlanPill and Admin table row always show the same tier.
+ * Verify that tier changes work correctly across Free↔Pro↔Business.
+ * These simulate what happens when Admin → Plan Management changes a tier.
  */
-describe('Admin Plan Management Parity Guard Tests', () => {
+describe('Tier Transition Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe('Free subscription', () => {
-    beforeEach(() => {
-      vi.mocked(useSubscription).mockReturnValue({
-        data: { tier: 'free', limits: { maxTripsLifetime: 5 } },
-        isLoading: false,
-      } as ReturnType<typeof useSubscription>);
-      vi.mocked(useIsPro).mockReturnValue(false);
-      vi.mocked(useIsAdmin).mockReturnValue({
-        data: false,
-        isLoading: false,
-      } as ReturnType<typeof useIsAdmin>);
-    });
+  const mockTier = (tier: 'free' | 'pro' | 'business') => {
+    vi.mocked(useSubscription).mockReturnValue({
+      data: { tier, limits: { maxTripsLifetime: tier === 'free' ? 5 : -1 } },
+      isLoading: false,
+    } as ReturnType<typeof useSubscription>);
+    vi.mocked(useIsPro).mockReturnValue(tier === 'pro' || tier === 'business');
+    vi.mocked(useIsAdmin).mockReturnValue({
+      data: true, // Admin performing the test
+      isLoading: false,
+    } as ReturnType<typeof useIsAdmin>);
+  };
 
-    it('useAccess.tier should equal "free" (matches Admin table dropdown)', () => {
-      const { result } = renderHook(() => useAccess(), { wrapper: createWrapper() });
-      expect(result.current.tier).toBe('free');
-    });
+  describe('Free → Pro transition', () => {
+    it('should transition tier from free to pro', () => {
+      mockTier('free');
+      const { result: freeTier } = renderHook(() => useAccess(), { wrapper: createWrapper() });
+      expect(freeTier.current.tier).toBe('free');
+      expect(freeTier.current.isPro).toBe(false);
 
-    it('PlanPill would show "FREE" label', () => {
-      const { result } = renderHook(() => useAccess(), { wrapper: createWrapper() });
-      expect(result.current.tier).toBe('free');
-    });
-  });
-
-  describe('Pro subscription', () => {
-    beforeEach(() => {
-      vi.mocked(useSubscription).mockReturnValue({
-        data: { tier: 'pro', limits: { maxTripsLifetime: -1 } },
-        isLoading: false,
-      } as ReturnType<typeof useSubscription>);
-      vi.mocked(useIsPro).mockReturnValue(true);
-      vi.mocked(useIsAdmin).mockReturnValue({
-        data: false,
-        isLoading: false,
-      } as ReturnType<typeof useIsAdmin>);
-    });
-
-    it('useAccess.tier should equal "pro" (matches Admin table dropdown)', () => {
-      const { result } = renderHook(() => useAccess(), { wrapper: createWrapper() });
-      expect(result.current.tier).toBe('pro');
-    });
-
-    it('PlanPill would show "PRO" label', () => {
-      const { result } = renderHook(() => useAccess(), { wrapper: createWrapper() });
-      expect(result.current.tier).toBe('pro');
+      mockTier('pro');
+      const { result: proTier } = renderHook(() => useAccess(), { wrapper: createWrapper() });
+      expect(proTier.current.tier).toBe('pro');
+      expect(proTier.current.isPro).toBe(true);
     });
   });
 
-  describe('Business subscription', () => {
-    beforeEach(() => {
-      vi.mocked(useSubscription).mockReturnValue({
-        data: { tier: 'business', limits: { maxTripsLifetime: -1 } },
-        isLoading: false,
-      } as ReturnType<typeof useSubscription>);
-      vi.mocked(useIsPro).mockReturnValue(true);
-      vi.mocked(useIsAdmin).mockReturnValue({
-        data: false,
-        isLoading: false,
-      } as ReturnType<typeof useIsAdmin>);
-    });
+  describe('Pro → Free transition', () => {
+    it('should transition tier from pro to free', () => {
+      mockTier('pro');
+      const { result: proTier } = renderHook(() => useAccess(), { wrapper: createWrapper() });
+      expect(proTier.current.tier).toBe('pro');
 
-    it('useAccess.tier should equal "business" (matches Admin table dropdown)', () => {
-      const { result } = renderHook(() => useAccess(), { wrapper: createWrapper() });
-      expect(result.current.tier).toBe('business');
+      mockTier('free');
+      const { result: freeTier } = renderHook(() => useAccess(), { wrapper: createWrapper() });
+      expect(freeTier.current.tier).toBe('free');
     });
+  });
 
-    it('PlanPill would show "BUSINESS" label', () => {
-      const { result } = renderHook(() => useAccess(), { wrapper: createWrapper() });
-      expect(result.current.tier).toBe('business');
+  describe('Pro → Business transition', () => {
+    it('should transition tier from pro to business', () => {
+      mockTier('pro');
+      const { result: proTier } = renderHook(() => useAccess(), { wrapper: createWrapper() });
+      expect(proTier.current.tier).toBe('pro');
+      expect(proTier.current.canAccessBusinessFeatures).toBe(false);
+
+      mockTier('business');
+      const { result: bizTier } = renderHook(() => useAccess(), { wrapper: createWrapper() });
+      expect(bizTier.current.tier).toBe('business');
+      expect(bizTier.current.canAccessBusinessFeatures).toBe(true);
+    });
+  });
+
+  describe('Business → Pro transition', () => {
+    it('should transition tier from business to pro', () => {
+      mockTier('business');
+      const { result: bizTier } = renderHook(() => useAccess(), { wrapper: createWrapper() });
+      expect(bizTier.current.tier).toBe('business');
+      expect(bizTier.current.canAccessBusinessFeatures).toBe(true);
+
+      mockTier('pro');
+      const { result: proTier } = renderHook(() => useAccess(), { wrapper: createWrapper() });
+      expect(proTier.current.tier).toBe('pro');
+      expect(proTier.current.canAccessBusinessFeatures).toBe(false);
+    });
+  });
+
+  describe('Free → Business transition', () => {
+    it('should transition tier from free to business', () => {
+      mockTier('free');
+      const { result: freeTier } = renderHook(() => useAccess(), { wrapper: createWrapper() });
+      expect(freeTier.current.tier).toBe('free');
+      expect(freeTier.current.isPro).toBe(false);
+      expect(freeTier.current.canAccessBusinessFeatures).toBe(false);
+
+      mockTier('business');
+      const { result: bizTier } = renderHook(() => useAccess(), { wrapper: createWrapper() });
+      expect(bizTier.current.tier).toBe('business');
+      expect(bizTier.current.isPro).toBe(true);
+      expect(bizTier.current.canAccessBusinessFeatures).toBe(true);
+    });
+  });
+
+  describe('Business → Free transition', () => {
+    it('should transition tier from business to free', () => {
+      mockTier('business');
+      const { result: bizTier } = renderHook(() => useAccess(), { wrapper: createWrapper() });
+      expect(bizTier.current.tier).toBe('business');
+
+      mockTier('free');
+      const { result: freeTier } = renderHook(() => useAccess(), { wrapper: createWrapper() });
+      expect(freeTier.current.tier).toBe('free');
+      expect(freeTier.current.isPro).toBe(false);
+      expect(freeTier.current.canAccessBusinessFeatures).toBe(false);
     });
   });
 });

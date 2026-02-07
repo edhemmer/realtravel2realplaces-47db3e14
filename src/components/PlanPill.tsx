@@ -1,16 +1,17 @@
 /**
  * PlanPill - Displays the user's current subscription plan
  * 
- * Patch 2.6.20: Single Source of Truth for Plan Display
+ * Patch 2.6.24: Simple Plan Model (Single Source of Truth)
  * 
  * FEATURES:
- * - Derives plan EXCLUSIVELY from useAccess.tier (single source of truth)
- * - Automatically updates when access queries are invalidated
+ * - Derives plan EXCLUSIVELY from useAccess.tier
+ * - useAccess.tier reads directly from profiles.subscription_tier (no overrides)
+ * - Automatically updates when subscription queries are invalidated
  * - Shows 5-trip lifetime limit indicator for Free users
  * - Consistent styling across all plan types
  * 
  * DATA FLOW:
- * - useAccess.tier → effectiveTier (includes admin/tester overrides)
+ * - useAccess.tier → subscription_tier from DB (single source of truth)
  * - useUserProfile → lifetime_trip_count (for Free trip limit display)
  * - Both queries are invalidated after admin plan changes for reactive updates
  * 
