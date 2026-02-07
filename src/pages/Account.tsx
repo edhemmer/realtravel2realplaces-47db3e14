@@ -1,22 +1,26 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useIsAdmin } from '@/hooks/useAdminUsers';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Mail, Crown, User, Lock, CheckCircle } from 'lucide-react';
+import { Mail, Crown, User, Lock, CheckCircle, ChevronRight, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { TravelPreferencesCard } from '@/components/account/TravelPreferencesCard';
 
 export default function Account() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { data: subscription, isLoading: isSubscriptionLoading } = useSubscription();
   const { data: profile, isLoading: isProfileLoading } = useUserProfile();
+  const { data: isAdmin } = useIsAdmin();
   const [isResetting, setIsResetting] = useState(false);
   const [resetSent, setResetSent] = useState(false);
 
@@ -46,6 +50,16 @@ export default function Account() {
 
   const isPro = subscription?.tier === 'pro';
   const isLoading = isSubscriptionLoading || isProfileLoading;
+
+  // Derive display role annotation for admin users
+  const getRoleAnnotation = () => {
+    if (isAdmin) {
+      return '(Admin access)';
+    }
+    return null;
+  };
+
+  const roleAnnotation = getRoleAnnotation();
 
   return (
     <Layout>
@@ -95,7 +109,7 @@ export default function Account() {
             {isLoading ? (
               <div className="animate-pulse h-16 bg-muted rounded-lg" />
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <Badge
                     variant={isPro ? 'default' : 'secondary'}
@@ -103,6 +117,12 @@ export default function Account() {
                   >
                     {isPro ? 'Pro' : 'Free'}
                   </Badge>
+                  {roleAnnotation && (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3" />
+                      {roleAnnotation}
+                    </span>
+                  )}
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {isPro ? (
@@ -115,6 +135,14 @@ export default function Account() {
                     </>
                   )}
                 </p>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-between"
+                  onClick={() => navigate('/plans')}
+                >
+                  View all plans
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
               </div>
             )}
           </CardContent>
