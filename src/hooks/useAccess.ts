@@ -1,7 +1,7 @@
 /**
  * useAccess - Centralized UI access control hook
  * 
- * Patch 2.6.23: Single Source of Truth for Effective Plan Tier
+ * Patch 2.6.24: Simple Plan Model (Single Source of Truth)
  * 
  * PLAN GATING ARCHITECTURE:
  * - UI gating is enforced via useAccess() hook and wrapper components
@@ -13,25 +13,25 @@
  * - PRO: Unlimited trips, timeline, weather, airport intelligence
  * - BUSINESS: Pro + Tour/Stops, Stop-level expense assignment, Advanced Reports
  * 
- * SINGLE SOURCE OF TRUTH (Patch 2.6.23):
- * - effectiveTier is computed via resolveEffectiveTier() from src/utils/planTier.ts
- * - Subscription tier is the ONLY driver of effective tier (no tester overrides)
- * - Guarantees header PlanPill, Admin table, and Users list all show the same tier
+ * SINGLE SOURCE OF TRUTH:
+ * - tier is read directly from profiles.subscription_tier via useSubscription
+ * - No overrides, no tester flags, no special cases
+ * - Guarantees header PlanPill, Admin table, Users list, and feature gates all match
  * 
- * ADMIN vs PLAN ACCESS (Patch 2.6.19):
+ * ADMIN vs PLAN ACCESS:
  * - isAdminUser: Controls access to /admin pages and <AdminOnly> components ONLY
- * - effectiveTier: Controls plan-based features (Pro/Business gating)
+ * - tier: Controls plan-based features (Pro/Business gating)
  * - Admin role does NOT automatically grant Business tier access
- * - This allows admins to experience Free/Pro/Business behavior by changing their plan
+ * - Admins experience their actual plan tier like any other user
  * 
  * COMPONENT USAGE:
- * - <ProOnly>: Wraps Pro-tier features (currently unenforced in UI)
- * - <BusinessOnly>: Wraps Business-tier features (enforced via canAccessBusinessFeatures)
- * - <AdminOnly>: Wraps admin-only features (always enforced, uses isAdminUser)
+ * - <ProOnly>: Wraps Pro-tier features
+ * - <BusinessOnly>: Wraps Business-tier features
+ * - <AdminOnly>: Wraps admin-only features (uses isAdminUser, not tier)
  * - <FeatureGate>: Custom access logic with accessCheck function
  * 
  * @example
- * const { canAccessBusinessFeatures, isAdminUser, isPro } = useAccess();
+ * const { canAccessBusinessFeatures, isAdminUser, isPro, tier } = useAccess();
  * 
  * // Admin access to admin pages
  * if (isAdminUser) {
@@ -82,17 +82,17 @@ export function useAccess(): AccessState {
   const isLoading = subscriptionLoading || adminLoading;
   const rawTier = (subscription?.tier || null) as PlanTier | null;
   
-  // Patch 2.6.23: Use shared resolver for effectiveTier (single source of truth)
-  // Subscription tier is the ONLY driver - no tester overrides
-  const effectiveTier = rawTier !== null
+  // Patch 2.6.24: tier is simply the subscription tier from DB (no overrides)
+  // resolveEffectiveTier just ensures we have a valid tier or default to 'free'
+  const tier = rawTier !== null
     ? resolveEffectiveTier({
         subscriptionTier: rawTier,
       })
     : null;
   
-  // Derive access flags from effectiveTier using shared utilities
-  const canAccessBusinessFeatures = effectiveTier !== null && tierIncludesBusiness(effectiveTier);
-  const hasProAccess = effectiveTier !== null && tierIncludesPro(effectiveTier);
+  // Derive access flags from tier using shared utilities
+  const canAccessBusinessFeatures = tier !== null && tierIncludesBusiness(tier);
+  const hasProAccess = tier !== null && tierIncludesPro(tier);
   
   return {
     isPro: isPro || hasProAccess, // Business tier includes Pro features
@@ -100,7 +100,7 @@ export function useAccess(): AccessState {
     isAdminUser: isAdmin === true, // Admin status is separate from plan tier
     isLoading,
     isAuthenticated: !!subscription,
-    tier: effectiveTier,
+    tier,
   };
 }
 

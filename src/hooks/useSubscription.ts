@@ -1,22 +1,20 @@
 /**
  * useSubscription - Subscription tier access layer
  * 
- * Patch 2.6.2: Commercial Code Integrity Documentation
+ * Patch 2.6.24: Simple Plan Model (Single Source of Truth)
  * 
  * DATA INTEGRITY:
  * - Single source of truth for user subscription tier
- * - Fetches from profiles.subscription_tier column
+ * - Fetches ONLY from profiles.subscription_tier column
+ * - No overrides, no tester flags, no special cases
+ * - Allowed values: 'free', 'pro', 'business'
  * - Caches for 30 seconds to reduce database load
- * 
- * OWNER OVERRIDE:
- * - Owner email (edhemmer@gmail.com) is always forced to Pro tier
- * - This is a client-side convenience; server-side uses admin role checks
- * - Override is case-insensitive for email matching
  * 
  * TIER LIMITS:
  * - Defined in TIER_LIMITS constant (types/subscription.ts)
  * - FREE: 5 lifetime trips, basic features
  * - PRO: Unlimited trips, advanced features
+ * - BUSINESS: Pro features + Tour/Stops, advanced reports
  * 
  * ERROR HANDLING:
  * - Profile fetch errors are logged and rethrown
@@ -28,13 +26,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { SubscriptionTier, SubscriptionStatus, TIER_LIMITS } from '@/types/subscription';
 
-// Owner email that always gets Pro access (override)
-const OWNER_EMAIL = 'edhemmer@gmail.com';
 export function useSubscription() {
   const { user } = useAuth();
-
-  // Check if current user is the owner (case-insensitive)
-  const isOwner = user?.email?.toLowerCase() === OWNER_EMAIL.toLowerCase();
 
   return useQuery({
     queryKey: ['subscription', user?.id],
@@ -47,15 +40,7 @@ export function useSubscription() {
         };
       }
 
-      // Owner override: always Pro regardless of DB value
-      if (isOwner) {
-        return {
-          tier: 'pro',
-          limits: TIER_LIMITS.pro,
-        };
-      }
-
-      // Fetch profile with subscription info for non-owners
+      // Patch 2.6.24: Fetch subscription tier directly from DB with no overrides
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('subscription_tier')
@@ -83,16 +68,10 @@ export function useSubscription() {
 
 /**
  * Helper hook to check if current user is Pro or Business
- * Includes owner override: edhemmer@gmail.com is always Pro
  * Business tier users also get Pro access (Business includes Pro features)
  */
 export function useIsPro(): boolean {
-  const { user } = useAuth();
   const { data } = useSubscription();
-  
-  // Owner override check
-  const isOwner = user?.email?.toLowerCase() === OWNER_EMAIL.toLowerCase();
-  if (isOwner) return true;
   
   // Pro or Business tier both grant Pro-level access
   return data?.tier === 'pro' || data?.tier === 'business';

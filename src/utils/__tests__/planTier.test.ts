@@ -1,12 +1,10 @@
 /**
  * Plan Tier Resolution Tests
  * 
- * Patch 2.6.23: Single Source of Truth for Effective Plan Tier
+ * Patch 2.6.24: Simple Plan Model (Single Source of Truth)
  * 
- * These tests validate the resolveEffectiveTier function which is
- * the single source of truth for computing effective plan tiers.
- * 
- * Subscription tier is the ONLY driver - no tester overrides.
+ * These tests validate the plan tier utilities.
+ * subscription_tier is the ONLY input - no overrides.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -21,7 +19,7 @@ import {
 } from '../planTier';
 
 describe('resolveEffectiveTier', () => {
-  describe('Subscription tier as single source', () => {
+  describe('Basic tier resolution', () => {
     it('should return "free" when no tier provided', () => {
       const result = resolveEffectiveTier({});
       expect(result).toBe('free');
@@ -32,36 +30,58 @@ describe('resolveEffectiveTier', () => {
       expect(result).toBe('free');
     });
 
-    it('should return subscriptionTier when set', () => {
+    it('should return "free" when subscriptionTier is undefined', () => {
+      const result = resolveEffectiveTier({ subscriptionTier: undefined });
+      expect(result).toBe('free');
+    });
+
+    it('should return subscriptionTier when set to "free"', () => {
       expect(resolveEffectiveTier({ subscriptionTier: 'free' })).toBe('free');
+    });
+
+    it('should return subscriptionTier when set to "pro"', () => {
       expect(resolveEffectiveTier({ subscriptionTier: 'pro' })).toBe('pro');
+    });
+
+    it('should return subscriptionTier when set to "business"', () => {
       expect(resolveEffectiveTier({ subscriptionTier: 'business' })).toBe('business');
     });
   });
 
-  describe('Guard tests for Admin Plan Management parity', () => {
-    // These tests simulate the same PlanContext that Admin Plan Management
-    // would use, ensuring header PlanPill and Admin table always agree
-
-    it('should show Free for user with free subscription', () => {
-      const context: PlanContext = {
-        subscriptionTier: 'free',
-      };
-      expect(resolveEffectiveTier(context)).toBe('free');
+  describe('Tier transitions (Admin Plan Management parity)', () => {
+    // These tests ensure all tier transitions work correctly
+    // and that the same tier shows in Admin table, header, and gates
+    
+    it('Free → Pro transition', () => {
+      // User starts at Free
+      expect(resolveEffectiveTier({ subscriptionTier: 'free' })).toBe('free');
+      // Admin changes to Pro
+      expect(resolveEffectiveTier({ subscriptionTier: 'pro' })).toBe('pro');
     });
 
-    it('should show Pro for user with pro subscription', () => {
-      const context: PlanContext = {
-        subscriptionTier: 'pro',
-      };
-      expect(resolveEffectiveTier(context)).toBe('pro');
+    it('Pro → Free transition', () => {
+      expect(resolveEffectiveTier({ subscriptionTier: 'pro' })).toBe('pro');
+      expect(resolveEffectiveTier({ subscriptionTier: 'free' })).toBe('free');
     });
 
-    it('should show Business for user with business subscription', () => {
-      const context: PlanContext = {
-        subscriptionTier: 'business',
-      };
-      expect(resolveEffectiveTier(context)).toBe('business');
+    it('Pro → Business transition', () => {
+      expect(resolveEffectiveTier({ subscriptionTier: 'pro' })).toBe('pro');
+      expect(resolveEffectiveTier({ subscriptionTier: 'business' })).toBe('business');
+    });
+
+    it('Business → Pro transition', () => {
+      expect(resolveEffectiveTier({ subscriptionTier: 'business' })).toBe('business');
+      expect(resolveEffectiveTier({ subscriptionTier: 'pro' })).toBe('pro');
+    });
+
+    it('Free → Business transition', () => {
+      expect(resolveEffectiveTier({ subscriptionTier: 'free' })).toBe('free');
+      expect(resolveEffectiveTier({ subscriptionTier: 'business' })).toBe('business');
+    });
+
+    it('Business → Free transition', () => {
+      expect(resolveEffectiveTier({ subscriptionTier: 'business' })).toBe('business');
+      expect(resolveEffectiveTier({ subscriptionTier: 'free' })).toBe('free');
     });
   });
 });
@@ -75,7 +95,7 @@ describe('tierIncludesPro', () => {
     expect(tierIncludesPro('pro')).toBe(true);
   });
 
-  it('should return true for business tier', () => {
+  it('should return true for business tier (Business includes Pro)', () => {
     expect(tierIncludesPro('business')).toBe(true);
   });
 });
@@ -121,8 +141,20 @@ describe('tierMeetsRequirement', () => {
 });
 
 describe('TIER_HIERARCHY', () => {
-  it('should have correct ordering', () => {
+  it('should have correct ordering (free < pro < business)', () => {
     expect(TIER_HIERARCHY.free).toBeLessThan(TIER_HIERARCHY.pro);
     expect(TIER_HIERARCHY.pro).toBeLessThan(TIER_HIERARCHY.business);
+  });
+
+  it('should have free at level 0', () => {
+    expect(TIER_HIERARCHY.free).toBe(0);
+  });
+
+  it('should have pro at level 1', () => {
+    expect(TIER_HIERARCHY.pro).toBe(1);
+  });
+
+  it('should have business at level 2', () => {
+    expect(TIER_HIERARCHY.business).toBe(2);
   });
 });

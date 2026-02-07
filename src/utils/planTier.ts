@@ -1,19 +1,22 @@
 /**
  * Plan Tier Resolution Utility
  * 
- * Patch 2.6.23: Single Source of Truth for Effective Plan Tier
+ * Patch 2.6.24: Simple Plan Model (Single Source of Truth)
  * 
  * PURPOSE:
- * This module provides a centralized function to compute the user's effective
- * plan tier. All code paths that need to determine the current user's plan
- * (header PlanPill, Admin Plan Management, feature gates) MUST use this resolver.
+ * This module provides utilities for working with plan tiers.
+ * The subscription_tier field in profiles is the ONLY source of truth.
  * 
- * RESOLUTION:
- * The effective tier is determined solely by the database subscription_tier.
- * No tester overrides or preview flags affect the resolved tier.
+ * ALLOWED VALUES:
+ * - 'free': 5 lifetime trips, basic features
+ * - 'pro': Unlimited trips, advanced features
+ * - 'business': Pro features + Tour/Stops, advanced reports
  * 
- * NOTE: Admin role does NOT affect plan tier (Patch 2.6.19).
- * Admin status only controls access to /admin pages and AdminOnly components.
+ * NO OVERRIDES:
+ * - No tester flags
+ * - No owner email checks
+ * - No admin elevation
+ * - What's in the DB is what the user experiences
  */
 
 export type PlanTier = 'free' | 'pro' | 'business';
@@ -24,32 +27,24 @@ export interface PlanContext {
 }
 
 /**
- * Resolves the effective plan tier for a user.
+ * Resolves the plan tier, providing a default if none is set.
  * 
- * This is the SINGLE SOURCE OF TRUTH for determining what plan tier
- * a user should experience in the UI.
- * 
- * Patch 2.6.23: Subscription tier is the ONLY driver of effective tier.
- * Tester overrides have been removed to allow admins to truly experience
- * each plan by changing their subscription_tier in the database.
+ * This is a simple utility that ensures we always have a valid tier.
+ * It does NOT apply any overrides - subscription_tier is the only input.
  * 
  * @param ctx - The context containing subscription information
- * @returns The effective plan tier ('free', 'pro', or 'business')
+ * @returns The plan tier ('free', 'pro', or 'business')
  * 
  * @example
- * const tier = resolveEffectiveTier({
- *   subscriptionTier: 'pro',
- * });
+ * const tier = resolveEffectiveTier({ subscriptionTier: 'pro' });
  * // Returns 'pro'
+ * 
+ * const tierDefault = resolveEffectiveTier({});
+ * // Returns 'free' (default)
  */
 export function resolveEffectiveTier(ctx: PlanContext): PlanTier {
-  // Patch 2.6.23: Only database subscription tier determines effective tier
-  if (ctx.subscriptionTier) {
-    return ctx.subscriptionTier;
-  }
-  
-  // Default fallback
-  return 'free';
+  // Patch 2.6.24: Simply return the subscription tier or default to 'free'
+  return ctx.subscriptionTier || 'free';
 }
 
 /**
