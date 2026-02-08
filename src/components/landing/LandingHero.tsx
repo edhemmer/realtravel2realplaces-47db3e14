@@ -17,7 +17,12 @@ export default function LandingHero() {
 
             {/* Single short supporting paragraph */}
             <p className="landing-hero-subtext">
-              Add your travel confirmations and keep flights, stays, expenses, and packing in one calm, reliable view. You're always in control.
+              Add your real travel confirmations and manage flights, stays, expenses, packing, stops, and reminders — before, during, and after your trip.
+            </p>
+
+            {/* Supporting line - who it's for */}
+            <p className="landing-hero-audience">
+              Built for families, frequent travelers, independent contractors, bands, and anyone who actually lives on the road.
             </p>
 
             {/* CTAs - Clear hierarchy */}

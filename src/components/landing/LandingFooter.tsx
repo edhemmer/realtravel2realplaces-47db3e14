@@ -8,14 +8,14 @@ export default function LandingFooter() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Trust line */}
         <p className="landing-footer-trust">
-          Your data stays yours. We don't sell personal information.
+          Your data stays yours. Real Travel 2 Real Places does not sell personal information.
         </p>
 
         {/* Main footer content */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           {/* Copyright */}
           <p className="landing-footer-copyright">
-            © {currentYear} Real Travel to Real Places
+            © {currentYear} Real Travel 2 Real Places
           </p>
 
           {/* Links */}
