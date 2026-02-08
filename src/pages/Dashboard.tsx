@@ -13,7 +13,7 @@ import { CreateTripDialog } from '@/components/trips/CreateTripDialog';
 import { TripLifecycleBadges, getTripCardLifecycleStyles } from '@/components/trips/TripLifecycleBadges';
 import { useAccess } from '@/hooks/useAccess';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { hasCompletedOnboarding } from './Onboarding';
+import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -27,15 +27,16 @@ export default function Dashboard() {
   } = useSharedTrips();
   const deleteTrip = useDeleteTrip();
   const { isPro } = useAccess();
+  const { shouldShowOnboarding, isLoading: onboardingLoading } = useOnboardingStatus();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [tripToDelete, setTripToDelete] = useState<string | null>(null);
 
-  // Patch 2.4.2: Redirect to onboarding for first-time users
+  // Patch 2.1.18: Redirect to onboarding for first-time users (DB-backed)
   useEffect(() => {
-    if (!isLoading && !sharedLoading && !hasCompletedOnboarding()) {
+    if (!isLoading && !sharedLoading && !onboardingLoading && shouldShowOnboarding) {
       navigate('/onboarding');
     }
-  }, [isLoading, sharedLoading, navigate]);
+  }, [isLoading, sharedLoading, onboardingLoading, shouldShowOnboarding, navigate]);
 
   const handleDeleteTrip = () => {
     if (tripToDelete) {
@@ -43,7 +44,8 @@ export default function Dashboard() {
       setTripToDelete(null);
     }
   };
-  if (isLoading || sharedLoading) {
+  // Include onboarding loading state in overall loading check
+  if (isLoading || sharedLoading || onboardingLoading) {
     return <Layout>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

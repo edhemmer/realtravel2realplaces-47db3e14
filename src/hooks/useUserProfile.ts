@@ -16,6 +16,8 @@ export interface UserProfile {
   preferred_datetime_format?: string | null;
   distance_unit?: 'miles' | 'kilometers' | null;
   temperature_unit?: 'fahrenheit' | 'celsius' | null;
+  /** Patch 2.1.18: Flag indicating user has completed initial onboarding */
+  has_completed_onboarding?: boolean;
 }
 
 /**
