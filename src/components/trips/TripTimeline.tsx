@@ -1,9 +1,11 @@
 /**
  * TripTimeline Component
- * v2.1.21: Visual-only refactor for continuous vertical connector line
+ * v2.1.22: Combined flight entries (dep + arrival on one row)
  * 
  * Displays trip events in chronological order with a single continuous
  * vertical line connecting all events from first to last.
+ * 
+ * Flights now appear as a single row showing both departure and arrival info.
  */
 
 import { Badge } from '@/components/ui/badge';
@@ -55,6 +57,46 @@ const getEventIcon = (type: string, transportMode?: string) => {
   }
 };
 
+/**
+ * v2.1.22: Build combined flight subtitle
+ * Pattern: EJMB2X • DEN → COS • Dep 1:00 AM • Arr 2:39 AM
+ * Only shows info that exists - no guessing
+ */
+function buildFlightSubtitle(
+  event: CanonicalTimelineEvent,
+  datetimeFormat: DatetimeFormatPreference
+): string {
+  const parts: string[] = [];
+  
+  // Confirmation number
+  if (event.confirmationNumber) {
+    parts.push(event.confirmationNumber);
+  }
+  
+  // Airport route (only if both exist)
+  if (event.departureAirportCode && event.arrivalAirportCode) {
+    parts.push(`${event.departureAirportCode} → ${event.arrivalAirportCode}`);
+  } else if (event.departureAirportCode) {
+    parts.push(`From ${event.departureAirportCode}`);
+  } else if (event.arrivalAirportCode) {
+    parts.push(`To ${event.arrivalAirportCode}`);
+  }
+  
+  // Departure time (only if explicit)
+  if (event.hasDepartureTime && event.departureTime) {
+    const depTime = formatEventTime(event.departureTime.toISOString(), datetimeFormat);
+    parts.push(`Dep ${depTime}`);
+  }
+  
+  // Arrival time (only if explicit)
+  if (event.hasArrivalTime && event.arrivalTime) {
+    const arrTime = formatEventTime(event.arrivalTime.toISOString(), datetimeFormat);
+    parts.push(`Arr ${arrTime}`);
+  }
+  
+  return parts.join(' • ');
+}
+
 export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimelineProps) {
   if (events.length === 0) {
     return (
@@ -76,83 +118,90 @@ export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimel
       
       {/* Event list */}
       <div className="space-y-0">
-        {events.map((event, index) => (
-          <div 
-            key={event.id} 
-            className="relative flex gap-4 animate-slide-in cursor-pointer hover:bg-muted/50 rounded-lg p-2 -mx-2 transition-colors" 
-            style={{ animationDelay: `${index * 50}ms` }}
-            onClick={() => onEventClick?.(event)}
-          >
-            {/* Icon circle - sits on top of the vertical line */}
-            <div className="relative z-10 flex-shrink-0">
-              <div className="w-8 h-8 rounded-full bg-primary/10 border-2 border-background flex items-center justify-center text-primary">
-                {getEventIcon(event.bookingType, event.transportMode)}
+        {events.map((event, index) => {
+          // v2.1.22: Build subtitle dynamically for flights
+          const subtitle = event.eventType === 'flight' 
+            ? buildFlightSubtitle(event, datetimeFormat)
+            : event.subtitle;
+          
+          return (
+            <div 
+              key={event.id} 
+              className="relative flex gap-4 animate-slide-in cursor-pointer hover:bg-muted/50 rounded-lg p-2 -mx-2 transition-colors" 
+              style={{ animationDelay: `${index * 50}ms` }}
+              onClick={() => onEventClick?.(event)}
+            >
+              {/* Icon circle - sits on top of the vertical line */}
+              <div className="relative z-10 flex-shrink-0">
+                <div className="w-8 h-8 rounded-full bg-primary/10 border-2 border-background flex items-center justify-center text-primary">
+                  {getEventIcon(event.bookingType, event.transportMode)}
+                </div>
               </div>
-            </div>
-            
-            {/* Event content */}
-            <div className="flex-1 pb-4 min-w-0">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-sm truncate">{event.title}</p>
-                  <p className="text-xs text-muted-foreground truncate">{event.subtitle}</p>
-                  {/* Activity-specific badges */}
-                  {event.bookingType === 'activity' && (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {event.ticketRequired && (
-                        <Badge variant="secondary" className="text-[10px] h-4 px-1 gap-0.5">
-                          <Ticket className="w-2.5 h-2.5" />
-                          Ticket
-                        </Badge>
-                      )}
-                      {event.ticketsPurchased && (
-                        <Badge variant="outline" className="text-[10px] h-4 px-1 bg-accent">
-                          Tickets purchased
-                        </Badge>
-                      )}
-                      {event.activitySource && (
-                        <span className="text-[10px] text-muted-foreground">
-                          {event.activitySource === 'explore' ? 'From Explore' : 
-                           event.activitySource === 'confirmation' ? 'From confirmation' : ''}
-                        </span>
-                      )}
-                    </div>
+              
+              {/* Event content */}
+              <div className="flex-1 pb-4 min-w-0">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm truncate">{event.title}</p>
+                    <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
+                    {/* Activity-specific badges */}
+                    {event.bookingType === 'activity' && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {event.ticketRequired && (
+                          <Badge variant="secondary" className="text-[10px] h-4 px-1 gap-0.5">
+                            <Ticket className="w-2.5 h-2.5" />
+                            Ticket
+                          </Badge>
+                        )}
+                        {event.ticketsPurchased && (
+                          <Badge variant="outline" className="text-[10px] h-4 px-1 bg-accent">
+                            Tickets purchased
+                          </Badge>
+                        )}
+                        {event.activitySource && (
+                          <span className="text-[10px] text-muted-foreground">
+                            {event.activitySource === 'explore' ? 'From Explore' : 
+                             event.activitySource === 'confirmation' ? 'From confirmation' : ''}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-right text-xs shrink-0">
+                    <p className="font-medium">{formatEventDate(event.datetime, datetimeFormat)}</p>
+                    <p className={event.hasExplicitTime ? 'text-muted-foreground' : 'text-destructive font-medium'}>
+                      {formatEventTime(event.datetime.toISOString(), datetimeFormat)}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-1">
+                  {event.address && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-2 text-xs"
+                      onClick={(e) => openInMaps(event.address!, e)}
+                    >
+                      <MapPin className="w-3 h-3 mr-1" />
+                      Maps
+                    </Button>
+                  )}
+                  {event.linkUrl && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-2 text-xs"
+                      onClick={(e) => openExternalUrl(event.linkUrl, e)}
+                    >
+                      <ExternalLink className="w-3 h-3 mr-1" />
+                      View
+                    </Button>
                   )}
                 </div>
-                <div className="text-right text-xs shrink-0">
-                  <p className="font-medium">{formatEventDate(event.datetime, datetimeFormat)}</p>
-                  <p className={event.hasExplicitTime ? 'text-muted-foreground' : 'text-destructive font-medium'}>
-                    {formatEventTime(event.datetime.toISOString(), datetimeFormat)}
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-2 mt-1">
-                {event.address && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-6 px-2 text-xs"
-                    onClick={(e) => openInMaps(event.address!, e)}
-                  >
-                    <MapPin className="w-3 h-3 mr-1" />
-                    Maps
-                  </Button>
-                )}
-                {event.linkUrl && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-6 px-2 text-xs"
-                    onClick={(e) => openExternalUrl(event.linkUrl, e)}
-                  >
-                    <ExternalLink className="w-3 h-3 mr-1" />
-                    View
-                  </Button>
-                )}
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
