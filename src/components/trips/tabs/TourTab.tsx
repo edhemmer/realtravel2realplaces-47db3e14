@@ -47,16 +47,20 @@ import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { useTripPermission } from '@/pages/TripDetail';
 import { BulkStopsDialog } from '@/components/trips/BulkStopsDialog';
+import { BulkStopsDialogV2 } from '@/components/trips/BulkStopsDialogV2';
 import { Trip } from '@/types/database';
 import { buildMapsUrl } from '@/lib/stopParsing';
 
 /**
+ * v2.3.2: TourTab with Business tier bulk import
  * v2.1.25: TourTab is now manual-only
  * Tours are NEVER auto-generated from Bookings
  */
 interface TourTabProps {
   tripId: string;
   trip?: Trip;
+  /** Patch 2.3.2: Business tier users get enhanced bulk import */
+  canBulkImport?: boolean;
 }
 
 interface StopFormData {
@@ -84,7 +88,7 @@ const EMPTY_FORM: StopFormData = {
 // Dismissible helper message key for localStorage
 const HELPER_DISMISSED_KEY = 'rt2rp_stops_helper_dismissed';
 
-export function TourTab({ tripId, trip }: TourTabProps) {
+export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
   const { canEdit } = useTripPermission();
   const { data: stops = [], isLoading } = useEngagements(tripId);
   const createStop = useCreateEngagement();
@@ -249,9 +253,19 @@ export function TourTab({ tripId, trip }: TourTabProps) {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h3 className="text-lg font-semibold">Tour Stops</h3>
         <div className="flex items-center gap-2 flex-wrap">
-          {/* v2.1.25: Removed "Regenerate from bookings" - Tours are manual only */}
-          {/* v2.0.9: Bulk import button */}
-          {canEdit && (
+          {/* v2.3.2: Business tier bulk import button (enhanced) */}
+          {/* v2.0.9: Basic bulk import for all edit users */}
+          {canEdit && canBulkImport && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setBulkDialogOpen(true)}
+            >
+              <ListPlus className="w-4 h-4 mr-2" />
+              Bulk Import
+            </Button>
+          )}
+          {canEdit && !canBulkImport && (
             <Button 
               variant="outline" 
               size="sm"
@@ -511,13 +525,24 @@ export function TourTab({ tripId, trip }: TourTabProps) {
         </DialogContent>
       </Dialog>
 
-      {/* v2.0.9: Bulk Stops Dialog */}
-      <BulkStopsDialog
-        open={bulkDialogOpen}
-        onOpenChange={setBulkDialogOpen}
-        tripId={tripId}
-        defaultDate={defaultBulkDate}
-      />
+      {/* v2.3.2: Conditional dialog based on plan tier */}
+      {/* Business tier gets enhanced BulkStopsDialogV2 */}
+      {/* Free/Pro tier gets basic BulkStopsDialog */}
+      {canBulkImport ? (
+        <BulkStopsDialogV2
+          open={bulkDialogOpen}
+          onOpenChange={setBulkDialogOpen}
+          tripId={tripId}
+          defaultDate={defaultBulkDate}
+        />
+      ) : (
+        <BulkStopsDialog
+          open={bulkDialogOpen}
+          onOpenChange={setBulkDialogOpen}
+          tripId={tripId}
+          defaultDate={defaultBulkDate}
+        />
+      )}
 
       {/* Delete confirmation */}
       <AlertDialog open={!!stopToDelete} onOpenChange={(open) => !open && setStopToDelete(null)}>
