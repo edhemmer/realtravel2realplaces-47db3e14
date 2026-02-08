@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useBookings, useCreateBooking, useUpdateBooking, useDeleteBooking } from '@/hooks/useBookings';
 import { useCompanions } from '@/hooks/useCompanions';
 import { useBookingCompanionsByTrip, useSetBookingCompanions } from '@/hooks/useBookingCompanions';
@@ -43,6 +43,8 @@ import { ManualStepHint, MANUAL_STEP_HINTS } from '@/components/trips/ManualStep
 import { CompanionDetailDialog } from '@/components/trips/CompanionDetailDialog';
 import { isEmailFile, extractEmailBody } from '@/lib/emailBody';
 import { ParseOriginHint, EstimatedHint, ParseOrigin } from '@/components/trips/ParseHint';
+// v2.1.24: Import normalized cost calculation for accurate Frontier-style display
+import { normalizeFlightBookingCosts } from '@/lib/expenseCalculations';
 
 // Helper to safely open external URLs in new tab
 const openExternalUrl = (url: string | null | undefined) => {
@@ -75,6 +77,12 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
   const setBookingCompanions = useSetBookingCompanions();
   const createExpense = useCreateExpense();
   const markTicketsPurchased = useMarkTicketsPurchased();
+  
+  // v2.1.24: Compute normalized per-booking costs for Frontier-style display
+  // This ensures the Bookings tab shows the same costs as Summary/Expenses
+  const { perBookingCost, perBookingMyShare } = useMemo(() => {
+    return normalizeFlightBookingCosts(bookings);
+  }, [bookings]);
   
   // Hook to sync trip dates when bookings are added
   const { syncTripDates } = useTripDateSync(tripId, bookings, trip, canEdit);
@@ -903,22 +911,32 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                   </div>
                 )}
                 
-                {(booking.total_cost > 0 || booking.my_share > 0) && (
-                  <div className="flex gap-4 pt-2 border-t text-xs">
-                    {booking.total_cost > 0 && (
-                      <div>
-                        <span className="text-muted-foreground">Total: </span>
-                        <span className="font-medium">${booking.total_cost}</span>
-                      </div>
-                    )}
-                    {booking.my_share > 0 && (
-                      <div>
-                        <span className="text-muted-foreground">My Share: </span>
-                        <span className="font-medium text-primary">${booking.my_share}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
+                {/* v2.1.24: Use normalized costs for display (Frontier-style single total) */}
+                {(() => {
+                  // Get normalized cost for this booking
+                  const normalizedCost = perBookingCost[booking.id] ?? booking.total_cost ?? 0;
+                  const normalizedMyShare = perBookingMyShare[booking.id] ?? booking.my_share ?? 0;
+                  
+                  // Only show cost section if there's something to display
+                  if (normalizedCost <= 0 && normalizedMyShare <= 0) return null;
+                  
+                  return (
+                    <div className="flex gap-4 pt-2 border-t text-xs">
+                      {normalizedCost > 0 && (
+                        <div>
+                          <span className="text-muted-foreground">Total: </span>
+                          <span className="font-medium">${normalizedCost.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {normalizedMyShare > 0 && (
+                        <div>
+                          <span className="text-muted-foreground">My Share: </span>
+                          <span className="font-medium text-primary">${normalizedMyShare.toFixed(2)}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Linked Companions */}
                 {getCompanionsForBooking(booking.id).length > 0 && (
