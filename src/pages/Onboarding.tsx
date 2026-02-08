@@ -1,8 +1,13 @@
 /**
  * Onboarding Page - In-App Education Flow
  * 
- * Patch 2.4.2: Educational onboarding for new users explaining RT2RP
- * philosophy, features, and plan differences.
+ * Patch 2.1.18: Onboarding uses DB-backed flag (has_completed_onboarding)
+ * 
+ * BEHAVIOR:
+ * - Shows only once after first signup/login for new users
+ * - Completing or skipping sets has_completed_onboarding = true in DB
+ * - Works consistently across desktop and mobile (persistent in DB)
+ * - Can be manually re-viewed via Account page (doesn't reset DB flag)
  * 
  * Features:
  * - Multi-step walkthrough
@@ -11,10 +16,10 @@
  * - Reporting explanation
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -37,20 +42,19 @@ import {
   Users,
   Crown,
 } from 'lucide-react';
+import { 
+  useCompleteOnboarding, 
+  clearManualOnboardingView,
+  isManualOnboardingView,
+  setManualOnboardingView
+} from '@/hooks/useOnboardingStatus';
 
-// Mark onboarding as completed
-export function markOnboardingComplete() {
-  localStorage.setItem('rt2rp_onboarding_completed', 'true');
-}
-
-// Check if onboarding was completed
-export function hasCompletedOnboarding(): boolean {
-  return localStorage.getItem('rt2rp_onboarding_completed') === 'true';
-}
-
-// Reset onboarding (for testing or re-viewing)
+/**
+ * Reset onboarding for manual view from Account page
+ * Sets localStorage flag so the page shows, but does NOT reset DB
+ */
 export function resetOnboarding() {
-  localStorage.removeItem('rt2rp_onboarding_completed');
+  setManualOnboardingView(true);
 }
 
 const STEPS = [
@@ -65,15 +69,32 @@ const STEPS = [
 export default function Onboarding() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
+  const completeOnboarding = useCompleteOnboarding();
+  const isManualView = isManualOnboardingView();
 
   const progress = ((currentStep + 1) / STEPS.length) * 100;
 
-  const handleNext = () => {
+  // Clear manual view flag when leaving the page
+  useEffect(() => {
+    return () => {
+      clearManualOnboardingView();
+    };
+  }, []);
+
+  const handleNext = async () => {
     if (currentStep < STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
-      // Complete onboarding
-      markOnboardingComplete();
+      // Complete onboarding - mark in DB (only if not manual view)
+      if (!isManualView) {
+        try {
+          await completeOnboarding.mutateAsync();
+        } catch (err) {
+          console.error('Failed to mark onboarding complete:', err);
+          // Still navigate even if DB update fails
+        }
+      }
+      clearManualOnboardingView();
       navigate('/dashboard');
     }
   };
@@ -84,8 +105,16 @@ export default function Onboarding() {
     }
   };
 
-  const handleSkip = () => {
-    markOnboardingComplete();
+  const handleSkip = async () => {
+    // Mark complete in DB (only if not manual view)
+    if (!isManualView) {
+      try {
+        await completeOnboarding.mutateAsync();
+      } catch (err) {
+        console.error('Failed to mark onboarding complete:', err);
+      }
+    }
+    clearManualOnboardingView();
     navigate('/dashboard');
   };
 

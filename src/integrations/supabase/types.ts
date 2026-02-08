@@ -467,6 +467,7 @@ export type Database = {
           display_name: string | null
           distance_unit: string | null
           first_name: string | null
+          has_completed_onboarding: boolean
           id: string
           last_name: string | null
           lifetime_trip_count: number
@@ -486,6 +487,7 @@ export type Database = {
           display_name?: string | null
           distance_unit?: string | null
           first_name?: string | null
+          has_completed_onboarding?: boolean
           id?: string
           last_name?: string | null
           lifetime_trip_count?: number
@@ -505,6 +507,7 @@ export type Database = {
           display_name?: string | null
           distance_unit?: string | null
           first_name?: string | null
+          has_completed_onboarding?: boolean
           id?: string
           last_name?: string | null
           lifetime_trip_count?: number
