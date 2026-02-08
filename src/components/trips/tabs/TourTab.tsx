@@ -319,59 +319,64 @@ export function TourTab({ tripId, trip }: TourTabProps) {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-3">
+        <div className="grid gap-2">
           {stops.map((stop) => (
             <Card 
               key={stop.id} 
               className="hover:shadow-sm transition-shadow"
             >
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-4">
+              <CardContent className="py-2.5 px-3">
+                <div className="flex items-center justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <h4 className="font-medium truncate">{stop.name}</h4>
-                      {/* v2.1.26: Origin badge */}
-                      {stop.origin === 'parsed' && (
-                        <Badge variant="secondary" className="text-xs px-1.5 py-0">Parsed</Badge>
-                      )}
-                      {/* v2.1.26: Store number badge */}
+                    {/* v2.1.27: Tighter header row with name + badges inline */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <h4 className="font-medium text-sm truncate">{stop.name}</h4>
+                      {/* v2.1.27: Store number pill - visually distinct */}
                       {stop.store_number && (
-                        <Badge variant="outline" className="text-xs px-1.5 py-0 gap-1">
-                          <Store className="w-3 h-3" />#{stop.store_number}
+                        <Badge 
+                          variant="outline" 
+                          className="text-[10px] font-medium px-1.5 py-0 h-4 bg-muted/50 border-muted-foreground/20 gap-0.5"
+                        >
+                          <Store className="w-2.5 h-2.5" />
+                          #{stop.store_number}
                         </Badge>
                       )}
+                      {/* v2.1.26: Origin badge - subtle */}
+                      {stop.origin === 'parsed' && (
+                        <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">Parsed</Badge>
+                      )}
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                    {/* v2.1.27: Compact metadata row */}
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground mt-0.5">
                       <span className="flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5" />
+                        <Clock className="w-3 h-3" />
                         {formatDate(stop.date)} at {formatTime(stop.start_time)}
                         {stop.end_time && ` – ${formatTime(stop.end_time)}`}
                       </span>
-                      {/* v2.1.26: Address display with Maps link */}
                       {(stop.address || stop.location) && (
                         <span className="flex items-center gap-1">
-                          <MapPin className="w-3.5 h-3.5" />
-                          <span className="truncate max-w-[200px]">{stop.address || stop.location}</span>
+                          <MapPin className="w-3 h-3" />
+                          <span className="truncate max-w-[180px]">{stop.address || stop.location}</span>
                         </span>
                       )}
                     </div>
                     {stop.notes && (
-                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
                         {stop.notes}
                       </p>
                     )}
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    {/* v2.1.26: Maps button uses address first, falls back to location */}
+                  {/* v2.1.27: Compact action buttons */}
+                  <div className="flex items-center gap-0.5 shrink-0">
                     {(stop.address || stop.location) && (
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => window.open(buildMapsUrl(stop.address || stop.location!), '_blank', 'noopener,noreferrer')}
-                        className="h-8 w-8 text-primary hover:text-primary"
+                        className="h-7 w-7 text-primary hover:text-primary"
                         title="Open in Maps"
                       >
-                        <Navigation className="h-4 w-4" />
+                        <Navigation className="h-3.5 w-3.5" />
                       </Button>
                     )}
                     {canEdit && (
@@ -380,18 +385,18 @@ export function TourTab({ tripId, trip }: TourTabProps) {
                           variant="ghost"
                           size="icon"
                           onClick={() => openEditDialog(stop)}
-                          className="h-8 w-8"
+                          className="h-7 w-7"
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="h-3.5 w-3.5" />
                           <span className="sr-only">Edit stop</span>
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => setStopToDelete(stop.id)}
-                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5" />
                           <span className="sr-only">Delete stop</span>
                         </Button>
                       </>
