@@ -242,6 +242,7 @@ export type Database = {
       }
       engagements: {
         Row: {
+          address: string | null
           created_at: string
           date: string
           end_time: string | null
@@ -249,12 +250,15 @@ export type Database = {
           location: string | null
           name: string
           notes: string | null
+          origin: string
           reference_id: string | null
           start_time: string
+          store_number: string | null
           trip_id: string
           updated_at: string
         }
         Insert: {
+          address?: string | null
           created_at?: string
           date: string
           end_time?: string | null
@@ -262,12 +266,15 @@ export type Database = {
           location?: string | null
           name: string
           notes?: string | null
+          origin?: string
           reference_id?: string | null
           start_time: string
+          store_number?: string | null
           trip_id: string
           updated_at?: string
         }
         Update: {
+          address?: string | null
           created_at?: string
           date?: string
           end_time?: string | null
@@ -275,8 +282,10 @@ export type Database = {
           location?: string | null
           name?: string
           notes?: string | null
+          origin?: string
           reference_id?: string | null
           start_time?: string
+          store_number?: string | null
           trip_id?: string
           updated_at?: string
         }
@@ -521,6 +530,54 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      stop_reminders: {
+        Row: {
+          created_at: string
+          engagement_id: string
+          id: string
+          reminder_datetime: string
+          reminder_sent: boolean
+          trip_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          engagement_id: string
+          id?: string
+          reminder_datetime: string
+          reminder_sent?: boolean
+          trip_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          engagement_id?: string
+          id?: string
+          reminder_datetime?: string
+          reminder_sent?: boolean
+          trip_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stop_reminders_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "engagements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stop_reminders_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       support_tickets: {
         Row: {

@@ -49,6 +49,8 @@ import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Engagement entity representing a Stop in a Trip
+ * 
+ * v2.1.26: Extended with origin, address, and store_number fields
  */
 export interface Engagement {
   id: string;
@@ -60,12 +62,19 @@ export interface Engagement {
   location: string | null;
   reference_id: string | null;
   notes: string | null;
+  /** v2.1.26: Origin of the stop - 'manual' or 'parsed' */
+  origin: 'manual' | 'parsed';
+  /** v2.1.26: Full address for Maps linking */
+  address: string | null;
+  /** v2.1.26: Store/location number for retail/business stops */
+  store_number: string | null;
   created_at: string;
   updated_at: string;
 }
 
 /**
  * Input for creating a new Engagement
+ * v2.1.26: Extended with origin, address, and store_number fields
  */
 export interface CreateEngagementInput {
   trip_id: string;
@@ -76,10 +85,17 @@ export interface CreateEngagementInput {
   location?: string | null;
   reference_id?: string | null;
   notes?: string | null;
+  /** Origin: 'manual' (default) or 'parsed' (from bulk import) */
+  origin?: 'manual' | 'parsed';
+  /** Full address for Maps linking */
+  address?: string | null;
+  /** Store/location number */
+  store_number?: string | null;
 }
 
 /**
  * Input for updating an existing Engagement
+ * v2.1.26: Extended with origin, address, and store_number fields
  */
 export interface UpdateEngagementInput {
   id: string;
@@ -90,6 +106,9 @@ export interface UpdateEngagementInput {
   location?: string | null;
   reference_id?: string | null;
   notes?: string | null;
+  origin?: 'manual' | 'parsed';
+  address?: string | null;
+  store_number?: string | null;
 }
 
 /**
@@ -164,6 +183,10 @@ export function useCreateEngagement() {
           location: input.location || null,
           reference_id: input.reference_id || null,
           notes: input.notes || null,
+          // v2.1.26: New fields
+          origin: input.origin || 'manual',
+          address: input.address || null,
+          store_number: input.store_number || null,
         })
         .select()
         .single();

@@ -1,170 +1,49 @@
 /**
  * BulkStopsDialog - Bulk Tour Stop Ingestion
  * 
- * v2.0.9: Allows Business users to add multiple stops at once via:
- * - Copy/paste multiline text
- * - Drag & drop a plain text file (.txt)
+ * v2.1.26: Enhanced parsing with date, address, store number extraction
+ * - Parses dates from each line (required)
+ * - Extracts times, addresses, store numbers
+ * - Inline editing in preview mode
+ * - Origin tracking (parsed vs manual)
  * 
- * Parsing Rules (v1 - accuracy over cleverness):
- * - Each non-empty line = one stop
- * - Title: text before first "-" or "," (if present)
- * - Location: remaining text after separator
- * - Time hint: trailing time token (9:30 AM, 14:00, etc.)
- * - Never fail whole batch because of one bad line
+ * v2.0.9: Original bulk import functionality
  */
 
 import { useState, useCallback, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Upload, FileText, Clock, MapPin, Check, AlertCircle, Trash2 } from 'lucide-react';
+import { Upload, FileText, Clock, MapPin, Check, AlertCircle, Trash2, Store, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useCreateEngagement } from '@/hooks/useEngagements';
-import { ParseOriginHint, ParseOrigin } from '@/components/trips/ParseHint';
+import { useUpsertStopReminder } from '@/hooks/useStopReminders';
+import { parseStopsFromText, ParsedStopResult, formatTimeForDisplay } from '@/lib/stopParsing';
 
 interface BulkStopsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   tripId: string;
-  defaultDate: string; // ISO date for new stops
-}
-
-interface ParsedStop {
-  id: string;
-  title: string;
-  location: string;
-  timeHint: string | null; // e.g., "09:30" or null
-  timeIsEstimated: boolean; // v2.1.3: true if time was defaulted
-  rawLine: string;
-  parseError?: string;
-}
-
-// Time patterns to detect trailing times
-const TIME_PATTERNS = [
-  // 12-hour format: 9:30 AM, 9:30AM, 9:30 am, etc.
-  /\b(\d{1,2}):(\d{2})\s*(am|pm|AM|PM)\s*$/i,
-  // 24-hour format: 14:00, 09:30, etc.
-  /\b(\d{1,2}):(\d{2})\s*$/,
-  // Hour only with AM/PM: 9 AM, 9AM, etc.
-  /\b(\d{1,2})\s*(am|pm|AM|PM)\s*$/i,
-];
-
-/**
- * Parse a single line into a stop object
- */
-function parseLine(line: string, index: number): ParsedStop {
-  const rawLine = line.trim();
-  const id = `bulk-${index}-${Date.now()}`;
-  
-  if (!rawLine) {
-    return {
-      id,
-      title: '',
-      location: '',
-      timeHint: null,
-      timeIsEstimated: true,
-      rawLine,
-      parseError: 'Empty line',
-    };
-  }
-  
-  let workingText = rawLine;
-  let timeHint: string | null = null;
-  
-  // Try to extract trailing time
-  for (const pattern of TIME_PATTERNS) {
-    const match = workingText.match(pattern);
-    if (match) {
-      // Parse the matched time into HH:MM format
-      if (match[3]) {
-        // 12-hour format with AM/PM
-        let hours = parseInt(match[1], 10);
-        const minutes = match[2] ? match[2] : '00';
-        const isPM = match[3]?.toLowerCase() === 'pm' || match[2]?.toLowerCase() === 'pm';
-        
-        if (isPM && hours !== 12) hours += 12;
-        if (!isPM && hours === 12) hours = 0;
-        
-        timeHint = `${hours.toString().padStart(2, '0')}:${minutes}`;
-      } else if (match[2]) {
-        // 24-hour format HH:MM
-        const hours = parseInt(match[1], 10);
-        timeHint = `${hours.toString().padStart(2, '0')}:${match[2]}`;
-      }
-      
-      // Remove time from working text
-      workingText = workingText.replace(pattern, '').trim();
-      break;
-    }
-  }
-  
-  // Split on first separator (- or ,)
-  let title = workingText;
-  let location = '';
-  
-  const separatorIndex = Math.min(
-    workingText.indexOf('-') >= 0 ? workingText.indexOf('-') : Infinity,
-    workingText.indexOf(',') >= 0 ? workingText.indexOf(',') : Infinity
-  );
-  
-  if (separatorIndex !== Infinity) {
-    title = workingText.slice(0, separatorIndex).trim();
-    location = workingText.slice(separatorIndex + 1).trim();
-  }
-  
-  // v2.1.3: Track if time was found or will be estimated
-  const timeIsEstimated = timeHint === null;
-  
-  return {
-    id,
-    title: title || rawLine, // Fallback to full line if no title extracted
-    location,
-    timeHint,
-    timeIsEstimated,
-    rawLine,
-  };
-}
-
-/**
- * Parse multiline text into stop objects
- */
-function parseStopsText(text: string): ParsedStop[] {
-  const lines = text.split('\n');
-  return lines
-    .map((line, index) => parseLine(line, index))
-    .filter(stop => stop.title.length > 0); // Filter out empty lines
-}
-
-/**
- * Format time hint for display
- */
-function formatTimeHint(timeHint: string | null): string {
-  if (!timeHint) return '--:--';
-  
-  const [hours, minutes] = timeHint.split(':').map(Number);
-  const date = new Date();
-  date.setHours(hours, minutes, 0);
-  return format(date, 'h:mm a');
+  defaultDate: string; // ISO date fallback for stops without dates
 }
 
 export function BulkStopsDialog({ open, onOpenChange, tripId, defaultDate }: BulkStopsDialogProps) {
   const [inputText, setInputText] = useState('');
-  const [parsedStops, setParsedStops] = useState<ParsedStop[]>([]);
+  const [parsedStops, setParsedStops] = useState<ParsedStopResult[]>([]);
   const [showPreview, setShowPreview] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // v2.1.3: Track parse source for confidence indicators (Tour context)
-  const [parseSource, setParseSource] = useState<ParseOrigin>(null);
-  
   const createStop = useCreateEngagement();
+  const upsertReminder = useUpsertStopReminder();
   
   const resetDialog = useCallback(() => {
     setInputText('');
@@ -172,7 +51,6 @@ export function BulkStopsDialog({ open, onOpenChange, tripId, defaultDate }: Bul
     setShowPreview(false);
     setIsCreating(false);
     setIsDragOver(false);
-    setParseSource(null);
   }, []);
   
   const handleClose = useCallback((open: boolean) => {
@@ -188,7 +66,7 @@ export function BulkStopsDialog({ open, onOpenChange, tripId, defaultDate }: Bul
       return;
     }
     
-    const stops = parseStopsText(inputText);
+    const stops = parseStopsFromText(inputText);
     
     if (stops.length === 0) {
       toast.error('No valid stops found');
@@ -197,16 +75,26 @@ export function BulkStopsDialog({ open, onOpenChange, tripId, defaultDate }: Bul
     
     setParsedStops(stops);
     setShowPreview(true);
-    setParseSource('bulk_import');
   }, [inputText]);
   
   const handleRemoveStop = useCallback((id: string) => {
     setParsedStops(prev => prev.filter(s => s.id !== id));
   }, []);
   
+  // Update a parsed stop field
+  const handleUpdateStop = useCallback((id: string, field: keyof ParsedStopResult, value: string) => {
+    setParsedStops(prev => prev.map(stop => {
+      if (stop.id !== id) return stop;
+      return { ...stop, [field]: value, needsReview: false };
+    }));
+  }, []);
+  
   const handleConfirmAdd = useCallback(async () => {
-    if (parsedStops.length === 0) {
-      toast.error('No stops to add');
+    // Filter out stops without required fields
+    const validStops = parsedStops.filter(stop => stop.name && stop.date);
+    
+    if (validStops.length === 0) {
+      toast.error('No valid stops to add. Each stop needs a name and date.');
       return;
     }
     
@@ -215,19 +103,38 @@ export function BulkStopsDialog({ open, onOpenChange, tripId, defaultDate }: Bul
     let failCount = 0;
     
     // Create stops in order
-    for (const stop of parsedStops) {
+    for (const stop of validStops) {
       try {
-        const startTime = stop.timeHint ? `${stop.timeHint}:00` : '09:00:00';
+        const startTime = stop.startTime ? `${stop.startTime}:00` : '09:00:00';
         
-        await createStop.mutateAsync({
+        const result = await createStop.mutateAsync({
           trip_id: tripId,
-          name: stop.title,
-          date: defaultDate,
+          name: stop.name,
+          date: stop.date!,
           start_time: startTime,
           end_time: null,
-          location: stop.location || null,
-          notes: null,
+          location: null, // Legacy field, use address instead
+          address: stop.address || null,
+          store_number: stop.storeNumber || null,
+          notes: stop.notes || null,
+          origin: 'parsed', // Mark as parsed from bulk import
         });
+        
+        // Create reminder if stop has an explicit time
+        if (stop.startTime && result) {
+          try {
+            await upsertReminder.mutateAsync({
+              engagementId: result.id,
+              tripId: tripId,
+              date: stop.date!,
+              startTime: startTime,
+            });
+          } catch (reminderError) {
+            console.warn('Failed to create reminder for stop:', reminderError);
+            // Don't fail the whole operation for a reminder
+          }
+        }
+        
         successCount++;
       } catch (error) {
         console.error('Error creating stop:', error);
@@ -235,19 +142,24 @@ export function BulkStopsDialog({ open, onOpenChange, tripId, defaultDate }: Bul
       }
     }
     
-    if (failCount === 0) {
+    const skippedCount = parsedStops.length - validStops.length;
+    
+    if (failCount === 0 && skippedCount === 0) {
       toast.success(`Added ${successCount} stop${successCount !== 1 ? 's' : ''}`, {
-        description: 'You can edit times, names, or locations after import.',
+        description: 'Reminders set for stops with times.',
         duration: 5000,
       });
     } else if (successCount > 0) {
-      toast.warning(`Added ${successCount} stop${successCount !== 1 ? 's' : ''}, ${failCount} failed`);
+      let message = `Added ${successCount} stop${successCount !== 1 ? 's' : ''}`;
+      if (failCount > 0) message += `, ${failCount} failed`;
+      if (skippedCount > 0) message += `, ${skippedCount} skipped (missing date)`;
+      toast.warning(message);
     } else {
       toast.error('Failed to add stops');
     }
     
     handleClose(false);
-  }, [parsedStops, tripId, defaultDate, createStop, handleClose]);
+  }, [parsedStops, tripId, createStop, upsertReminder, handleClose]);
   
   // File handling
   const handleFileSelect = useCallback((file: File) => {
@@ -261,11 +173,10 @@ export function BulkStopsDialog({ open, onOpenChange, tripId, defaultDate }: Bul
       const text = e.target?.result as string;
       setInputText(text);
       // Auto-parse after file load
-      const stops = parseStopsText(text);
+      const stops = parseStopsFromText(text);
       if (stops.length > 0) {
         setParsedStops(stops);
         setShowPreview(true);
-        setParseSource('bulk_import');
         toast.success(`Parsed ${stops.length} stop${stops.length !== 1 ? 's' : ''} from file`);
       }
     };
@@ -300,13 +211,17 @@ export function BulkStopsDialog({ open, onOpenChange, tripId, defaultDate }: Bul
     e.target.value = '';
   };
   
+  // Count stops that need review
+  const needsReviewCount = parsedStops.filter(s => s.needsReview).length;
+  const validCount = parsedStops.filter(s => s.name && s.date).length;
+  
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-[85vh] flex flex-col">
+      <DialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Bulk Add Stops</DialogTitle>
           <DialogDescription>
-            Paste multiple stops or drag a .txt file. One stop per line.
+            Paste multiple stops or drag a .txt file. Include date, time, and address for each stop.
           </DialogDescription>
         </DialogHeader>
         
@@ -332,10 +247,10 @@ export function BulkStopsDialog({ open, onOpenChange, tripId, defaultDate }: Bul
                 <Textarea
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
-                  placeholder={`Client meeting - 123 Main St, 9:30 AM
-Office visit, Downtown HQ 2:00 PM
-Lunch with team - Cafe Rio
-Conference call 3:30 PM`}
+                  placeholder={`Meeting with Client A, Feb 15 2024, 9:30 AM, 123 Main St, Denver CO 80202
+Walmart Store #4532, 2/16/24, 10:00 AM, 456 Oak Ave, Aurora CO
+Lunch downtown, February 17, 2024, 12:30 PM
+Office visit - 789 Business Blvd, Suite 100`}
                   rows={8}
                   className="resize-none font-mono text-sm"
                 />
@@ -365,8 +280,9 @@ Conference call 3:30 PM`}
             <Alert className="bg-muted/50 border-muted-foreground/20">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="text-xs">
-                <strong>Format:</strong> Title - Location, Time<br />
-                Times like "9:30 AM" or "14:00" are detected automatically.
+                <strong>Format (one stop per line):</strong><br />
+                Name, Date, Time (optional), Address (optional), Store # (optional)<br />
+                <span className="text-muted-foreground">Dates like "Feb 15, 2024" or "2/15/24" are detected automatically.</span>
               </AlertDescription>
             </Alert>
             
@@ -387,58 +303,108 @@ Conference call 3:30 PM`}
         ) : (
           <div className="space-y-4 flex-1 min-h-0 flex flex-col">
             {/* Preview header */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary">{parsedStops.length} stop{parsedStops.length !== 1 ? 's' : ''}</Badge>
-                <span className="text-sm text-muted-foreground">
-                  for {format(new Date(defaultDate), 'MMM d, yyyy')}
-                </span>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="secondary">{parsedStops.length} parsed</Badge>
+                <Badge variant="default" className="bg-green-600">{validCount} ready</Badge>
+                {needsReviewCount > 0 && (
+                  <Badge variant="destructive">{needsReviewCount} need review</Badge>
+                )}
               </div>
               <Button variant="ghost" size="sm" onClick={() => setShowPreview(false)}>
                 Edit text
               </Button>
             </div>
             
-            {/* v2.1.3: Parsed-from indicator */}
-            {parseSource && (
-              <ParseOriginHint origin={parseSource} />
+            {/* Warning for stops needing review */}
+            {needsReviewCount > 0 && (
+              <Alert className="bg-amber-500/10 border-amber-500/30">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-xs text-amber-700">
+                  {needsReviewCount} stop{needsReviewCount !== 1 ? 's' : ''} couldn't be fully parsed. 
+                  Edit the fields below or they will be skipped.
+                </AlertDescription>
+              </Alert>
             )}
             
-            {/* Parsed stops list */}
+            {/* Parsed stops list - editable */}
             <ScrollArea className="flex-1 -mx-2 px-2">
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {parsedStops.map((stop) => (
-                  <Card key={stop.id} className="border-muted">
-                    <CardContent className="p-3">
+                  <Card 
+                    key={stop.id} 
+                    className={`border ${stop.needsReview ? 'border-amber-400 bg-amber-50/30' : 'border-muted'}`}
+                  >
+                    <CardContent className="p-3 space-y-2">
+                      {/* Row 1: Name and delete button */}
                       <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{stop.title}</p>
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                            {stop.location && (
-                              <span className="flex items-center gap-1">
-                                <MapPin className="w-3 h-3" />
-                                <span className="truncate max-w-[150px]">{stop.location}</span>
-                              </span>
-                            )}
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {formatTimeHint(stop.timeHint)}
-                              {/* v2.1.3: Time confidence hint */}
-                              {stop.timeIsEstimated && (
-                                <span className="text-muted-foreground/70">(estimated)</span>
-                              )}
-                            </span>
-                          </div>
+                        <div className="flex-1">
+                          <Input
+                            value={stop.name}
+                            onChange={(e) => handleUpdateStop(stop.id, 'name', e.target.value)}
+                            placeholder="Stop name"
+                            className="font-medium text-sm h-8"
+                          />
                         </div>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0"
                           onClick={() => handleRemoveStop(stop.id)}
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
+                      
+                      {/* Row 2: Date, Time, Store # */}
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Date *</Label>
+                          <Input
+                            type="date"
+                            value={stop.date || ''}
+                            onChange={(e) => handleUpdateStop(stop.id, 'date', e.target.value)}
+                            className={`h-7 text-xs ${!stop.date ? 'border-red-400' : ''}`}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Time</Label>
+                          <Input
+                            type="time"
+                            value={stop.startTime || ''}
+                            onChange={(e) => handleUpdateStop(stop.id, 'startTime', e.target.value)}
+                            className="h-7 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Store #</Label>
+                          <Input
+                            value={stop.storeNumber || ''}
+                            onChange={(e) => handleUpdateStop(stop.id, 'storeNumber', e.target.value)}
+                            placeholder="#1234"
+                            className="h-7 text-xs"
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Row 3: Address */}
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Address</Label>
+                        <Input
+                          value={stop.address || ''}
+                          onChange={(e) => handleUpdateStop(stop.id, 'address', e.target.value)}
+                          placeholder="Street, City, State ZIP"
+                          className="h-7 text-xs"
+                        />
+                      </div>
+                      
+                      {/* Parse error hint */}
+                      {stop.parseError && (
+                        <p className="text-xs text-amber-600 flex items-center gap-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          {stop.parseError}
+                        </p>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
@@ -446,24 +412,33 @@ Conference call 3:30 PM`}
             </ScrollArea>
             
             {/* Confirm actions */}
-            <div className="flex justify-end gap-2 pt-2 border-t">
-              <Button variant="outline" onClick={() => handleClose(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={handleConfirmAdd}
-                disabled={parsedStops.length === 0 || isCreating}
-                className="bg-gradient-ocean hover:opacity-90"
-              >
-                {isCreating ? (
-                  'Adding...'
+            <div className="flex justify-between items-center gap-2 pt-2 border-t">
+              <p className="text-xs text-muted-foreground">
+                {validCount > 0 ? (
+                  <>Stops with times get 1-hour reminders</>
                 ) : (
-                  <>
-                    <Check className="w-4 h-4 mr-2" />
-                    Add {parsedStops.length} Stop{parsedStops.length !== 1 ? 's' : ''}
-                  </>
+                  <span className="text-amber-600">Fix dates to add stops</span>
                 )}
-              </Button>
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => handleClose(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleConfirmAdd}
+                  disabled={validCount === 0 || isCreating}
+                  className="bg-gradient-ocean hover:opacity-90"
+                >
+                  {isCreating ? (
+                    'Adding...'
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4 mr-2" />
+                      Add {validCount} Stop{validCount !== 1 ? 's' : ''}
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         )}
