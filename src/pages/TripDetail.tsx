@@ -10,15 +10,18 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, MapPin, Calendar, Eye, Users } from 'lucide-react';
 import { format } from 'date-fns';
-import { SummaryTab } from '@/components/trips/tabs/SummaryTab';
-import { BookingsTab } from '@/components/trips/tabs/BookingsTab';
-import { ExpensesTab } from '@/components/trips/tabs/ExpensesTab';
+// Patch 2.2.2: Import containers for canonical data flow
+import {
+  TripSummaryContainer,
+  TripBookingsContainer,
+  TripTourContainer,
+  TripExpensesContainer,
+} from '@/containers';
 import { ParkingTab } from '@/components/trips/tabs/ParkingTab';
 import { PackingTab } from '@/components/trips/tabs/PackingTab';
 import { CompanionsTab } from '@/components/trips/tabs/CompanionsTab';
 import { NotesTab } from '@/components/trips/tabs/NotesTab';
 import { ExploreTab } from '@/components/trips/tabs/ExploreTab';
-import { TourTab } from '@/components/trips/tabs/TourTab';
 import { TripSummaryReportTab } from '@/components/trips/tabs/TripSummaryReportTab';
 import { TripHeaderWidgets } from '@/components/trips/TripHeaderWidgets';
 import { TripStatusHeroBar } from '@/components/trips/TripStatusHeroBar';
@@ -221,12 +224,14 @@ export default function TripDetail() {
             </TabsList>
 
             <div className="mt-6">
+              {/* Patch 2.2.2: Use container components for canonical data flow */}
               <TabsContent value="summary">
-                <SummaryTab tripId={trip.id} trip={trip} onDrillThrough={handleDrillThrough} />
+                <TripSummaryContainer tripId={trip.id} trip={trip} onDrillThrough={handleDrillThrough} />
               </TabsContent>
               <TabsContent value="bookings">
-                <BookingsTab 
-                  tripId={trip.id} 
+                <TripBookingsContainer 
+                  tripId={trip.id}
+                  trip={trip}
                   highlightId={drillTarget?.tab === 'bookings' ? drillTarget.recordId : undefined}
                   onHighlightConsumed={clearDrillTarget}
                 />
@@ -236,7 +241,7 @@ export default function TripDetail() {
               {/* v2.1.6: Tour no longer receives bookings prop - fetches canonical state internally */}
               {canAccessBusinessFeatures && (
                 <TabsContent value="tour">
-                  <TourTab tripId={trip.id} trip={trip} />
+                  <TripTourContainer tripId={trip.id} trip={trip} />
                 </TabsContent>
               )}
               
@@ -244,7 +249,7 @@ export default function TripDetail() {
                 <CompanionsTab tripId={trip.id} />
               </TabsContent>
               <TabsContent value="expenses">
-                <ExpensesTab tripId={trip.id} />
+                <TripExpensesContainer tripId={trip.id} trip={trip} />
               </TabsContent>
               <TabsContent value="parking">
                 <ParkingTab 
