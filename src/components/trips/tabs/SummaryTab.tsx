@@ -112,11 +112,14 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
   const { data: bookingCompanions = [] } = useBookingCompanionsByTrip(tripId);
   const { data: userProfile } = useUserProfile();
   const { isPro } = useAccess();
+  const temperatureUnit = (userProfile?.temperature_unit as 'fahrenheit' | 'celsius') || 'fahrenheit';
   const { tripForecast, weatherAnalysis, isLoading: weatherLoading } = useTripWeather(
     trip.destination_city,
     trip.destination_country,
     trip.start_date,
-    trip.end_date
+    trip.end_date,
+    trip.destination_state || undefined,
+    temperatureUnit
   );
   
   // v2.0.7: Get canonical trip state - SINGLE SOURCE OF TRUTH for dates, times, costs
@@ -128,7 +131,7 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
   const { dateRange, timelineEvents: timeline, costs: costSummary } = canonicalState;
   
   // Travel alerts for weather changes, departure reminders, parking expiry
-  const { alerts, hasAlerts, criticalCount } = useTravelAlerts(trip, bookings, parkingList);
+  const { alerts, hasAlerts, criticalCount } = useTravelAlerts(trip, bookings, parkingList, temperatureUnit);
 
   // Determine transportation mode - auto-detect if unspecified
   const hasFlights = canonicalState.hasFlights;

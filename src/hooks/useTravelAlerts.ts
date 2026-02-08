@@ -55,7 +55,8 @@ function setWeatherCache(tripId: string, weather: PreviousWeather) {
 export function useTravelAlerts(
   trip: Trip | null,
   bookings: Booking[],
-  parkingList: Parking[]
+  parkingList: Parking[],
+  temperatureUnit: 'fahrenheit' | 'celsius' = 'fahrenheit'
 ) {
   const [weatherAlerts, setWeatherAlerts] = useState<TravelAlert[]>([]);
   
@@ -63,11 +64,24 @@ export function useTravelAlerts(
     trip?.destination_city || '',
     trip?.destination_country || '',
     trip?.start_date || '',
-    trip?.end_date || ''
+    trip?.end_date || '',
+    trip?.destination_state || undefined,
+    temperatureUnit
   );
 
   const now = new Date();
   const tripId = trip?.id;
+
+  // Create stable dependency keys for weather data
+  const weatherAnalysisKey = JSON.stringify({
+    hasRain: weatherAnalysis.hasRain,
+    hasCold: weatherAnalysis.hasCold,
+    hasHot: weatherAnalysis.hasHot,
+    hasSnow: weatherAnalysis.hasSnow,
+    avgHigh: weatherAnalysis.avgHigh,
+    avgLow: weatherAnalysis.avgLow,
+  });
+  const tripForecastKey = JSON.stringify(tripForecast.map(d => d.date));
 
   // Weather change detection
   useEffect(() => {
@@ -137,7 +151,8 @@ export function useTravelAlerts(
 
     setWeatherAlerts(alerts);
     setWeatherCache(tripId, currentWeather);
-  }, [tripId, weatherAnalysis, tripForecast, weatherLoading]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tripId, weatherAnalysisKey, tripForecastKey, weatherLoading]);
 
   // Departure and pickup reminders
   const departureAlerts = useMemo(() => {

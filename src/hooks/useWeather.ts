@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-
+import { useMemo } from 'react';
 interface WeatherData {
   current: {
     temperature: number;
@@ -194,19 +194,94 @@ export function useWeather(city: string, country: string, state?: string, enable
   });
 }
 
-export function useTripWeather(city: string, country: string, startDate: string, endDate: string, state?: string) {
+/**
+ * Weather thresholds for Cold/Hot labels
+ * Applied to daily HIGH temperatures only:
+ * - Fahrenheit: Cold < 45°F, Hot > 90°F
+ * - Celsius: Cold < 7°C, Hot > 32°C
+ */
+export const WEATHER_THRESHOLDS = {
+  fahrenheit: { cold: 45, hot: 90 },
+  celsius: { cold: 7, hot: 32 },
+} as const;
+
+/**
+ * Maximum number of forecast days to display
+ */
+export const MAX_FORECAST_DAYS = 7;
+
+/**
+ * Determine if a day has rain based on forecast data
+ * Rain is indicated when precipitation probability >= 30% OR condition includes rain/shower
+ */
+export function dayHasRain(precipitation: number, condition: string): boolean {
+  return precipitation >= 30 || condition.includes('Rain') || condition.includes('Shower');
+}
+
+/**
+ * Determine if a day is "Cold" based on its HIGH temperature
+ * Threshold depends on user's preferred unit
+ */
+export function dayIsCold(tempHighF: number, unit: 'fahrenheit' | 'celsius'): boolean {
+  const threshold = unit === 'celsius' 
+    ? WEATHER_THRESHOLDS.celsius.cold 
+    : WEATHER_THRESHOLDS.fahrenheit.cold;
+  
+  // Convert to user's unit for comparison
+  const tempInUnit = unit === 'celsius' 
+    ? Math.round((tempHighF - 32) * 5 / 9) 
+    : tempHighF;
+  
+  return tempInUnit < threshold;
+}
+
+/**
+ * Determine if a day is "Hot" based on its HIGH temperature
+ * Threshold depends on user's preferred unit
+ */
+export function dayIsHot(tempHighF: number, unit: 'fahrenheit' | 'celsius'): boolean {
+  const threshold = unit === 'celsius' 
+    ? WEATHER_THRESHOLDS.celsius.hot 
+    : WEATHER_THRESHOLDS.fahrenheit.hot;
+  
+  // Convert to user's unit for comparison
+  const tempInUnit = unit === 'celsius' 
+    ? Math.round((tempHighF - 32) * 5 / 9) 
+    : tempHighF;
+  
+  return tempInUnit > threshold;
+}
+
+export function useTripWeather(
+  city: string, 
+  country: string, 
+  startDate: string, 
+  endDate: string, 
+  state?: string,
+  temperatureUnit: 'fahrenheit' | 'celsius' = 'fahrenheit'
+) {
   const weatherQuery = useWeather(city, country, state);
   
-  // Filter forecast to trip dates
-  const tripForecast = weatherQuery.data?.forecast.filter(day => {
-    return day.date >= startDate && day.date <= endDate;
-  }) || [];
+  // Filter forecast to trip dates only (exact calendar date match)
+  // Limit to MAX_FORECAST_DAYS consecutive days
+  // Memoize to prevent unnecessary re-renders
+  const tripForecast = useMemo(() => {
+    return (weatherQuery.data?.forecast.filter(day => {
+      return day.date >= startDate && day.date <= endDate;
+    }) || []).slice(0, MAX_FORECAST_DAYS);
+  }, [weatherQuery.data?.forecast, startDate, endDate]);
   
-  // Analyze weather for packing recommendations
-  const weatherAnalysis = {
-    hasRain: tripForecast.some(d => d.precipitation > 30 || d.condition.includes('Rain') || d.condition.includes('Shower')),
-    hasCold: tripForecast.some(d => d.tempLow < 50),
-    hasHot: tripForecast.some(d => d.tempHigh > 80),
+  // Analyze weather for packing recommendations and badges
+  // Uses correct thresholds based on user's temperature unit preference
+  // Memoize to prevent unnecessary re-renders
+  const weatherAnalysis = useMemo(() => ({
+    // Rain: precipitation >= 30% OR condition includes rain/shower
+    hasRain: tripForecast.some(d => dayHasRain(d.precipitation, d.condition)),
+    // Cold: at least one day's HIGH < threshold (45°F or 7°C)
+    hasCold: tripForecast.some(d => dayIsCold(d.tempHigh, temperatureUnit)),
+    // Hot: at least one day's HIGH > threshold (90°F or 32°C)
+    hasHot: tripForecast.some(d => dayIsHot(d.tempHigh, temperatureUnit)),
+    // Snow: condition contains "Snow"
     hasSnow: tripForecast.some(d => d.condition.includes('Snow')),
     avgHigh: tripForecast.length > 0 
       ? Math.round(tripForecast.reduce((sum, d) => sum + d.tempHigh, 0) / tripForecast.length)
@@ -214,11 +289,14 @@ export function useTripWeather(city: string, country: string, startDate: string,
     avgLow: tripForecast.length > 0 
       ? Math.round(tripForecast.reduce((sum, d) => sum + d.tempLow, 0) / tripForecast.length)
       : null,
-  };
+  }), [tripForecast, temperatureUnit]);
+  
+  // Memoize current to prevent unnecessary re-renders
+  const current = useMemo(() => weatherQuery.data?.current || null, [weatherQuery.data?.current]);
   
   return {
     ...weatherQuery,
-    current: weatherQuery.data?.current || null,
+    current,
     tripForecast,
     weatherAnalysis,
   };
