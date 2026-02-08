@@ -1,4 +1,12 @@
-import { useState, useEffect } from 'react';
+/**
+ * Dashboard - My Trips listing page
+ * 
+ * v2.1.28: Performance hardening
+ * - Memoized TripCard component to prevent re-renders on list updates
+ * - Stable callback references for navigation and delete handlers
+ */
+
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTrips, useDeleteTrip } from '@/hooks/useTrips';
 import { useSharedTrips, SharedTrip } from '@/hooks/useSharedTrips';
 import { Layout } from '@/components/Layout';
@@ -38,12 +46,22 @@ export default function Dashboard() {
     }
   }, [isLoading, sharedLoading, onboardingLoading, shouldShowOnboarding, navigate]);
 
-  const handleDeleteTrip = () => {
+  // v2.1.28: Stable callback for delete confirmation
+  const handleDeleteTrip = useCallback(() => {
     if (tripToDelete) {
       deleteTrip.mutate(tripToDelete);
       setTripToDelete(null);
     }
-  };
+  }, [tripToDelete, deleteTrip]);
+  
+  // v2.1.28: Stable callbacks for TripCard
+  const handleNavigate = useCallback((id: string) => {
+    navigate(`/trip/${id}`);
+  }, [navigate]);
+  
+  const handleRequestDelete = useCallback((id: string) => {
+    setTripToDelete(id);
+  }, []);
   // Include onboarding loading state in overall loading check
   if (isLoading || sharedLoading || onboardingLoading) {
     return <Layout>
@@ -52,15 +70,22 @@ export default function Dashboard() {
         </div>
       </Layout>;
   }
-  const TripCard = ({
+  // v2.1.28: Memoized TripCard to prevent unnecessary re-renders
+  const TripCard = React.memo(function TripCard({
     trip,
     isShared = false,
-    index
+    index,
+    isPro,
+    onDelete,
+    onNavigate,
   }: {
     trip: Trip | SharedTrip;
     isShared?: boolean;
     index: number;
-  }) => {
+    isPro: boolean;
+    onDelete: (id: string) => void;
+    onNavigate: (id: string) => void;
+  }) {
     // v2.1.6: Get lifecycle-based styling
     const { cardClassName, isLocked } = getTripCardLifecycleStyles(trip as Trip, isPro);
     const tripState = (trip as Trip).trip_state || 'active';
@@ -73,9 +98,14 @@ export default function Dashboard() {
     // v2.1.7: Hide delete for Free users
     const canDelete = isPro && !isShared && tripState === 'active';
 
-    const handleCardClick = () => {
-      navigate(`/trip/${trip.id}`);
-    };
+    const handleCardClick = useCallback(() => {
+      onNavigate(trip.id);
+    }, [onNavigate, trip.id]);
+    
+    const handleDeleteClick = useCallback((e: React.MouseEvent) => {
+      e.stopPropagation();
+      onDelete(trip.id);
+    }, [onDelete, trip.id]);
 
     // v2.0.2: Past trips get muted styling for visual hierarchy
     const pastTripStyles = isPastTrip ? 'opacity-60 bg-muted/30' : '';
@@ -135,10 +165,7 @@ export default function Dashboard() {
                <Button 
                  variant="ghost" 
                  size="sm" 
-                 onClick={(e) => {
-                   e.stopPropagation();
-                   setTripToDelete(trip.id);
-                 }} 
+                 onClick={handleDeleteClick} 
                  className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
                >
                  <Trash2 className="w-4 h-4" />
@@ -148,7 +175,7 @@ export default function Dashboard() {
         </CardContent>
       </Card>
     );
-  };
+  });
   const hasTrips = trips && trips.length > 0 || sharedTrips.length > 0;
   return <Layout>
       <div className="space-y-6 animate-fade-in">
@@ -169,7 +196,16 @@ export default function Dashboard() {
             <h2 className="text-lg font-semibold">
         </h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {trips.map((trip: Trip, index: number) => <TripCard key={trip.id} trip={trip} index={index} />)}
+              {trips.map((trip: Trip, index: number) => (
+                <TripCard 
+                  key={trip.id} 
+                  trip={trip} 
+                  index={index}
+                  isPro={isPro}
+                  onDelete={handleRequestDelete}
+                  onNavigate={handleNavigate}
+                />
+              ))}
             </div>
           </div>}
 
@@ -180,7 +216,17 @@ export default function Dashboard() {
               Shared With Me
             </h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {sharedTrips.map((trip: SharedTrip, index: number) => <TripCard key={trip.id} trip={trip} isShared index={index} />)}
+              {sharedTrips.map((trip: SharedTrip, index: number) => (
+                <TripCard 
+                  key={trip.id} 
+                  trip={trip} 
+                  isShared 
+                  index={index}
+                  isPro={isPro}
+                  onDelete={handleRequestDelete}
+                  onNavigate={handleNavigate}
+                />
+              ))}
             </div>
           </div>}
 
