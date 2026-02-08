@@ -3,6 +3,7 @@
  * Single source of truth for all expense math
  * 
  * Patch 2.6.2: Commercial Code Integrity Documentation
+ * Patch 2.1.23: Tour/Booking Separation Enforcement
  * 
  * DATA INTEGRITY - SINGLE SOURCE OF TRUTH:
  * - calculateTripCostSummary() is the ONLY function for trip cost aggregation
@@ -10,11 +11,19 @@
  * - All exports (Trip Summary Report PDF) use this function
  * - This ensures UI and exports always match
  * 
+ * TOUR/BOOKING SEPARATION (v2.1.23):
+ * - Bookings = anything with money (flights, stays, rentals, activities, tickets)
+ * - Tours = timeline "stops" / places we go, with NO cost logic
+ * - Tour/Engagement entities are NEVER included in any cost calculations
+ * - calculateTripCostSummary() uses ONLY: expenses, bookings, parkingList
+ * - The Engagement table has no cost fields and must stay that way
+ * 
  * CALCULATION PHILOSOPHY:
  * - Bookings: Calculated at booking-level, NOT segment-level
  * - Expenses: Only out-of-pocket (excludes booking-linked to prevent double counting)
  * - Parking: Tracked separately, NOT included in Total Trip Cost
  * - Total = Bookings + Out-of-pocket Expenses
+ * - Tours/Engagements = EXCLUDED from all cost math
  * 
  * ERROR PREVENTION:
  * - safeNumber() guards ensure all returned values are finite and non-negative
