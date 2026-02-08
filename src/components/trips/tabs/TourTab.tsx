@@ -1,23 +1,25 @@
 /**
  * TourTab - Business-tier Stops UI
  * 
- * v2.1.6: Tour/Bookings separation via canonical state
- * - Tour no longer depends on Booking models directly
- * - Auto-draft uses canonical timeline events, not booking records
- * - Tour stops are independent records, not live pointers to bookings
+ * v2.1.25: MANUAL STOPS ONLY
+ * - Tours are NO LONGER auto-generated from Bookings
+ * - All stops must be manually added by the user
+ * - Removed: "Generate from bookings", "Regenerate from bookings" actions
+ * - Removed: Auto-draft useEffect and related logic
+ * - Removed: "From flight/stay" source hints
  * 
- * Patch 2.6.25: Tour auto-draft from bookings (via canonical events)
+ * v2.1.23: Tour/Booking Separation Enforcement
+ * - Tour stops are non-monetary, independent records
+ * - Tours have NO cost fields and are NEVER used in cost calculations
+ * 
  * v2.0.9: Bulk stop ingestion + Google Maps integration
  * 
  * Allows Business users to add, view, and edit Stops (work locations) on a trip.
  * Stops are distinct from Stays (lodging) and represent places where work is done.
  */
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useEngagements, useCreateEngagement, useUpdateEngagement, useDeleteEngagement, Engagement } from '@/hooks/useEngagements';
-import { useBookings } from '@/hooks/useBookings';
-import { useExpenses } from '@/hooks/useExpenses';
-import { useParking } from '@/hooks/useParking';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,23 +37,16 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, MapPin, Clock, Trash2, Pencil, X, Info, RefreshCw, Plane, Building2, Car, ListPlus, Navigation } from 'lucide-react';
+import { Plus, MapPin, Clock, Trash2, Pencil, X, Info, ListPlus, Navigation } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { useTripPermission } from '@/pages/TripDetail';
-import { ManualStepHint } from '@/components/trips/ManualStepHint';
 import { BulkStopsDialog } from '@/components/trips/BulkStopsDialog';
 import { Trip } from '@/types/database';
-import { StopSourceHint, inferStopSource } from '@/components/trips/ParseHint';
-import { 
-  getCanonicalTripState, 
-  generateTourDraftFromCanonicalEvents,
-  TourDraftStop,
-} from '@/lib/canonicalTripState';
 
 /**
- * v2.1.6: TourTab props no longer include bookings
- * Tour fetches its own canonical state to maintain separation
+ * v2.1.25: TourTab is now manual-only
+ * Tours are NEVER auto-generated from Bookings
  */
 interface TourTabProps {
   tripId: string;
@@ -78,8 +73,6 @@ const EMPTY_FORM: StopFormData = {
 
 // Dismissible helper message key for localStorage
 const HELPER_DISMISSED_KEY = 'rt2rp_stops_helper_dismissed';
-// Track if auto-draft has been offered for this trip
-const AUTO_DRAFT_OFFERED_PREFIX = 'rt2rp_tour_autodraft_offered_';
 
 export function TourTab({ tripId, trip }: TourTabProps) {
   const { canEdit } = useTripPermission();
@@ -88,11 +81,8 @@ export function TourTab({ tripId, trip }: TourTabProps) {
   const updateStop = useUpdateEngagement();
   const deleteStop = useDeleteEngagement();
 
-  // v2.1.6: Fetch canonical data internally to maintain separation
-  // Tour only knows about canonical events, not booking structures
-  const { data: bookings = [], isLoading: bookingsLoading } = useBookings(tripId);
-  const { data: expenses = [] } = useExpenses(tripId);
-  const { data: parkingList = [] } = useParking(tripId);
+  // v2.1.25: Removed booking/expense/parking fetching - Tours are manual only
+  // No auto-generation from bookings
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -101,10 +91,6 @@ export function TourTab({ tripId, trip }: TourTabProps) {
   const [stopToDelete, setStopToDelete] = useState<string | null>(null);
   const [formData, setFormData] = useState<StopFormData>(EMPTY_FORM);
 
-  // Auto-draft state
-  const [isAutoDrafting, setIsAutoDrafting] = useState(false);
-  const autoDraftKey = `${AUTO_DRAFT_OFFERED_PREFIX}${tripId}`;
-  
   // Default date for bulk stops (trip start date or today)
   const defaultBulkDate = trip?.start_date || format(new Date(), 'yyyy-MM-dd');
 
@@ -113,34 +99,7 @@ export function TourTab({ tripId, trip }: TourTabProps) {
     return localStorage.getItem(HELPER_DISMISSED_KEY) === 'true';
   });
 
-  // v2.1.6: Generate draft stops from CANONICAL EVENTS, not direct bookings
-  // This enforces separation - Tour knows about events, not booking structure
-  const draftStops = useMemo<TourDraftStop[]>(() => {
-    if (!trip) return [];
-    const canonicalState = getCanonicalTripState(trip, bookings, expenses, parkingList);
-    return generateTourDraftFromCanonicalEvents(canonicalState.timelineEvents);
-  }, [trip, bookings, expenses, parkingList]);
-  
-  const hasDraftableBookings = draftStops.length > 0;
-
-  // Auto-draft on first visit with no stops
-  useEffect(() => {
-    const hasOfferedAutoDraft = localStorage.getItem(autoDraftKey) === 'true';
-    
-    if (
-      !isLoading &&
-      !bookingsLoading &&
-      stops.length === 0 &&
-      hasDraftableBookings &&
-      canEdit &&
-      !hasOfferedAutoDraft &&
-      !isAutoDrafting
-    ) {
-      // Auto-generate stops on first visit
-      handleAutoDraft();
-      localStorage.setItem(autoDraftKey, 'true');
-    }
-  }, [isLoading, bookingsLoading, stops.length, hasDraftableBookings, canEdit, autoDraftKey, isAutoDrafting]);
+  // v2.1.25: Removed auto-draft logic - Tours are manual only
 
   const dismissHelper = useCallback(() => {
     localStorage.setItem(HELPER_DISMISSED_KEY, 'true');
@@ -232,63 +191,7 @@ export function TourTab({ tripId, trip }: TourTabProps) {
     }
   };
 
-  // v2.1.6: Auto-draft stops from canonical events
-  const handleAutoDraft = async () => {
-    if (draftStops.length === 0) {
-      toast.info('No bookings available to draft stops from');
-      return;
-    }
-
-    setIsAutoDrafting(true);
-    let successCount = 0;
-
-    try {
-      for (const draft of draftStops) {
-        await createStop.mutateAsync({
-          trip_id: tripId,
-          name: draft.name,
-          date: draft.date,
-          start_time: draft.start_time,
-          end_time: draft.end_time,
-          location: draft.location || null,
-          notes: draft.notes || null,
-        });
-        successCount++;
-      }
-      toast.success(`Generated ${successCount} stops from bookings`);
-    } catch (error) {
-      console.error('Error auto-drafting stops:', error);
-      if (successCount > 0) {
-        toast.warning(`Generated ${successCount} stops, but some failed`);
-      } else {
-        toast.error('Failed to generate stops');
-      }
-    } finally {
-      setIsAutoDrafting(false);
-    }
-  };
-
-  // Regenerate (clear existing and re-draft)
-  const handleRegenerate = async () => {
-    if (draftStops.length === 0) {
-      toast.info('No bookings available to draft stops from');
-      return;
-    }
-
-    // Delete existing stops first
-    setIsAutoDrafting(true);
-    try {
-      for (const stop of stops) {
-        await deleteStop.mutateAsync({ id: stop.id, tripId });
-      }
-      // Now create new drafts
-      await handleAutoDraft();
-    } catch (error) {
-      console.error('Error regenerating stops:', error);
-      toast.error('Failed to regenerate stops');
-      setIsAutoDrafting(false);
-    }
-  };
+  // v2.1.25: Removed handleAutoDraft and handleRegenerate - Tours are manual only
 
   // Format time for display (HH:MM:SS -> h:mm a)
   const formatTime = (time: string) => {
@@ -313,16 +216,9 @@ export function TourTab({ tripId, trip }: TourTabProps) {
     );
   };
 
-  // Get source icon for a stop
-  const getSourceIcon = (notes: string | null) => {
-    if (!notes) return null;
-    if (notes.includes('flight')) return <Plane className="w-3.5 h-3.5 text-muted-foreground" />;
-    if (notes.includes('stay')) return <Building2 className="w-3.5 h-3.5 text-muted-foreground" />;
-    if (notes.includes('car rental') || notes.includes('rental')) return <Car className="w-3.5 h-3.5 text-muted-foreground" />;
-    return null;
-  };
+  // v2.1.25: Removed getSourceIcon - Tours are manual only, no source hints
 
-  if (isLoading || bookingsLoading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -336,18 +232,7 @@ export function TourTab({ tripId, trip }: TourTabProps) {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h3 className="text-lg font-semibold">Tour Stops</h3>
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Regenerate button - only show when there are bookings and existing stops */}
-          {canEdit && hasDraftableBookings && stops.length > 0 && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={handleRegenerate}
-              disabled={isAutoDrafting}
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${isAutoDrafting ? 'animate-spin' : ''}`} />
-              Regenerate from bookings
-            </Button>
-          )}
+          {/* v2.1.25: Removed "Regenerate from bookings" - Tours are manual only */}
           {/* v2.0.9: Bulk import button */}
           {canEdit && (
             <Button 
@@ -400,24 +285,13 @@ export function TourTab({ tripId, trip }: TourTabProps) {
             </div>
             <h4 className="text-base font-medium mb-1">No stops added</h4>
             <p className="text-sm text-muted-foreground mb-2 max-w-sm">
-              {hasDraftableBookings 
-                ? 'Stops can be auto-generated from your bookings, or added manually.'
-                : 'Stops are work locations and scheduled meetings during your trip.'}
+              Stops are work locations and scheduled meetings during your trip.
             </p>
             <p className="text-xs text-muted-foreground mb-4">
               Use the Bookings tab for lodging and Stays.
             </p>
             <div className="flex gap-2">
-              {canEdit && hasDraftableBookings && (
-                <Button 
-                  variant="outline"
-                  onClick={handleAutoDraft}
-                  disabled={isAutoDrafting}
-                >
-                  <RefreshCw className={`w-4 h-4 mr-2 ${isAutoDrafting ? 'animate-spin' : ''}`} />
-                  Generate from bookings
-                </Button>
-              )}
+              {/* v2.1.25: Removed "Generate from bookings" - Tours are manual only */}
               {canEdit && (
                 <Button onClick={openAddDialog} className="bg-gradient-ocean hover:opacity-90">
                   <Plus className="w-4 h-4 mr-2" />
@@ -438,7 +312,7 @@ export function TourTab({ tripId, trip }: TourTabProps) {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      {getSourceIcon(stop.notes)}
+                      {/* v2.1.25: Removed source icons - Tours are manual only */}
                       <h4 className="font-medium truncate">{stop.name}</h4>
                     </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
@@ -453,10 +327,9 @@ export function TourTab({ tripId, trip }: TourTabProps) {
                           <span className="truncate max-w-[200px]">{stop.location}</span>
                         </span>
                       )}
-                      {/* v2.1.3: Origin hint for non-manual stops */}
-                      <StopSourceHint source={inferStopSource(stop.notes)} />
+                      {/* v2.1.25: Removed StopSourceHint - Tours are manual only */}
                     </div>
-                    {stop.notes && !stop.notes.startsWith('Auto-drafted') && !stop.notes.toLowerCase().includes('imported') && (
+                    {stop.notes && (
                       <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
                         {stop.notes}
                       </p>
@@ -516,10 +389,6 @@ export function TourTab({ tripId, trip }: TourTabProps) {
             <DialogTitle>{editingStop ? 'Edit Stop' : 'Add Stop'}</DialogTitle>
             <DialogDescription>
               {editingStop ? 'Update the details for this stop.' : 'Add a work location or scheduled meeting.'}
-              <ManualStepHint 
-                message="You add stops manually to ensure your schedule reflects your actual commitments." 
-                className="mt-2" 
-              />
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">

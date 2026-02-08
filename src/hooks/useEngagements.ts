@@ -4,11 +4,19 @@
  * Part of Patch 2.3.0: Engagement Backend Foundation
  * Patch 2.6.2: Commercial Code Integrity Documentation
  * Patch 2.1.23: Tour/Booking Separation Enforcement
+ * Patch 2.1.25: Manual Stops Only (no auto-generation from bookings)
  * 
  * TERMINOLOGY:
  * - "Engagement" is the internal/database term
  * - "Stop" or "Tour Stop" is the user-facing term in the UI
  * - Stops are work locations / activities (NOT lodging - use Stays for that)
+ * 
+ * v2.1.25 RULE: MANUAL STOPS ONLY
+ * - Tours (Engagements) are NEVER auto-generated from bookings
+ * - All stops must be manually added by the user
+ * - The "Generate from bookings" and "Regenerate from bookings" actions have been removed
+ * - The TourTab starts empty until the user adds stops manually
+ * - Source hints ("From flight", "From stay") have been removed from the UI
  * 
  * TOUR/BOOKING SEPARATION (v2.1.23) - CRITICAL:
  * - Engagements are NON-MONETARY stops with NO cost fields
@@ -34,11 +42,6 @@
  * - RLS policies enforce trip ownership via user_can_write_trip()
  * - Only trip owners can create/update/delete Stops
  * - Read access includes shared trips via user_has_trip_access()
- * 
- * BUSINESS TIER GATING:
- * - UI access to Stops is gated via <BusinessOnly> wrapper
- * - Database operations are NOT tier-gated (no business tier in DB yet)
- * - When Business tier is added, consider adding DB-level checks
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
