@@ -11,8 +11,6 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { Trip, Booking, Parking, Companion } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TravelAlertsCard } from '@/components/trips/TravelAlertsCard';
 import { FlightSummaryCard } from '@/components/trips/FlightSummaryCard';
 import { DriveSummaryCard } from '@/components/trips/DriveSummaryCard';
@@ -24,27 +22,20 @@ import { UpcomingEventsWidget } from '@/components/trips/UpcomingEventsWidget';
 import { TripHealthChecklist } from '@/components/trips/TripHealthChecklist';
 import { FirstTripHint } from '@/components/trips/FirstTripHint';
 import { AirportSnapshotCard } from '@/components/trips/AirportSnapshotCard';
+import { TripTimeline } from '@/components/trips/TripTimeline';
 import { generateTripICS, downloadICSFile } from '@/lib/icsGenerator';
 import { logExpenseDebug } from '@/lib/expenseCalculations';
-import { UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
 import { 
   getCanonicalTripState, 
   CanonicalTimelineEvent,
 } from '@/lib/canonicalTripState';
 import { 
   formatTripDateRangeWithDuration,
-  formatEventTime,
-  formatEventDate,
-  formatCurrency,
-  TRIP_TOTAL_LABEL,
-  MY_SHARE_LABEL,
   DatetimeFormatPreference,
 } from '@/lib/displayFormats';
 import { 
-  Plane, Building2, Car, Calendar, MapPin, DollarSign, 
-  AlertTriangle, Download, ExternalLink, Clock, PartyPopper,
-  Cloud, Sun, CloudRain, Snowflake, Thermometer, Info, Globe, Utensils, Camera, Bell,
-  CircleParking, Compass, Ticket, TrainFront, Bus, TramFront, Ship
+  Calendar, MapPin, Download, ExternalLink, 
+  Cloud, Sun, CloudRain, Snowflake, Info, Globe, Utensils, Camera, Bell, PartyPopper
 } from 'lucide-react';
 import { format, parseISO, isAfter, differenceInDays } from 'date-fns';
 import { toast } from 'sonner';
@@ -190,24 +181,7 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
     .filter((p: Parking) => p.end_datetime && isAfter(parseISO(p.end_datetime), now))
     .sort((a: Parking, b: Parking) => parseISO(a.end_datetime!).getTime() - parseISO(b.end_datetime!).getTime())[0];
 
-  const getEventIcon = (type: string, transportMode?: string) => {
-    switch (type) {
-      case 'flight': return <Plane className="w-4 h-4" />;
-      case 'stay': return <Building2 className="w-4 h-4" />;
-      case 'car_rental': return <Car className="w-4 h-4" />;
-      case 'parking': return <CircleParking className="w-4 h-4" />;
-      case 'activity': return <Compass className="w-4 h-4" />; // v2.1.19: Distinct icon for activities
-      case 'transport':
-        switch (transportMode) {
-          case 'train': return <TrainFront className="w-4 h-4" />;
-          case 'bus': return <Bus className="w-4 h-4" />;
-          case 'metro': return <TramFront className="w-4 h-4" />;
-          case 'ferry': return <Ship className="w-4 h-4" />;
-          default: return <TrainFront className="w-4 h-4" />;
-        }
-      default: return <PartyPopper className="w-4 h-4" />;
-    }
-  };
+  // v2.1.21: getEventIcon moved to TripTimeline component
 
   const getWeatherIcon = (condition: string) => {
     if (condition.includes('Rain') || condition.includes('Shower')) return <CloudRain className="w-4 h-4" />;
@@ -405,92 +379,12 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
           <CardDescription>{tripDays} day{tripDays !== 1 ? 's' : ''} • {timeline.length} event{timeline.length !== 1 ? 's' : ''}</CardDescription>
         </CardHeader>
         <CardContent>
-          {timeline.length > 0 ? (
-            <div className="space-y-4">
-              {timeline.map((event, index) => (
-                <div 
-                  key={event.id} 
-                  className="flex gap-4 animate-slide-in cursor-pointer hover:bg-muted/50 rounded-lg p-2 -mx-2 transition-colors" 
-                  style={{ animationDelay: `${index * 50}ms` }}
-                  onClick={() => handleTimelineClick(event)}
-                >
-                  <div className="flex flex-col items-center">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                      {getEventIcon(event.bookingType, event.transportMode)}
-                    </div>
-                    {index < timeline.length - 1 && (
-                      <div className="w-px h-full bg-border mt-2 min-h-[20px]" />
-                    )}
-                  </div>
-                  <div className="flex-1 pb-4">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-medium text-sm">{event.title}</p>
-                        <p className="text-xs text-muted-foreground">{event.subtitle}</p>
-                        {/* v2.1.19: Activity-specific badges */}
-                        {event.bookingType === 'activity' && (
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {event.ticketRequired && (
-                              <Badge variant="secondary" className="text-[10px] h-4 px-1 gap-0.5">
-                                <Ticket className="w-2.5 h-2.5" />
-                                Ticket
-                              </Badge>
-                            )}
-                            {event.ticketsPurchased && (
-                              <Badge variant="outline" className="text-[10px] h-4 px-1 bg-accent">
-                                Tickets purchased
-                              </Badge>
-                            )}
-                            {event.activitySource && (
-                              <span className="text-[10px] text-muted-foreground">
-                                {event.activitySource === 'explore' ? 'From Explore' : 
-                                 event.activitySource === 'confirmation' ? 'From confirmation' : ''}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                      <div className="text-right text-xs shrink-0">
-                        <p className="font-medium">{formatEventDate(event.datetime, userProfile?.preferred_datetime_format as DatetimeFormatPreference)}</p>
-                         {/* v2.0.8: Unified time format from displayFormats */}
-                         <p className={event.hasExplicitTime ? 'text-muted-foreground' : 'text-destructive font-medium'}>
-                          {formatEventTime(event.datetime.toISOString(), userProfile?.preferred_datetime_format as DatetimeFormatPreference)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 mt-1">
-                      {event.address && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 px-2 text-xs"
-                          onClick={() => openInMaps(event.address!)}
-                        >
-                          <MapPin className="w-3 h-3 mr-1" />
-                          Maps
-                        </Button>
-                      )}
-                      {event.linkUrl && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 px-2 text-xs"
-                          onClick={() => openExternalUrl(event.linkUrl)}
-                        >
-                          <ExternalLink className="w-3 h-3 mr-1" />
-                          View
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-muted-foreground text-center py-8 text-sm">
-              No events yet. Add bookings and parking to build your timeline.
-            </p>
-          )}
+          {/* v2.1.21: Extracted to TripTimeline component with continuous vertical line */}
+          <TripTimeline 
+            events={timeline}
+            datetimeFormat={userProfile?.preferred_datetime_format as DatetimeFormatPreference}
+            onEventClick={handleTimelineClick}
+          />
         </CardContent>
       </Card>
     </div>
