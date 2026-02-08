@@ -4,6 +4,7 @@ import { useTripOwnership } from '@/hooks/useSharedTrips';
 import { useExploreDiscovery } from '@/hooks/useExploreDiscovery';
 import { useBookings } from '@/hooks/useBookings';
 import { useAccess } from '@/hooks/useAccess';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,8 @@ import { TripHeaderWidgets } from '@/components/trips/TripHeaderWidgets';
 import { TripStatusHeroBar } from '@/components/trips/TripStatusHeroBar';
 import { ProRetentionCountdownCard } from '@/components/trips/ProRetentionCountdownCard';
 import { TravelHelpButton } from '@/components/trips/TravelHelpButton';
+// Patch 2.2.3: Mobile-first layout components
+import { TripDetailLayout, type TripTab } from '@/components/layout';
 import { createContext, useContext, useState, useCallback, useMemo } from 'react';
 
 // Context to share ownership info with child components
@@ -57,9 +60,12 @@ export default function TripDetail() {
   const { data: bookings = [] } = useBookings(tripId || '');
   const { isPro, canAccessBusinessFeatures, tier } = useAccess();
   const { hasDiscovered: hasDiscoveredExplore, markDiscovered: markExploreDiscovered } = useExploreDiscovery();
+  // Patch 2.2.3: Mobile detection for bottom nav
+  const isMobile = useIsMobile();
   
   // v2.0.7: Tab and drill-through state
-  const [activeTab, setActiveTab] = useState('summary');
+  // Patch 2.2.3: Updated type for mobile navigation compatibility
+  const [activeTab, setActiveTab] = useState<TripTab>('summary');
   const [drillTarget, setDrillTarget] = useState<DrillThroughTarget>(null);
 
   // v2.5.0: Determine if trip has flights or is international for Travel Guide context
@@ -88,8 +94,9 @@ export default function TripDetail() {
   }, []);
 
   // v2.1.29: Mark Explore as discovered when switching to that tab
-  const handleTabChange = useCallback((value: string) => {
-    setActiveTab(value);
+  // Patch 2.2.3: Updated to accept TripTab type for mobile nav compatibility
+  const handleTabChange = useCallback((value: string | TripTab) => {
+    setActiveTab(value as TripTab);
     if (value === 'explore' && isPro && !hasDiscoveredExplore) {
       markExploreDiscovered();
     }
@@ -125,159 +132,166 @@ export default function TripDetail() {
   return (
     <TripPermissionContext.Provider value={{ isOwner, canEdit }}>
       <Layout>
-        <div className="space-y-6 animate-fade-in">
-          {/* v2.1.6: Trip Status Hero Bar - sticky at top */}
-          <TripStatusHeroBar trip={trip} />
+        {/* Patch 2.2.3: TripDetailLayout provides mobile bottom nav */}
+        <TripDetailLayout 
+          activeTab={activeTab} 
+          onTabChange={handleTabChange}
+          showBottomNav={true}
+        >
+          <div className="space-y-6 animate-fade-in">
+            {/* v2.1.6: Trip Status Hero Bar - sticky at top */}
+            <TripStatusHeroBar trip={trip} />
 
-          {/* v2.1.6: Pro Retention Countdown Card - shows for Pro closed trips */}
-          <ProRetentionCountdownCard trip={trip} />
+            {/* v2.1.6: Pro Retention Countdown Card - shows for Pro closed trips */}
+            <ProRetentionCountdownCard trip={trip} />
 
-          {/* Navigation */}
-          <div className="flex flex-col gap-4">
-            <Button asChild variant="ghost" className="w-fit -ml-2">
-              <Link to="/dashboard">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Trips
-              </Link>
-            </Button>
+            {/* Navigation */}
+            <div className="flex flex-col gap-4">
+              <Button asChild variant="ghost" className="w-fit -ml-2">
+                <Link to="/dashboard">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Trips
+                </Link>
+              </Button>
 
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <h1 className="text-3xl font-bold">{trip.name}</h1>
-                  {!isOwner && (
-                    <Badge variant="outline" className="flex items-center gap-1 bg-primary/5">
-                      <Users className="w-3 h-3" />
-                      {canEdit ? 'Shared (Edit)' : 'View Only'}
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <h1 className="text-2xl sm:text-3xl font-bold">{trip.name}</h1>
+                    {!isOwner && (
+                      <Badge variant="outline" className="flex items-center gap-1 bg-primary/5">
+                        <Users className="w-3 h-3" />
+                        {canEdit ? 'Shared (Edit)' : 'View Only'}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm sm:text-base text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-4 h-4" />
+                      {trip.destination_city}, {trip.destination_country}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-4 h-4" />
+                      {format(new Date(trip.start_date + 'T00:00:00'), 'MMM d')} - {format(new Date(trip.end_date + 'T00:00:00'), 'MMM d, yyyy')}
+                    </span>
+                  </div>
+                </div>
+
+                {/* v2.5.0: Travel Guide Help Button */}
+                <TravelHelpButton 
+                  trip={trip} 
+                  hasFlights={hasFlights} 
+                  isInternational={isInternational} 
+                />
+              </div>
+            </div>
+
+            {/* Read-only banner */}
+            {!isOwner && !canEdit && (
+              <div className="flex items-center gap-2 p-3 bg-muted/50 border rounded-lg text-sm text-muted-foreground">
+                <Eye className="w-4 h-4" />
+                <span className="text-xs sm:text-sm">You're viewing this trip in read-only mode. Only the trip owner can make changes.</span>
+              </div>
+            )}
+
+            {/* v1.2.8: Widget container moved below trip header */}
+            <TripHeaderWidgets trip={trip} />
+
+            {/* Patch 2.2.3: Desktop tabs (hidden on mobile - use bottom nav instead) */}
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+              {/* Hide tabs on mobile - navigation is via bottom nav */}
+              <TabsList className="w-full justify-start overflow-x-auto flex-nowrap hidden md:flex">
+                {/* Common tabs for all plans - first block */}
+                <TabsTrigger value="summary">Summary</TabsTrigger>
+                <TabsTrigger value="bookings">Bookings</TabsTrigger>
+                
+                {/* Business: Tour appears after Bookings */}
+                {canAccessBusinessFeatures && (
+                  <TabsTrigger value="tour">Tour</TabsTrigger>
+                )}
+                
+                {/* Common tabs continue */}
+                <TabsTrigger value="companions">Companions</TabsTrigger>
+                <TabsTrigger value="expenses">Expenses</TabsTrigger>
+                <TabsTrigger value="parking">Parking</TabsTrigger>
+                <TabsTrigger value="packing">Packing</TabsTrigger>
+                <TabsTrigger value="explore" className="relative">
+                  Explore
+                  {isPro && !hasDiscoveredExplore && (
+                    <Badge 
+                      variant="secondary" 
+                      className="absolute -top-1.5 -right-1.5 h-4 px-1.5 text-[10px] font-semibold bg-primary text-primary-foreground"
+                    >
+                      New
                     </Badge>
                   )}
-                </div>
-                <div className="flex flex-wrap items-center gap-4 text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <MapPin className="w-4 h-4" />
-                    {trip.destination_city}, {trip.destination_country}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    {format(new Date(trip.start_date + 'T00:00:00'), 'MMM d')} - {format(new Date(trip.end_date + 'T00:00:00'), 'MMM d, yyyy')}
-                  </span>
-                </div>
-              </div>
-
-              {/* v2.5.0: Travel Guide Help Button */}
-              <TravelHelpButton 
-                trip={trip} 
-                hasFlights={hasFlights} 
-                isInternational={isInternational} 
-              />
-            </div>
-          </div>
-
-          {/* Read-only banner */}
-          {!isOwner && !canEdit && (
-            <div className="flex items-center gap-2 p-3 bg-muted/50 border rounded-lg text-sm text-muted-foreground">
-              <Eye className="w-4 h-4" />
-              <span>You're viewing this trip in read-only mode. Only the trip owner can make changes.</span>
-            </div>
-          )}
-
-          {/* v1.2.8: Widget container moved below trip header */}
-          <TripHeaderWidgets trip={trip} />
-
-          {/* Tabs */}
-          {/* Patch 2.6.25: Plan-based tab visibility and ordering */}
-          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="w-full justify-start overflow-x-auto flex-nowrap">
-              {/* Common tabs for all plans - first block */}
-              <TabsTrigger value="summary">Summary</TabsTrigger>
-              <TabsTrigger value="bookings">Bookings</TabsTrigger>
-              
-              {/* Business: Tour appears after Bookings */}
-              {canAccessBusinessFeatures && (
-                <TabsTrigger value="tour">Tour</TabsTrigger>
-              )}
-              
-              {/* Common tabs continue */}
-              <TabsTrigger value="companions">Companions</TabsTrigger>
-              <TabsTrigger value="expenses">Expenses</TabsTrigger>
-              <TabsTrigger value="parking">Parking</TabsTrigger>
-              <TabsTrigger value="packing">Packing</TabsTrigger>
-              <TabsTrigger value="explore" className="relative">
-                Explore
-                {isPro && !hasDiscoveredExplore && (
-                  <Badge 
-                    variant="secondary" 
-                    className="absolute -top-1.5 -right-1.5 h-4 px-1.5 text-[10px] font-semibold bg-primary text-primary-foreground"
-                  >
-                    New
-                  </Badge>
+                </TabsTrigger>
+                
+                {/* Pro & Business: Report appears before Notes */}
+                {isPro && (
+                  <TabsTrigger value="report">Report</TabsTrigger>
                 )}
-              </TabsTrigger>
-              
-              {/* Pro & Business: Report appears before Notes */}
-              {isPro && (
-                <TabsTrigger value="report">Report</TabsTrigger>
-              )}
-              
-              {/* Notes & Safety is always last */}
-              <TabsTrigger value="notes">Notes & Safety</TabsTrigger>
-            </TabsList>
+                
+                {/* Notes & Safety is always last */}
+                <TabsTrigger value="notes">Notes & Safety</TabsTrigger>
+              </TabsList>
 
-            <div className="mt-6">
-              {/* Patch 2.2.2: Use container components for canonical data flow */}
-              <TabsContent value="summary">
-                <TripSummaryContainer tripId={trip.id} trip={trip} onDrillThrough={handleDrillThrough} />
-              </TabsContent>
-              <TabsContent value="bookings">
-                <TripBookingsContainer 
-                  tripId={trip.id}
-                  trip={trip}
-                  highlightId={drillTarget?.tab === 'bookings' ? drillTarget.recordId : undefined}
-                  onHighlightConsumed={clearDrillTarget}
-                />
-              </TabsContent>
-              
-              {/* Tour content - Business only */}
-              {/* v2.1.6: Tour no longer receives bookings prop - fetches canonical state internally */}
-              {canAccessBusinessFeatures && (
-                <TabsContent value="tour">
-                  <TripTourContainer tripId={trip.id} trip={trip} />
+              <div className="mt-4 sm:mt-6">
+                {/* Patch 2.2.2: Use container components for canonical data flow */}
+                <TabsContent value="summary">
+                  <TripSummaryContainer tripId={trip.id} trip={trip} onDrillThrough={handleDrillThrough} />
                 </TabsContent>
-              )}
-              
-              <TabsContent value="companions">
-                <CompanionsTab tripId={trip.id} />
-              </TabsContent>
-              <TabsContent value="expenses">
-                <TripExpensesContainer tripId={trip.id} trip={trip} />
-              </TabsContent>
-              <TabsContent value="parking">
-                <ParkingTab 
-                  tripId={trip.id}
-                  highlightId={drillTarget?.tab === 'parking' ? drillTarget.recordId : undefined}
-                  onHighlightConsumed={clearDrillTarget}
-                />
-              </TabsContent>
-              <TabsContent value="packing">
-                <PackingTab tripId={trip.id} />
-              </TabsContent>
-              <TabsContent value="explore">
-                <ExploreTab tripId={trip.id} trip={trip} />
-              </TabsContent>
-              
-              {/* Report content - Pro & Business only */}
-              {isPro && (
-                <TabsContent value="report">
-                  <TripSummaryReportTab tripId={trip.id} />
+                <TabsContent value="bookings">
+                  <TripBookingsContainer 
+                    tripId={trip.id}
+                    trip={trip}
+                    highlightId={drillTarget?.tab === 'bookings' ? drillTarget.recordId : undefined}
+                    onHighlightConsumed={clearDrillTarget}
+                  />
                 </TabsContent>
-              )}
-              
-              <TabsContent value="notes">
-                <NotesTab tripId={trip.id} />
-              </TabsContent>
-            </div>
-          </Tabs>
-        </div>
+                
+                {/* Tour content - Business only */}
+                {/* v2.1.6: Tour no longer receives bookings prop - fetches canonical state internally */}
+                {canAccessBusinessFeatures && (
+                  <TabsContent value="tour">
+                    <TripTourContainer tripId={trip.id} trip={trip} />
+                  </TabsContent>
+                )}
+                
+                <TabsContent value="companions">
+                  <CompanionsTab tripId={trip.id} />
+                </TabsContent>
+                <TabsContent value="expenses">
+                  <TripExpensesContainer tripId={trip.id} trip={trip} />
+                </TabsContent>
+                <TabsContent value="parking">
+                  <ParkingTab 
+                    tripId={trip.id}
+                    highlightId={drillTarget?.tab === 'parking' ? drillTarget.recordId : undefined}
+                    onHighlightConsumed={clearDrillTarget}
+                  />
+                </TabsContent>
+                <TabsContent value="packing">
+                  <PackingTab tripId={trip.id} />
+                </TabsContent>
+                <TabsContent value="explore">
+                  <ExploreTab tripId={trip.id} trip={trip} />
+                </TabsContent>
+                
+                {/* Report content - Pro & Business only */}
+                {isPro && (
+                  <TabsContent value="report">
+                    <TripSummaryReportTab tripId={trip.id} />
+                  </TabsContent>
+                )}
+                
+                <TabsContent value="notes">
+                  <NotesTab tripId={trip.id} />
+                </TabsContent>
+              </div>
+            </Tabs>
+          </div>
+        </TripDetailLayout>
       </Layout>
     </TripPermissionContext.Provider>
   );

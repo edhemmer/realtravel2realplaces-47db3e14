@@ -36,10 +36,26 @@ This document provides an overview of the application architecture for developer
 src/
 ├── components/           # React components
 │   ├── ui/              # shadcn/ui base components
+│   ├── cards/           # Patch 2.2.3: Shared presentational cards
+│   │   ├── BookingCard.tsx   # Booking entity card
+│   │   ├── TourStopCard.tsx  # Tour stop card
+│   │   ├── ExpenseCard.tsx   # Expense card
+│   │   └── index.ts
+│   ├── layout/          # Patch 2.2.3: Layout components
+│   │   ├── MobileBottomNav.tsx   # Mobile navigation
+│   │   ├── TripDetailLayout.tsx  # Trip page wrapper
+│   │   └── index.ts
 │   ├── trips/           # Trip-related components
 │   │   ├── tabs/        # Tab content components
 │   │   └── ...
 │   └── account/         # Account/settings components
+├── containers/          # Patch 2.2.2: Container components
+│   ├── index.ts         # Public API
+│   ├── TripSummaryContainer.tsx
+│   ├── TripBookingsContainer.tsx
+│   ├── TripTourContainer.tsx
+│   ├── TripExpensesContainer.tsx
+│   └── TripAlertsContainer.tsx
 ├── contexts/            # React contexts (AuthContext)
 ├── hooks/               # Custom React hooks
 │   ├── useTrips.ts      # Trip CRUD operations
@@ -72,15 +88,22 @@ docs/
 ├── DEVELOPER_GUIDE.md   # Development workflow
 ├── AI_PROMPTS.md        # AI system prompts reference
 └── COMPONENTS.md        # Component documentation
-
-containers/              # Patch 2.2.2: Container components
-├── index.ts             # Public API
-├── TripSummaryContainer.tsx
-├── TripBookingsContainer.tsx
-├── TripTourContainer.tsx
-├── TripExpensesContainer.tsx
-└── TripAlertsContainer.tsx
 ```
+
+### Mobile-First Architecture (Patch 2.2.3)
+
+The app follows a mobile-first responsive design:
+
+| Viewport | Navigation | Layout |
+|----------|------------|--------|
+| < 768px (mobile) | Fixed bottom nav with labeled icons | Full-width content with bottom padding |
+| ≥ 768px (desktop) | Horizontal tab bar | Standard container layout |
+
+Key mobile features:
+- Safe area handling for iOS home indicator (`pb-safe`)
+- Touch-optimized targets (min 44x44px)
+- "More" dropdown for secondary tabs
+- Bottom nav visible across all trip sections
 
 ---
 
