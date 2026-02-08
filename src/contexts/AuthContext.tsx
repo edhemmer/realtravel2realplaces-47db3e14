@@ -2,56 +2,13 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
-// Owner email that always gets Pro access
-const OWNER_EMAIL = 'edhemmer@gmail.com';
-
 /**
- * Ensure owner profile is always Pro tier
- * Idempotent: safe to call on every sign-in
+ * AuthContext - Core authentication provider
+ * 
+ * Patch 2.1.18: Removed all hard-coded plan overrides.
+ * Plan tier is determined ONLY by profiles.subscription_tier in the database.
+ * No user, email, or user ID should ever be forced to a specific plan in code.
  */
-async function ensureOwnerProStatus(user: User): Promise<void> {
-  if (user.email?.toLowerCase() !== OWNER_EMAIL.toLowerCase()) {
-    return; // Not the owner, do nothing
-  }
-
-  try {
-    // Check if profile exists
-    const { data: existingProfile, error: fetchError } = await supabase
-      .from('profiles')
-      .select('id, subscription_tier')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (fetchError) {
-      console.error('Error checking owner profile:', fetchError);
-      return;
-    }
-
-    if (existingProfile) {
-      // Profile exists - ensure Pro tier if not already
-      if (existingProfile.subscription_tier !== 'pro') {
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ 
-            subscription_tier: 'pro',
-            subscription_started_at: new Date().toISOString()
-          })
-          .eq('user_id', user.id);
-
-        if (updateError) {
-          console.error('Error updating owner to Pro:', updateError);
-        } else {
-          console.log('Owner profile normalized to Pro tier');
-        }
-      }
-    }
-    // Note: If no profile exists, the handle_new_user trigger will create one
-    // with default 'free' tier, and this function will update it on next sign-in.
-    // This is acceptable since the trigger runs first on initial signup.
-  } catch (err) {
-    console.error('Error in ensureOwnerProStatus:', err);
-  }
-}
 
 interface SignUpData {
   email: string;
@@ -141,16 +98,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
     
-    // After successful sign-in, ensure owner always has Pro status
-    if (!error && data.user) {
-      await ensureOwnerProStatus(data.user);
-    }
-    
+    // Patch 2.1.18: No hard-coded plan overrides - plan comes from DB only
     return { error };
   };
 
