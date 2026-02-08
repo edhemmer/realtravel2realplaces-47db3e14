@@ -556,6 +556,12 @@ export function getCanonicalTripState(
 /**
  * Tour draft stop structure
  * Used to generate Tour stops from canonical timeline events
+ * 
+ * v2.1.23: TOUR/BOOKING SEPARATION ENFORCEMENT
+ * - Tours are "stops only" - non-monetary timeline items
+ * - Tours have NO cost fields and are NEVER used in cost calculations
+ * - calculateTripCostSummary() uses ONLY bookings + expenses + parking
+ * - This draft structure is purely for UX convenience, not cost tracking
  */
 export interface TourDraftStop {
   name: string;
@@ -574,10 +580,23 @@ export interface TourDraftStop {
  * instead of directly reading booking records. Tour only knows about events,
  * not about the underlying booking structure.
  * 
- * RULES:
- * - Only generates drafts from flight, stay, and car_rental events
- * - Does NOT read booking records directly
- * - Creates independent Tour stops that are not live pointers to bookings
+ * v2.1.22: Updated to handle combined 'flight' event type
+ * 
+ * v2.1.23: TOUR/BOOKING SEPARATION - CRITICAL RULES:
+ * 1. Tour stops are INDEPENDENT records - deleting a booking does NOT delete the tour stop
+ * 2. Tour stops have NO cost fields - they are purely informational
+ * 3. The soft 'source' reference is for UX only (jump to booking), NOT for cost logic
+ * 4. All cost math (calculateTripCostSummary, canonical costs) ignores Tour/Engagement data
+ * 
+ * WHAT GENERATES TOUR DRAFTS:
+ * - Flights (combined event: creates departure stop with route info)
+ * - Stays (check-in/check-out events)
+ * - Car Rentals (pickup/dropoff events)
+ * 
+ * WHAT DOES NOT GENERATE TOUR DRAFTS:
+ * - Activities (already separate user-added content)
+ * - Parking (infrastructure, not a "stop")
+ * - Transport (ground transport events)
  * 
  * @param timelineEvents - Canonical timeline events from getCanonicalTripState
  * @returns Array of draft stops for Tour auto-generation
@@ -593,6 +612,24 @@ export function generateTourDraftFromCanonicalEvents(
     
     // Map timeline event types to Tour draft stops
     switch (event.eventType) {
+      // v2.1.22: Combined flight event type
+      case 'flight':
+        // Create a single tour stop for the flight (departure-focused)
+        const routeStr = event.departureAirportCode && event.arrivalAirportCode
+          ? `${event.departureAirportCode} → ${event.arrivalAirportCode}`
+          : event.title;
+        drafts.push({
+          name: `Flight: ${routeStr}`,
+          date: dateStr,
+          start_time: timeStr,
+          end_time: null,
+          location: event.address || event.title,
+          notes: `Auto-drafted from flight`,
+          source: 'flight',
+        });
+        break;
+        
+      // Legacy: Keep support for separate departure/arrival if any exist
       case 'flight_departure':
         drafts.push({
           name: `Depart: ${event.title}`,

@@ -3,11 +3,21 @@
  * 
  * Part of Patch 2.3.0: Engagement Backend Foundation
  * Patch 2.6.2: Commercial Code Integrity Documentation
+ * Patch 2.1.23: Tour/Booking Separation Enforcement
  * 
  * TERMINOLOGY:
  * - "Engagement" is the internal/database term
- * - "Stop" is the user-facing term in the UI
- * - Stops are work locations (NOT lodging - use Stays for that)
+ * - "Stop" or "Tour Stop" is the user-facing term in the UI
+ * - Stops are work locations / activities (NOT lodging - use Stays for that)
+ * 
+ * TOUR/BOOKING SEPARATION (v2.1.23) - CRITICAL:
+ * - Engagements are NON-MONETARY stops with NO cost fields
+ * - Engagements are NEVER used in any cost calculations
+ * - calculateTripCostSummary() does NOT accept engagements as input
+ * - The Engagement entity has: id, trip_id, name, date, time, location, notes
+ * - The Engagement entity does NOT have: price, cost, amount, currency, tax, fees
+ * - Deleting a Booking does NOT require deleting related Engagements
+ * - Engagements stand alone as "stops on the trip"
  * 
  * DATA INTEGRITY:
  * - Single source of truth for Stop data
