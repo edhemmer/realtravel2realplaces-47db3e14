@@ -1,23 +1,23 @@
-import { Link } from 'react-router-dom';
 import MockTripCard from './MockTripCard';
 
 export default function LandingProof() {
   return (
     <section className="landing-proof-section">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         {/* Section Header */}
-        <div className="text-center mb-16">
+        <div className="text-center mb-8">
           <h2 className="landing-section-headline">
-            This isn't a mockup
+            This isn't a demo. This is the real system.
           </h2>
           <p className="landing-section-subtext">
-            This is the actual app. Real trips, real confirmations, real control.
+            Real Travel 2 Real Places is already managing real trips with real confirmations.
+            <br className="hidden sm:block" />
+            What you see is what you use.
           </p>
         </div>
 
-        {/* Large framed screenshot showcase */}
+        {/* Browser frame showcase */}
         <div className="landing-proof-showcase">
-          {/* Browser frame wrapper */}
           <div className="landing-browser-frame">
             <div className="landing-browser-bar">
               <div className="landing-browser-dots">
@@ -31,21 +31,6 @@ export default function LandingProof() {
               <MockTripCard />
             </div>
           </div>
-          
-          {/* Caption */}
-          <p className="landing-proof-caption">
-            Your trip dashboard — flights, stays, expenses, and packing in one view
-          </p>
-        </div>
-
-        {/* CTA after proof */}
-        <div className="text-center mt-16">
-          <Link 
-            to="/auth?tab=signup" 
-            className="landing-btn-primary-hero"
-          >
-            Start managing your trips
-          </Link>
         </div>
       </div>
     </section>
