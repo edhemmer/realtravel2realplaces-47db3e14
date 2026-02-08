@@ -1,5 +1,15 @@
 /**
- * v2.6.3: Parse Booking Edge Function
+ * v2.1.19: Parse Booking Edge Function
+ * 
+ * COST INTEGRITY RULES (v2.1.19):
+ * - Airline confirmations with a SINGLE total trip price (Frontier-style):
+ *   Create ONE booking record with ONE total_cost for all legs combined.
+ *   Never assign the total to each leg separately.
+ * - Airline confirmations with per-leg prices:
+ *   Sum them for total_cost on the single booking record.
+ *   Never create separate booking records per leg.
+ * - If a field (price, tax, fee) is missing: leave null, never guess or copy.
+ * - total_cost = booking-level total, NOT sum of segment costs.
  * 
  * PERFORMANCE OPTIMIZATIONS:
  * - Uses shared datetime-utils for pre-compiled regex and short-circuit evaluations
