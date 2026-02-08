@@ -5,14 +5,14 @@ export default function LandingFooter() {
 
   return (
     <footer className="landing-footer">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Trust line */}
         <p className="landing-footer-trust">
-          Your data stays yours. Real Travel 2 Real Places does not sell personal information.
+          Real Travel 2 Real Places does not sell your personal information.
         </p>
 
         {/* Main footer content */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
           {/* Copyright */}
           <p className="landing-footer-copyright">
             © {currentYear} Real Travel 2 Real Places
