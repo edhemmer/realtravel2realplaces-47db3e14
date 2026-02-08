@@ -15,7 +15,7 @@ export default function LandingFooter() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
           {/* Copyright */}
           <p className="landing-footer-copyright">
-            © {currentYear} Real Travel 2 Real Places
+            © {currentYear} InLight AI, LLC. All rights reserved.
           </p>
 
           {/* Links */}

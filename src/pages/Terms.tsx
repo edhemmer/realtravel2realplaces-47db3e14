@@ -72,6 +72,10 @@ export default function Terms() {
                 support@realtravel2realplaces.com
               </a>
             </p>
+
+            <p className="mt-8 pt-6 border-t border-white/10 text-sm">
+              Real Travel 2 Real Places is owned and operated by InLight AI, LLC.
+            </p>
           </div>
         </div>
       </div>
