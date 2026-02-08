@@ -437,6 +437,34 @@ USING (user_has_trip_access(trip_id));
 
 ---
 
+## Performance Considerations (v2.1.28)
+
+### React Render Optimization
+
+| Component | Optimization | Impact |
+|-----------|--------------|--------|
+| `TripCard` (Dashboard) | `React.memo()` | Prevents re-render on sibling updates |
+| Navigation handlers | `useCallback()` | Stable references prevent child re-renders |
+| Canonical trip state | `useMemo()` | Caches timeline/cost calculations |
+| Cost summaries | `useMemo()` | Avoids recalculating on every render |
+
+### Data Fetching Rules
+
+1. **Single fetch per screen**: Trip data is fetched once by the parent page, not by each tab
+2. **Canonical hooks**: All components use `useCanonicalTripState` for trip state, `useAccess` for plan gating
+3. **Query caching**: TanStack Query caches results with configurable staleTime (30s for subscription)
+
+### Critical Invariants
+
+| Invariant | Enforcement |
+|-----------|-------------|
+| Bookings = money, Tours = stops | Tours have no cost fields; `calculateTripCostSummary` ignores them |
+| Single source of truth for plan | `useAccess()` is the only plan resolver |
+| Dates never shift by timezone | `parseISO(date + 'T00:00:00')` pattern |
+| Missing data stays blank | No guessing; `hasExplicitTime()` guards time display |
+
+---
+
 ## Next Steps
 
 - [DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md) - Development workflow

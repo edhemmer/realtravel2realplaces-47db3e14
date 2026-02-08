@@ -619,6 +619,75 @@ LIMIT 50;
 
 ---
 
+## Performance Optimization (v2.1.28)
+
+### React Render Efficiency
+
+**Memoization patterns used:**
+
+| Pattern | Where Used | Purpose |
+|---------|------------|---------|
+| `React.memo()` | `TripCard` in Dashboard | Prevent re-renders when list updates |
+| `useCallback()` | Navigation/delete handlers | Stable function references |
+| `useMemo()` | Canonical trip state, cost summaries | Cache expensive calculations |
+
+**Example - Memoized list item:**
+
+```typescript
+// ✅ Correct - memoized component with stable props
+const TripCard = React.memo(function TripCard({
+  trip,
+  isPro,
+  onDelete,
+  onNavigate,
+}: Props) {
+  // Use useCallback for internal handlers
+  const handleClick = useCallback(() => {
+    onNavigate(trip.id);
+  }, [onNavigate, trip.id]);
+  
+  return <Card onClick={handleClick}>...</Card>;
+});
+
+// Parent provides stable callbacks
+const handleNavigate = useCallback((id: string) => {
+  navigate(`/trip/${id}`);
+}, [navigate]);
+
+<TripCard trip={trip} onNavigate={handleNavigate} />
+```
+
+### Data Fetching Efficiency
+
+**Rules:**
+1. Fetch data once per screen via hooks, not per component
+2. Use canonical hooks (`useCanonicalTripState`, `useAccess`) not ad-hoc queries
+3. Avoid duplicate fetches by lifting data to parent components
+
+**Anti-patterns to avoid:**
+
+```typescript
+// ❌ Wrong - each card fetches its own data
+function TripCard({ tripId }) {
+  const { data } = useTrip(tripId); // N queries for N cards
+}
+
+// ✅ Correct - parent fetches once, passes data
+function Dashboard() {
+  const { data: trips } = useTrips(); // 1 query
+  return trips.map(trip => <TripCard trip={trip} />);
+}
+```
+
+### Bulk Action Performance
+
+For operations like bulk Tour parsing:
+- Process all items in a single pass (O(n), not O(n²))
+- Use pre-compiled regex patterns (module-level constants)
+- Memoize results when the same computation may run multiple times
+
+---
+
 ## Related Documentation
 
 - [ARCHITECTURE.md](./ARCHITECTURE.md) - System architecture

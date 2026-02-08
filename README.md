@@ -112,11 +112,21 @@ Backend changes (edge functions, migrations) deploy automatically.
 
 | Version | Description |
 |---------|-------------|
+| v2.1.28 | Performance hardening, regression tests, production docs |
+| v2.1.27 | Tour list visual refinement |
+| v2.1.26 | Bulk Tour parsing, stop reminders |
 | v2.1.2 | Past trips visual de-emphasis |
 | v2.1.1 | Pro Upcoming Events strip |
 | v2.1.0 | Pro Trip Health Checklist |
 | v2.0.x | TripEvents system, datetime integrity |
 | v1.x.x | Core features, AI parsing, expense tracking |
+
+## Performance Notes (v2.1.28)
+
+- **React.memo**: TripCard components prevent unnecessary re-renders
+- **Stable callbacks**: Navigation and delete handlers use useCallback
+- **Memoized state**: Canonical trip state and cost summaries cached with useMemo
+- **Single data source**: All plan gating via useAccess, costs via calculateTripCostSummary
 
 ## License
 
