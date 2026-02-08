@@ -131,3 +131,5 @@ Backend changes (edge functions, migrations) deploy automatically.
 ## License
 
 Proprietary - All rights reserved.
+
+© InLight AI, LLC
