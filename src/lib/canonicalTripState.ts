@@ -46,8 +46,9 @@ export interface CanonicalDateRange {
  * Timeline event types for structured timeline display
  */
 export type TimelineEventType = 
-  | 'flight_departure'
-  | 'flight_arrival'
+  | 'flight'  // v2.1.22: Combined flight (departure + arrival on one row)
+  | 'flight_departure'  // Deprecated: kept for backwards compat
+  | 'flight_arrival'    // Deprecated: kept for backwards compat
   | 'hotel_checkin'
   | 'hotel_checkout'
   | 'rental_pickup'
@@ -94,6 +95,22 @@ export interface CanonicalTimelineEvent {
   ticketsPurchased?: boolean;
   /** Activity-specific: source (explore/confirmation) */
   activitySource?: string;
+  
+  // v2.1.22: Flight-specific fields for combined display
+  /** Departure airport code (e.g., DEN) */
+  departureAirportCode?: string;
+  /** Arrival airport code (e.g., COS) */
+  arrivalAirportCode?: string;
+  /** Departure time as Date (for combined flight display) */
+  departureTime?: Date;
+  /** Arrival time as Date (for combined flight display) */
+  arrivalTime?: Date;
+  /** Whether departure time is explicit */
+  hasDepartureTime?: boolean;
+  /** Whether arrival time is explicit */
+  hasArrivalTime?: boolean;
+  /** Confirmation number (for combined flight subtitle) */
+  confirmationNumber?: string;
 }
 
 /**
@@ -240,36 +257,29 @@ export function buildCanonicalTimeline(
     
     switch (booking.booking_type) {
       case 'flight':
-        // Flight departure
+        // v2.1.22: Combined flight entry (departure + arrival on one row)
         events.push({
-          id: `${booking.id}-departure`,
+          id: `${booking.id}-flight`,
           sourceId: booking.id,
           sourceType: 'booking',
           bookingType: 'flight',
-          eventType: 'flight_departure',
+          eventType: 'flight',
           title: booking.airline || booking.vendor_name,
-          subtitle: `Departure${booking.confirmation_number ? ` · ${booking.confirmation_number}` : ''}`,
-          datetime: startDate,
+          // Subtitle built in TripTimeline component for combined display
+          subtitle: booking.confirmation_number || '',
+          datetime: startDate, // Sort by departure time
           hasExplicitTime: hasExplicitTime(booking.start_datetime),
           address: booking.address,
           linkUrl: booking.link_url,
+          // Flight-specific fields for combined display
+          departureAirportCode: booking.departure_airport_code || undefined,
+          arrivalAirportCode: booking.arrival_airport_code || undefined,
+          departureTime: startDate,
+          arrivalTime: endDate || undefined,
+          hasDepartureTime: hasExplicitTime(booking.start_datetime),
+          hasArrivalTime: booking.end_datetime ? hasExplicitTime(booking.end_datetime) : false,
+          confirmationNumber: booking.confirmation_number || undefined,
         });
-        // Flight arrival (if end time exists)
-        if (endDate) {
-          events.push({
-            id: `${booking.id}-arrival`,
-            sourceId: booking.id,
-            sourceType: 'booking',
-            bookingType: 'flight',
-            eventType: 'flight_arrival',
-            title: booking.airline || booking.vendor_name,
-            subtitle: 'Arrival',
-            datetime: endDate,
-            hasExplicitTime: hasExplicitTime(booking.end_datetime),
-            address: booking.address,
-            linkUrl: booking.link_url,
-          });
-        }
         break;
         
       case 'stay':

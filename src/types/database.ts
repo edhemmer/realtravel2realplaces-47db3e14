@@ -55,6 +55,10 @@ export interface Booking {
   airline?: string;
   tsa_precheck_number?: string;
   frequent_flyer_number?: string;
+  departure_airport_code?: string;
+  departure_airport_name?: string;
+  arrival_airport_code?: string;
+  arrival_airport_name?: string;
   // Stay specific
   stay_type?: StayType;
   property_name?: string;
