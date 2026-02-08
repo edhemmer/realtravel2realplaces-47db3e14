@@ -1,4 +1,4 @@
-import { useTripWeather } from '@/hooks/useWeather';
+import { useTripWeather, MAX_FORECAST_DAYS } from '@/hooks/useWeather';
 import { useProfileTemperatureUnit } from '@/hooks/useProfileTemperatureUnit';
 import { useParking } from '@/hooks/useParking';
 import { useExpenses } from '@/hooks/useExpenses';
@@ -25,13 +25,14 @@ const getWeatherIcon = (condition: string) => {
 };
 
 export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
-  const { formatTemp } = useProfileTemperatureUnit();
+  const { formatTemp, unit: temperatureUnit } = useProfileTemperatureUnit();
   const { tripForecast, weatherAnalysis, isLoading: weatherLoading } = useTripWeather(
     trip.destination_city?.trim() || '',
     trip.destination_country || '',
     trip.start_date,
     trip.end_date,
-    trip.destination_state || undefined
+    trip.destination_state || undefined,
+    temperatureUnit
   );
 
   const { data: bookings = [] } = useBookings(trip.id);
@@ -77,15 +78,21 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
                 </div>
               </div>
               <div className="flex gap-1 overflow-x-auto">
-                {tripForecast.slice(0, 5).map((day) => (
-                  <div key={day.date} className="flex flex-col items-center p-1.5 min-w-[2.5rem] rounded bg-background/50 text-center">
-                    <span className="text-[9px] text-muted-foreground">
-                      {new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' })}
-                    </span>
-                    {getWeatherIcon(day.condition)}
-                    <span className="text-[10px] font-medium">{formatTemp(day.tempHigh, false)}</span>
-                  </div>
-                ))}
+                {tripForecast.slice(0, MAX_FORECAST_DAYS).map((day) => {
+                  const dayDate = new Date(day.date + 'T12:00:00');
+                  return (
+                    <div key={day.date} className="flex flex-col items-center p-1.5 min-w-[2.5rem] rounded bg-background/50 text-center">
+                      <span className="text-[9px] text-muted-foreground">
+                        {dayDate.toLocaleDateString('en-US', { weekday: 'short' })}
+                      </span>
+                      <span className="text-[9px] font-medium text-foreground/70">
+                        {dayDate.getDate()}
+                      </span>
+                      {getWeatherIcon(day.condition)}
+                      <span className="text-[10px] font-medium">{formatTemp(day.tempHigh, false)}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ) : (

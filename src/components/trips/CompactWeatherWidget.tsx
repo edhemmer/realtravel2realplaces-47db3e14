@@ -27,13 +27,14 @@ export function CompactWeatherWidget({
   endDate,
   className 
 }: CompactWeatherWidgetProps) {
-  const { formatTemp } = useProfileTemperatureUnit();
+  const { formatTemp, unit: temperatureUnit } = useProfileTemperatureUnit();
   const { current, tripForecast, weatherAnalysis, isLoading } = useTripWeather(
     city?.trim() || '',
     country || '',
     startDate,
     endDate,
-    state || undefined
+    state || undefined,
+    temperatureUnit
   );
 
   if (isLoading) {
