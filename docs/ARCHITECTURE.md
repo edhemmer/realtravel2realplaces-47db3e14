@@ -72,6 +72,14 @@ docs/
 ├── DEVELOPER_GUIDE.md   # Development workflow
 ├── AI_PROMPTS.md        # AI system prompts reference
 └── COMPONENTS.md        # Component documentation
+
+containers/              # Patch 2.2.2: Container components
+├── index.ts             # Public API
+├── TripSummaryContainer.tsx
+├── TripBookingsContainer.tsx
+├── TripTourContainer.tsx
+├── TripExpensesContainer.tsx
+└── TripAlertsContainer.tsx
 ```
 
 ---
@@ -462,6 +470,51 @@ USING (user_has_trip_access(trip_id));
 | Single source of truth for plan | `useAccess()` is the only plan resolver |
 | Dates never shift by timezone | `parseISO(date + 'T00:00:00')` pattern |
 | Missing data stays blank | No guessing; `hasExplicitTime()` guards time display |
+
+---
+
+## Container Architecture (v2.2.2)
+
+### Bug-Fix-at-Source Pattern
+
+Patch 2.2.2 introduces container components that wire routes to canonical helpers:
+
+```
+Route → Container → Presentational View
+         │
+         └── Calls canonical helpers only:
+             - useAccess() for plan gating
+             - useCanonicalTripState() for costs/timeline
+             - useTripWeather() for weather data
+             - useEngagements() for tour stops
+```
+
+### Container Responsibilities
+
+| Container | Canonical Helpers Used |
+|-----------|----------------------|
+| `TripSummaryContainer` | `useCanonicalTripState`, `useTripWeather`, `useTravelAlerts` |
+| `TripBookingsContainer` | `useBookings`, `normalizeFlightBookingCosts` |
+| `TripTourContainer` | `useEngagements`, `buildMapsUrl` |
+| `TripExpensesContainer` | `useExpenses`, `calculateTripCostSummary` |
+| `TripAlertsContainer` | `useTravelAlerts`, `useTripWeather` |
+
+### Standardized States
+
+All containers use consistent loading/error/empty patterns:
+
+| State | Component |
+|-------|-----------|
+| Loading | `TripSectionLoading` |
+| Error | `TripSectionError` (calm message + optional retry) |
+| Empty | Section-specific (`EmptyBookingsState`, `EmptyTourState`, etc.) |
+
+### Benefits
+
+1. **Single fix point**: Bug in cost calculation? Fix in `lib/expenseCalculations.ts` and all tabs update
+2. **Consistent UX**: Same loading/error/empty patterns across all sections
+3. **Testable**: Containers isolate data wiring from UI rendering
+4. **Documentation**: Each container documents which canonical helpers it uses
 
 ---
 
