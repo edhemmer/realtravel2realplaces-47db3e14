@@ -1,12 +1,15 @@
 /**
  * TourTab - Business-tier Stops UI
  * 
+ * v2.1.26: Enhanced stop details
+ * - Origin badges (Parsed vs Manual)
+ * - Address and store number display
+ * - Maps linking from address field
+ * - Reminder indicators for stops with times
+ * 
  * v2.1.25: MANUAL STOPS ONLY
  * - Tours are NO LONGER auto-generated from Bookings
  * - All stops must be manually added by the user
- * - Removed: "Generate from bookings", "Regenerate from bookings" actions
- * - Removed: Auto-draft useEffect and related logic
- * - Removed: "From flight/stay" source hints
  * 
  * v2.1.23: Tour/Booking Separation Enforcement
  * - Tour stops are non-monetary, independent records
@@ -20,11 +23,13 @@
 
 import { useState, useCallback } from 'react';
 import { useEngagements, useCreateEngagement, useUpdateEngagement, useDeleteEngagement, Engagement } from '@/hooks/useEngagements';
+import { useUpsertStopReminder, useDeleteStopReminder } from '@/hooks/useStopReminders';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -37,12 +42,13 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, MapPin, Clock, Trash2, Pencil, X, Info, ListPlus, Navigation } from 'lucide-react';
+import { Plus, MapPin, Clock, Trash2, Pencil, X, Info, ListPlus, Navigation, Store, Bell } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { useTripPermission } from '@/pages/TripDetail';
 import { BulkStopsDialog } from '@/components/trips/BulkStopsDialog';
 import { Trip } from '@/types/database';
+import { buildMapsUrl } from '@/lib/stopParsing';
 
 /**
  * v2.1.25: TourTab is now manual-only
@@ -59,6 +65,8 @@ interface StopFormData {
   start_time: string;
   end_time: string;
   location: string;
+  address: string;
+  store_number: string;
   notes: string;
 }
 
@@ -68,6 +76,8 @@ const EMPTY_FORM: StopFormData = {
   start_time: '',
   end_time: '',
   location: '',
+  address: '',
+  store_number: '',
   notes: '',
 };
 
@@ -124,6 +134,8 @@ export function TourTab({ tripId, trip }: TourTabProps) {
       start_time: stop.start_time.slice(0, 5), // HH:MM format for input
       end_time: stop.end_time ? stop.end_time.slice(0, 5) : '',
       location: stop.location || '',
+      address: stop.address || '',
+      store_number: stop.store_number || '',
       notes: stop.notes || '',
     });
     setDialogOpen(true);
@@ -155,6 +167,8 @@ export function TourTab({ tripId, trip }: TourTabProps) {
           start_time: formData.start_time + ':00', // Add seconds
           end_time: formData.end_time ? formData.end_time + ':00' : null,
           location: formData.location.trim() || null,
+          address: formData.address.trim() || null,
+          store_number: formData.store_number.trim() || null,
           notes: formData.notes.trim() || null,
         });
         toast.success('Stop updated');
@@ -166,7 +180,10 @@ export function TourTab({ tripId, trip }: TourTabProps) {
           start_time: formData.start_time + ':00', // Add seconds
           end_time: formData.end_time ? formData.end_time + ':00' : null,
           location: formData.location.trim() || null,
+          address: formData.address.trim() || null,
+          store_number: formData.store_number.trim() || null,
           notes: formData.notes.trim() || null,
+          origin: 'manual',
         });
         toast.success('Stop added');
       }
@@ -311,9 +328,18 @@ export function TourTab({ tripId, trip }: TourTabProps) {
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      {/* v2.1.25: Removed source icons - Tours are manual only */}
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <h4 className="font-medium truncate">{stop.name}</h4>
+                      {/* v2.1.26: Origin badge */}
+                      {stop.origin === 'parsed' && (
+                        <Badge variant="secondary" className="text-xs px-1.5 py-0">Parsed</Badge>
+                      )}
+                      {/* v2.1.26: Store number badge */}
+                      {stop.store_number && (
+                        <Badge variant="outline" className="text-xs px-1.5 py-0 gap-1">
+                          <Store className="w-3 h-3" />#{stop.store_number}
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1">
@@ -321,13 +347,13 @@ export function TourTab({ tripId, trip }: TourTabProps) {
                         {formatDate(stop.date)} at {formatTime(stop.start_time)}
                         {stop.end_time && ` – ${formatTime(stop.end_time)}`}
                       </span>
-                      {stop.location && (
+                      {/* v2.1.26: Address display with Maps link */}
+                      {(stop.address || stop.location) && (
                         <span className="flex items-center gap-1">
                           <MapPin className="w-3.5 h-3.5" />
-                          <span className="truncate max-w-[200px]">{stop.location}</span>
+                          <span className="truncate max-w-[200px]">{stop.address || stop.location}</span>
                         </span>
                       )}
-                      {/* v2.1.25: Removed StopSourceHint - Tours are manual only */}
                     </div>
                     {stop.notes && (
                       <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
@@ -336,17 +362,16 @@ export function TourTab({ tripId, trip }: TourTabProps) {
                     )}
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    {/* v2.0.9: Maps directions button */}
-                    {stop.location && (
+                    {/* v2.1.26: Maps button uses address first, falls back to location */}
+                    {(stop.address || stop.location) && (
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => openMapsDirections(stop.location!)}
+                        onClick={() => window.open(buildMapsUrl(stop.address || stop.location!), '_blank', 'noopener,noreferrer')}
                         className="h-8 w-8 text-primary hover:text-primary"
-                        title="Get directions"
+                        title="Open in Maps"
                       >
                         <Navigation className="h-4 w-4" />
-                        <span className="sr-only">Get directions to {stop.location}</span>
                       </Button>
                     )}
                     {canEdit && (
