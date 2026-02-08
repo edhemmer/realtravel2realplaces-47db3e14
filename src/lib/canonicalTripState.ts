@@ -550,18 +550,18 @@ export function getCanonicalTripState(
 }
 
 // ============================================================================
-// TOUR DRAFT GENERATION FROM CANONICAL EVENTS
+// TOUR DRAFT GENERATION - DEPRECATED (v2.1.25)
 // ============================================================================
 
 /**
  * Tour draft stop structure
- * Used to generate Tour stops from canonical timeline events
  * 
- * v2.1.23: TOUR/BOOKING SEPARATION ENFORCEMENT
- * - Tours are "stops only" - non-monetary timeline items
- * - Tours have NO cost fields and are NEVER used in cost calculations
- * - calculateTripCostSummary() uses ONLY bookings + expenses + parking
- * - This draft structure is purely for UX convenience, not cost tracking
+ * @deprecated v2.1.25: Tours are now MANUAL ONLY - no auto-generation from bookings
+ * This interface and related function are kept for backward compatibility only.
+ * Do NOT use in new code.
+ * 
+ * PATCH 2.1.25 RULE: Tours (Engagements) are never auto-generated from bookings.
+ * All stops must be manually added by the user.
  */
 export interface TourDraftStop {
   name: string;
@@ -576,139 +576,24 @@ export interface TourDraftStop {
 /**
  * Generate Tour draft stops from canonical timeline events
  * 
- * v2.1.6: This function decouples Tour from Bookings by using canonical timeline events
- * instead of directly reading booking records. Tour only knows about events,
- * not about the underlying booking structure.
+ * @deprecated v2.1.25: Tours are now MANUAL ONLY - no auto-generation from bookings
+ * This function is kept for backward compatibility only. Do NOT use in new code.
  * 
- * v2.1.22: Updated to handle combined 'flight' event type
+ * PATCH 2.1.25 FINAL RULE:
+ * - Tours (Engagements) are MANUAL, non-monetary stops only
+ * - They are NEVER auto-generated from bookings
+ * - The Tour tab UI has removed all "Generate from bookings" functionality
+ * - All stops appear only when the user explicitly adds them
  * 
- * v2.1.23: TOUR/BOOKING SEPARATION - CRITICAL RULES:
- * 1. Tour stops are INDEPENDENT records - deleting a booking does NOT delete the tour stop
- * 2. Tour stops have NO cost fields - they are purely informational
- * 3. The soft 'source' reference is for UX only (jump to booking), NOT for cost logic
- * 4. All cost math (calculateTripCostSummary, canonical costs) ignores Tour/Engagement data
- * 
- * WHAT GENERATES TOUR DRAFTS:
- * - Flights (combined event: creates departure stop with route info)
- * - Stays (check-in/check-out events)
- * - Car Rentals (pickup/dropoff events)
- * 
- * WHAT DOES NOT GENERATE TOUR DRAFTS:
- * - Activities (already separate user-added content)
- * - Parking (infrastructure, not a "stop")
- * - Transport (ground transport events)
- * 
- * @param timelineEvents - Canonical timeline events from getCanonicalTripState
- * @returns Array of draft stops for Tour auto-generation
+ * @param _timelineEvents - Unused, function always returns empty array
+ * @returns Empty array (no auto-generation)
  */
 export function generateTourDraftFromCanonicalEvents(
-  timelineEvents: CanonicalTimelineEvent[]
+  _timelineEvents: CanonicalTimelineEvent[]
 ): TourDraftStop[] {
-  const drafts: TourDraftStop[] = [];
-  
-  for (const event of timelineEvents) {
-    const dateStr = event.datetime.toISOString().split('T')[0];
-    const timeStr = event.datetime.toTimeString().slice(0, 8); // HH:MM:SS
-    
-    // Map timeline event types to Tour draft stops
-    switch (event.eventType) {
-      // v2.1.22: Combined flight event type
-      case 'flight':
-        // Create a single tour stop for the flight (departure-focused)
-        const routeStr = event.departureAirportCode && event.arrivalAirportCode
-          ? `${event.departureAirportCode} → ${event.arrivalAirportCode}`
-          : event.title;
-        drafts.push({
-          name: `Flight: ${routeStr}`,
-          date: dateStr,
-          start_time: timeStr,
-          end_time: null,
-          location: event.address || event.title,
-          notes: `Auto-drafted from flight`,
-          source: 'flight',
-        });
-        break;
-        
-      // Legacy: Keep support for separate departure/arrival if any exist
-      case 'flight_departure':
-        drafts.push({
-          name: `Depart: ${event.title}`,
-          date: dateStr,
-          start_time: timeStr,
-          end_time: null,
-          location: event.address || event.title,
-          notes: `Auto-drafted from flight`,
-          source: 'flight',
-        });
-        break;
-        
-      case 'flight_arrival':
-        drafts.push({
-          name: `Arrive: ${event.title}`,
-          date: dateStr,
-          start_time: timeStr,
-          end_time: null,
-          location: event.address || event.title,
-          notes: `Auto-drafted from flight`,
-          source: 'flight',
-        });
-        break;
-        
-      case 'hotel_checkin':
-        drafts.push({
-          name: `Check in: ${event.title}`,
-          date: dateStr,
-          start_time: timeStr,
-          end_time: null,
-          location: event.address || event.title,
-          notes: `Auto-drafted from stay`,
-          source: 'stay',
-        });
-        break;
-        
-      case 'hotel_checkout':
-        drafts.push({
-          name: `Check out: ${event.title}`,
-          date: dateStr,
-          start_time: timeStr,
-          end_time: null,
-          location: event.address || event.title,
-          notes: `Auto-drafted from stay`,
-          source: 'stay',
-        });
-        break;
-        
-      case 'rental_pickup':
-        drafts.push({
-          name: `Pickup: ${event.title}`,
-          date: dateStr,
-          start_time: timeStr,
-          end_time: null,
-          location: event.address || event.title,
-          notes: `Auto-drafted from car rental`,
-          source: 'rental',
-        });
-        break;
-        
-      case 'rental_dropoff':
-        drafts.push({
-          name: `Return: ${event.title}`,
-          date: dateStr,
-          start_time: timeStr,
-          end_time: null,
-          location: event.address || event.title,
-          notes: `Auto-drafted from car rental`,
-          source: 'rental',
-        });
-        break;
-        
-      // Skip activity, transport, and parking events - these are not Tour stops
-      default:
-        break;
-    }
-  }
-  
-  return drafts;
+  // v2.1.25: Tours are manual only - return empty array
+  // This function is deprecated and should not be used
+  return [];
 }
 
 // ============================================================================
