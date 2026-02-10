@@ -27,7 +27,7 @@ export default function Terms() {
 
           <div className="prose prose-invert prose-sm sm:prose-base max-w-none space-y-6 text-[hsl(var(--landing-text-muted))]">
             <p className="text-[hsl(var(--landing-text))]">
-              <strong>Last updated:</strong> {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              <strong>Last updated:</strong> February 2026 · v1.1
             </p>
 
             <h2 className="text-xl font-semibold text-white mt-8 mb-4">Agreement to Terms</h2>
@@ -58,6 +58,17 @@ export default function Terms() {
             <h2 className="text-xl font-semibold text-white mt-8 mb-4">Limitation of Liability</h2>
             <p>
               The service is provided "as is" without warranties of any kind. We are not liable for any indirect, incidental, or consequential damages arising from your use of the service.
+            </p>
+
+            <h2 className="text-xl font-semibold text-white mt-8 mb-4">Third-Party Services and Data Sources</h2>
+            <p>
+              Real Travel 2 Real Places uses third-party services and data sources to provide features such as maps, weather information, location data, and travel-related reference information.
+            </p>
+            <p>
+              These third-party services are provided for informational purposes only and are subject to their own terms, availability, and accuracy. Real Travel 2 Real Places does not control and is not responsible for the content, reliability, or availability of third-party services or data.
+            </p>
+            <p>
+              Users acknowledge that travel information provided by third parties may change without notice and should always be independently verified with the relevant provider.
             </p>
 
             <h2 className="text-xl font-semibold text-white mt-8 mb-4">Changes to Terms</h2>
