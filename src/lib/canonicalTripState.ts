@@ -158,6 +158,8 @@ export interface CanonicalTripState {
   costs: CanonicalCostSummary;
   /** v2.2.6: Canonical weather data keyed by "${dateISO}::${locationId}" */
   weatherByKey: Record<string, WeatherSnapshot>;
+  /** v2.2.13: True if trip frame has unresolved time validation issues */
+  framePendingValidation?: boolean;
   /** Quick accessors */
   hasFlights: boolean;
   hasStays: boolean;

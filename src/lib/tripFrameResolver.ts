@@ -51,6 +51,8 @@ export interface ResolvedFrame {
   isAutoCreateSafe: boolean;
   /** Human-readable warnings (empty = clean) */
   warnings: string[];
+  /** v2.2.13: True if any booking-derived event has unresolved time validation issues */
+  framePendingValidation?: boolean;
 }
 
 /** Multi-confirmation alignment result */
@@ -327,18 +329,50 @@ export function validateConfirmationAlignment(
  * Validate that a resolved frame is ready for downstream consumers.
  * Must be called before weather, packing, expenses, reminders, or reporting.
  *
+ * v2.2.13: Also rejects frames with framePendingValidation === true.
+ *
  * @param frame - The resolved frame to validate
  * @returns true if frame is valid and safe for downstream use
  */
 export function isFrameResolved(frame: ResolvedFrame | null): frame is ResolvedFrame {
   if (!frame) return false;
   if (!frame.startDate || !frame.endDate) return false;
+  // v2.2.13: Block finalization while any booking time is unvalidated
+  if (frame.framePendingValidation) return false;
 
   const start = safeParseDate(frame.startDate);
   const end = safeParseDate(frame.endDate);
   if (!start || !end) return false;
 
   return startOfDay(start) <= startOfDay(end);
+}
+
+// ============================================================================
+// v2.2.13: VALIDATION GATE
+// ============================================================================
+
+/**
+ * Apply time-validation gate to a resolved frame.
+ * 
+ * Inspects booking-derived events for low-confidence time flags.
+ * If any event has timeIsEstimated === true (set by bookingIngestionValidator),
+ * the frame is marked as framePendingValidation and downstream helpers
+ * must not finalize artifacts.
+ *
+ * @param frame - A resolved frame from resolveTripFrame
+ * @param bookingTimeFlags - Map of booking IDs to their timeIsEstimated flag
+ * @returns The same frame, with framePendingValidation set appropriately
+ */
+export function applyValidationGate(
+  frame: ResolvedFrame,
+  bookingTimeFlags: Array<{ bookingId: string; timeIsEstimated: boolean }>
+): ResolvedFrame {
+  const hasPendingValidation = bookingTimeFlags.some(f => f.timeIsEstimated);
+  return {
+    ...frame,
+    framePendingValidation: hasPendingValidation,
+    isAutoCreateSafe: hasPendingValidation ? false : frame.isAutoCreateSafe,
+  };
 }
 
 // ============================================================================

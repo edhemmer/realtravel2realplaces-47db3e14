@@ -97,6 +97,12 @@ export function useCanonicalTripState(
     if (!trip) return null;
     const base = getCanonicalTripState(trip, bookings, expenses, parkingList);
     
+    // v2.2.13: If frame is pending validation, do not populate weather snapshots
+    // Weather should not be derived from unconfirmed trip frames
+    if (base.framePendingValidation) {
+      return base;
+    }
+    
     // Populate weatherByKey from forecast data
     if (tripForecast.length > 0) {
       const destId = `dest::${trip.destination_city}`;
