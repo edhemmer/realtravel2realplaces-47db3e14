@@ -5,6 +5,13 @@ import { useExpenses } from '@/hooks/useExpenses';
 import { useBookings } from '@/hooks/useBookings';
 import { calculateTripCostSummary } from '@/lib/expenseCalculations';
 import { formatCurrency, TRIP_TOTAL_LABEL } from '@/lib/displayFormats';
+import { 
+  normalizeCondition, 
+  conditionLabel, 
+  deriveWeatherPills,
+  forecastToSnapshots,
+  type WeatherSnapshot,
+} from '@/lib/canonicalWeather';
 import { Trip, Parking } from '@/types/database';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -18,10 +25,15 @@ interface TripHeaderWidgetsProps {
 }
 
 const getWeatherIcon = (condition: string) => {
-  if (condition.includes('Rain') || condition.includes('Shower')) return <CloudRain className="w-4 h-4" />;
-  if (condition.includes('Snow')) return <Snowflake className="w-4 h-4" />;
-  if (condition.includes('Clear') || condition.includes('Sunny')) return <Sun className="w-4 h-4" />;
-  return <Cloud className="w-4 h-4" />;
+  const normalized = normalizeCondition(condition);
+  switch (normalized) {
+    case 'rain': return <CloudRain className="w-4 h-4" />;
+    case 'snow':
+    case 'ice':
+    case 'sleet': return <Snowflake className="w-4 h-4" />;
+    case 'sunny': return <Sun className="w-4 h-4" />;
+    default: return <Cloud className="w-4 h-4" />;
+  }
 };
 
 export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {

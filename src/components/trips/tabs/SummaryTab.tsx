@@ -29,6 +29,7 @@ import {
   getCanonicalTripState, 
   CanonicalTimelineEvent,
 } from '@/lib/canonicalTripState';
+import { normalizeCondition } from '@/lib/canonicalWeather';
 import { 
   formatTripDateRangeWithDuration,
   DatetimeFormatPreference,
@@ -187,10 +188,15 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
   // v2.1.21: getEventIcon moved to TripTimeline component
 
   const getWeatherIcon = (condition: string) => {
-    if (condition.includes('Rain') || condition.includes('Shower')) return <CloudRain className="w-4 h-4" />;
-    if (condition.includes('Snow')) return <Snowflake className="w-4 h-4" />;
-    if (condition.includes('Clear') || condition.includes('Sunny')) return <Sun className="w-4 h-4" />;
-    return <Cloud className="w-4 h-4" />;
+    const normalized = normalizeCondition(condition);
+    switch (normalized) {
+      case 'rain': return <CloudRain className="w-4 h-4" />;
+      case 'snow':
+      case 'ice':
+      case 'sleet': return <Snowflake className="w-4 h-4" />;
+      case 'sunny': return <Sun className="w-4 h-4" />;
+      default: return <Cloud className="w-4 h-4" />;
+    }
   };
 
   const openInMaps = (address: string) => {
