@@ -25,7 +25,7 @@ export function BrandHeader({ variant = 'app', children }: BrandHeaderProps) {
         <img
           src={isLanding ? logoWhiteImg : logoImg}
           alt="Real Travel 2 Real Places"
-          className="rt2rp-header-logo flex-shrink-0"
+          className={`${isLanding ? 'rt2rp-header-logo--landing' : 'rt2rp-header-logo'} flex-shrink-0`}
         />
         {!isLanding && user && <PlanPill showTripLimit className="flex-shrink-0" />}
       </Link>
