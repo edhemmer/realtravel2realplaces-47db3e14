@@ -473,11 +473,13 @@ export type Database = {
           created_at: string
           default_frequent_flyer: string | null
           default_tsa_precheck: string | null
+          deleted_at: string | null
           display_name: string | null
           distance_unit: string | null
           first_name: string | null
           has_completed_onboarding: boolean
           id: string
+          is_deleted: boolean
           last_name: string | null
           lifetime_trip_count: number
           preferred_currency: string | null
@@ -493,11 +495,13 @@ export type Database = {
           created_at?: string
           default_frequent_flyer?: string | null
           default_tsa_precheck?: string | null
+          deleted_at?: string | null
           display_name?: string | null
           distance_unit?: string | null
           first_name?: string | null
           has_completed_onboarding?: boolean
           id?: string
+          is_deleted?: boolean
           last_name?: string | null
           lifetime_trip_count?: number
           preferred_currency?: string | null
@@ -513,11 +517,13 @@ export type Database = {
           created_at?: string
           default_frequent_flyer?: string | null
           default_tsa_precheck?: string | null
+          deleted_at?: string | null
           display_name?: string | null
           distance_unit?: string | null
           first_name?: string | null
           has_completed_onboarding?: boolean
           id?: string
+          is_deleted?: boolean
           last_name?: string | null
           lifetime_trip_count?: number
           preferred_currency?: string | null
