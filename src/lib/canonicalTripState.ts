@@ -163,10 +163,11 @@ export interface CanonicalTripState {
 /**
  * Calculate canonical date range for a trip
  * 
- * RULES:
- * 1. If flights exist, use earliest departure and latest arrival/departure
- * 2. If no flights but other bookings exist, use earliest/latest booking dates
- * 3. Fallback to trip's manual dates
+ * v2.2.2 RULES (extend-only, never shrink):
+ * 1. Start with the trip's manual dates as the baseline
+ * 2. Collect ALL booking dates (flights, stays, rentals, activities, transport)
+ * 3. Extend the range outward if any booking falls outside the manual dates
+ * 4. Never shrink below the manual trip dates
  */
 export function calculateCanonicalDateRange(
   trip: Trip,
@@ -175,64 +176,39 @@ export function calculateCanonicalDateRange(
   const manualStart = parseISO(trip.start_date);
   const manualEnd = parseISO(trip.end_date);
   
-  const flights = bookings.filter(b => b.booking_type === 'flight');
+  // Start with manual dates as baseline
+  let effectiveStart = startOfDay(manualStart);
+  let effectiveEnd = endOfDay(manualEnd);
+  const hasFlights = bookings.some(b => b.booking_type === 'flight');
   
-  // RULE 1: Flight-anchored dates
-  if (flights.length > 0) {
-    const flightDates: Date[] = [];
+  // Collect ALL booking dates (every type contributes to the outer bounds)
+  if (bookings.length > 0) {
+    const allDates: Date[] = [];
     
-    flights.forEach(flight => {
-      const start = parseDatetimeForDisplay(flight.start_datetime);
-      if (start) flightDates.push(start);
-      
-      if (flight.end_datetime) {
-        const end = parseDatetimeForDisplay(flight.end_datetime);
-        if (end) flightDates.push(end);
-      }
-    });
-    
-    if (flightDates.length > 0) {
-      return {
-        startDate: startOfDay(min(flightDates)),
-        endDate: endOfDay(max(flightDates)),
-        isFlightAnchored: true,
-        startDateStr: trip.start_date,
-        endDateStr: trip.end_date,
-      };
-    }
-  }
-  
-  // RULE 2: Non-flight bookings (stays, rentals, activities)
-  const nonFlightBookings = bookings.filter(b => b.booking_type !== 'flight');
-  if (nonFlightBookings.length > 0) {
-    const bookingDates: Date[] = [];
-    
-    nonFlightBookings.forEach(booking => {
+    bookings.forEach(booking => {
       const start = parseDatetimeForDisplay(booking.start_datetime);
-      if (start) bookingDates.push(start);
+      if (start) allDates.push(start);
       
       if (booking.end_datetime) {
         const end = parseDatetimeForDisplay(booking.end_datetime);
-        if (end) bookingDates.push(end);
+        if (end) allDates.push(end);
       }
     });
     
-    if (bookingDates.length > 0) {
-      return {
-        startDate: startOfDay(min(bookingDates)),
-        endDate: endOfDay(max(bookingDates)),
-        isFlightAnchored: false,
-        startDateStr: trip.start_date,
-        endDateStr: trip.end_date,
-      };
+    if (allDates.length > 0) {
+      const minBooking = startOfDay(min(allDates));
+      const maxBooking = endOfDay(max(allDates));
+      
+      // Only extend outward, never shrink
+      if (minBooking < effectiveStart) effectiveStart = minBooking;
+      if (maxBooking > effectiveEnd) effectiveEnd = maxBooking;
     }
   }
   
-  // RULE 3: Fallback to manual trip dates
   return {
-    startDate: startOfDay(manualStart),
-    endDate: endOfDay(manualEnd),
-    isFlightAnchored: false,
+    startDate: effectiveStart,
+    endDate: effectiveEnd,
+    isFlightAnchored: hasFlights,
     startDateStr: trip.start_date,
     endDateStr: trip.end_date,
   };

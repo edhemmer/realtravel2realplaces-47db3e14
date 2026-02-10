@@ -106,55 +106,57 @@ export function useTripDateSync(
   const syncTripDates = useCallback(async () => {
     if (!trip || !enabled) return;
     
-    // Calculate flight date range
-    const flightRange = calculateFlightDateRange(bookings);
+    // v2.2.2: Collect ALL booking dates (flights, stays, rentals, activities, etc.)
+    // Trip dates should never shrink — only extend outward to cover all bookings.
+    if (bookings.length === 0) return;
     
-    let newStartDate: string | null = null;
-    let newEndDate: string | null = null;
+    const allStartDates: Date[] = [];
+    const allEndDates: Date[] = [];
     
-    if (flightRange.earliestDeparture && flightRange.latestArrival) {
-      // Flights exist - use flight dates
-      newStartDate = format(flightRange.earliestDeparture, 'yyyy-MM-dd');
-      newEndDate = format(flightRange.latestArrival, 'yyyy-MM-dd');
-    } else {
-      // No flights - use non-flight bookings as fallback
-      const nonFlightRange = calculateNonFlightDateRange(bookings);
-      if (nonFlightRange.start && nonFlightRange.end) {
-        newStartDate = format(nonFlightRange.start, 'yyyy-MM-dd');
-        newEndDate = format(nonFlightRange.end, 'yyyy-MM-dd');
+    bookings.forEach(booking => {
+      if (booking.start_datetime) {
+        allStartDates.push(parseISO(booking.start_datetime));
       }
-    }
+      if (booking.end_datetime) {
+        allEndDates.push(parseISO(booking.end_datetime));
+      } else if (booking.start_datetime) {
+        allEndDates.push(parseISO(booking.start_datetime));
+      }
+    });
     
-    // Only update if we have new dates AND they differ from current
-    if (newStartDate && newEndDate) {
-      const tripStartDate = trip.start_date;
-      const tripEndDate = trip.end_date;
-      
-      const datesChanged = newStartDate !== tripStartDate || newEndDate !== tripEndDate;
-      
-      if (datesChanged) {
-        try {
-          const { error } = await supabase
-            .from('trips')
-            .update({
-              start_date: newStartDate,
-              end_date: newEndDate,
-            })
-            .eq('id', tripId);
+    if (allStartDates.length === 0) return;
+    
+    const minBookingStart = format(min(allStartDates), 'yyyy-MM-dd');
+    const maxBookingEnd = format(max(allEndDates.length > 0 ? allEndDates : allStartDates), 'yyyy-MM-dd');
+    
+    const tripStartDate = trip.start_date;
+    const tripEndDate = trip.end_date;
+    
+    // v2.2.2: Only EXTEND outward, never shrink
+    const newStartDate = minBookingStart < tripStartDate ? minBookingStart : tripStartDate;
+    const newEndDate = maxBookingEnd > tripEndDate ? maxBookingEnd : tripEndDate;
+    
+    const datesChanged = newStartDate !== tripStartDate || newEndDate !== tripEndDate;
+    
+    if (datesChanged) {
+      try {
+        const { error } = await supabase
+          .from('trips')
+          .update({
+            start_date: newStartDate,
+            end_date: newEndDate,
+          })
+          .eq('id', tripId);
+        
+        if (!error) {
+          queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
+          queryClient.invalidateQueries({ queryKey: ['trips'] });
           
-          if (!error) {
-            // Invalidate trip query to refresh UI
-            queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
-            queryClient.invalidateQueries({ queryKey: ['trips'] });
-            
-            // Notify user
-            if (flightRange.earliestDeparture) {
-              toast.info(`Trip dates updated to match flights: ${newStartDate} to ${newEndDate}`);
-            }
-          }
-        } catch (err) {
-          console.error('Failed to sync trip dates:', err);
+          // v2.2.2: Updated notification text
+          toast.info(`Trip dates updated to cover all bookings: ${newStartDate} to ${newEndDate}`);
         }
+      } catch (err) {
+        console.error('Failed to sync trip dates:', err);
       }
     }
   }, [tripId, bookings, trip, enabled, queryClient]);

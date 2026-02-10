@@ -2,14 +2,13 @@ import { Booking, Trip } from '@/types/database';
 import { parseISO, startOfDay, endOfDay, isBefore, isAfter, min, max } from 'date-fns';
 
 /**
- * Trip Date Range Calculation Utilities
+ * Trip Date Range Calculation Utilities (v2.2.2)
  * 
- * RULE: When flights exist, trip dates should be anchored to flight dates.
- * - Trip Start Date = earliest flight departure date
- * - Trip End Date = latest flight date (prefer arrival if available, else departure)
- * 
- * Stays and rentals should NOT extend the trip dates beyond this range.
- * For driving-only trips (no flights), trip dates remain as manually set.
+ * RULE: Trip dates NEVER shrink. They only extend outward to cover all bookings.
+ * - Start with manual trip dates as baseline
+ * - Extend start earlier if any booking starts before trip start
+ * - Extend end later if any booking ends after trip end
+ * - All booking types contribute (flights, stays, rentals, activities, transport)
  */
 
 interface TripDateRange {
@@ -27,42 +26,38 @@ interface TripDateRange {
  * @returns TripDateRange with effective dates and whether flights were used
  */
 export function calculateTripDateRange(trip: Trip, bookings: Booking[]): TripDateRange {
-  const flights = bookings.filter(b => b.booking_type === 'flight');
-  
-  // Default to trip's manual dates
   const manualStart = parseISO(trip.start_date);
   const manualEnd = parseISO(trip.end_date);
   
-  // If no flights, use manual trip dates (no auto-calculation for driving trips)
-  if (flights.length === 0) {
-    return {
-      startDate: startOfDay(manualStart),
-      endDate: endOfDay(manualEnd),
-      isFlightAnchored: false,
-    };
+  // v2.2.2: Start with manual dates as baseline, extend outward only
+  let effectiveStart = startOfDay(manualStart);
+  let effectiveEnd = endOfDay(manualEnd);
+  const hasFlights = bookings.some(b => b.booking_type === 'flight');
+  
+  if (bookings.length > 0) {
+    const allDates: Date[] = [];
+    
+    bookings.forEach(booking => {
+      allDates.push(parseISO(booking.start_datetime));
+      if (booking.end_datetime) {
+        allDates.push(parseISO(booking.end_datetime));
+      }
+    });
+    
+    if (allDates.length > 0) {
+      const minBooking = startOfDay(min(allDates));
+      const maxBooking = endOfDay(max(allDates));
+      
+      // Only extend outward, never shrink
+      if (isBefore(minBooking, effectiveStart)) effectiveStart = minBooking;
+      if (isAfter(maxBooking, effectiveEnd)) effectiveEnd = maxBooking;
+    }
   }
   
-  // Calculate date range from flights
-  const flightDates: Date[] = [];
-  
-  flights.forEach(flight => {
-    // Add departure date
-    flightDates.push(parseISO(flight.start_datetime));
-    
-    // Add arrival date if available (prefer arrival for end date)
-    if (flight.end_datetime) {
-      flightDates.push(parseISO(flight.end_datetime));
-    }
-  });
-  
-  // Find earliest and latest flight dates
-  const earliestFlight = min(flightDates);
-  const latestFlight = max(flightDates);
-  
   return {
-    startDate: startOfDay(earliestFlight),
-    endDate: endOfDay(latestFlight),
-    isFlightAnchored: true,
+    startDate: effectiveStart,
+    endDate: effectiveEnd,
+    isFlightAnchored: hasFlights,
   };
 }
 
