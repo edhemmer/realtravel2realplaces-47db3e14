@@ -45,6 +45,9 @@ import { isEmailFile, extractEmailBody } from '@/lib/emailBody';
 import { ParseOriginHint, EstimatedHint, ParseOrigin } from '@/components/trips/ParseHint';
 // v2.1.24: Import normalized cost calculation for accurate Frontier-style display
 import { normalizeFlightBookingCosts } from '@/lib/expenseCalculations';
+// v2.2.12: Import ingestion validator for confirmation time checking
+import { validateParsedBookingTimes, shouldValidateBookingType } from '@/lib/bookingIngestionValidator';
+import { normalizeDatetimeForStorage } from '@/lib/datetimeIntegrity';
 
 // Helper to safely open external URLs in new tab
 const openExternalUrl = (url: string | null | undefined) => {
@@ -351,6 +354,22 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
         
         // Validate dates before applying
         const dateValidation = validateBookingDates(parsed.start_datetime, parsed.end_datetime);
+        
+        // v2.2.12: Run ConfirmationTimeValidator on all booking-derived events
+        if (shouldValidateBookingType(parsed.booking_type) && dateValidation.valid && dateValidation.startDt) {
+          const normalizedStart = normalizeDatetimeForStorage(parsed.start_datetime);
+          const normalizedEnd = normalizeDatetimeForStorage(parsed.end_datetime);
+          const timeValidation = validateParsedBookingTimes(parsed, normalizedStart, normalizedEnd);
+          
+          if (timeValidation.isLowConfidence) {
+            // Flag as low-confidence — mark time as estimated, let user review
+            setTimeIsEstimated(true);
+            toast.warning('Times need review', {
+              description: `Parsed times may not match the confirmation. ${timeValidation.issuesSummary || 'Please verify times before saving.'}`,
+              duration: 8000,
+            });
+          }
+        }
         
         // v2.1.30: Enhanced partial parsing feedback
         // Build a list of what was captured vs what's missing
