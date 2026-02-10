@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import logoImg from '@/assets/logo.png';
+import logoWhiteImg from '@/assets/logo-white.png';
 
 export default function LandingHeader() {
   return (
@@ -9,9 +9,9 @@ export default function LandingHeader() {
           {/* Brand */}
           <Link to="/" className="flex items-center">
             <img
-              src={logoImg}
+              src={logoWhiteImg}
               alt="Real Travel 2 Real Places"
-              className="h-10 sm:h-12 w-auto brightness-0 invert"
+              className="rt2rp-landing-logo flex-shrink-0"
             />
           </Link>
 
