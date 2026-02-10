@@ -27,7 +27,7 @@ export default function Privacy() {
 
           <div className="prose prose-invert prose-sm sm:prose-base max-w-none space-y-6 text-[hsl(var(--landing-text-muted))]">
             <p className="text-[hsl(var(--landing-text))]">
-              <strong>Last updated:</strong> {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              <strong>Last updated:</strong> February 2026 · v1.1
             </p>
 
             <h2 className="text-xl font-semibold text-white mt-8 mb-4">What We Collect</h2>
@@ -38,6 +38,9 @@ export default function Privacy() {
             <h2 className="text-xl font-semibold text-white mt-8 mb-4">How We Use Your Data</h2>
             <p>
               Your data is used solely to provide the trip management features you signed up for. We do not sell, rent, or share your personal information with third parties for marketing purposes.
+            </p>
+            <p>
+              Real Travel 2 Real Places relies on third-party service providers to deliver certain functionality, such as mapping, weather information, and payment processing, in accordance with their respective privacy and usage terms.
             </p>
 
             <h2 className="text-xl font-semibold text-white mt-8 mb-4">Data Storage & Security</h2>
