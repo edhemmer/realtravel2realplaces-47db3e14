@@ -3,11 +3,12 @@ import { Check } from 'lucide-react';
 const tiers = [
   {
     name: 'Free',
-    tagline: 'Occasional travel',
+    tagline: 'Powerful core for occasional travel',
     features: [
-      'Up to 5 lifetime trips',
-      'Flights, stays, stops, expenses, packing',
-      'Core reminders and travel alerts',
+      'Up to 5 lifetime trips with full functionality',
+      'Track flights, stays, stops, expenses, and packing',
+      'Core reminders and travel alerts built in',
+      'One calm system instead of scattered notes',
     ],
     variant: 'free' as const,
   },
@@ -15,9 +16,10 @@ const tiers = [
     name: 'Pro',
     tagline: 'Frequent travelers',
     features: [
-      'Unlimited trips',
-      'Smarter reminders and alerts',
-      'Advanced expense insights and exports',
+      'Everything in Free, plus…',
+      'Unlimited trips with smarter reminders',
+      'Advanced expense insights and CSV exports',
+      'Priority support and early access to features',
     ],
     variant: 'pro' as const,
   },
@@ -25,10 +27,10 @@ const tiers = [
     name: 'Business',
     tagline: 'Life on the road',
     features: [
-      'Unlimited trips',
-      'High-volume stops and daily movement',
-      'Export-ready expense reporting',
-      'Built for domestic and international travel',
+      'Everything in Pro, plus…',
+      'High-volume stops and daily movement tracking',
+      'Export-ready expense reporting for reimbursement',
+      'Built for domestic and international road warriors',
     ],
     variant: 'business' as const,
   },
@@ -50,7 +52,7 @@ export default function LandingPlanTiers() {
           {tiers.map((tier) => (
             <div 
               key={tier.name} 
-              className={`landing-tier-card ${tier.variant === 'business' ? 'landing-tier-card-featured' : ''}`}
+              className="landing-tier-card landing-tier-card-static"
             >
               <div className="landing-tier-header">
                 <span className={`landing-tier-badge landing-tier-badge-${tier.variant}`}>
@@ -62,7 +64,7 @@ export default function LandingPlanTiers() {
               <ul className="landing-tier-features">
                 {tier.features.map((feature) => (
                   <li key={feature}>
-                    <Check className="w-4 h-4 text-[hsl(var(--landing-accent))] flex-shrink-0" />
+                    <Check className="w-4 h-4 text-[hsl(var(--landing-accent))] flex-shrink-0 mt-0.5" />
                     <span>{feature}</span>
                   </li>
                 ))}

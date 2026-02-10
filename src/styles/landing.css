@@ -92,6 +92,30 @@
 }
 
 /* ===========================================
+   HERO LOGO — Primary brand moment
+   =========================================== */
+.landing-hero-logo {
+  width: 260px;
+  height: auto;
+  object-fit: contain;
+  background: transparent;
+  pointer-events: none;
+  user-select: none;
+}
+
+@media (min-width: 768px) {
+  .landing-hero-logo {
+    width: 280px;
+  }
+}
+
+@media (max-width: 639px) {
+  .landing-hero-logo {
+    width: 200px;
+  }
+}
+
+/* ===========================================
    HERO SECTION — Compact, confident
    =========================================== */
 .landing-hero-section {
@@ -563,21 +587,11 @@
   background: hsl(var(--landing-surface) / 0.5);
   border: 1px solid hsl(var(--landing-border) / 0.4);
   border-radius: 0.75rem;
-  transition: all 0.2s ease;
 }
 
-.landing-tier-card:hover {
-  background: hsl(var(--landing-surface) / 0.7);
-  border-color: hsl(var(--landing-border) / 0.6);
-}
-
-.landing-tier-card-featured {
-  border-color: hsl(var(--landing-accent) / 0.4);
-  background: hsl(var(--landing-surface) / 0.7);
-}
-
-.landing-tier-card-featured:hover {
-  border-color: hsl(var(--landing-accent) / 0.6);
+/* Static variant — no hover effects, equal visual weight */
+.landing-tier-card-static {
+  cursor: default;
 }
 
 .landing-tier-header {

@@ -1,9 +1,19 @@
 import { Link } from 'react-router-dom';
+import logoImg from '@/assets/logo-white.png';
 
 export default function LandingHero() {
   return (
     <section className="landing-hero-section">
       <div className="max-w-4xl mx-auto text-center">
+        {/* Brand logo — primary brand moment */}
+        <div className="flex justify-center mb-10 mt-2">
+          <img
+            src={logoImg}
+            alt="Real Travel 2 Real Places"
+            className="landing-hero-logo"
+          />
+        </div>
+
         {/* H1 - Primary headline */}
         <h1 className="landing-hero-headline">
           We don't plan your trip.
