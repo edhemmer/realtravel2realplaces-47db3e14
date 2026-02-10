@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 import { getVendorUrl } from '@/lib/vendorUrls';
 import { BookingType, StayType } from '@/types/database';
 import { getSuggestedTripDates } from '@/hooks/useTripDateSync';
+import { resolveTripFrame, validateConfirmationAlignment, isFrameResolved, type TripFrameMode } from '@/lib/tripFrameResolver';
 
 // ============================================================================
 // TYPES & HELPERS
@@ -214,12 +215,30 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
 
         if (parsed.bookings && Array.isArray(parsed.bookings)) {
           setParsedBookings(parsed.bookings);
-          const suggestedDates = getSuggestedTripDates(parsed.bookings);
-          if (suggestedDates.start_date) {
-            try { setStartDate(parseISO(suggestedDates.start_date)); } catch {}
+
+          // v2.2.7: Use TripFrameResolver for canonical date resolution
+          const frameMode: TripFrameMode = travelMode === 'fly' ? 'fly' : travelMode === 'drive' ? 'drive' : 'train';
+          const alignment = validateConfirmationAlignment(parsed.bookings, frameMode);
+
+          if (alignment.aligned && alignment.frame && isFrameResolved(alignment.frame)) {
+            try { setStartDate(parseISO(alignment.frame.startDate)); } catch {}
+            try { setEndDate(parseISO(alignment.frame.endDate)); } catch {}
+          } else if (!alignment.aligned) {
+            // Warn user about potential multi-trip confirmations
+            toast.warning('These confirmations may belong to separate trips. Please review the dates.');
+            // Fall back to suggested dates
+            const suggestedDates = getSuggestedTripDates(parsed.bookings);
+            if (suggestedDates.start_date) {
+              try { setStartDate(parseISO(suggestedDates.start_date)); } catch {}
+            }
+            if (suggestedDates.end_date) {
+              try { setEndDate(parseISO(suggestedDates.end_date)); } catch {}
+            }
           }
-          if (suggestedDates.end_date) {
-            try { setEndDate(parseISO(suggestedDates.end_date)); } catch {}
+
+          // Surface warnings from resolver
+          if (alignment.warnings.length > 0) {
+            alignment.warnings.forEach(w => toast.info(w, { duration: 5000 }));
           }
         } else {
           if (parsed.trip?.start_date) {
@@ -393,9 +412,20 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
     }
   };
 
-  /** Quick-create for Drive flow */
+  /** Quick-create for Drive flow — uses TripFrameResolver */
   const handleDriveCreate = async () => {
     if (!driveDestination.trim() || !startDate || !endDate) return;
+
+    // v2.2.7: Validate frame through resolver before creation
+    const frame = resolveTripFrame('drive', [], {
+      startDate: format(startDate, 'yyyy-MM-dd'),
+      endDate: format(endDate, 'yyyy-MM-dd'),
+    });
+
+    if (!isFrameResolved(frame)) {
+      toast.error('Invalid trip dates. Please check your arrival and return dates.');
+      return;
+    }
 
     try {
       const trip = await createTrip.mutateAsync({
@@ -406,8 +436,8 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
         transportation_mode: 'drive',
         destination_type: 'unspecified',
         origin_address: driveOrigin || undefined,
-        start_date: format(startDate, 'yyyy-MM-dd'),
-        end_date: format(endDate, 'yyyy-MM-dd'),
+        start_date: frame.startDate,
+        end_date: frame.endDate,
       } as any);
 
       resetAll();
