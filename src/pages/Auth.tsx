@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plane, MapPin, Calendar, Eye, EyeOff, Loader2, AlertCircle, Mail, Lock } from 'lucide-react';
+import { MapPin, Calendar, Eye, EyeOff, Loader2, AlertCircle, Mail, Lock } from 'lucide-react';
 import { User } from 'lucide-react';
+import logoImg from '@/assets/logo.png';
 
 export default function Auth() {
   const [firstName, setFirstName] = useState('');
@@ -122,9 +123,6 @@ export default function Auth() {
   };
   return <div className="min-h-screen bg-gradient-dawn flex flex-col items-center justify-center p-4">
       {/* Decorative Elements */}
-      <div className="absolute top-10 left-10 text-primary/20 animate-float">
-        <Plane className="w-16 h-16" />
-      </div>
       <div className="absolute bottom-10 right-10 text-primary/20 animate-float" style={{
       animationDelay: '2s'
     }}>
@@ -136,17 +134,13 @@ export default function Auth() {
         <Calendar className="w-10 h-10" />
       </div>
 
-      {/* Logo & Title */}
-      <div className="text-center mb-8 animate-fade-in">
-        <div className="inline-flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-ocean flex items-center justify-center shadow-glow">
-            <Plane className="w-6 h-6 text-primary-foreground" />
-          </div>
-          <h1 className="font-bold text-gradient-ocean text-5xl">
-            Real Travel 2 <span className="italic">Real Places</span>
-          </h1>
-        </div>
-        <p className="text-muted-foreground text-sm">Your travel organizer.</p>
+      {/* Logo */}
+      <div className="text-center mb-6 animate-fade-in">
+        <img
+          src={logoImg}
+          alt="Real Travel 2 Real Places"
+          className="rt2rp-header-logo--auth mx-auto"
+        />
       </div>
 
       {/* Auth Card */}
