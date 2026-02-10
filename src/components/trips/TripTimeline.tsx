@@ -13,6 +13,8 @@ import { Button } from '@/components/ui/button';
 import { CanonicalTimelineEvent } from '@/lib/canonicalTripState';
 import { formatEventTime, formatEventDate, DatetimeFormatPreference } from '@/lib/displayFormats';
 import { formatTimeInTimezone, formatDateInTimezone } from '@/lib/airportTimezones';
+import { formatLocalTimeDirect, formatLocalDateDirect } from '@/lib/canonicalTimeNormalizer';
+import { UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
 import { 
   Plane, Building2, Car, CircleParking, Compass, Ticket, 
   TrainFront, Bus, TramFront, Ship, PartyPopper, MapPin, ExternalLink 
@@ -59,9 +61,9 @@ const getEventIcon = (type: string, transportMode?: string) => {
 };
 
 /**
- * v2.2.4: Build combined flight subtitle using timezone-aware local times
- * Pattern: EJMB2X • DEN → COS • Dep 6:00 AM • Arr 1:33 PM
- * Uses airport timezone to display times correctly regardless of viewer's device timezone.
+ * v2.2.10: Build combined flight subtitle using direct digit extraction.
+ * Pattern: EJMB2X • DEN → COS • Dep 6:00 AM • Arr 7:39 AM
+ * Extracts time digits directly from stored strings — no Date() timezone shifting.
  */
 function buildFlightSubtitle(
   event: CanonicalTimelineEvent,
@@ -84,27 +86,17 @@ function buildFlightSubtitle(
     parts.push(`To ${event.arrivalAirportCode}`);
   }
   
-  // v2.2.4: Departure time - prefer timezone-aware formatting
+  // v2.2.10: Departure time — extract digits directly, no Date() shifting
   if (event.hasDepartureTime && event.departureLocalTime) {
-    let depTime: string;
-    if (event.departureTimeZone) {
-      depTime = formatTimeInTimezone(event.departureLocalTime, event.departureTimeZone, use24h) 
-        || formatEventTime(event.departureTime!.toISOString(), datetimeFormat);
-    } else {
-      depTime = formatEventTime(event.departureTime!.toISOString(), datetimeFormat);
-    }
+    const depTime = formatLocalTimeDirect(event.departureLocalTime, use24h)
+      || UNKNOWN_TIME_PLACEHOLDER;
     parts.push(`Dep ${depTime}`);
   }
   
-  // v2.2.4: Arrival time - prefer timezone-aware formatting
+  // v2.2.10: Arrival time — extract digits directly
   if (event.hasArrivalTime && event.arrivalLocalTime) {
-    let arrTime: string;
-    if (event.arrivalTimeZone) {
-      arrTime = formatTimeInTimezone(event.arrivalLocalTime, event.arrivalTimeZone, use24h)
-        || formatEventTime(event.arrivalTime!.toISOString(), datetimeFormat);
-    } else {
-      arrTime = formatEventTime(event.arrivalTime!.toISOString(), datetimeFormat);
-    }
+    const arrTime = formatLocalTimeDirect(event.arrivalLocalTime, use24h)
+      || UNKNOWN_TIME_PLACEHOLDER;
     parts.push(`Arr ${arrTime}`);
   }
   
@@ -183,17 +175,17 @@ export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimel
                   </div>
                   <div className="text-right text-xs shrink-0">
                     <p className="font-medium">
-                      {/* v2.2.4: For flights with timezone, use timezone-aware date */}
-                      {event.eventType === 'flight' && event.departureTimeZone && event.departureLocalTime
-                        ? (formatDateInTimezone(event.departureLocalTime, event.departureTimeZone) || formatEventDate(event.datetime, datetimeFormat))
+                      {/* v2.2.10: Use direct date extraction for ALL events — no Date() timezone shifting */}
+                      {event.eventLocalDateTime
+                        ? (formatLocalDateDirect(event.eventLocalDateTime, datetimeFormat === 'DD/MM/YYYY 24h') || formatEventDate(event.datetime, datetimeFormat))
                         : formatEventDate(event.datetime, datetimeFormat)
                       }
                     </p>
                     <p className={event.hasExplicitTime ? 'text-muted-foreground' : 'text-destructive font-medium'}>
-                      {/* v2.2.4: For flights with timezone, use timezone-aware time */}
-                      {event.eventType === 'flight' && event.departureTimeZone && event.departureLocalTime && event.hasExplicitTime
-                        ? (formatTimeInTimezone(event.departureLocalTime, event.departureTimeZone, datetimeFormat === 'DD/MM/YYYY 24h') || formatEventTime(event.datetime.toISOString(), datetimeFormat))
-                        : formatEventTime(event.datetime.toISOString(), datetimeFormat)
+                      {/* v2.2.10: Use direct time extraction for ALL events — no Date() timezone shifting */}
+                      {event.hasExplicitTime && event.eventLocalDateTime
+                        ? (formatLocalTimeDirect(event.eventLocalDateTime, datetimeFormat === 'DD/MM/YYYY 24h') || UNKNOWN_TIME_PLACEHOLDER)
+                        : (event.hasExplicitTime ? formatEventTime(event.datetime.toISOString(), datetimeFormat) : UNKNOWN_TIME_PLACEHOLDER)
                       }
                     </p>
                   </div>

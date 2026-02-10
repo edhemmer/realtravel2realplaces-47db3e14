@@ -118,6 +118,8 @@ export function normalizeDatetime(dt: string | null | undefined): string | null 
   }
   
   // Has explicit non-midnight time - validate and normalize
+  // v2.2.10: Keep as naive local datetime (no UTC conversion via .toISOString())
+  // The time digits from the parser represent local time at the event's location.
   try {
     const parsed = new Date(dt);
     if (isNaN(parsed.getTime())) return null;
@@ -131,8 +133,10 @@ export function normalizeDatetime(dt: string | null | undefined): string | null 
       return datePart;
     }
     
-    // Return full ISO datetime
-    return parsed.toISOString();
+    // v2.2.10: Return the naive datetime preserving original digits.
+    // Strip any trailing timezone info (Z, +00:00) to keep it naive.
+    // The canonical time normalizer layer handles timezone resolution.
+    return `${datePart}T${timePart.replace(/Z$/, '').replace(/[+-]\d{2}:\d{2}$/, '').substring(0, 8)}`;
   } catch {
     return null;
   }
