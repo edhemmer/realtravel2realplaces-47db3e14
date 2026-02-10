@@ -5,8 +5,7 @@ import { useAccess } from '@/hooks/useAccess';
 import { useIdleLogout } from '@/hooks/useIdleLogout';
 import { Button } from '@/components/ui/button';
 import { LogOut, User, Settings, MessageCircleQuestion, ShieldCheck, BarChart3 } from 'lucide-react';
-import logoImg from '@/assets/logo.png';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ContactSupportDialog } from '@/components/support/ContactSupportDialog';
-import { PlanPill } from '@/components/PlanPill';
+import { BrandHeader } from '@/components/BrandHeader';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -41,10 +40,7 @@ export function Layout({ children }: LayoutProps) {
       {/* Header */}
       <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
         <div className="container flex h-16 items-center justify-between px-4">
-          <Link to="/" className="flex items-center gap-2 flex-nowrap hover:opacity-80 transition-opacity">
-            <img src={logoImg} alt="Real Travel 2 Real Places" className="rt2rp-header-logo flex-shrink-0" />
-            {user && <PlanPill showTripLimit className="flex-shrink-0" />}
-          </Link>
+          <BrandHeader variant="app">
 
           {user && (
             <DropdownMenu>
@@ -93,6 +89,7 @@ export function Layout({ children }: LayoutProps) {
               </DropdownMenuContent>
             </DropdownMenu>
           )}
+          </BrandHeader>
         </div>
       </header>
 
