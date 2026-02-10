@@ -239,3 +239,24 @@
     to { opacity: 1; transform: translateX(0); }
   }
 }
+
+/* Patch v2.2.21 — Brand logo sizing */
+.rt2rp-header-logo {
+  height: 32px;
+  max-height: 32px;
+  width: auto;
+  object-fit: contain;
+}
+.rt2rp-landing-logo {
+  height: 32px;
+  max-height: 32px;
+  width: auto;
+  object-fit: contain;
+}
+@media (max-width: 640px) {
+  .rt2rp-header-logo,
+  .rt2rp-landing-logo {
+    height: 24px;
+    max-height: 24px;
+  }
+}

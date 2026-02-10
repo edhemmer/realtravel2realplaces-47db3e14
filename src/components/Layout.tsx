@@ -41,9 +41,9 @@ export function Layout({ children }: LayoutProps) {
       {/* Header */}
       <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
         <div className="container flex h-16 items-center justify-between px-4">
-          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <img src={logoImg} alt="Real Travel 2 Real Places" className="h-10 sm:h-12 w-auto" />
-            {user && <PlanPill showTripLimit />}
+          <Link to="/" className="flex items-center gap-2 flex-nowrap hover:opacity-80 transition-opacity">
+            <img src={logoImg} alt="Real Travel 2 Real Places" className="rt2rp-header-logo flex-shrink-0" />
+            {user && <PlanPill showTripLimit className="flex-shrink-0" />}
           </Link>
 
           {user && (
