@@ -5,6 +5,7 @@ import { Plane, Users, Clock, ExternalLink, MapPin, AlertTriangle } from 'lucide
 import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER, parseDatetimeForDisplay } from '@/lib/datetimeIntegrity';
+import { getAirportTimeZone, formatTimeInTimezone, formatDateInTimezone } from '@/lib/airportTimezones';
 import { extractAirportCodes } from '@/lib/airportData';
 import { AirportInfoPill } from './AirportInfoPill';
 import { useAccess } from '@/hooks/useAccess';
@@ -147,15 +148,26 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                         <Clock className="w-3.5 h-3.5" />
                         <span className="text-xs text-muted-foreground mr-1">Departs</span>
                         {(() => {
+                          // v2.2.4: Use timezone-aware formatting for flights
+                          const depTz = getAirportTimeZone(flight.departure_airport_code);
                           const startDate = parseDatetimeForDisplay(flight.start_datetime);
-                          return startDate ? (
+                          
+                          // Prefer timezone-aware date/time if available
+                          const dateDisplay = depTz
+                            ? formatDateInTimezone(flight.start_datetime, depTz)
+                            : startDate ? format(startDate, 'EEE, MMM d') : null;
+                          
+                          return dateDisplay ? (
                             <>
                               <span className="font-medium text-foreground">
-                                {format(startDate, 'EEE, MMM d')}
+                                {dateDisplay}
                               </span>
                               {hasExplicitTime(flight.start_datetime) ? (
                                 <span className="text-muted-foreground">
-                                  at {format(startDate, 'h:mm a')}
+                                  at {depTz 
+                                    ? (formatTimeInTimezone(flight.start_datetime, depTz) || (startDate ? format(startDate, 'h:mm a') : UNKNOWN_TIME_PLACEHOLDER))
+                                    : (startDate ? format(startDate, 'h:mm a') : UNKNOWN_TIME_PLACEHOLDER)
+                                  }
                                 </span>
                               ) : (
                                 <span className="text-destructive font-medium">
@@ -167,17 +179,24 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                         })()}
                       </span>
                       {flight.end_datetime && (() => {
+                        // v2.2.4: Use timezone-aware arrival formatting
+                        const arrTz = getAirportTimeZone(flight.arrival_airport_code);
                         const endDate = parseDatetimeForDisplay(flight.end_datetime);
-                        return endDate ? (
-                          hasExplicitTime(flight.end_datetime) ? (
+                        
+                        if (hasExplicitTime(flight.end_datetime)) {
+                          const arrTime = arrTz
+                            ? (formatTimeInTimezone(flight.end_datetime!, arrTz) || (endDate ? format(endDate, 'h:mm a') : UNKNOWN_TIME_PLACEHOLDER))
+                            : (endDate ? format(endDate, 'h:mm a') : UNKNOWN_TIME_PLACEHOLDER);
+                          return (
                             <span className="text-xs">
-                              → Arrives {format(endDate, 'h:mm a')}
+                              → Arrives {arrTime}
                             </span>
-                          ) : (
-                            <span className="text-xs text-destructive font-medium">
-                              → Arrives {UNKNOWN_TIME_PLACEHOLDER}
-                            </span>
-                          )
+                          );
+                        }
+                        return endDate ? (
+                          <span className="text-xs text-destructive font-medium">
+                            → Arrives {UNKNOWN_TIME_PLACEHOLDER}
+                          </span>
                         ) : null;
                       })()}
                     </div>
