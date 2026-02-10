@@ -219,6 +219,8 @@ For flights also extract:
 - airline (the actual airline name like "Frontier Airlines", "Delta", "United" - extract from the confirmation text)
 - passenger_name
 - flight_number (put in notes, format as "Outbound: XXXX, Return: XXXX" for round trips)
+- departure_airport_code (3-letter IATA code for departure airport, e.g., "ATL")
+- arrival_airport_code (3-letter IATA code for arrival airport, e.g., "DEN")
 
 CRITICAL FOR STAYS - DATE VALIDATION:
 - start_datetime MUST be the actual CHECK-IN DATE (sometimes labeled "arrival date" or "check-in")
@@ -307,6 +309,9 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
                     return_location: { type: "string" },
                     parking_type: { type: "string", enum: ["airport", "hotel", "city_garage", "beach", "other"] },
                     notes: { type: "string" },
+                    // Flight-specific airport codes (v2.2.4)
+                    departure_airport_code: { type: "string", description: "3-letter IATA code for departure airport (e.g., ATL)" },
+                    arrival_airport_code: { type: "string", description: "3-letter IATA code for arrival airport (e.g., DEN)" },
                     // Activity-specific fields (v2.1.17)
                     activity_name: { type: "string", description: "For activities: name of the tour, attraction, or event" },
                     provider_name: { type: "string", description: "For activities: company/organization providing the tour/experience" },

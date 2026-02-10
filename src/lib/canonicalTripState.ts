@@ -21,6 +21,7 @@ import {
   NormalizedAirfareResult,
 } from './expenseCalculations';
 import { hasExplicitTime, parseDatetimeForDisplay } from './datetimeIntegrity';
+import { getAirportTimeZone } from './airportTimezones';
 
 // ============================================================================
 // TYPES
@@ -111,6 +112,16 @@ export interface CanonicalTimelineEvent {
   hasArrivalTime?: boolean;
   /** Confirmation number (for combined flight subtitle) */
   confirmationNumber?: string;
+
+  // v2.2.4: Timezone-aware local time fields for flights
+  /** ISO string representing departure in airport-local time (display directly, no further shifting) */
+  departureLocalTime?: string;
+  /** IANA timezone of departure airport (e.g., "America/New_York") */
+  departureTimeZone?: string;
+  /** ISO string representing arrival in airport-local time (display directly, no further shifting) */
+  arrivalLocalTime?: string;
+  /** IANA timezone of arrival airport (e.g., "America/Denver") */
+  arrivalTimeZone?: string;
 }
 
 /**
@@ -256,7 +267,11 @@ export function buildCanonicalTimeline(
     if (!startDate) return;
     
     switch (booking.booking_type) {
-      case 'flight':
+      case 'flight': {
+        // v2.2.4: Resolve airport timezones for correct local time display
+        const depTz = getAirportTimeZone(booking.departure_airport_code);
+        const arrTz = getAirportTimeZone(booking.arrival_airport_code);
+
         // v2.1.22: Combined flight entry (departure + arrival on one row)
         events.push({
           id: `${booking.id}-flight`,
@@ -279,8 +294,14 @@ export function buildCanonicalTimeline(
           hasDepartureTime: hasExplicitTime(booking.start_datetime),
           hasArrivalTime: booking.end_datetime ? hasExplicitTime(booking.end_datetime) : false,
           confirmationNumber: booking.confirmation_number || undefined,
+          // v2.2.4: Timezone-aware local time fields
+          departureLocalTime: booking.start_datetime,
+          departureTimeZone: depTz,
+          arrivalLocalTime: booking.end_datetime || undefined,
+          arrivalTimeZone: arrTz,
         });
         break;
+      }
         
       case 'stay':
         // Check-in
