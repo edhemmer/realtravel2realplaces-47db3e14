@@ -4,7 +4,8 @@ import { useIsAdmin } from '@/hooks/useAdminUsers';
 import { useAccess } from '@/hooks/useAccess';
 import { useIdleLogout } from '@/hooks/useIdleLogout';
 import { Button } from '@/components/ui/button';
-import { Plane, LogOut, User, Settings, MessageCircleQuestion, ShieldCheck, BarChart3 } from 'lucide-react';
+import { LogOut, User, Settings, MessageCircleQuestion, ShieldCheck, BarChart3 } from 'lucide-react';
+import logoImg from '@/assets/logo.png';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -40,17 +41,9 @@ export function Layout({ children }: LayoutProps) {
       {/* Header */}
       <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
         <div className="container flex h-16 items-center justify-between px-4">
-          <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <div className="w-10 h-10 rounded-lg bg-gradient-ocean flex items-center justify-center shadow-sm">
-              <Plane className="w-5 h-5 text-primary-foreground" />
-            </div>
-             <div className="flex items-center gap-2">
-               <h1 className="text-lg font-bold text-gradient-ocean leading-tight">
-                 Real Travel 2 <span className="italic">Real Places</span>
-               </h1>
-               {/* Patch 2.6.13: Accurate plan pill showing Free, Pro, or Business */}
-               {user && <PlanPill showTripLimit />}
-             </div>
+          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+            <img src={logoImg} alt="Real Travel 2 Real Places" className="h-10 sm:h-12 w-auto" />
+            {user && <PlanPill showTripLimit />}
           </Link>
 
           {user && (
