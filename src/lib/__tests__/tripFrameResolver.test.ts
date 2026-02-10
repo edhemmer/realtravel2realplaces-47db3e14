@@ -3,7 +3,9 @@ import {
   resolveTripFrame,
   validateConfirmationAlignment,
   isFrameResolved,
+  applyValidationGate,
   FrameBooking,
+  ResolvedFrame,
 } from '../tripFrameResolver';
 
 // ============================================================================
@@ -26,6 +28,18 @@ function stay(start: string, end: string): FrameBooking {
 
 function rental(start: string, end: string): FrameBooking {
   return { booking_type: 'car_rental', start_datetime: start, end_datetime: end };
+}
+
+function validFrame(overrides?: Partial<ResolvedFrame>): ResolvedFrame {
+  return {
+    startDate: '2025-03-01',
+    endDate: '2025-03-05',
+    mode: 'fly',
+    confidence: 0.9,
+    isAutoCreateSafe: true,
+    warnings: [],
+    ...overrides,
+  };
 }
 
 // ============================================================================
@@ -198,5 +212,96 @@ describe('isFrameResolved', () => {
       startDate: '2025-03-01', endDate: '2025-03-01', mode: 'drive',
       confidence: 1, isAutoCreateSafe: true, warnings: [],
     })).toBe(true);
+  });
+
+  // v2.2.13: Validation gate tests
+  it('returns false when framePendingValidation is true', () => {
+    expect(isFrameResolved({
+      startDate: '2025-03-01', endDate: '2025-03-05', mode: 'fly',
+      confidence: 0.9, isAutoCreateSafe: true, warnings: [],
+      framePendingValidation: true,
+    })).toBe(false);
+  });
+
+  it('returns true when framePendingValidation is false', () => {
+    expect(isFrameResolved({
+      startDate: '2025-03-01', endDate: '2025-03-05', mode: 'fly',
+      confidence: 0.9, isAutoCreateSafe: true, warnings: [],
+      framePendingValidation: false,
+    })).toBe(true);
+  });
+});
+
+// ============================================================================
+// v2.2.13: applyValidationGate
+// ============================================================================
+
+describe('applyValidationGate', () => {
+  it('all-times-valid: no pending flag', () => {
+    const frame = validFrame();
+    const result = applyValidationGate(frame, [
+      { bookingId: 'b1', timeIsEstimated: false },
+      { bookingId: 'b2', timeIsEstimated: false },
+    ]);
+    expect(result.framePendingValidation).toBe(false);
+    expect(result.isAutoCreateSafe).toBe(true);
+    expect(isFrameResolved(result)).toBe(true);
+  });
+
+  it('one-mismatch: sets pending flag and blocks finalization', () => {
+    const frame = validFrame();
+    const result = applyValidationGate(frame, [
+      { bookingId: 'b1', timeIsEstimated: false },
+      { bookingId: 'b2', timeIsEstimated: true }, // low-confidence
+    ]);
+    expect(result.framePendingValidation).toBe(true);
+    expect(result.isAutoCreateSafe).toBe(false);
+    expect(isFrameResolved(result)).toBe(false);
+  });
+
+  it('all-mismatches: sets pending flag', () => {
+    const frame = validFrame();
+    const result = applyValidationGate(frame, [
+      { bookingId: 'b1', timeIsEstimated: true },
+      { bookingId: 'b2', timeIsEstimated: true },
+    ]);
+    expect(result.framePendingValidation).toBe(true);
+    expect(isFrameResolved(result)).toBe(false);
+  });
+
+  it('post-confirmation: clearing flags allows finalization', () => {
+    const frame = validFrame();
+    // First: one booking is estimated
+    const pending = applyValidationGate(frame, [
+      { bookingId: 'b1', timeIsEstimated: false },
+      { bookingId: 'b2', timeIsEstimated: true },
+    ]);
+    expect(isFrameResolved(pending)).toBe(false);
+
+    // User confirms — all flags cleared
+    const resolved = applyValidationGate(frame, [
+      { bookingId: 'b1', timeIsEstimated: false },
+      { bookingId: 'b2', timeIsEstimated: false },
+    ]);
+    expect(resolved.framePendingValidation).toBe(false);
+    expect(isFrameResolved(resolved)).toBe(true);
+  });
+
+  it('manual-only trip (no booking flags): no pending flag', () => {
+    const frame = validFrame();
+    const result = applyValidationGate(frame, []);
+    expect(result.framePendingValidation).toBe(false);
+    expect(isFrameResolved(result)).toBe(true);
+  });
+
+  it('preserves original frame fields', () => {
+    const frame = validFrame({ mode: 'drive', confidence: 0.75 });
+    const result = applyValidationGate(frame, [
+      { bookingId: 'b1', timeIsEstimated: false },
+    ]);
+    expect(result.startDate).toBe('2025-03-01');
+    expect(result.endDate).toBe('2025-03-05');
+    expect(result.mode).toBe('drive');
+    expect(result.confidence).toBe(0.75);
   });
 });
