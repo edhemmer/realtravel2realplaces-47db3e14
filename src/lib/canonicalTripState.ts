@@ -22,6 +22,7 @@ import {
 } from './expenseCalculations';
 import { hasExplicitTime, parseDatetimeForDisplay } from './datetimeIntegrity';
 import { getAirportTimeZone } from './airportTimezones';
+import { WeatherSnapshot } from './canonicalWeather';
 
 // ============================================================================
 // TYPES
@@ -148,6 +149,8 @@ export interface CanonicalTripState {
   timelineEvents: CanonicalTimelineEvent[];
   /** Canonical cost summary */
   costs: CanonicalCostSummary;
+  /** v2.2.6: Canonical weather data keyed by "${dateISO}::${locationId}" */
+  weatherByKey: Record<string, WeatherSnapshot>;
   /** Quick accessors */
   hasFlights: boolean;
   hasStays: boolean;
@@ -538,6 +541,7 @@ export function getCanonicalTripState(
     dateRange,
     timelineEvents,
     costs,
+    weatherByKey: {}, // v2.2.6: Populated by consumer hooks via forecastToSnapshots
     hasFlights,
     hasStays,
     hasRentals,

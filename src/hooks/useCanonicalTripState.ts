@@ -1,12 +1,12 @@
 /**
- * v2.0.7: Canonical Trip State Hook
+ * v2.2.6: Canonical Trip State Hook
  * 
  * React hook providing canonical trip state as the single source of truth
- * for trip dates, timeline events, and costs.
+ * for trip dates, timeline events, costs, and weather.
  * 
  * USAGE:
- * All components displaying trip dates, times, or costs should use this hook
- * rather than fetching data independently and calculating their own values.
+ * All components displaying trip dates, times, costs, or weather should
+ * use this hook rather than fetching data independently.
  */
 
 import { useMemo } from 'react';
@@ -18,9 +18,18 @@ import {
   CanonicalTimelineEvent,
   CanonicalCostSummary,
 } from '@/lib/canonicalTripState';
+import { 
+  WeatherSnapshot, 
+  forecastToSnapshots, 
+  getWeatherForEvent, 
+  deriveWeatherPills,
+  WeatherPill,
+} from '@/lib/canonicalWeather';
 import { useBookings } from './useBookings';
 import { useExpenses } from './useExpenses';
 import { useParking } from './useParking';
+import { useTripWeather } from './useWeather';
+import { useProfileTemperatureUnit } from './useProfileTemperatureUnit';
 
 // Re-export types for convenience
 export type { 
@@ -28,7 +37,12 @@ export type {
   CanonicalDateRange, 
   CanonicalTimelineEvent, 
   CanonicalCostSummary,
+  WeatherSnapshot,
+  WeatherPill,
 };
+
+// Re-export weather helpers
+export { getWeatherForEvent, deriveWeatherPills };
 
 interface UseCanonicalTripStateResult {
   /** Complete canonical trip state */
@@ -44,10 +58,13 @@ interface UseCanonicalTripStateResult {
   hasRentals: boolean;
   hasActivities: boolean;
   hasParking: boolean;
+  /** v2.2.6: Weather lookup map */
+  weatherByKey: Record<string, WeatherSnapshot>;
 }
 
 /**
  * Hook to get canonical trip state with automatic data fetching
+ * including weather data populated into weatherByKey.
  * 
  * @param tripId - The trip ID to fetch state for
  * @param trip - The trip record (must be provided)
@@ -61,13 +78,41 @@ export function useCanonicalTripState(
   const { data: expenses = [], isLoading: expensesLoading } = useExpenses(tripId);
   const { data: parkingList = [], isLoading: parkingLoading } = useParking(tripId);
   
+  const { unit: tempUnit } = useProfileTemperatureUnit();
+  
+  // Fetch weather for the trip destination
+  const { tripForecast, isLoading: weatherLoading } = useTripWeather(
+    trip?.destination_city || '',
+    trip?.destination_country || '',
+    trip?.start_date || '',
+    trip?.end_date || '',
+    trip?.destination_state || undefined,
+    tempUnit
+  );
+  
   const isLoading = bookingsLoading || expensesLoading || parkingLoading || !trip;
   
-  // Memoize the canonical state calculation
+  // Memoize the canonical state calculation + weather integration
   const state = useMemo(() => {
     if (!trip) return null;
-    return getCanonicalTripState(trip, bookings, expenses, parkingList);
-  }, [trip, bookings, expenses, parkingList]);
+    const base = getCanonicalTripState(trip, bookings, expenses, parkingList);
+    
+    // Populate weatherByKey from forecast data
+    if (tripForecast.length > 0) {
+      const destId = `dest::${trip.destination_city}`;
+      const snapshots = forecastToSnapshots(
+        tripForecast,
+        destId,
+        'drive',
+        trip.destination_city,
+        trip.destination_state || undefined,
+        trip.destination_country,
+      );
+      base.weatherByKey = snapshots;
+    }
+    
+    return base;
+  }, [trip, bookings, expenses, parkingList, tripForecast]);
   
   return {
     state,
@@ -80,6 +125,7 @@ export function useCanonicalTripState(
     hasRentals: state?.hasRentals ?? false,
     hasActivities: state?.hasActivities ?? false,
     hasParking: state?.hasParking ?? false,
+    weatherByKey: state?.weatherByKey ?? {},
   };
 }
 
