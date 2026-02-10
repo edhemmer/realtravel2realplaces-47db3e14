@@ -60,8 +60,22 @@ export function useCompleteOnboarding() {
         throw error;
       }
     },
-    onSuccess: () => {
-      // Invalidate profile query to refresh the onboarding status
+    onMutate: async () => {
+      // Optimistically update the profile cache to prevent redirect loop
+      await queryClient.cancelQueries({ queryKey: ['user-profile'] });
+      const previous = queryClient.getQueryData(['user-profile']);
+      queryClient.setQueryData(['user-profile'], (old: any) =>
+        old ? { ...old, has_completed_onboarding: true } : old
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      // Rollback on error
+      if (context?.previous) {
+        queryClient.setQueryData(['user-profile'], context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['user-profile'] });
     },
   });

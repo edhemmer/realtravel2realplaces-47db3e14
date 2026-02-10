@@ -85,18 +85,22 @@ export default function Onboarding() {
     if (currentStep < STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
-      // Complete onboarding - mark in DB (only if not manual view)
-      if (!isManualView) {
-        try {
-          await completeOnboarding.mutateAsync();
-        } catch (err) {
-          console.error('Failed to mark onboarding complete:', err);
-          // Still navigate even if DB update fails
-        }
-      }
-      clearManualOnboardingView();
-      navigate('/dashboard');
+      await finishOnboarding();
     }
+  };
+
+  const finishOnboarding = async () => {
+    // Complete onboarding - mark in DB (only if not manual view)
+    if (!isManualView) {
+      try {
+        await completeOnboarding.mutateAsync();
+      } catch (err) {
+        console.error('Failed to mark onboarding complete:', err);
+        // Still navigate even if DB update fails
+      }
+    }
+    clearManualOnboardingView();
+    navigate('/dashboard', { replace: true });
   };
 
   const handlePrev = () => {
@@ -106,16 +110,7 @@ export default function Onboarding() {
   };
 
   const handleSkip = async () => {
-    // Mark complete in DB (only if not manual view)
-    if (!isManualView) {
-      try {
-        await completeOnboarding.mutateAsync();
-      } catch (err) {
-        console.error('Failed to mark onboarding complete:', err);
-      }
-    }
-    clearManualOnboardingView();
-    navigate('/dashboard');
+    await finishOnboarding();
   };
 
   const renderStepContent = () => {
@@ -217,7 +212,7 @@ function WelcomeStep() {
         <h3 className="font-semibold text-lg">Our Philosophy</h3>
         <div className="space-y-3 text-muted-foreground">
           <p>
-            RT2RP focuses on organizing and clarifying travel information in ways 
+          Real Travel 2 Real Places focuses on organizing and clarifying travel information in ways 
             that are dependable and easy to review.
           </p>
           <p>
@@ -352,7 +347,7 @@ function AddDetailsStep() {
       <div className="p-4 rounded-lg bg-muted/50">
         <p className="text-sm text-muted-foreground">
           <strong>Tip:</strong> You can paste confirmation emails or enter details 
-          manually. RT2RP keeps your data organized without making assumptions.
+          manually. Real Travel 2 Real Places keeps your data organized without making assumptions.
         </p>
       </div>
     </div>
@@ -404,7 +399,7 @@ function ExpensesStep() {
           <div>
             <h4 className="font-medium">Accurate Totals</h4>
             <p className="text-sm text-muted-foreground">
-              RT2RP calculates totals from the data you enter. What you see 
+              Real Travel 2 Real Places calculates totals from the data you enter. What you see 
               on screen is exactly what exports show.
             </p>
           </div>
