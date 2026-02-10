@@ -23,6 +23,7 @@ import {
 import { hasExplicitTime, parseDatetimeForDisplay } from './datetimeIntegrity';
 import { getAirportTimeZone } from './airportTimezones';
 import { WeatherSnapshot } from './canonicalWeather';
+import { resolveBookingTimezone, resolveDestinationTimezone } from './canonicalTimeNormalizer';
 
 // ============================================================================
 // TYPES
@@ -123,6 +124,12 @@ export interface CanonicalTimelineEvent {
   arrivalLocalTime?: string;
   /** IANA timezone of arrival airport (e.g., "America/Denver") */
   arrivalTimeZone?: string;
+
+  // v2.2.10: Canonical local time fields for ALL event types
+  /** Raw stored datetime string — display digits directly, no Date() shifting */
+  eventLocalDateTime?: string;
+  /** IANA timezone of event location, null = "local-unknown" (render as-is) */
+  eventTimeZone?: string | null;
 }
 
 /**
@@ -234,10 +241,11 @@ export function calculateCanonicalDateRange(
  */
 export function buildCanonicalTimeline(
   bookings: Booking[],
-  parkingList: Parking[]
+  parkingList: Parking[],
+  tripDestinationTimeZone?: string | null
 ): CanonicalTimelineEvent[] {
   const events: CanonicalTimelineEvent[] = [];
-  
+  const destTz = tripDestinationTimeZone || null;
   // Process bookings
   bookings.forEach(booking => {
     const startDate = parseDatetimeForDisplay(booking.start_datetime);
@@ -259,13 +267,11 @@ export function buildCanonicalTimeline(
           bookingType: 'flight',
           eventType: 'flight',
           title: booking.airline || booking.vendor_name,
-          // Subtitle built in TripTimeline component for combined display
           subtitle: booking.confirmation_number || '',
-          datetime: startDate, // Sort by departure time
+          datetime: startDate,
           hasExplicitTime: hasExplicitTime(booking.start_datetime),
           address: booking.address,
           linkUrl: booking.link_url,
-          // Flight-specific fields for combined display
           departureAirportCode: booking.departure_airport_code || undefined,
           arrivalAirportCode: booking.arrival_airport_code || undefined,
           departureTime: startDate,
@@ -278,6 +284,9 @@ export function buildCanonicalTimeline(
           departureTimeZone: depTz,
           arrivalLocalTime: booking.end_datetime || undefined,
           arrivalTimeZone: arrTz,
+          // v2.2.10: Canonical local time (departure for sort/display)
+          eventLocalDateTime: booking.start_datetime,
+          eventTimeZone: depTz || null,
         });
         break;
       }
@@ -296,6 +305,9 @@ export function buildCanonicalTimeline(
           hasExplicitTime: hasExplicitTime(booking.start_datetime),
           address: booking.address,
           linkUrl: booking.link_url,
+          // v2.2.10: Canonical local time
+          eventLocalDateTime: booking.start_datetime,
+          eventTimeZone: destTz,
         });
         // Check-out
         if (endDate) {
@@ -311,6 +323,9 @@ export function buildCanonicalTimeline(
             hasExplicitTime: hasExplicitTime(booking.end_datetime),
             address: booking.address,
             linkUrl: booking.link_url,
+            // v2.2.10: Canonical local time
+            eventLocalDateTime: booking.end_datetime || undefined,
+            eventTimeZone: destTz,
           });
         }
         break;
@@ -329,6 +344,9 @@ export function buildCanonicalTimeline(
           hasExplicitTime: hasExplicitTime(booking.start_datetime),
           address: booking.pickup_location || booking.address,
           linkUrl: booking.link_url,
+          // v2.2.10: Canonical local time
+          eventLocalDateTime: booking.start_datetime,
+          eventTimeZone: destTz,
         });
         // Drop-off
         if (endDate) {
@@ -344,6 +362,9 @@ export function buildCanonicalTimeline(
             hasExplicitTime: hasExplicitTime(booking.end_datetime),
             address: booking.return_location || booking.pickup_location || booking.address,
             linkUrl: booking.link_url,
+            // v2.2.10: Canonical local time
+            eventLocalDateTime: booking.end_datetime || undefined,
+            eventTimeZone: destTz,
           });
         }
         break;
@@ -363,6 +384,9 @@ export function buildCanonicalTimeline(
           address: booking.address,
           linkUrl: booking.link_url,
           transportMode: booking.transport_mode,
+          // v2.2.10: Canonical local time
+          eventLocalDateTime: booking.start_datetime,
+          eventTimeZone: destTz,
         });
         // Transport arrival
         if (endDate) {
@@ -379,6 +403,9 @@ export function buildCanonicalTimeline(
             address: booking.address,
             linkUrl: booking.link_url,
             transportMode: booking.transport_mode,
+            // v2.2.10: Canonical local time
+            eventLocalDateTime: booking.end_datetime || undefined,
+            eventTimeZone: destTz,
           });
         }
         break;
@@ -400,6 +427,9 @@ export function buildCanonicalTimeline(
           ticketRequired: booking.ticket_required || booking.advance_recommended || false,
           ticketsPurchased: booking.tickets_purchased || false,
           activitySource: booking.activity_source || undefined,
+          // v2.2.10: Canonical local time
+          eventLocalDateTime: booking.start_datetime,
+          eventTimeZone: destTz,
         });
         // Activity end (if specified)
         if (endDate) {
@@ -415,6 +445,9 @@ export function buildCanonicalTimeline(
             hasExplicitTime: hasExplicitTime(booking.end_datetime),
             address: booking.address,
             linkUrl: booking.link_url || booking.booking_url,
+            // v2.2.10: Canonical local time
+            eventLocalDateTime: booking.end_datetime || undefined,
+            eventTimeZone: destTz,
           });
         }
         break;
@@ -440,6 +473,9 @@ export function buildCanonicalTimeline(
       datetime: startDate,
       hasExplicitTime: hasExplicitTime(parking.start_datetime),
       address: parking.address,
+      // v2.2.10: Canonical local time
+      eventLocalDateTime: parking.start_datetime,
+      eventTimeZone: destTz,
     });
     
     // Parking end
@@ -455,6 +491,9 @@ export function buildCanonicalTimeline(
         datetime: endDate,
         hasExplicitTime: hasExplicitTime(parking.end_datetime),
         address: parking.address,
+        // v2.2.10: Canonical local time
+        eventLocalDateTime: parking.end_datetime || undefined,
+        eventTimeZone: destTz,
       });
     }
   });
@@ -520,11 +559,14 @@ export function getCanonicalTripState(
   expenses: Expense[],
   parkingList: Parking[]
 ): CanonicalTripState {
+  // v2.2.10: Resolve destination timezone for non-flight booking events
+  const destTz = resolveDestinationTimezone(trip.destination_state, trip.destination_country);
+  
   // Calculate date range
   const dateRange = calculateCanonicalDateRange(trip, bookings);
   
-  // Build timeline events
-  const timelineEvents = buildCanonicalTimeline(bookings, parkingList);
+  // Build timeline events (pass destination timezone for non-flight events)
+  const timelineEvents = buildCanonicalTimeline(bookings, parkingList, destTz);
   
   // Calculate costs
   const costs = calculateCanonicalCosts(expenses, bookings, parkingList);

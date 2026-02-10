@@ -107,8 +107,20 @@ export function normalizeDatetimeForStorage(datetime: string | null | undefined)
     
     // Check if this has an explicit time
     if (hasExplicitTime(datetime)) {
-      // Store with time - use the original ISO string format if valid
-      return parsed.toISOString();
+      // v2.2.10: Store as naive local datetime, NOT UTC.
+      // The time digits from the source represent local time at the event's location.
+      // Strip any timezone suffix and return YYYY-MM-DDTHH:MM:SS format.
+      const tIndex = datetime.indexOf('T');
+      if (tIndex !== -1) {
+        const datePart = datetime.substring(0, 10);
+        const timePart = datetime.substring(tIndex + 1)
+          .replace(/Z$/, '')
+          .replace(/[+-]\d{2}:\d{2}$/, '')
+          .substring(0, 8);
+        return `${datePart}T${timePart}`;
+      }
+      // Fallback: format without UTC conversion
+      return format(parsed, "yyyy-MM-dd'T'HH:mm:ss");
     } else {
       // No explicit time - store as date-only to prevent timezone issues
       return format(parsed, 'yyyy-MM-dd');
