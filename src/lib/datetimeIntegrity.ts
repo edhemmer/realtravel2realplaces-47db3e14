@@ -16,6 +16,9 @@
  * 3. DISPLAY RULES
  *    - Show actual time when present
  *    - Show --:-- in red when time is null/missing
+ * 
+ * v2.2.4: hasExplicitTime now uses direct string digit extraction
+ * instead of parseISO + getHours to avoid browser timezone shifts.
  */
 
 import { format, parseISO } from 'date-fns';
@@ -46,32 +49,27 @@ export function hasExplicitTime(datetime: string | null | undefined): boolean {
     return false;
   }
   
-  // Parse the datetime and check if time is midnight (likely defaulted)
-  try {
-    const parsed = parseISO(datetime);
-    const hours = parsed.getHours();
-    const minutes = parsed.getMinutes();
-    const seconds = parsed.getSeconds();
-    
-    // If time is exactly midnight, assume it was defaulted (no explicit time)
-    // This is the most common pattern for "no time specified"
-    if (hours === 0 && minutes === 0 && seconds === 0) {
-      // Check if the original string contains a time component
-      // ISO strings with explicit time have 'T' followed by time
-      if (datetime.includes('T')) {
-        const timePart = datetime.split('T')[1];
-        // If time part starts with 00:00:00 or 00:00, it's likely defaulted
-        if (timePart?.startsWith('00:00:00') || timePart?.startsWith('00:00')) {
-          return false;
-        }
-      }
-      return false;
-    }
-    
-    return true;
-  } catch {
+  // v2.2.4: Extract hours/minutes directly from the string digits.
+  // NEVER use new Date() or parseISO() here — that applies the browser's
+  // timezone offset and can turn a valid time (e.g., 05:00 UTC) into
+  // midnight in UTC-5, incorrectly marking it as "no explicit time".
+  const tIndex = datetime.indexOf('T');
+  if (tIndex === -1) return false;
+  
+  const timePart = datetime.substring(tIndex + 1);
+  const match = timePart.match(/^(\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (!match) return false;
+  
+  const hours = parseInt(match[1], 10);
+  const minutes = parseInt(match[2], 10);
+  const seconds = match[3] ? parseInt(match[3], 10) : 0;
+  
+  // Midnight (00:00:00) is assumed to be a default, not an explicit time
+  if (hours === 0 && minutes === 0 && seconds === 0) {
     return false;
   }
+  
+  return true;
 }
 
 /**

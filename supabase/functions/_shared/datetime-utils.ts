@@ -117,29 +117,19 @@ export function normalizeDatetime(dt: string | null | undefined): string | null 
     return datePart; // Store as date-only
   }
   
-  // Has explicit non-midnight time - validate and normalize
-  // v2.2.10: Keep as naive local datetime (no UTC conversion via .toISOString())
+  // v2.2.4: Validate and normalize using string digits ONLY.
+  // NEVER use new Date() here — that applies the Deno server's timezone,
+  // which can shift times and incorrectly detect midnight.
   // The time digits from the parser represent local time at the event's location.
-  try {
-    const parsed = new Date(dt);
-    if (isNaN(parsed.getTime())) return null;
-    
-    const hours = parsed.getHours();
-    const minutes = parsed.getMinutes();
-    const seconds = parsed.getSeconds();
-    
-    // Double-check for midnight after parsing (handles timezone edge cases)
-    if (hours === 0 && minutes === 0 && seconds === 0) {
-      return datePart;
-    }
-    
-    // v2.2.10: Return the naive datetime preserving original digits.
-    // Strip any trailing timezone info (Z, +00:00) to keep it naive.
-    // The canonical time normalizer layer handles timezone resolution.
-    return `${datePart}T${timePart.replace(/Z$/, '').replace(/[+-]\d{2}:\d{2}$/, '').substring(0, 8)}`;
-  } catch {
-    return null;
-  }
+  
+  // Strip any trailing timezone info (Z, +00:00) to keep it naive.
+  const cleanTime = timePart.replace(/Z$/, '').replace(/[+-]\d{2}:\d{2}$/, '').substring(0, 8);
+  
+  // Validate the time portion has valid digits
+  const timeMatch = cleanTime.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
+  if (!timeMatch) return null;
+  
+  return `${datePart}T${cleanTime}`;
 }
 
 /**
