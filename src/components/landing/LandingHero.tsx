@@ -6,13 +6,13 @@ export default function LandingHero() {
     <section className="landing-hero-section">
       <div className="max-w-4xl mx-auto text-center">
         {/* Brand logo — primary brand moment */}
-        <div className="flex justify-center mb-10 mt-2">
-          <img
-            src={logoImg}
-            alt="Real Travel 2 Real Places"
-            className="landing-hero-logo"
-          />
-        </div>
+        
+
+
+
+
+
+
 
         {/* H1 - Primary headline */}
         <h1 className="landing-hero-headline">
@@ -35,16 +35,16 @@ export default function LandingHero() {
 
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-          <Link 
-            to="/auth?tab=signup" 
-            className="landing-btn-primary-hero"
-          >
+          <Link
+            to="/auth?tab=signup"
+            className="landing-btn-primary-hero">
+
             Get started free
           </Link>
-          <Link 
-            to="/auth" 
-            className="landing-btn-secondary-hero"
-          >
+          <Link
+            to="/auth"
+            className="landing-btn-secondary-hero">
+
             Log in
           </Link>
         </div>
@@ -54,6 +54,6 @@ export default function LandingHero() {
           No credit card required · Your data stays yours
         </p>
       </div>
-    </section>
-  );
+    </section>);
+
 }
