@@ -4,11 +4,14 @@
  * SINGLE SOURCE OF TRUTH for date, time, and currency display formats.
  * All UI components MUST use these helpers for consistent presentation.
  * 
- * This module contains NO logic changes—only formatting wrappers.
+ * v2.2.4: All time display now uses direct digit extraction from stored
+ * datetime strings via formatLocalTimeDirect / formatLocalDateDirect.
+ * This prevents browser timezone shifts on timestamptz values.
  */
 
 import { format, parseISO, isSameYear } from 'date-fns';
 import { UNKNOWN_TIME_PLACEHOLDER, parseDatetimeForDisplay, hasExplicitTime } from './datetimeIntegrity';
+import { formatLocalTimeDirect, formatLocalDateDirect } from './canonicalTimeNormalizer';
 
 // ============================================================================
 // TRIP DATE RANGE FORMATTING
@@ -93,16 +96,14 @@ export function formatEventTime(
     return UNKNOWN_TIME_PLACEHOLDER;
   }
   
-  const parsed = typeof datetime === 'string' ? parseDatetimeForDisplay(datetime) : datetime;
-  if (!parsed) return UNKNOWN_TIME_PLACEHOLDER;
+  // v2.2.4: Use direct digit extraction to avoid browser timezone shifts.
+  // The stored string's HH:MM digits represent the correct local time at the
+  // event's location. Bypassing new Date() / parseISO() prevents UTC offset drift.
+  const use24h = preferredFormat === 'DD/MM/YYYY 24h';
+  const directTime = formatLocalTimeDirect(datetimeStr, use24h);
+  if (directTime) return directTime;
   
-  // 24-hour format
-  if (preferredFormat === 'DD/MM/YYYY 24h') {
-    return format(parsed, 'HH:mm');
-  }
-  
-  // 12-hour format (default)
-  return format(parsed, 'h:mm a');
+  return UNKNOWN_TIME_PLACEHOLDER;
 }
 
 /**
@@ -119,18 +120,14 @@ export function formatEventDatetime(
   datetime: string,
   preferredFormat: DatetimeFormatPreference = 'MM/DD/YYYY 12h'
 ): string {
-  const parsed = parseDatetimeForDisplay(datetime);
-  if (!parsed) return '--';
+  // v2.2.4: Use direct date extraction to avoid timezone-shifted day-of-week
+  const use24h = preferredFormat === 'DD/MM/YYYY 24h';
+  const dateStr = formatLocalDateDirect(datetime, use24h);
+  if (!dateStr) return '--';
   
   const timeStr = formatEventTime(datetime, preferredFormat);
   
-  // 24-hour format: "Mon, 10 Feb · 15:45"
-  if (preferredFormat === 'DD/MM/YYYY 24h') {
-    return `${format(parsed, 'EEE, d MMM')} · ${timeStr}`;
-  }
-  
-  // 12-hour format: "Mon, Feb 10 · 3:45 PM"
-  return `${format(parsed, 'EEE, MMM d')} · ${timeStr}`;
+  return `${dateStr} · ${timeStr}`;
 }
 
 /**
@@ -143,16 +140,13 @@ export function formatEventDate(
   datetime: string | Date,
   preferredFormat: DatetimeFormatPreference = 'MM/DD/YYYY 12h'
 ): string {
-  const parsed = typeof datetime === 'string' ? parseDatetimeForDisplay(datetime) : datetime;
-  if (!parsed) return '--';
+  // v2.2.4: Use direct date extraction for string inputs to avoid timezone shift
+  const datetimeStr = datetime instanceof Date ? datetime.toISOString() : datetime;
+  const use24h = preferredFormat === 'DD/MM/YYYY 24h';
+  const directDate = formatLocalDateDirect(datetimeStr, use24h);
+  if (directDate) return directDate;
   
-  // 24-hour format uses day-month order
-  if (preferredFormat === 'DD/MM/YYYY 24h') {
-    return format(parsed, 'EEE, d MMM');
-  }
-  
-  // 12-hour format uses month-day order (default)
-  return format(parsed, 'EEE, MMM d');
+  return '--';
 }
 
 // ============================================================================

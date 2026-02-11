@@ -34,7 +34,8 @@ import {
   Clock,
   MapPin
 } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { formatLocalTimeDirect, formatLocalDateDirect } from '@/lib/canonicalTimeNormalizer';
+import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
 
 export type BookingCardType = 'flight' | 'stay' | 'car_rental' | 'activity' | 'transport';
 export type TransportMode = 'train' | 'bus' | 'metro' | 'ferry' | 'other';
@@ -135,20 +136,24 @@ export function BookingCard({
     : TYPE_ICONS[type];
 
   // Format dates for display
+  // v2.2.4: Use direct digit extraction to avoid browser timezone shifts.
   const formatDateTime = (datetime: string) => {
-    try {
-      return format(parseISO(datetime), 'MMM d, h:mm a');
-    } catch {
-      return datetime;
-    }
+    const datePart = formatLocalDateDirect(datetime);
+    const timePart = hasExplicitTime(datetime)
+      ? (formatLocalTimeDirect(datetime) || UNKNOWN_TIME_PLACEHOLDER)
+      : UNKNOWN_TIME_PLACEHOLDER;
+    return datePart ? `${datePart}, ${timePart}` : datetime;
   };
 
   const formatDateOnly = (datetime: string) => {
-    try {
-      return format(parseISO(datetime), 'MMM d, yyyy');
-    } catch {
-      return datetime;
-    }
+    // Extract YYYY-MM-DD and format without Date object
+    const datePart = datetime.substring(0, 10);
+    const match = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return datetime;
+    const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const month = parseInt(match[2], 10);
+    const day = parseInt(match[3], 10);
+    return `${MONTHS[month - 1]} ${day}, ${match[1]}`;
   };
 
   // Determine date display based on booking type
