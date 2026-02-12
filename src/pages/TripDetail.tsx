@@ -1,10 +1,13 @@
 import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTrip } from '@/hooks/useTrips';
 import { useTripOwnership } from '@/hooks/useSharedTrips';
 import { useExploreDiscovery } from '@/hooks/useExploreDiscovery';
 import { useBookings } from '@/hooks/useBookings';
 import { useAccess } from '@/hooks/useAccess';
 import { useIsMobile } from '@/hooks/use-mobile';
+// v2.3.4: Foreground resume refresh for Next Up freshness
+import { useForegroundResume } from '@/hooks/useForegroundResume';
 import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -64,7 +67,16 @@ export default function TripDetail() {
   const { hasDiscovered: hasDiscoveredExplore, markDiscovered: markExploreDiscovered } = useExploreDiscovery();
   // Patch 2.2.3: Mobile detection for bottom nav
   const isMobile = useIsMobile();
-  
+  const queryClient = useQueryClient();
+
+  // v2.3.4: On foreground resume, invalidate trip data so useNextStop re-evaluates
+  useForegroundResume(useCallback(() => {
+    if (!tripId) return;
+    queryClient.invalidateQueries({ queryKey: ['bookings', tripId] });
+    queryClient.invalidateQueries({ queryKey: ['expenses', tripId] });
+    queryClient.invalidateQueries({ queryKey: ['parking', tripId] });
+  }, [tripId, queryClient]));
+
   // v2.0.7: Tab and drill-through state
   // Patch 2.2.3: Updated type for mobile navigation compatibility
   const [activeTab, setActiveTab] = useState<TripTab>('summary');
