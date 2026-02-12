@@ -55,6 +55,9 @@ import { ParseOriginHint, inferExpenseOrigin } from '@/components/trips/ParseHin
 
 interface ExpensesTabProps {
   tripId: string;
+  /** v2.3.5: Signal to auto-open Add Expense dialog from mobile field card */
+  autoOpenAdd?: boolean;
+  onAutoOpenConsumed?: () => void;
 }
 
 /*
@@ -117,7 +120,7 @@ const SUB_CATEGORIES: Record<ExpenseCategory, { value: ExpenseSubCategory; label
   ],
 };
 
-export function ExpensesTab({ tripId }: ExpensesTabProps) {
+export function ExpensesTab({ tripId, autoOpenAdd, onAutoOpenConsumed }: ExpensesTabProps) {
   const { canEdit } = useTripPermission();
   const { data: expenses = [], isLoading } = useExpenses(tripId);
   const { data: bookings = [], isLoading: bookingsLoading } = useBookings(tripId);
@@ -140,7 +143,8 @@ export function ExpensesTab({ tripId }: ExpensesTabProps) {
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
 const [gasDialogOpen, setGasDialogOpen] = useState(false);
-  
+
+
   const [formData, setFormData] = useState({
     date: format(new Date(), 'yyyy-MM-dd'),
     category: 'meals' as ExpenseCategory,
@@ -171,6 +175,16 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
     setParseError(null);
     setParseSuccess(false);
   };
+
+  // v2.3.5: Auto-open Add Expense dialog when signaled from mobile field card
+  useEffect(() => {
+    if (autoOpenAdd) {
+      resetForm();
+      setEditingExpense(null);
+      setDialogOpen(true);
+      onAutoOpenConsumed?.();
+    }
+  }, [autoOpenAdd]);
 
   // Quick-add opens dialog with pre-selected category/subcategory
   const openQuickAdd = (category: ExpenseCategory, subCategory: ExpenseSubCategory) => {
