@@ -64,19 +64,18 @@ export function MobileNextUpCard({ tripId, trip }: MobileNextUpCardProps) {
 
   return (
     <div className="block md:hidden">
-      {/* v2.3.3: Subtle neutral tint for calm priority — not warning/success/error */}
-      <Card className="border-muted-foreground/15 bg-muted/50">
-        <CardContent className="px-4 py-3">
-          {/* Event info */}
-          <div className="min-w-0 mb-2">
+      <Card className="border-muted-foreground/10 bg-muted/30">
+        <CardContent className="px-3 py-2.5">
+          {/* Event info — single compact block */}
+          <div className="min-w-0 mb-1.5">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-0.5">
               Next Up
             </p>
-            <p className="text-sm font-medium truncate text-foreground leading-snug">
+            <p className="text-sm font-medium truncate text-foreground leading-snug overflow-hidden text-ellipsis whitespace-nowrap">
               {nextStop.displayName}
             </p>
-            <div className="flex items-center gap-3 mt-0.5 text-[13px] leading-relaxed text-muted-foreground">
-              <span className="flex items-center gap-1">
+            <div className="flex items-center gap-2 mt-0.5 text-[12px] leading-snug text-muted-foreground truncate">
+              <span className="flex items-center gap-1 shrink-0">
                 <Clock className="w-3 h-3" />
                 {formatDateShort(nextStop.eventLocalDate)} · {nextStop.eventLocalTime}
               </span>
@@ -89,12 +88,11 @@ export function MobileNextUpCard({ tripId, trip }: MobileNextUpCardProps) {
             </div>
           </div>
 
-          {/* v2.3.3: Full-width navigate button, min 44px tap target */}
           <Button
             size="sm"
             variant={hasLocation ? "default" : "outline"}
             disabled={!hasLocation}
-            className="w-full min-h-[44px]"
+            className="w-full min-h-[40px]"
             onClick={() => {
               if (mapsUrl) {
                 window.open(mapsUrl, '_blank', 'noopener,noreferrer');

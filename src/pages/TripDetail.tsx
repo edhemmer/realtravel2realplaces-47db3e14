@@ -159,27 +159,9 @@ export default function TripDetail() {
           onTabChange={handleTabChange}
           showBottomNav={true}
         >
-          {/* v2.3.8: Safe-area aware layout with native-ready spacing */}
+          {/* v2.3.x: Safe-area aware layout with native-ready spacing */}
           <div className="space-y-3 md:space-y-6 animate-fade-in pt-safe">
-            {/* v2.1.6: Trip Status Hero Bar - sticky at top */}
-            <TripStatusHeroBar trip={trip} />
-
-            {/* v2.3.8: Primary zone — compressed gaps, thumb-zone safe margins */}
-            <div className="space-y-1.5 md:space-y-6 px-0.5 md:px-0">
-              {/* v2.1.6: Pro Retention Countdown Card - shows for Pro closed trips */}
-              <ProRetentionCountdownCard trip={trip} />
-
-              {/* v2.3.2: Mobile "Next Up" card - mobile only, top of trip view */}
-              <MobileNextUpCard tripId={trip.id} trip={trip} />
-
-              {/* v2.3.5: Mobile "Add Expense" field card */}
-              <MobileAddExpenseCard onTap={() => {
-                setActiveTab('expenses');
-                setAutoOpenExpense(true);
-              }} />
-            </div>
-
-            {/* v2.3.8: Trip metadata — compressed + readable on mobile */}
+            {/* Back row — minimal, above primary header */}
             <div className="flex flex-col gap-1.5 md:gap-4">
               <Button asChild variant="ghost" className="w-fit -ml-2 h-8 md:h-10 text-xs md:text-sm">
                 <Link to="/dashboard">
@@ -187,34 +169,66 @@ export default function TripDetail() {
                   Back to Trips
                 </Link>
               </Button>
+            </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 md:gap-4">
-                <div>
-                  <div className="flex items-center gap-2 md:gap-3 mb-0.5 md:mb-2">
-                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight">{trip.name}</h1>
-                    {!isOwner && (
-                      <Badge variant="outline" className="flex items-center gap-1 bg-primary/5 text-[10px] md:text-xs">
-                        <Users className="w-3 h-3" />
-                        {canEdit ? 'Shared (Edit)' : 'View Only'}
-                      </Badge>
-                    )}
-                  </div>
-                  {/* v2.3.8: Single-line metadata, 16px base on mobile for readability */}
-                  <p className="flex flex-wrap items-center gap-1.5 md:gap-4 text-[13px] leading-relaxed md:text-base text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <MapPin className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" />
-                      {trip.destination_city}, {trip.destination_country}
-                    </span>
-                    <span className="text-muted-foreground/30">·</span>
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" />
-                      {format(new Date(trip.start_date + 'T00:00:00'), 'MMM d')} – {format(new Date(trip.end_date + 'T00:00:00'), 'MMM d, yyyy')}
-                    </span>
-                  </p>
+            {/* v2.3.x: Single primary header — TripStatusHeroBar on mobile, full header on desktop */}
+            <TripStatusHeroBar trip={trip} />
+
+            {/* Desktop-only: full trip metadata (hidden on mobile since HeroBar covers it) */}
+            <div className="hidden md:flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-2xl md:text-3xl font-bold leading-tight">{trip.name}</h1>
+                  {!isOwner && (
+                    <Badge variant="outline" className="flex items-center gap-1 bg-primary/5 text-xs">
+                      <Users className="w-3 h-3" />
+                      {canEdit ? 'Shared (Edit)' : 'View Only'}
+                    </Badge>
+                  )}
                 </div>
-
-                {/* Travel Guide removed — airport/international modules not yet live */}
+                <p className="flex flex-wrap items-center gap-4 text-base text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <MapPin className="w-4 h-4 shrink-0" />
+                    {trip.destination_city}, {trip.destination_country}
+                  </span>
+                  <span className="text-muted-foreground/30">·</span>
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-4 h-4 shrink-0" />
+                    {format(new Date(trip.start_date + 'T00:00:00'), 'MMM d')} – {format(new Date(trip.end_date + 'T00:00:00'), 'MMM d, yyyy')}
+                  </span>
+                </p>
               </div>
+            </div>
+
+            {/* Mobile-only: compact metadata line below hero bar */}
+            <div className="md:hidden">
+              <p className="flex flex-wrap items-center gap-1.5 text-[13px] leading-relaxed text-muted-foreground px-0.5">
+                <span className="flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 shrink-0" />
+                  {trip.destination_city}, {trip.destination_country}
+                </span>
+                <span className="text-muted-foreground/30">·</span>
+                <span className="flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5 shrink-0" />
+                  {format(new Date(trip.start_date + 'T00:00:00'), 'MMM d')} – {format(new Date(trip.end_date + 'T00:00:00'), 'MMM d, yyyy')}
+                </span>
+              </p>
+              {!isOwner && (
+                <Badge variant="outline" className="flex items-center gap-1 bg-primary/5 text-[10px] mt-1 w-fit">
+                  <Users className="w-3 h-3" />
+                  {canEdit ? 'Shared (Edit)' : 'View Only'}
+                </Badge>
+              )}
+            </div>
+
+            {/* v2.3.x: Primary zone — compressed gaps, thumb-zone safe margins */}
+            <div className="space-y-1.5 md:space-y-6 px-0.5 md:px-0">
+              <ProRetentionCountdownCard trip={trip} />
+              <MobileNextUpCard tripId={trip.id} trip={trip} />
+              <MobileAddExpenseCard onTap={() => {
+                setActiveTab('expenses');
+                setAutoOpenExpense(true);
+              }} />
             </div>
 
             {/* Read-only banner */}

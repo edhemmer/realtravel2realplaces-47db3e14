@@ -34,8 +34,8 @@ export function TripDetailLayout({
   return (
     <div className={cn(
       "relative min-h-full",
-      // Add padding at bottom for mobile nav
-      isMobile && showBottomNav && "pb-20"
+      // Add padding at bottom for mobile nav: nav height (4rem) + safe-area + breathing room
+      isMobile && showBottomNav && "pb-[calc(5rem+env(safe-area-inset-bottom,0px))]"
     )}>
       {/* Main content area */}
       <div className="w-full">
