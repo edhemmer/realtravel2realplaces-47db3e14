@@ -37,6 +37,7 @@ export default function WelcomeChoice() {
   }, [navigate]);
 
   const handleCreateTrip = () => {
+    if (redirecting) return; // prevent double-click
     setRedirecting(true);
     markWelcomeChoiceSeen();
     // Navigate to dashboard with state to auto-open the create trip dialog
@@ -44,6 +45,7 @@ export default function WelcomeChoice() {
   };
 
   const handleGoToDashboard = () => {
+    if (redirecting) return; // prevent double-click
     setRedirecting(true);
     markWelcomeChoiceSeen();
     navigate('/dashboard', { replace: true });
@@ -78,6 +80,7 @@ export default function WelcomeChoice() {
               {/* Primary CTA */}
               <Button
                 onClick={handleCreateTrip}
+                disabled={redirecting}
                 size="lg"
                 className="w-full bg-gradient-ocean hover:opacity-90 transition-opacity min-h-[44px]"
               >
@@ -88,6 +91,7 @@ export default function WelcomeChoice() {
               {/* Secondary CTA */}
               <Button
                 onClick={handleGoToDashboard}
+                disabled={redirecting}
                 variant="outline"
                 size="lg"
                 className="w-full min-h-[44px]"

@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import LandingPage from "./pages/LandingPage";
 import Auth from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -30,13 +32,16 @@ const queryClient = new QueryClient();
 
 /**
  * Protected route that requires user to be authenticated.
- * v2.1.40: Removed profile completion gate - names are optional for legacy users.
+ * v2.3.x: Single centralized guard for auth + onboarding.
+ * Waits for both auth session AND profile to be loaded before deciding redirects.
  */
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedRoute({ children, skipOnboardingGate }: { children: React.ReactNode; skipOnboardingGate?: boolean }) {
   const { user, loading: authLoading } = useAuth();
+  const { data: profile, isLoading: profileLoading } = useUserProfile();
+  const { shouldShowOnboarding, isLoading: onboardingLoading } = useOnboardingStatus();
 
-  // Show loading while checking auth status
-  if (authLoading) {
+  // Show loading while checking auth OR profile status — prevents premature redirects
+  if (authLoading || (user && (profileLoading || onboardingLoading))) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -47,6 +52,12 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   // Redirect to login if not authenticated
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  // v2.3.x: Centralized onboarding gate — only ONE place decides this
+  // skipOnboardingGate is true for /onboarding and /welcome-choice routes themselves
+  if (!skipOnboardingGate && shouldShowOnboarding) {
+    return <Navigate to="/onboarding" replace />;
   }
 
   return <>{children}</>;
@@ -119,7 +130,7 @@ function AppRoutes() {
       <Route
         path="/onboarding"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute skipOnboardingGate>
             <Onboarding />
           </ProtectedRoute>
         }
@@ -127,7 +138,7 @@ function AppRoutes() {
       <Route
         path="/welcome-choice"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute skipOnboardingGate>
             <WelcomeChoice />
           </ProtectedRoute>
         }

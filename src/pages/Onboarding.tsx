@@ -17,7 +17,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,6 +43,7 @@ import {
   Crown,
 } from 'lucide-react';
 import { 
+  useOnboardingStatus,
   useCompleteOnboarding, 
   clearManualOnboardingView,
   isManualOnboardingView,
@@ -69,7 +70,9 @@ const STEPS = [
 export default function Onboarding() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
   const completeOnboarding = useCompleteOnboarding();
+  const { hasCompletedOnboarding } = useOnboardingStatus();
   const isManualView = isManualOnboardingView();
 
   const progress = ((currentStep + 1) / STEPS.length) * 100;
@@ -81,6 +84,12 @@ export default function Onboarding() {
     };
   }, []);
 
+  // v2.3.x: If user already completed onboarding and this isn't a manual re-view,
+  // redirect to dashboard (prevents oscillation if they navigate here directly)
+  if (hasCompletedOnboarding && !isManualView) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   const handleNext = async () => {
     if (currentStep < STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
@@ -90,6 +99,9 @@ export default function Onboarding() {
   };
 
   const finishOnboarding = async () => {
+    if (isSaving) return; // prevent double-submit
+    setIsSaving(true);
+
     // Complete onboarding - mark in DB (only if not manual view)
     if (!isManualView) {
       try {
@@ -147,7 +159,7 @@ export default function Onboarding() {
               <BookOpen className="w-5 h-5 text-primary" />
               <span className="text-sm font-medium">Getting Started</span>
             </div>
-            <Button variant="ghost" size="sm" onClick={handleSkip}>
+            <Button variant="ghost" size="sm" onClick={handleSkip} disabled={isSaving}>
               Skip
             </Button>
           </div>
@@ -175,7 +187,7 @@ export default function Onboarding() {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
-          <Button onClick={handleNext} className="bg-gradient-ocean hover:opacity-90">
+          <Button onClick={handleNext} disabled={isSaving} className="bg-gradient-ocean hover:opacity-90">
             {currentStep === STEPS.length - 1 ? (
               <>
                 Get Started
