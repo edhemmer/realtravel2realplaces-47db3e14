@@ -66,16 +66,16 @@ export function MobileNextUpCard({ tripId, trip }: MobileNextUpCardProps) {
     <div className="block md:hidden">
       {/* v2.3.3: Subtle neutral tint for calm priority — not warning/success/error */}
       <Card className="border-muted-foreground/15 bg-muted/50">
-        <CardContent className="p-3">
+        <CardContent className="px-4 py-3">
           {/* Event info */}
           <div className="min-w-0 mb-2">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-0.5">
               Next Up
             </p>
-            <p className="text-sm font-medium truncate text-foreground">
+            <p className="text-sm font-medium truncate text-foreground leading-snug">
               {nextStop.displayName}
             </p>
-            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+            <div className="flex items-center gap-3 mt-0.5 text-[13px] leading-relaxed text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Clock className="w-3 h-3" />
                 {formatDateShort(nextStop.eventLocalDate)} · {nextStop.eventLocalTime}

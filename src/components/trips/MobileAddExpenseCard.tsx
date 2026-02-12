@@ -17,12 +17,12 @@ export function MobileAddExpenseCard({ onTap }: MobileAddExpenseCardProps) {
   return (
     <div className="block md:hidden">
       <Card className="border-muted-foreground/15 bg-muted/50">
-        <CardContent className="p-3">
+        <CardContent className="px-4 py-3">
           <div className="flex items-center gap-2 mb-2">
             <Receipt className="w-4 h-4 text-primary shrink-0" />
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-foreground">Add Expense</p>
-              <p className="text-[10px] text-muted-foreground">Quick capture while you're on the go</p>
+              <p className="text-[13px] font-semibold text-foreground leading-snug">Add Expense</p>
+              <p className="text-[11px] leading-relaxed text-muted-foreground">Quick capture while you're on the go</p>
             </div>
           </div>
           <button

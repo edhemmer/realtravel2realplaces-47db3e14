@@ -156,13 +156,13 @@ export default function TripDetail() {
           onTabChange={handleTabChange}
           showBottomNav={true}
         >
-          {/* v2.3.8: Primary zone uses tight spacing on mobile, normal on desktop */}
-          <div className="space-y-3 md:space-y-6 animate-fade-in">
+          {/* v2.3.8: Safe-area aware layout with native-ready spacing */}
+          <div className="space-y-3 md:space-y-6 animate-fade-in pt-safe">
             {/* v2.1.6: Trip Status Hero Bar - sticky at top */}
             <TripStatusHeroBar trip={trip} />
 
-            {/* v2.3.8: Primary zone — mission-critical cards with compressed gaps on mobile */}
-            <div className="space-y-2 md:space-y-6">
+            {/* v2.3.8: Primary zone — compressed gaps, thumb-zone safe margins */}
+            <div className="space-y-1.5 md:space-y-6 px-0.5 md:px-0">
               {/* v2.1.6: Pro Retention Countdown Card - shows for Pro closed trips */}
               <ProRetentionCountdownCard trip={trip} />
 
@@ -176,8 +176,8 @@ export default function TripDetail() {
               }} />
             </div>
 
-            {/* v2.3.8: Trip metadata — compressed on mobile */}
-            <div className="flex flex-col gap-2 md:gap-4">
+            {/* v2.3.8: Trip metadata — compressed + readable on mobile */}
+            <div className="flex flex-col gap-1.5 md:gap-4">
               <Button asChild variant="ghost" className="w-fit -ml-2 h-8 md:h-10 text-xs md:text-sm">
                 <Link to="/dashboard">
                   <ArrowLeft className="w-4 h-4 mr-1 md:mr-2" />
@@ -187,9 +187,8 @@ export default function TripDetail() {
 
               <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 md:gap-4">
                 <div>
-                  {/* v2.3.8: Trip name — slightly smaller on mobile to save space */}
-                  <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2">
-                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">{trip.name}</h1>
+                  <div className="flex items-center gap-2 md:gap-3 mb-0.5 md:mb-2">
+                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold leading-tight">{trip.name}</h1>
                     {!isOwner && (
                       <Badge variant="outline" className="flex items-center gap-1 bg-primary/5 text-[10px] md:text-xs">
                         <Users className="w-3 h-3" />
@@ -197,18 +196,18 @@ export default function TripDetail() {
                       </Badge>
                     )}
                   </div>
-                  {/* v2.3.8: Single-line metadata on mobile */}
-                  <div className="flex flex-wrap items-center gap-1.5 md:gap-4 text-xs md:text-base text-muted-foreground">
+                  {/* v2.3.8: Single-line metadata, 16px base on mobile for readability */}
+                  <p className="flex flex-wrap items-center gap-1.5 md:gap-4 text-[13px] leading-relaxed md:text-base text-muted-foreground">
                     <span className="flex items-center gap-1">
-                      <MapPin className="w-3 h-3 md:w-4 md:h-4" />
+                      <MapPin className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" />
                       {trip.destination_city}, {trip.destination_country}
                     </span>
-                    <span className="hidden md:inline text-muted-foreground/40">•</span>
+                    <span className="text-muted-foreground/30">·</span>
                     <span className="flex items-center gap-1">
-                      <Calendar className="w-3 h-3 md:w-4 md:h-4" />
-                      {format(new Date(trip.start_date + 'T00:00:00'), 'MMM d')} - {format(new Date(trip.end_date + 'T00:00:00'), 'MMM d, yyyy')}
+                      <Calendar className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" />
+                      {format(new Date(trip.start_date + 'T00:00:00'), 'MMM d')} – {format(new Date(trip.end_date + 'T00:00:00'), 'MMM d, yyyy')}
                     </span>
-                  </div>
+                  </p>
                 </div>
 
                 {/* v2.5.0: Travel Guide Help Button */}
