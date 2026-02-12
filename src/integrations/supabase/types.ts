@@ -728,11 +728,14 @@ export type Database = {
       trip_invites: {
         Row: {
           accepted_by_user_id: string | null
+          can_expenses: boolean
+          can_stay: boolean
           created_at: string
           expires_at: string
           id: string
           invitee_email: string
           inviter_user_id: string
+          read_only: boolean
           role: Database["public"]["Enums"]["trip_member_role"]
           status: Database["public"]["Enums"]["invite_status"]
           token_hash: string
@@ -740,11 +743,14 @@ export type Database = {
         }
         Insert: {
           accepted_by_user_id?: string | null
+          can_expenses?: boolean
+          can_stay?: boolean
           created_at?: string
           expires_at: string
           id?: string
           invitee_email: string
           inviter_user_id: string
+          read_only?: boolean
           role?: Database["public"]["Enums"]["trip_member_role"]
           status?: Database["public"]["Enums"]["invite_status"]
           token_hash: string
@@ -752,11 +758,14 @@ export type Database = {
         }
         Update: {
           accepted_by_user_id?: string | null
+          can_expenses?: boolean
+          can_stay?: boolean
           created_at?: string
           expires_at?: string
           id?: string
           invitee_email?: string
           inviter_user_id?: string
+          read_only?: boolean
           role?: Database["public"]["Enums"]["trip_member_role"]
           status?: Database["public"]["Enums"]["invite_status"]
           token_hash?: string
@@ -774,22 +783,31 @@ export type Database = {
       }
       trip_members: {
         Row: {
+          can_expenses: boolean
+          can_stay: boolean
           created_at: string
           id: string
+          read_only: boolean
           role: Database["public"]["Enums"]["trip_member_role"]
           trip_id: string
           user_id: string
         }
         Insert: {
+          can_expenses?: boolean
+          can_stay?: boolean
           created_at?: string
           id?: string
+          read_only?: boolean
           role: Database["public"]["Enums"]["trip_member_role"]
           trip_id: string
           user_id: string
         }
         Update: {
+          can_expenses?: boolean
+          can_stay?: boolean
           created_at?: string
           id?: string
+          read_only?: boolean
           role?: Database["public"]["Enums"]["trip_member_role"]
           trip_id?: string
           user_id?: string
@@ -1030,17 +1048,32 @@ export type Database = {
         Returns: boolean
       }
       count_user_active_trips: { Args: { p_user_id: string }; Returns: number }
-      create_trip_invite: {
-        Args: {
-          p_invitee_email: string
-          p_trip_id: string
-          p_ttl_days?: number
-        }
-        Returns: {
-          invite_id: string
-          invite_token: string
-        }[]
-      }
+      create_trip_invite:
+        | {
+            Args: {
+              p_invitee_email: string
+              p_trip_id: string
+              p_ttl_days?: number
+            }
+            Returns: {
+              invite_id: string
+              invite_token: string
+            }[]
+          }
+        | {
+            Args: {
+              p_can_expenses?: boolean
+              p_can_stay?: boolean
+              p_invitee_email: string
+              p_read_only?: boolean
+              p_trip_id: string
+              p_ttl_days?: number
+            }
+            Returns: {
+              invite_id: string
+              invite_token: string
+            }[]
+          }
       get_bookings_safe: {
         Args: { p_trip_id: string }
         Returns: {
@@ -1122,6 +1155,8 @@ export type Database = {
         Returns: Database["public"]["Enums"]["subscription_tier"]
       }
       get_user_trip_limit: { Args: { p_user_id: string }; Returns: number }
+      guest_can_add_expenses: { Args: { p_trip_id: string }; Returns: boolean }
+      guest_can_add_stays: { Args: { p_trip_id: string }; Returns: boolean }
       guest_can_write_trip: { Args: { p_trip_id: string }; Returns: boolean }
       has_role: {
         Args: {
