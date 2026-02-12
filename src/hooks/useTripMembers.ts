@@ -164,3 +164,48 @@ export function useRevokeTripInvite() {
     },
   });
 }
+
+/**
+ * v2.2.9: Update companion permissions after acceptance (owner only)
+ */
+export function useUpdateMemberPermissions() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      tripId,
+      memberUserId,
+      permissions,
+    }: {
+      tripId: string;
+      memberUserId: string;
+      permissions: InvitePermissions;
+    }) => {
+      const { data, error } = await supabase.rpc('update_member_permissions', {
+        p_trip_id: tripId,
+        p_member_user_id: memberUserId,
+        p_read_only: permissions.read_only,
+        p_can_expenses: permissions.can_expenses,
+        p_can_stay: permissions.can_stay,
+      });
+
+      if (error) throw error;
+      const result = data as unknown as { success: boolean; error?: string; warning?: string; message?: string };
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to update permissions');
+      }
+      return { tripId, warning: result.warning };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['trip-members', result.tripId] });
+      if (result.warning === 'PERMISSION_EMPTY_DEFAULTED') {
+        toast.success('Permissions updated (defaulted to read-only)');
+      } else {
+        toast.success('Permissions updated');
+      }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update permissions');
+    },
+  });
+}

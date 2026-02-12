@@ -1172,6 +1172,16 @@ export type Database = {
       run_trip_lifecycle_enforcement: { Args: never; Returns: Json }
       trip_is_writable: { Args: { p_trip_id: string }; Returns: boolean }
       trip_owner_is_pro: { Args: { p_trip_id: string }; Returns: boolean }
+      update_member_permissions: {
+        Args: {
+          p_can_expenses: boolean
+          p_can_stay: boolean
+          p_member_user_id: string
+          p_read_only: boolean
+          p_trip_id: string
+        }
+        Returns: Json
+      }
       user_can_create_trip: { Args: { p_user_id: string }; Returns: boolean }
       user_can_write_trip: { Args: { p_trip_id: string }; Returns: boolean }
       user_has_booking_access: {
