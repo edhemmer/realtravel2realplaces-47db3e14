@@ -156,49 +156,56 @@ export default function TripDetail() {
           onTabChange={handleTabChange}
           showBottomNav={true}
         >
-          <div className="space-y-6 animate-fade-in">
+          {/* v2.3.8: Primary zone uses tight spacing on mobile, normal on desktop */}
+          <div className="space-y-3 md:space-y-6 animate-fade-in">
             {/* v2.1.6: Trip Status Hero Bar - sticky at top */}
             <TripStatusHeroBar trip={trip} />
 
-            {/* v2.1.6: Pro Retention Countdown Card - shows for Pro closed trips */}
-            <ProRetentionCountdownCard trip={trip} />
+            {/* v2.3.8: Primary zone — mission-critical cards with compressed gaps on mobile */}
+            <div className="space-y-2 md:space-y-6">
+              {/* v2.1.6: Pro Retention Countdown Card - shows for Pro closed trips */}
+              <ProRetentionCountdownCard trip={trip} />
 
-            {/* v2.3.2: Mobile "Next Up" card - mobile only, top of trip view */}
-            <MobileNextUpCard tripId={trip.id} trip={trip} />
+              {/* v2.3.2: Mobile "Next Up" card - mobile only, top of trip view */}
+              <MobileNextUpCard tripId={trip.id} trip={trip} />
 
-            {/* v2.3.5: Mobile "Add Expense" field card */}
-            <MobileAddExpenseCard onTap={() => {
-              setActiveTab('expenses');
-              setAutoOpenExpense(true);
-            }} />
+              {/* v2.3.5: Mobile "Add Expense" field card */}
+              <MobileAddExpenseCard onTap={() => {
+                setActiveTab('expenses');
+                setAutoOpenExpense(true);
+              }} />
+            </div>
 
-            {/* Navigation */}
-            <div className="flex flex-col gap-4">
-              <Button asChild variant="ghost" className="w-fit -ml-2">
+            {/* v2.3.8: Trip metadata — compressed on mobile */}
+            <div className="flex flex-col gap-2 md:gap-4">
+              <Button asChild variant="ghost" className="w-fit -ml-2 h-8 md:h-10 text-xs md:text-sm">
                 <Link to="/dashboard">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  <ArrowLeft className="w-4 h-4 mr-1 md:mr-2" />
                   Back to Trips
                 </Link>
               </Button>
 
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 md:gap-4">
                 <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <h1 className="text-2xl sm:text-3xl font-bold">{trip.name}</h1>
+                  {/* v2.3.8: Trip name — slightly smaller on mobile to save space */}
+                  <div className="flex items-center gap-2 md:gap-3 mb-1 md:mb-2">
+                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">{trip.name}</h1>
                     {!isOwner && (
-                      <Badge variant="outline" className="flex items-center gap-1 bg-primary/5">
+                      <Badge variant="outline" className="flex items-center gap-1 bg-primary/5 text-[10px] md:text-xs">
                         <Users className="w-3 h-3" />
                         {canEdit ? 'Shared (Edit)' : 'View Only'}
                       </Badge>
                     )}
                   </div>
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm sm:text-base text-muted-foreground">
+                  {/* v2.3.8: Single-line metadata on mobile */}
+                  <div className="flex flex-wrap items-center gap-1.5 md:gap-4 text-xs md:text-base text-muted-foreground">
                     <span className="flex items-center gap-1">
-                      <MapPin className="w-4 h-4" />
+                      <MapPin className="w-3 h-3 md:w-4 md:h-4" />
                       {trip.destination_city}, {trip.destination_country}
                     </span>
+                    <span className="hidden md:inline text-muted-foreground/40">•</span>
                     <span className="flex items-center gap-1">
-                      <Calendar className="w-4 h-4" />
+                      <Calendar className="w-3 h-3 md:w-4 md:h-4" />
                       {format(new Date(trip.start_date + 'T00:00:00'), 'MMM d')} - {format(new Date(trip.end_date + 'T00:00:00'), 'MMM d, yyyy')}
                     </span>
                   </div>
@@ -221,9 +228,13 @@ export default function TripDetail() {
               </div>
             )}
 
-            {/* v1.2.8: Widget container moved below trip header */}
-            <TripHeaderWidgets trip={trip} />
+            {/* v1.2.8: Widget container — tighter spacing on mobile */}
+            <div className="mt-2 md:mt-0">
+              <TripHeaderWidgets trip={trip} />
+            </div>
 
+            {/* v2.3.8: Tab content section — breathing room before tabs */}
+            <div className="mt-4 md:mt-0">
             {/* Patch 2.2.3: Desktop tabs (hidden on mobile - use bottom nav instead) */}
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
               {/* Hide tabs on mobile - navigation is via bottom nav */}
@@ -317,6 +328,7 @@ export default function TripDetail() {
                 </TabsContent>
               </div>
             </Tabs>
+            </div>
           </div>
         </TripDetailLayout>
       </Layout>
