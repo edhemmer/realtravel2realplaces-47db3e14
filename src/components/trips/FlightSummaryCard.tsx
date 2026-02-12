@@ -2,10 +2,9 @@ import { Booking, Companion } from '@/types/database';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plane, Users, Clock, ExternalLink, MapPin, AlertTriangle } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER, parseDatetimeForDisplay } from '@/lib/datetimeIntegrity';
-import { getAirportTimeZone, formatTimeInTimezone, formatDateInTimezone } from '@/lib/airportTimezones';
+import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
+import { formatLocalTimeDirect, formatLocalDateDirect } from '@/lib/canonicalTimeNormalizer';
 import { extractAirportCodes } from '@/lib/airportData';
 import { AirportInfoPill } from './AirportInfoPill';
 import { useAccess } from '@/hooks/useAccess';
@@ -26,14 +25,15 @@ interface FlightSummaryCardProps {
 export function FlightSummaryCard({ bookings, companions, bookingCompanions }: FlightSummaryCardProps) {
   // v2.1.31: Airport info pills are Pro-only
   const { isPro } = useAccess();
-  // v2.2.0: Use safe datetime parsing to prevent timezone drift
+  // v2.2.5: Sort flights using string comparison on start_datetime — no Date() shifting
   const flights = bookings
     .filter((b) => b.booking_type === 'flight')
     .sort((a, b) => {
-      const aDate = parseDatetimeForDisplay(a.start_datetime);
-      const bDate = parseDatetimeForDisplay(b.start_datetime);
-      if (!aDate || !bDate) return 0;
-      return aDate.getTime() - bDate.getTime();
+      const aStr = a.start_datetime || '';
+      const bStr = b.start_datetime || '';
+      if (aStr < bStr) return -1;
+      if (aStr > bStr) return 1;
+      return 0;
     });
 
   if (flights.length === 0) {
@@ -61,27 +61,20 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
   // Extract route from notes (flight numbers) if available
   const extractFlightInfo = (notes?: string): string | null => {
     if (!notes) return null;
-    // Common patterns: "Flight AA1234", "AA 1234", "Flight #1234"
     const match = notes.match(/(?:flight\s*#?\s*)?([A-Z]{2}\s*\d+)/i);
     return match ? match[1].replace(/\s+/g, '') : null;
   };
 
-  // Extract airport codes from flight booking (notes, vendor_name, or other fields)
+  // Extract airport codes from flight booking
   const getFlightAirportCodes = (flight: Booking): { origin?: string; destination?: string } => {
-    // Try extracting from notes first
     let codes = extractAirportCodes(flight.notes || '');
     if (codes.origin || codes.destination) return codes;
-    
-    // Try vendor_name (e.g., "Delta DEN-LAX")
     codes = extractAirportCodes(flight.vendor_name || '');
     if (codes.origin || codes.destination) return codes;
-    
-    // Try pickup/return locations if set (sometimes used for flights)
     if (flight.pickup_location) {
       codes = extractAirportCodes(flight.pickup_location);
       if (codes.origin) return codes;
     }
-    
     return {};
   };
 
@@ -141,21 +134,16 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                       )}
                     </div>
                     
-                    {/* Date/Time Row - Shows DEPARTURE time as primary */}
-                    {/* v2.2.0: Uses safe datetime parsing to preserve original dates */}
+                    {/* Date/Time Row - v2.2.5: Uses direct digit extraction — no Date() timezone shifting */}
                     <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
                       <span className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5" />
                         <span className="text-xs text-muted-foreground mr-1">Departs</span>
                         {(() => {
-                          // v2.2.4: Use timezone-aware formatting for flights
-                          const depTz = getAirportTimeZone(flight.departure_airport_code);
-                          const startDate = parseDatetimeForDisplay(flight.start_datetime);
-                          
-                          // Prefer timezone-aware date/time if available
-                          const dateDisplay = depTz
-                            ? formatDateInTimezone(flight.start_datetime, depTz)
-                            : startDate ? format(startDate, 'EEE, MMM d') : null;
+                          const dateDisplay = formatLocalDateDirect(flight.start_datetime);
+                          const timeDisplay = hasExplicitTime(flight.start_datetime)
+                            ? (formatLocalTimeDirect(flight.start_datetime) || UNKNOWN_TIME_PLACEHOLDER)
+                            : UNKNOWN_TIME_PLACEHOLDER;
                           
                           return dateDisplay ? (
                             <>
@@ -164,10 +152,7 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                               </span>
                               {hasExplicitTime(flight.start_datetime) ? (
                                 <span className="text-muted-foreground">
-                                  at {depTz 
-                                    ? (formatTimeInTimezone(flight.start_datetime, depTz) || (startDate ? format(startDate, 'h:mm a') : UNKNOWN_TIME_PLACEHOLDER))
-                                    : (startDate ? format(startDate, 'h:mm a') : UNKNOWN_TIME_PLACEHOLDER)
-                                  }
+                                  at {timeDisplay}
                                 </span>
                               ) : (
                                 <span className="text-destructive font-medium">
@@ -179,25 +164,19 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                         })()}
                       </span>
                       {flight.end_datetime && (() => {
-                        // v2.2.4: Use timezone-aware arrival formatting
-                        const arrTz = getAirportTimeZone(flight.arrival_airport_code);
-                        const endDate = parseDatetimeForDisplay(flight.end_datetime);
-                        
                         if (hasExplicitTime(flight.end_datetime)) {
-                          const arrTime = arrTz
-                            ? (formatTimeInTimezone(flight.end_datetime!, arrTz) || (endDate ? format(endDate, 'h:mm a') : UNKNOWN_TIME_PLACEHOLDER))
-                            : (endDate ? format(endDate, 'h:mm a') : UNKNOWN_TIME_PLACEHOLDER);
+                          const arrTime = formatLocalTimeDirect(flight.end_datetime!) || UNKNOWN_TIME_PLACEHOLDER;
                           return (
                             <span className="text-xs">
                               → Arrives {arrTime}
                             </span>
                           );
                         }
-                        return endDate ? (
+                        return (
                           <span className="text-xs text-destructive font-medium">
                             → Arrives {UNKNOWN_TIME_PLACEHOLDER}
                           </span>
-                        ) : null;
+                        );
                       })()}
                     </div>
                     
@@ -208,7 +187,7 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                       </div>
                     )}
                     
-                    {/* v2.2.0: Airport Info Pills - Pro only (v2.1.31) */}
+                    {/* Airport Info Pills - Pro only */}
                     {isPro && (airportCodes.origin || airportCodes.destination) && (
                       <div className="flex flex-wrap gap-2 mt-2">
                         {airportCodes.origin && (
