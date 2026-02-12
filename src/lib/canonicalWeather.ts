@@ -206,6 +206,7 @@ export function buildTripWeatherRequests(tripState: {
   timelineEvents: Array<{
     bookingType: string;
     datetime: Date;
+    eventLocalDateTime?: string;
     departureAirportCode?: string;
     arrivalAirportCode?: string;
     address?: string;
@@ -240,7 +241,9 @@ export function buildTripWeatherRequests(tripState: {
   // Add airport-specific requests for flight events
   for (const event of tripState.timelineEvents) {
     if (event.bookingType === 'flight') {
-      const dateISO = event.datetime.toISOString().slice(0, 10);
+      // v2.2.5: Extract date from eventLocalDateTime string — no Date() timezone shifting.
+      const dateISO = event.eventLocalDateTime ? event.eventLocalDateTime.substring(0, 10) : null;
+      if (!dateISO || !/^\d{4}-\d{2}-\d{2}$/.test(dateISO)) continue;
       
       if (event.departureAirportCode) {
         const locId = `airport::${event.departureAirportCode}`;
@@ -341,13 +344,17 @@ export function getWeatherForEvent(
   event: {
     bookingType: string;
     datetime: Date;
+    eventLocalDateTime?: string;
     departureAirportCode?: string;
     arrivalAirportCode?: string;
     address?: string;
   },
   weatherByKey: Record<string, WeatherSnapshot>
 ): WeatherSnapshot | null {
-  const dateISO = event.datetime.toISOString().slice(0, 10);
+  // v2.2.5: Extract date from eventLocalDateTime string — no Date() timezone shifting.
+  const dateISO = event.eventLocalDateTime
+    ? event.eventLocalDateTime.substring(0, 10)
+    : event.datetime.toISOString().slice(0, 10);
 
   // Flights → use airport location
   if (event.bookingType === 'flight' && event.departureAirportCode) {

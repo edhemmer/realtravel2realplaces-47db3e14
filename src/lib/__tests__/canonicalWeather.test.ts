@@ -298,6 +298,7 @@ describe('buildTripWeatherRequests', () => {
         {
           bookingType: 'flight',
           datetime: new Date('2026-02-11T06:00:00'),
+          eventLocalDateTime: '2026-02-11T06:00:00',
           departureAirportCode: 'ATL',
           arrivalAirportCode: 'DEN',
         },

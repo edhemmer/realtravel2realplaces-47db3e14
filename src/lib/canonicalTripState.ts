@@ -13,14 +13,14 @@
  */
 
 import { Trip, Booking, Expense, Parking } from '@/types/database';
-import { parseISO, min, max, startOfDay, endOfDay } from 'date-fns';
+import { startOfDay, endOfDay } from 'date-fns';
 import { 
   calculateTripCostSummary, 
   TripCostSummary,
   normalizeFlightBookingCosts,
   NormalizedAirfareResult,
 } from './expenseCalculations';
-import { hasExplicitTime, parseDatetimeForDisplay } from './datetimeIntegrity';
+import { hasExplicitTime } from './datetimeIntegrity';
 import { getAirportTimeZone } from './airportTimezones';
 import { WeatherSnapshot } from './canonicalWeather';
 import { resolveBookingTimezone, resolveDestinationTimezone } from './canonicalTimeNormalizer';
@@ -185,31 +185,38 @@ export function calculateCanonicalDateRange(
   trip: Trip,
   bookings: Booking[]
 ): CanonicalDateRange {
-  const manualStart = parseISO(trip.start_date);
-  const manualEnd = parseISO(trip.end_date);
+  // v2.2.5: Use string-based date extraction to avoid browser timezone shifts.
+  // Parse trip dates at noon to avoid DST edge cases for Date objects.
+  const manualStart = parseDateAtNoon(trip.start_date);
+  const manualEnd = parseDateAtNoon(trip.end_date);
   
   // Start with manual dates as baseline
   let effectiveStart = startOfDay(manualStart);
   let effectiveEnd = endOfDay(manualEnd);
   const hasFlights = bookings.some(b => b.booking_type === 'flight');
   
-  // Collect ALL booking dates (every type contributes to the outer bounds)
+  // Collect ALL booking date strings (every type contributes to the outer bounds)
+  // v2.2.5: Extract date portion directly from stored strings — no Date() timezone shifting.
   if (bookings.length > 0) {
-    const allDates: Date[] = [];
+    const allDateStrings: string[] = [];
     
     bookings.forEach(booking => {
-      const start = parseDatetimeForDisplay(booking.start_datetime);
-      if (start) allDates.push(start);
+      const startDateStr = extractDateFromDatetime(booking.start_datetime);
+      if (startDateStr) allDateStrings.push(startDateStr);
       
       if (booking.end_datetime) {
-        const end = parseDatetimeForDisplay(booking.end_datetime);
-        if (end) allDates.push(end);
+        const endDateStr = extractDateFromDatetime(booking.end_datetime);
+        if (endDateStr) allDateStrings.push(endDateStr);
       }
     });
     
-    if (allDates.length > 0) {
-      const minBooking = startOfDay(min(allDates));
-      const maxBooking = endOfDay(max(allDates));
+    if (allDateStrings.length > 0) {
+      allDateStrings.sort(); // YYYY-MM-DD sorts lexicographically
+      const minStr = allDateStrings[0];
+      const maxStr = allDateStrings[allDateStrings.length - 1];
+      
+      const minBooking = startOfDay(parseDateAtNoon(minStr));
+      const maxBooking = endOfDay(parseDateAtNoon(maxStr));
       
       // Only extend outward, never shrink
       if (minBooking < effectiveStart) effectiveStart = minBooking;
@@ -224,6 +231,26 @@ export function calculateCanonicalDateRange(
     startDateStr: trip.start_date,
     endDateStr: trip.end_date,
   };
+}
+
+/**
+ * v2.2.5: Extract YYYY-MM-DD date portion directly from a datetime string.
+ * No Date() or parseISO() — pure string extraction.
+ */
+function extractDateFromDatetime(datetimeStr: string | null | undefined): string | null {
+  if (!datetimeStr) return null;
+  const datePart = datetimeStr.substring(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return datePart;
+  return null;
+}
+
+/**
+ * v2.2.5: Parse a YYYY-MM-DD string into a Date at noon local time.
+ * Using noon avoids DST boundary issues for day-of-week calculation.
+ */
+function parseDateAtNoon(dateStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day, 12, 0, 0);
 }
 
 // ============================================================================
@@ -250,8 +277,13 @@ export function buildCanonicalTimeline(
   const destTz = tripDestinationTimeZone || null;
   // Process bookings
   bookings.forEach(booking => {
-    const startDate = parseDatetimeForDisplay(booking.start_datetime);
-    const endDate = booking.end_datetime ? parseDatetimeForDisplay(booking.end_datetime) : null;
+    // v2.2.5: Create Date objects at noon from the date portion only.
+    // These are used ONLY for the legacy `datetime` field, NOT for display.
+    // All display rendering MUST use `eventLocalDateTime` string digits.
+    const startDateStr = extractDateFromDatetime(booking.start_datetime);
+    const startDate = startDateStr ? parseDateAtNoon(startDateStr) : null;
+    const endDateStr = booking.end_datetime ? extractDateFromDatetime(booking.end_datetime) : null;
+    const endDate = endDateStr ? parseDateAtNoon(endDateStr) : null;
     
     if (!startDate) return;
     
@@ -458,8 +490,11 @@ export function buildCanonicalTimeline(
   
   // Process parking
   parkingList.forEach(parking => {
-    const startDate = parseDatetimeForDisplay(parking.start_datetime);
-    const endDate = parking.end_datetime ? parseDatetimeForDisplay(parking.end_datetime) : null;
+    // v2.2.5: Date objects from date portion only — for legacy `datetime` field only.
+    const pStartDateStr = extractDateFromDatetime(parking.start_datetime);
+    const startDate = pStartDateStr ? parseDateAtNoon(pStartDateStr) : null;
+    const pEndDateStr = parking.end_datetime ? extractDateFromDatetime(parking.end_datetime) : null;
+    const endDate = pEndDateStr ? parseDateAtNoon(pEndDateStr) : null;
     
     if (!startDate) return;
     
