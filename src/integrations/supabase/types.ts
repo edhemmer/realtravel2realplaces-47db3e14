@@ -371,6 +371,101 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          departure_enabled: boolean
+          departure_hours_before: number
+          expense_nudge_enabled: boolean
+          id: string
+          parking_expiry_enabled: boolean
+          parking_expiry_minutes_before: number
+          stop_reminder_enabled: boolean
+          stop_reminder_minutes_before: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          departure_enabled?: boolean
+          departure_hours_before?: number
+          expense_nudge_enabled?: boolean
+          id?: string
+          parking_expiry_enabled?: boolean
+          parking_expiry_minutes_before?: number
+          stop_reminder_enabled?: boolean
+          stop_reminder_minutes_before?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          departure_enabled?: boolean
+          departure_hours_before?: number
+          expense_nudge_enabled?: boolean
+          id?: string
+          parking_expiry_enabled?: boolean
+          parking_expiry_minutes_before?: number
+          stop_reminder_enabled?: boolean
+          stop_reminder_minutes_before?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_dismissed: boolean
+          is_read: boolean
+          link_record_id: string | null
+          link_tab: string | null
+          message: string
+          scheduled_for: string
+          title: string
+          trip_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_dismissed?: boolean
+          is_read?: boolean
+          link_record_id?: string | null
+          link_tab?: string | null
+          message: string
+          scheduled_for?: string
+          title: string
+          trip_id?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_dismissed?: boolean
+          is_read?: boolean
+          link_record_id?: string | null
+          link_tab?: string | null
+          message?: string
+          scheduled_for?: string
+          title?: string
+          trip_id?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       packing_items: {
         Row: {
           category: string
