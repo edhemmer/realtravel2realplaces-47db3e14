@@ -719,6 +719,85 @@ export type Database = {
           },
         ]
       }
+      trip_invites: {
+        Row: {
+          accepted_by_user_id: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          invitee_email: string
+          inviter_user_id: string
+          role: Database["public"]["Enums"]["trip_member_role"]
+          status: Database["public"]["Enums"]["invite_status"]
+          token_hash: string
+          trip_id: string
+        }
+        Insert: {
+          accepted_by_user_id?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          invitee_email: string
+          inviter_user_id: string
+          role?: Database["public"]["Enums"]["trip_member_role"]
+          status?: Database["public"]["Enums"]["invite_status"]
+          token_hash: string
+          trip_id: string
+        }
+        Update: {
+          accepted_by_user_id?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invitee_email?: string
+          inviter_user_id?: string
+          role?: Database["public"]["Enums"]["trip_member_role"]
+          status?: Database["public"]["Enums"]["invite_status"]
+          token_hash?: string
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_invites_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trip_members: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["trip_member_role"]
+          trip_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["trip_member_role"]
+          trip_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["trip_member_role"]
+          trip_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_members_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip_notes: {
         Row: {
           created_at: string
@@ -917,6 +996,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_trip_invite: { Args: { p_token: string }; Returns: string }
       admin_delete_user: { Args: { p_user_id: string }; Returns: Json }
       admin_get_all_users: {
         Args: never
@@ -944,6 +1024,17 @@ export type Database = {
         Returns: boolean
       }
       count_user_active_trips: { Args: { p_user_id: string }; Returns: number }
+      create_trip_invite: {
+        Args: {
+          p_invitee_email: string
+          p_trip_id: string
+          p_ttl_days?: number
+        }
+        Returns: {
+          invite_id: string
+          invite_token: string
+        }[]
+      }
       get_bookings_safe: {
         Args: { p_trip_id: string }
         Returns: {
@@ -1025,6 +1116,7 @@ export type Database = {
         Returns: Database["public"]["Enums"]["subscription_tier"]
       }
       get_user_trip_limit: { Args: { p_user_id: string }; Returns: number }
+      guest_can_write_trip: { Args: { p_trip_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1033,6 +1125,9 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
+      is_trip_guest: { Args: { p_trip_id: string }; Returns: boolean }
+      is_trip_owner_member: { Args: { p_trip_id: string }; Returns: boolean }
+      revoke_trip_invite: { Args: { p_invite_id: string }; Returns: boolean }
       run_trip_lifecycle_enforcement: { Args: never; Returns: Json }
       trip_is_writable: { Args: { p_trip_id: string }; Returns: boolean }
       trip_owner_is_pro: { Args: { p_trip_id: string }; Returns: boolean }
@@ -1086,6 +1181,7 @@ export type Database = {
         | "alcohol"
         | "beverages"
         | "rental_car"
+      invite_status: "pending" | "accepted" | "expired" | "revoked"
       parking_billing: "hourly" | "daily" | "per_trip" | "other"
       parking_type: "airport" | "beach" | "city_garage" | "hotel" | "other"
       stay_type: "hotel" | "airbnb" | "vrbo" | "other"
@@ -1099,6 +1195,7 @@ export type Database = {
         | "rental_pickup"
         | "rental_return"
         | "parking_expiration"
+      trip_member_role: "owner" | "guest"
       trip_state: "active" | "locked" | "closed"
       trip_type: "business" | "personal" | "mixed"
     }
@@ -1268,6 +1365,7 @@ export const Constants = {
         "beverages",
         "rental_car",
       ],
+      invite_status: ["pending", "accepted", "expired", "revoked"],
       parking_billing: ["hourly", "daily", "per_trip", "other"],
       parking_type: ["airport", "beach", "city_garage", "hotel", "other"],
       stay_type: ["hotel", "airbnb", "vrbo", "other"],
@@ -1282,6 +1380,7 @@ export const Constants = {
         "rental_return",
         "parking_expiration",
       ],
+      trip_member_role: ["owner", "guest"],
       trip_state: ["active", "locked", "closed"],
       trip_type: ["business", "personal", "mixed"],
     },
