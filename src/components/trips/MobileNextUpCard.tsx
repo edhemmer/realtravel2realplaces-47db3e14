@@ -1,5 +1,5 @@
 /**
- * v2.3.2: Mobile "Next Up" Card
+ * v2.3.2 / v2.3.3: Mobile "Next Up" Card
  *
  * Mobile-only compact card showing the next upcoming trip event.
  * Consumes useNextStop hook output — no logic changes to canonical helpers.
@@ -56,55 +56,54 @@ export function MobileNextUpCard({ tripId, trip }: MobileNextUpCardProps) {
   const canonicalState = useCanonicalTripStateFromData(trip, bookings, expenses, parkingList);
   const { nextStop } = useNextStop(canonicalState);
 
-  // Don't render if no next stop
-  if (!nextStop) return null;
+  // v2.3.3: Stable container — collapses cleanly when null, no layout shift
+  if (!nextStop) return <div className="hidden md:hidden" />;
 
   const mapsUrl = buildMapsUrl(nextStop);
   const hasLocation = !!mapsUrl;
 
   return (
     <div className="block md:hidden">
-      <Card className="border-primary/20 bg-primary/5">
+      {/* v2.3.3: Subtle neutral tint for calm priority — not warning/success/error */}
+      <Card className="border-muted-foreground/15 bg-muted/50">
         <CardContent className="p-3">
-          <div className="flex items-center justify-between gap-3">
-            {/* Event info */}
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-0.5">
-                Next Up
-              </p>
-              <p className="text-sm font-medium truncate text-foreground">
-                {nextStop.displayName}
-              </p>
-              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {formatDateShort(nextStop.eventLocalDate)} · {nextStop.eventLocalTime}
+          {/* Event info */}
+          <div className="min-w-0 mb-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-0.5">
+              Next Up
+            </p>
+            <p className="text-sm font-medium truncate text-foreground">
+              {nextStop.displayName}
+            </p>
+            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {formatDateShort(nextStop.eventLocalDate)} · {nextStop.eventLocalTime}
+              </span>
+              {nextStop.locationLabel && (
+                <span className="flex items-center gap-1 truncate">
+                  <MapPin className="w-3 h-3 shrink-0" />
+                  <span className="truncate">{nextStop.locationLabel}</span>
                 </span>
-                {nextStop.locationLabel && (
-                  <span className="flex items-center gap-1 truncate">
-                    <MapPin className="w-3 h-3 shrink-0" />
-                    <span className="truncate">{nextStop.locationLabel}</span>
-                  </span>
-                )}
-              </div>
+              )}
             </div>
-
-            {/* Navigate button */}
-            <Button
-              size="sm"
-              variant={hasLocation ? "default" : "outline"}
-              disabled={!hasLocation}
-              className="shrink-0"
-              onClick={() => {
-                if (mapsUrl) {
-                  window.open(mapsUrl, '_blank', 'noopener,noreferrer');
-                }
-              }}
-            >
-              <Navigation className="w-4 h-4 mr-1" />
-              {hasLocation ? 'Navigate' : 'No location'}
-            </Button>
           </div>
+
+          {/* v2.3.3: Full-width navigate button, min 44px tap target */}
+          <Button
+            size="sm"
+            variant={hasLocation ? "default" : "outline"}
+            disabled={!hasLocation}
+            className="w-full min-h-[44px]"
+            onClick={() => {
+              if (mapsUrl) {
+                window.open(mapsUrl, '_blank', 'noopener,noreferrer');
+              }
+            }}
+          >
+            <Navigation className="w-4 h-4 mr-1" />
+            {hasLocation ? 'Navigate' : 'No location available'}
+          </Button>
         </CardContent>
       </Card>
     </div>
