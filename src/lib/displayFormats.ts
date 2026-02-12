@@ -89,18 +89,31 @@ export function formatEventTime(
   datetime: string | Date,
   preferredFormat: DatetimeFormatPreference = 'MM/DD/YYYY 12h'
 ): string {
-  const datetimeStr = datetime instanceof Date ? datetime.toISOString() : datetime;
+  // v2.2.4: For Date objects, extract local time components directly
+  // instead of using toISOString() which converts to UTC and shifts times.
+  if (datetime instanceof Date) {
+    const hours = datetime.getHours();
+    const minutes = datetime.getMinutes();
+    // Midnight = likely defaulted, not explicit
+    if (hours === 0 && minutes === 0) return UNKNOWN_TIME_PLACEHOLDER;
+    
+    const use24h = preferredFormat === 'DD/MM/YYYY 24h';
+    if (use24h) {
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    }
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const h12 = hours % 12 || 12;
+    return `${h12}:${minutes.toString().padStart(2, '0')} ${period}`;
+  }
   
-  // Check if original has explicit time
-  if (!hasExplicitTime(datetimeStr)) {
+  // For strings: check if original has explicit time
+  if (!hasExplicitTime(datetime)) {
     return UNKNOWN_TIME_PLACEHOLDER;
   }
   
-  // v2.2.4: Use direct digit extraction to avoid browser timezone shifts.
-  // The stored string's HH:MM digits represent the correct local time at the
-  // event's location. Bypassing new Date() / parseISO() prevents UTC offset drift.
+  // Use direct digit extraction to avoid browser timezone shifts.
   const use24h = preferredFormat === 'DD/MM/YYYY 24h';
-  const directTime = formatLocalTimeDirect(datetimeStr, use24h);
+  const directTime = formatLocalTimeDirect(datetime, use24h);
   if (directTime) return directTime;
   
   return UNKNOWN_TIME_PLACEHOLDER;
@@ -140,10 +153,23 @@ export function formatEventDate(
   datetime: string | Date,
   preferredFormat: DatetimeFormatPreference = 'MM/DD/YYYY 12h'
 ): string {
-  // v2.2.4: Use direct date extraction for string inputs to avoid timezone shift
-  const datetimeStr = datetime instanceof Date ? datetime.toISOString() : datetime;
+  // v2.2.4: For Date objects, extract the local date components directly
+  // instead of using toISOString() which converts to UTC and can shift the date.
+  if (datetime instanceof Date) {
+    const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayOfWeek = DAYS[datetime.getDay()];
+    const monthName = MONTHS[datetime.getMonth()];
+    const day = datetime.getDate();
+    const use24h = preferredFormat === 'DD/MM/YYYY 24h';
+    if (use24h) {
+      return `${dayOfWeek}, ${day} ${monthName}`;
+    }
+    return `${dayOfWeek}, ${monthName} ${day}`;
+  }
+  
   const use24h = preferredFormat === 'DD/MM/YYYY 24h';
-  const directDate = formatLocalDateDirect(datetimeStr, use24h);
+  const directDate = formatLocalDateDirect(datetime, use24h);
   if (directDate) return directDate;
   
   return '--';
