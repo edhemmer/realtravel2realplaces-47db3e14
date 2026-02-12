@@ -60,25 +60,6 @@ interface ExpensesTabProps {
   onAutoOpenConsumed?: () => void;
 }
 
-/*
- * FUTURE (Business-only): Advanced Expense Reporting
- * ===================================================
- * Business tier will add advanced expense reporting capabilities:
- * 
- * - Export to CSV/PDF with customizable templates
- * - Per-diem calculations and compliance checks
- * - Receipt attachment management and OCR improvements
- * - Integration with accounting software (QuickBooks, Xero)
- * - Team expense sharing and approval workflows
- * 
- * Implementation will use the <BusinessOnly> wrapper from
- * src/components/access to gate these features.
- * 
- * Entry points to annotate when implementing:
- * - Export button in expense header (wrap with BusinessOnly)
- * - Advanced reporting toggle in summary section
- * - Team sharing controls in expense cards
- */
 const SUB_CATEGORIES: Record<ExpenseCategory, { value: ExpenseSubCategory; label: string }[]> = {
   meals: [
     { value: 'breakfast', label: 'Breakfast' },

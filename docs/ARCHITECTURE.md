@@ -279,28 +279,23 @@ Sensitive data (emails, phone, TSA/FF numbers) is masked via secure RPC function
 | Tier | Trip Limit | Features |
 |------|------------|----------|
 | Free | 5 lifetime | Core trip management |
-| Pro | Unlimited | TripEvents, Health Checklist, Upcoming Events |
+| Pro | Unlimited | TripEvents, Health Checklist, Upcoming Events, Trip Reports, Companion Invites |
+| Business | Unlimited | All Pro features + Tour Stops, Business Reporting |
 
 ### Key Principles
 
-1. **Free tier is fully functional** - Users can plan real trips
+1. **Free tier is fully functional** - Users can manage real trips
 2. **Pro adds intelligence** - Time-based events, proactive warnings
-3. **No silent limits** - Clear messaging when limits apply
-4. **Owner override** - `edhemmer@gmail.com` always has Pro access
+3. **Business adds team tools** - Tour stops, advanced reporting
+4. **No silent limits** - Clear messaging when limits apply
+5. **Single source of truth** - `subscription_tier` in profiles table determines access
 
 ### Implementation
 
 ```typescript
-// src/hooks/useSubscription.ts
-export function useIsPro(): boolean {
-  const { user } = useAuth();
-  const { data } = useSubscription();
-  
-  // Owner always Pro
-  if (user?.email?.toLowerCase() === 'edhemmer@gmail.com') return true;
-  
-  return data?.tier === 'pro';
-}
+// src/hooks/useAccess.ts
+// Access is determined solely by the subscription_tier database field.
+// No hardcoded overrides. Admin status is decoupled from feature access.
 ```
 
 ---

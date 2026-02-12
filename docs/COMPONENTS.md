@@ -53,8 +53,8 @@ Main trip view with mobile-first tabbed interface.
 
 **Mobile Navigation:**
 On viewports < 768px, navigation switches from top tabs to a fixed bottom navigation bar with:
-- Primary tabs: Summary, Bookings, Tour (Business), Expenses
-- "More" dropdown: Companions, Parking, Packing, Explore, Report (Pro), Notes
+- Primary tabs: Summary, Timeline, Expenses, Alerts
+- "More" dropdown: Bookings, Tour (Business), Members, Companions, Parking, Packing, Explore, Report (Pro), Notes & Safety
 
 **Drill-Through Target Type:**
 ```typescript

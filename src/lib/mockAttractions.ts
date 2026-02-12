@@ -1,6 +1,5 @@
 /**
  * Patch 2.1.17: Mock attraction data for Explore feature
- * This will be replaced with real API calls in a future patch
  */
 
 import { AttractionSuggestion } from '@/types/attraction';

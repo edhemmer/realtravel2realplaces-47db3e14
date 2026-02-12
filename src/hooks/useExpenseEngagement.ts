@@ -1,13 +1,10 @@
 /**
  * useExpenseEngagement - Associate expenses with engagements
  * 
- * Part of Patch 2.3.0: Engagement Backend Foundation
+ * Patch 2.3.0: Engagement Backend Foundation
  * 
- * This hook provides utilities for linking expenses to engagements
- * (Stops) for Business-tier reporting features.
- * 
- * IMPORTANT: No UI exposure in this patch. These hooks exist for
- * future Stop-level expense tracking.
+ * Provides utilities for linking expenses to engagements (Stops)
+ * for Business-tier reporting features.
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
