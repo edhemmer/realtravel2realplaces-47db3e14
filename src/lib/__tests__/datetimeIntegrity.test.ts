@@ -68,19 +68,21 @@
      expect(result.hasTime).toBe(true);
    });
  
-   it('respects custom date format', () => {
-     const result = formatDatetimeSafe('2026-01-15T14:30:00', {
-       dateFormat: 'MMMM d, yyyy',
-     });
-     expect(result.date).toBe('January 15, 2026');
-   });
- 
-   it('respects custom time format', () => {
-     const result = formatDatetimeSafe('2026-01-15T14:30:00', {
-       timeFormat: 'HH:mm',
-     });
-     expect(result.time).toBe('14:30');
-   });
+    // v2.2.4: formatDatetimeSafe now uses direct digit extraction (no date-fns format strings)
+    // Custom dateFormat/timeFormat options are no longer supported to avoid timezone shifts.
+    it('uses standard date format regardless of options', () => {
+      const result = formatDatetimeSafe('2026-01-15T14:30:00', {
+        dateFormat: 'MMMM d, yyyy',
+      });
+      expect(result.date).toBe('Jan 15');
+    });
+
+    it('always returns 12h time format', () => {
+      const result = formatDatetimeSafe('2026-01-15T14:30:00', {
+        timeFormat: 'HH:mm',
+      });
+      expect(result.time).toBe('2:30 PM');
+    });
  });
  
  describe('isValidForTripEvent', () => {

@@ -500,14 +500,31 @@ export function buildCanonicalTimeline(
     }
   });
   
-  // Sort chronologically, with unknown times (hasExplicitTime=false) after known times on same date
+  // v2.2.4: Sort using eventLocalDateTime strings (direct digit comparison)
+  // to avoid timezone-shifted Date.getTime() values changing event order.
   return events.sort((a, b) => {
-    const timeDiff = a.datetime.getTime() - b.datetime.getTime();
-    if (timeDiff !== 0) return timeDiff;
+    // Primary sort: by the canonical local datetime string (YYYY-MM-DDTHH:MM:SS)
+    const aStr = a.eventLocalDateTime || '';
+    const bStr = b.eventLocalDateTime || '';
     
-    // Same datetime: explicit times come first
+    // Compare date portions first (YYYY-MM-DD)
+    const aDate = aStr.substring(0, 10);
+    const bDate = bStr.substring(0, 10);
+    if (aDate < bDate) return -1;
+    if (aDate > bDate) return 1;
+    
+    // Same date: explicit times come first, unknown times after
     if (a.hasExplicitTime && !b.hasExplicitTime) return -1;
     if (!a.hasExplicitTime && b.hasExplicitTime) return 1;
+    
+    // Both have explicit times: compare time portions (HH:MM:SS)
+    if (a.hasExplicitTime && b.hasExplicitTime) {
+      const aTime = aStr.indexOf('T') !== -1 ? aStr.substring(aStr.indexOf('T') + 1, aStr.indexOf('T') + 9) : '';
+      const bTime = bStr.indexOf('T') !== -1 ? bStr.substring(bStr.indexOf('T') + 1, bStr.indexOf('T') + 9) : '';
+      if (aTime < bTime) return -1;
+      if (aTime > bTime) return 1;
+    }
+    
     return 0;
   });
 }

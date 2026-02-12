@@ -173,22 +173,39 @@ export function formatDatetimeSafe(
     return { date: '', time: null, hasTime: false };
   }
   
-  const {
-    dateFormat = 'MMM d',
-    timeFormat = 'h:mm a'
-  } = options;
-  
   try {
-    const parsed = parseDatetimeForDisplay(datetime);
-    if (!parsed) return { date: '', time: null, hasTime: false };
+    // v2.2.4: Extract date directly from the string digits to avoid timezone shift.
+    const datePart = datetime.substring(0, 10);
+    const dateMatch = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!dateMatch) return { date: '', time: null, hasTime: false };
     
-    const dateStr = format(parsed, dateFormat);
-    const hasTime = hasExplicitTime(datetime);
+    const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const month = parseInt(dateMatch[2], 10);
+    const day = parseInt(dateMatch[3], 10);
+    const dateStr = `${MONTHS[month - 1]} ${day}`;
+    
+    const explicitTime = hasExplicitTime(datetime);
+    
+    // Extract time directly from string digits
+    let timeStr: string | null = null;
+    if (explicitTime) {
+      const tIndex = datetime.indexOf('T');
+      if (tIndex !== -1) {
+        const timeMatch = datetime.substring(tIndex + 1).match(/^(\d{2}):(\d{2})/);
+        if (timeMatch) {
+          const hours = parseInt(timeMatch[1], 10);
+          const minutes = timeMatch[2];
+          const period = hours >= 12 ? 'PM' : 'AM';
+          const h12 = hours % 12 || 12;
+          timeStr = `${h12}:${minutes} ${period}`;
+        }
+      }
+    }
     
     return {
       date: dateStr,
-      time: hasTime ? format(parsed, timeFormat) : null,
-      hasTime
+      time: timeStr,
+      hasTime: explicitTime
     };
   } catch {
     return { date: '', time: null, hasTime: false };
@@ -234,21 +251,13 @@ export function getTimeDisplay(
 export function extractDateForDisplay(datetime: string | null | undefined): string {
   if (!datetime) return '';
   
-  // If date-only, return as-is
-  if (isDateOnly(datetime)) {
-    try {
-      const parsed = parseDatetimeForDisplay(datetime);
-      return parsed ? format(parsed, 'MMM d') : '';
-    } catch {
-      return '';
-    }
-  }
+  // v2.2.4: Extract date directly from string digits — no Date() timezone shift.
+  const datePart = datetime.substring(0, 10);
+  const match = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return '';
   
-  // For full datetime, parse and extract date
-  try {
-    const parsed = parseDatetimeForDisplay(datetime);
-    return parsed ? format(parsed, 'MMM d') : '';
-  } catch {
-    return '';
-  }
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const month = parseInt(match[2], 10);
+  const day = parseInt(match[3], 10);
+  return `${MONTHS[month - 1]} ${day}`;
 }

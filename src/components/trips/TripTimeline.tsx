@@ -11,9 +11,9 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CanonicalTimelineEvent } from '@/lib/canonicalTripState';
-import { formatEventTime, formatEventDate, DatetimeFormatPreference } from '@/lib/displayFormats';
-import { formatTimeInTimezone, formatDateInTimezone } from '@/lib/airportTimezones';
+import { DatetimeFormatPreference } from '@/lib/displayFormats';
 import { formatLocalTimeDirect, formatLocalDateDirect } from '@/lib/canonicalTimeNormalizer';
+// (removed duplicate import)
 import { UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
 import { 
   Plane, Building2, Car, CircleParking, Compass, Ticket, 
@@ -175,17 +175,14 @@ export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimel
                   </div>
                   <div className="text-right text-xs shrink-0">
                     <p className="font-medium">
-                      {/* v2.2.10: Use direct date extraction for ALL events — no Date() timezone shifting */}
-                      {event.eventLocalDateTime
-                        ? (formatLocalDateDirect(event.eventLocalDateTime, datetimeFormat === 'DD/MM/YYYY 24h') || formatEventDate(event.datetime, datetimeFormat))
-                        : formatEventDate(event.datetime, datetimeFormat)
-                      }
+                      {/* v2.2.4: Use direct date extraction from stored string — no Date() timezone shifting */}
+                      {formatLocalDateDirect(event.eventLocalDateTime, datetimeFormat === 'DD/MM/YYYY 24h') || '--'}
                     </p>
                     <p className={event.hasExplicitTime ? 'text-muted-foreground' : 'text-destructive font-medium'}>
-                      {/* v2.2.10: Use direct time extraction for ALL events — no Date() timezone shifting */}
-                      {event.hasExplicitTime && event.eventLocalDateTime
+                      {/* v2.2.4: Use direct time extraction from stored string — no Date() timezone shifting */}
+                      {event.hasExplicitTime
                         ? (formatLocalTimeDirect(event.eventLocalDateTime, datetimeFormat === 'DD/MM/YYYY 24h') || UNKNOWN_TIME_PLACEHOLDER)
-                        : (event.hasExplicitTime ? formatEventTime(event.datetime.toISOString(), datetimeFormat) : UNKNOWN_TIME_PLACEHOLDER)
+                        : UNKNOWN_TIME_PLACEHOLDER
                       }
                     </p>
                   </div>
