@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useTrips, useDeleteTrip } from '@/hooks/useTrips';
 import { useSharedTrips, SharedTrip } from '@/hooks/useSharedTrips';
 import { Layout } from '@/components/Layout';
@@ -25,6 +26,7 @@ import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const {
     data: trips,
     isLoading
@@ -38,6 +40,16 @@ export default function Dashboard() {
   const { shouldShowOnboarding, isLoading: onboardingLoading } = useOnboardingStatus();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [tripToDelete, setTripToDelete] = useState<string | null>(null);
+
+  // v2.3.10: Auto-open create trip dialog if routed from WelcomeChoice
+  useEffect(() => {
+    const state = location.state as { openCreateTrip?: boolean } | null;
+    if (state?.openCreateTrip) {
+      setCreateDialogOpen(true);
+      // Clear the state so it doesn't re-trigger on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   // Patch 2.1.18: Redirect to onboarding for first-time users (DB-backed)
   useEffect(() => {

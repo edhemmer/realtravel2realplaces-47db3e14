@@ -22,6 +22,7 @@ import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import Reports from "./pages/Reports";
 import Onboarding from "./pages/Onboarding";
+import WelcomeChoice from "./pages/WelcomeChoice";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -118,6 +119,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Onboarding />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/welcome-choice"
+        element={
+          <ProtectedRoute>
+            <WelcomeChoice />
           </ProtectedRoute>
         }
       />

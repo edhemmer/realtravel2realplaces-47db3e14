@@ -98,9 +98,14 @@ export default function Onboarding() {
         console.error('Failed to mark onboarding complete:', err);
         // Still navigate even if DB update fails
       }
+      // v2.3.10: First-time completion → welcome choice screen
+      clearManualOnboardingView();
+      navigate('/welcome-choice', { replace: true });
+    } else {
+      // Manual re-view from Account page → back to dashboard
+      clearManualOnboardingView();
+      navigate('/dashboard', { replace: true });
     }
-    clearManualOnboardingView();
-    navigate('/dashboard', { replace: true });
   };
 
   const handlePrev = () => {
