@@ -14,6 +14,9 @@ export interface TripMember {
   trip_id: string;
   user_id: string;
   role: 'owner' | 'guest';
+  read_only: boolean;
+  can_expenses: boolean;
+  can_stay: boolean;
   created_at: string;
   // Joined from profiles
   display_name?: string | null;
