@@ -26,6 +26,9 @@ import { ExpensesTab } from '@/components/trips/tabs/ExpensesTab';
 interface TripExpensesContainerProps {
   tripId: string;
   trip?: Trip;
+  /** v2.3.5: Signal to auto-open Add Expense dialog */
+  autoOpenAdd?: boolean;
+  onAutoOpenConsumed?: () => void;
 }
 
 /**
@@ -37,7 +40,7 @@ interface TripExpensesContainerProps {
  * 
  * Tours are excluded from all cost calculations.
  */
-export function TripExpensesContainer({ tripId, trip }: TripExpensesContainerProps) {
+export function TripExpensesContainer({ tripId, trip, autoOpenAdd, onAutoOpenConsumed }: TripExpensesContainerProps) {
   // Canonical data fetching
   const { isLoading: expensesLoading, error: expensesError } = useExpenses(tripId);
   const { isLoading: bookingsLoading, error: bookingsError } = useBookings(tripId);
@@ -57,9 +60,7 @@ export function TripExpensesContainer({ tripId, trip }: TripExpensesContainerPro
     );
   }
   
-  // Render the presentational view
-  // ExpensesTab handles its own data fetching and mutations internally
   return (
-    <ExpensesTab tripId={tripId} />
+    <ExpensesTab tripId={tripId} autoOpenAdd={autoOpenAdd} onAutoOpenConsumed={onAutoOpenConsumed} />
   );
 }

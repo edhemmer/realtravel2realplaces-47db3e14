@@ -33,6 +33,8 @@ import { ProRetentionCountdownCard } from '@/components/trips/ProRetentionCountd
 import { TravelHelpButton } from '@/components/trips/TravelHelpButton';
 // v2.3.2: Mobile "Next Up" card
 import { MobileNextUpCard } from '@/components/trips/MobileNextUpCard';
+// v2.3.5: Mobile "Add Expense" field card
+import { MobileAddExpenseCard } from '@/components/trips/MobileAddExpenseCard';
 // Patch 2.2.3: Mobile-first layout components
 import { TripDetailLayout, type TripTab } from '@/components/layout';
 import { createContext, useContext, useState, useCallback, useMemo } from 'react';
@@ -81,6 +83,8 @@ export default function TripDetail() {
   // Patch 2.2.3: Updated type for mobile navigation compatibility
   const [activeTab, setActiveTab] = useState<TripTab>('summary');
   const [drillTarget, setDrillTarget] = useState<DrillThroughTarget>(null);
+  // v2.3.5: Signal to auto-open Add Expense dialog on tab switch
+  const [autoOpenExpense, setAutoOpenExpense] = useState(false);
 
   // v2.5.0: Determine if trip has flights or is international for Travel Guide context
   const hasFlights = useMemo(() => {
@@ -161,6 +165,12 @@ export default function TripDetail() {
 
             {/* v2.3.2: Mobile "Next Up" card - mobile only, top of trip view */}
             <MobileNextUpCard tripId={trip.id} trip={trip} />
+
+            {/* v2.3.5: Mobile "Add Expense" field card */}
+            <MobileAddExpenseCard onTap={() => {
+              setActiveTab('expenses');
+              setAutoOpenExpense(true);
+            }} />
 
             {/* Navigation */}
             <div className="flex flex-col gap-4">
@@ -279,7 +289,7 @@ export default function TripDetail() {
                   <CompanionsTab tripId={trip.id} />
                 </TabsContent>
                 <TabsContent value="expenses">
-                  <TripExpensesContainer tripId={trip.id} trip={trip} />
+                  <TripExpensesContainer tripId={trip.id} trip={trip} autoOpenAdd={autoOpenExpense} onAutoOpenConsumed={() => setAutoOpenExpense(false)} />
                 </TabsContent>
                 <TabsContent value="parking">
                   <ParkingTab 
