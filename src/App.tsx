@@ -23,6 +23,7 @@ import Terms from "./pages/Terms";
 import Reports from "./pages/Reports";
 import Onboarding from "./pages/Onboarding";
 import WelcomeChoice from "./pages/WelcomeChoice";
+import HelpCenter from "./pages/HelpCenter";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,6 +62,7 @@ function AppRoutes() {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms" element={<Terms />} />
+      <Route path="/help" element={<HelpCenter />} />
       
       {/* Profile completion (authenticated but incomplete profile) */}
       <Route path="/complete-profile" element={<CompleteProfile />} />
