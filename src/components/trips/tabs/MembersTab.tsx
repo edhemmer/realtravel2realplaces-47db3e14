@@ -7,13 +7,14 @@
  */
 
 import { useState, useCallback } from 'react';
-import { useTripMembers, useTripInvites, useCreateTripInvite, useRevokeTripInvite } from '@/hooks/useTripMembers';
+import { useTripMembers, useTripInvites, useCreateTripInvite, useRevokeTripInvite, type InvitePermissions } from '@/hooks/useTripMembers';
 import { useTripPermission } from '@/pages/TripDetail';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { 
   Users, UserPlus, Copy, Check, Shield, User, 
@@ -51,6 +52,11 @@ export function MembersTab({ tripId }: MembersTabProps) {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteToken, setInviteToken] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [permissions, setPermissions] = useState<InvitePermissions>({
+    read_only: true,
+    can_expenses: false,
+    can_stay: false,
+  });
 
   const handleCreateInvite = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,13 +64,40 @@ export function MembersTab({ tripId }: MembersTabProps) {
     if (!trimmed) return;
 
     try {
-      const result = await createInvite.mutateAsync({ tripId, email: trimmed });
+      const result = await createInvite.mutateAsync({ tripId, email: trimmed, permissions });
       setInviteToken(result.invite_token);
       setInviteEmail('');
     } catch {
       // Error handled by mutation
     }
-  }, [inviteEmail, tripId, createInvite]);
+  }, [inviteEmail, tripId, createInvite, permissions]);
+
+  // v2.2.7: Permission toggle handlers with interlock logic
+  const handleToggleExpenses = useCallback((checked: boolean) => {
+    setPermissions(prev => ({
+      ...prev,
+      can_expenses: checked,
+      // If any write perm is on, force read_only off
+      read_only: (checked || prev.can_stay) ? false : true,
+    }));
+  }, []);
+
+  const handleToggleStay = useCallback((checked: boolean) => {
+    setPermissions(prev => ({
+      ...prev,
+      can_stay: checked,
+      // If any write perm is on, force read_only off
+      read_only: (prev.can_expenses || checked) ? false : true,
+    }));
+  }, []);
+
+  const handleToggleReadOnly = useCallback((checked: boolean) => {
+    // Can only toggle read_only when no write perms are on
+    setPermissions(prev => {
+      if (prev.can_expenses || prev.can_stay) return prev; // locked
+      return { ...prev, read_only: checked };
+    });
+  }, []);
 
   const handleCopyLink = useCallback(async () => {
     if (!inviteToken) return;
@@ -84,6 +117,7 @@ export function MembersTab({ tripId }: MembersTabProps) {
     setInviteEmail('');
     setInviteToken(null);
     setCopied(false);
+    setPermissions({ read_only: true, can_expenses: false, can_stay: false });
   }, []);
 
   const handleRevoke = useCallback((inviteId: string) => {
@@ -235,6 +269,46 @@ export function MembersTab({ tripId }: MembersTabProps) {
                   className="min-h-[44px]"
                 />
               </div>
+
+              {/* v2.2.7: Permission toggles with interlock */}
+              <div className="space-y-3 p-3 bg-muted/50 rounded-lg border">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Guest Permissions</p>
+                
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="perm-readonly" className="text-sm cursor-pointer">Read-only</Label>
+                  <Switch
+                    id="perm-readonly"
+                    checked={permissions.read_only}
+                    onCheckedChange={handleToggleReadOnly}
+                    disabled={permissions.can_expenses || permissions.can_stay}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="perm-expenses" className="text-sm cursor-pointer">Can add expenses</Label>
+                  <Switch
+                    id="perm-expenses"
+                    checked={permissions.can_expenses}
+                    onCheckedChange={handleToggleExpenses}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="perm-stay" className="text-sm cursor-pointer">Can add stays</Label>
+                  <Switch
+                    id="perm-stay"
+                    checked={permissions.can_stay}
+                    onCheckedChange={handleToggleStay}
+                  />
+                </div>
+
+                {(permissions.can_expenses || permissions.can_stay) && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Read-only is disabled when write permissions are granted.
+                  </p>
+                )}
+              </div>
+
               <Button
                 type="submit"
                 className="w-full bg-gradient-ocean hover:opacity-90 min-h-[44px]"
