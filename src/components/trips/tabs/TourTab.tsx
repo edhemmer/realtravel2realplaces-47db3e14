@@ -49,7 +49,7 @@ import { useTripPermission } from '@/pages/TripDetail';
 import { BulkStopsDialog } from '@/components/trips/BulkStopsDialog';
 import { BulkStopsDialogV2 } from '@/components/trips/BulkStopsDialogV2';
 import { Trip } from '@/types/database';
-import { buildMapsUrl } from '@/lib/stopParsing';
+import { resolveMapsDestination, openMapsDestination } from '@/lib/mapsDestination';
 
 /**
  * v2.3.2: TourTab with Business tier bulk import
@@ -228,13 +228,12 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
   };
 
   // v2.0.9: Open Google Maps directions to a location
-  const openMapsDirections = (location: string) => {
-    const encodedLocation = encodeURIComponent(location);
-    window.open(
-      `https://www.google.com/maps/dir/?api=1&destination=${encodedLocation}`,
-      '_blank',
-      'noopener,noreferrer'
-    );
+  const openMapsDirections = (stop: Engagement) => {
+    const dest = resolveMapsDestination({
+      address: stop.address,
+      locationLabel: stop.location,
+    });
+    if (dest) openMapsDestination(dest);
   };
 
   // v2.1.25: Removed getSourceIcon - Tours are manual only, no source hints
@@ -386,7 +385,7 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => window.open(buildMapsUrl(stop.address || stop.location!), '_blank', 'noopener,noreferrer')}
+                        onClick={() => openMapsDirections(stop)}
                         className="h-7 w-7 text-primary hover:text-primary"
                         title="Open in Maps"
                       >

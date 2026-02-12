@@ -39,7 +39,7 @@ describe('Container Architecture Validation', () => {
       // Tours are non-monetary - no cost helpers needed
       const expectedHelpers = [
         'useEngagements',
-        'buildMapsUrl',
+        'resolveMapsDestination',
       ];
       expect(expectedHelpers.length).toBe(2);
     });

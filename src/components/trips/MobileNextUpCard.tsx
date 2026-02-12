@@ -19,22 +19,14 @@ import { useParking } from '@/hooks/useParking';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Navigation, Clock, MapPin } from 'lucide-react';
+import { resolveMapsFromNextStop, openMapsDestination } from '@/lib/mapsDestination';
 import type { Trip } from '@/types/database';
-import type { NextStopEvent } from '@/lib/canonicalNextStop';
 
 interface MobileNextUpCardProps {
   tripId: string;
   trip: Trip;
 }
 
-/**
- * Build a Google Maps URL from an event's address or locationLabel.
- */
-function buildMapsUrl(event: NextStopEvent): string | null {
-  const query = event.address || event.locationLabel;
-  if (!query) return null;
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
-}
 
 /**
  * Format date string "YYYY-MM-DD" to a short display like "Feb 11"
@@ -59,8 +51,8 @@ export function MobileNextUpCard({ tripId, trip }: MobileNextUpCardProps) {
   // v2.3.3: Stable container — collapses cleanly when null, no layout shift
   if (!nextStop) return <div className="hidden md:hidden" />;
 
-  const mapsUrl = buildMapsUrl(nextStop);
-  const hasLocation = !!mapsUrl;
+  const mapsDest = resolveMapsFromNextStop(nextStop);
+  const hasLocation = !!mapsDest;
 
   return (
     <div className="block md:hidden">
@@ -94,9 +86,7 @@ export function MobileNextUpCard({ tripId, trip }: MobileNextUpCardProps) {
             disabled={!hasLocation}
             className="w-full min-h-[40px]"
             onClick={() => {
-              if (mapsUrl) {
-                window.open(mapsUrl, '_blank', 'noopener,noreferrer');
-              }
+              if (mapsDest) openMapsDestination(mapsDest);
             }}
           >
             <Navigation className="w-4 h-4 mr-1" />

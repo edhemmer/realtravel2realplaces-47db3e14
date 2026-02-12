@@ -23,6 +23,7 @@ import {
   TrainFront, Bus, TramFront, Ship, Compass
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { resolveMapsDestination, openMapsDestination } from '@/lib/mapsDestination';
 import { format, parseISO, isBefore, isAfter, startOfDay } from 'date-fns';
 import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER, parseDatetimeForDisplay } from '@/lib/datetimeIntegrity';
 import {
@@ -765,8 +766,13 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
     }
   };
 
-  const openInMaps = (address: string) => {
-    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank', 'noopener,noreferrer');
+  const openInMaps = (booking: Booking) => {
+    const dest = resolveMapsDestination({
+      address: booking.address,
+      propertyName: booking.booking_type === 'stay' ? (booking.property_name || undefined) : undefined,
+      locationLabel: booking.pickup_location || booking.location_summary || undefined,
+    });
+    if (dest) openMapsDestination(dest);
   };
 
   // Legacy handler for external drop zone (outside dialog)
@@ -1040,8 +1046,8 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                 )}
 
                 <div className="flex gap-2 pt-2">
-                  {booking.address && (
-                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openInMaps(booking.address!)}>
+                  {(booking.address || booking.property_name || booking.pickup_location) && (
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openInMaps(booking)}>
                       <MapPin className="w-3 h-3 mr-1" />
                       Maps
                     </Button>
