@@ -21,6 +21,8 @@ import {
   TripTourContainer,
   TripExpensesContainer,
 } from '@/containers';
+// v2.3.9: Alerts container for mobile bottom nav
+import { TripAlertsContainer } from '@/containers/TripAlertsContainer';
 import { ParkingTab } from '@/components/trips/tabs/ParkingTab';
 import { PackingTab } from '@/components/trips/tabs/PackingTab';
 import { CompanionsTab } from '@/components/trips/tabs/CompanionsTab';
@@ -287,6 +289,14 @@ export default function TripDetail() {
                   />
                 </TabsContent>
                 
+                {/* v2.3.9: Timeline tab — reuses bookings container for chronological view */}
+                <TabsContent value="timeline">
+                  <TripBookingsContainer 
+                    tripId={trip.id}
+                    trip={trip}
+                  />
+                </TabsContent>
+
                 {/* Tour content - Business only */}
                 {/* v2.1.6: Tour no longer receives bookings prop - fetches canonical state internally */}
                 {canAccessBusinessFeatures && (
@@ -324,6 +334,11 @@ export default function TripDetail() {
                 
                 <TabsContent value="notes">
                   <NotesTab tripId={trip.id} />
+                </TabsContent>
+
+                {/* v2.3.9: Alerts tab — mobile bottom nav section */}
+                <TabsContent value="alerts">
+                  <TripAlertsContainer tripId={trip.id} trip={trip} />
                 </TabsContent>
               </div>
             </Tabs>

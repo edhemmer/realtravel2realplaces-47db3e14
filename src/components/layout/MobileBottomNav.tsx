@@ -23,7 +23,9 @@ import {
   Users,
   Compass,
   FileText,
-  StickyNote
+  StickyNote,
+  Clock,
+  Bell
 } from 'lucide-react';
 import { useAccess } from '@/hooks/useAccess';
 import {
@@ -43,7 +45,9 @@ export type TripTab =
   | 'packing'
   | 'explore'
   | 'report'
-  | 'notes';
+  | 'notes'
+  | 'timeline'
+  | 'alerts';
 
 interface MobileBottomNavProps {
   activeTab: TripTab;
@@ -61,12 +65,14 @@ interface NavItem {
 
 const PRIMARY_NAV_ITEMS: NavItem[] = [
   { id: 'summary', label: 'Summary', icon: <LayoutDashboard className="w-5 h-5" /> },
-  { id: 'bookings', label: 'Bookings', icon: <Plane className="w-5 h-5" /> },
-  { id: 'tour', label: 'Tour', icon: <MapPin className="w-5 h-5" />, requiresBusiness: true },
+  { id: 'timeline', label: 'Timeline', icon: <Clock className="w-5 h-5" /> },
   { id: 'expenses', label: 'Expenses', icon: <Receipt className="w-5 h-5" /> },
+  { id: 'alerts', label: 'Alerts', icon: <Bell className="w-5 h-5" /> },
 ];
 
 const MORE_NAV_ITEMS: NavItem[] = [
+  { id: 'bookings', label: 'Bookings', icon: <Plane className="w-4 h-4" /> },
+  { id: 'tour', label: 'Tour', icon: <MapPin className="w-4 h-4" />, requiresBusiness: true },
   { id: 'companions', label: 'Companions', icon: <Users className="w-4 h-4" /> },
   { id: 'parking', label: 'Parking', icon: <CircleParking className="w-4 h-4" /> },
   { id: 'packing', label: 'Packing', icon: <Package className="w-4 h-4" /> },
@@ -103,13 +109,13 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
         className
       )}
     >
-      <div className="flex items-center justify-around h-16 px-2">
+      <div className="flex items-center justify-around h-16 px-2 pb-safe">
         {visiblePrimaryItems.map((item) => (
           <button
             key={item.id}
             onClick={() => onTabChange(item.id)}
             className={cn(
-              "flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-lg transition-colors min-w-[64px]",
+              "flex flex-col items-center justify-center gap-0.5 py-1.5 px-3 rounded-lg transition-colors min-w-[56px] min-h-[44px]",
               "touch-manipulation", // Optimize for touch
               activeTab === item.id
                 ? "text-primary bg-primary/10"
@@ -126,7 +132,7 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
           <DropdownMenuTrigger asChild>
             <button
               className={cn(
-                "flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-lg transition-colors min-w-[64px]",
+                "flex flex-col items-center justify-center gap-0.5 py-1.5 px-3 rounded-lg transition-colors min-w-[56px] min-h-[44px]",
                 "touch-manipulation",
                 isMoreActive
                   ? "text-primary bg-primary/10"
