@@ -17,9 +17,9 @@ export interface AirportContext {
   city: string | null;
   /** Country where airport is located */
   country: string | null;
-  /** Whether landside features are supported (future use) */
+  /** Whether landside features are supported */
   landside_supported: boolean;
-  /** Whether airside features are supported (future use) */
+  /** Whether airside features are supported */
   airside_supported: boolean;
 }
 
