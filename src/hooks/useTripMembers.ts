@@ -101,16 +101,26 @@ export function useTripInvites(tripId: string) {
  * Create an invite via SECURITY DEFINER RPC
  * Returns the one-time plaintext token (never stored after display)
  */
+export interface InvitePermissions {
+  read_only: boolean;
+  can_expenses: boolean;
+  can_stay: boolean;
+}
+
 export function useCreateTripInvite() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ tripId, email }: { tripId: string; email: string }) => {
+    mutationFn: async ({ tripId, email, permissions }: { tripId: string; email: string; permissions?: InvitePermissions }) => {
+      const perms = permissions || { read_only: true, can_expenses: false, can_stay: false };
       const { data, error } = await supabase
         .rpc('create_trip_invite', {
           p_trip_id: tripId,
           p_invitee_email: email,
           p_ttl_days: 7,
+          p_read_only: perms.read_only,
+          p_can_expenses: perms.can_expenses,
+          p_can_stay: perms.can_stay,
         });
 
       if (error) throw error;
