@@ -40,6 +40,7 @@ export type TripTab =
   | 'bookings' 
   | 'tour' 
   | 'companions'
+  | 'members'
   | 'expenses' 
   | 'parking'
   | 'packing'
@@ -73,6 +74,7 @@ const PRIMARY_NAV_ITEMS: NavItem[] = [
 const MORE_NAV_ITEMS: NavItem[] = [
   { id: 'bookings', label: 'Bookings', icon: <Plane className="w-4 h-4" /> },
   { id: 'tour', label: 'Tour', icon: <MapPin className="w-4 h-4" />, requiresBusiness: true },
+  { id: 'members', label: 'Members', icon: <Users className="w-4 h-4" /> },
   { id: 'companions', label: 'Companions', icon: <Users className="w-4 h-4" /> },
   { id: 'parking', label: 'Parking', icon: <CircleParking className="w-4 h-4" /> },
   { id: 'packing', label: 'Packing', icon: <Package className="w-4 h-4" /> },
