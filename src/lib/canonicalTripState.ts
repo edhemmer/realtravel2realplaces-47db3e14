@@ -13,6 +13,7 @@
  */
 
 import { Trip, Booking, Expense, Parking } from '@/types/database';
+import { TripEvent } from '@/types/tripEvent';
 import { startOfDay, endOfDay } from 'date-fns';
 import { 
   calculateTripCostSummary, 
@@ -61,7 +62,8 @@ export type TimelineEventType =
   | 'parking_start'
   | 'parking_end'
   | 'transport_departure'
-  | 'transport_arrival';
+  | 'transport_arrival'
+  | 'engagement_start';  // v2.2.5: Business stop visible in canonical stream
 
 /**
  * Canonical timeline event
@@ -73,7 +75,7 @@ export interface CanonicalTimelineEvent {
   /** Source record ID (booking.id or parking.id) */
   sourceId: string;
   /** Source type */
-  sourceType: 'booking' | 'parking';
+  sourceType: 'booking' | 'parking' | 'engagement';
   /** Booking type (flight, stay, etc.) or 'parking' */
   bookingType: string;
   /** Event type (departure, checkin, etc.) */
@@ -271,7 +273,8 @@ function parseDateAtNoon(dateStr: string): Date {
 export function buildCanonicalTimeline(
   bookings: Booking[],
   parkingList: Parking[],
-  tripDestinationTimeZone?: string | null
+  tripDestinationTimeZone?: string | null,
+  engagementEvents?: TripEvent[]
 ): CanonicalTimelineEvent[] {
   const events: CanonicalTimelineEvent[] = [];
   const destTz = tripDestinationTimeZone || null;
@@ -534,7 +537,34 @@ export function buildCanonicalTimeline(
       });
     }
   });
-  
+
+  // v2.2.5: Process engagement events from canonical trip_events stream
+  // These are plan-neutral: visible to all trip members regardless of tier
+  // Timeline does NOT depend on the engagements (Business-only) table
+  if (engagementEvents && engagementEvents.length > 0) {
+    engagementEvents.forEach(evt => {
+      if (evt.event_type !== 'engagement_start') return;
+      const evtDateStr = extractDateFromDatetime(evt.event_datetime);
+      const evtDate = evtDateStr ? parseDateAtNoon(evtDateStr) : null;
+      if (!evtDate) return;
+
+      events.push({
+        id: `${evt.source_id}-engagement`,
+        sourceId: evt.source_id,
+        sourceType: 'engagement',
+        bookingType: 'engagement',
+        eventType: 'engagement_start',
+        title: evt.title || 'Stop',
+        subtitle: evt.location_summary || '',
+        datetime: evtDate,
+        hasExplicitTime: hasExplicitTime(evt.event_datetime),
+        address: evt.location_summary || undefined,
+        eventLocalDateTime: evt.event_datetime,
+        eventTimeZone: destTz,
+      });
+    });
+  }
+
   // v2.2.4: Sort using eventLocalDateTime strings (direct digit comparison)
   // to avoid timezone-shifted Date.getTime() values changing event order.
   return events.sort((a, b) => {
@@ -611,7 +641,8 @@ export function getCanonicalTripState(
   trip: Trip,
   bookings: Booking[],
   expenses: Expense[],
-  parkingList: Parking[]
+  parkingList: Parking[],
+  engagementEvents?: TripEvent[]
 ): CanonicalTripState {
   // v2.2.10: Resolve destination timezone for non-flight booking events
   const destTz = resolveDestinationTimezone(trip.destination_state, trip.destination_country);
@@ -620,7 +651,8 @@ export function getCanonicalTripState(
   const dateRange = calculateCanonicalDateRange(trip, bookings);
   
   // Build timeline events (pass destination timezone for non-flight events)
-  const timelineEvents = buildCanonicalTimeline(bookings, parkingList, destTz);
+  // v2.2.5: Include engagement events from canonical trip_events stream
+  const timelineEvents = buildCanonicalTimeline(bookings, parkingList, destTz, engagementEvents);
   
   // Calculate costs
   const costs = calculateCanonicalCosts(expenses, bookings, parkingList);
@@ -691,6 +723,73 @@ export function generateTourDraftFromCanonicalEvents(
   // v2.1.25: Tours are manual only - return empty array
   // This function is deprecated and should not be used
   return [];
+}
+
+// ============================================================================
+// EVENT VISIBILITY CONTRACT (v2.2.5)
+// ============================================================================
+
+/**
+ * v2.2.5: Canonical Event Visibility Contract
+ * 
+ * Guarantees that the canonical event stream is complete and consistent
+ * for ALL trip members regardless of their plan tier.
+ * 
+ * CONTRACT RULES:
+ * 1. Every booking (flight, stay, rental, activity, transport) produces timeline events
+ * 2. Every parking entry produces timeline events
+ * 3. Every engagement writes through to trip_events, which feeds the canonical stream
+ * 4. No event source is excluded based on plan tier
+ * 5. If an event cannot be safely represented, it is excluded for ALL members
+ * 
+ * This function validates a built canonical state and returns diagnostics.
+ * It does NOT modify the state — it only checks for completeness.
+ */
+export interface EventVisibilityDiagnostics {
+  /** Whether all known sources are represented in the timeline */
+  isComplete: boolean;
+  /** Count of bookings with timeline representation */
+  bookingsRepresented: number;
+  /** Count of parking entries with timeline representation */
+  parkingRepresented: number;
+  /** Count of engagement events in the canonical stream */
+  engagementsRepresented: number;
+  /** Total timeline events */
+  totalEvents: number;
+}
+
+export function validateEventVisibilityContract(
+  state: CanonicalTripState,
+  bookingCount: number,
+  parkingCount: number,
+  engagementEventCount: number
+): EventVisibilityDiagnostics {
+  const bookingSourceIds = new Set<string>();
+  const parkingSourceIds = new Set<string>();
+  let engagementsRepresented = 0;
+
+  state.timelineEvents.forEach(evt => {
+    if (evt.sourceType === 'booking') bookingSourceIds.add(evt.sourceId);
+    if (evt.sourceType === 'parking') parkingSourceIds.add(evt.sourceId);
+    if (evt.sourceType === 'engagement') engagementsRepresented++;
+  });
+
+  const bookingsRepresented = bookingSourceIds.size;
+  const parkingRepresented = parkingSourceIds.size;
+
+  // Complete if all source records produced at least one timeline event
+  const isComplete =
+    bookingsRepresented >= bookingCount &&
+    parkingRepresented >= parkingCount &&
+    engagementsRepresented >= engagementEventCount;
+
+  return {
+    isComplete,
+    bookingsRepresented,
+    parkingRepresented,
+    engagementsRepresented,
+    totalEvents: state.timelineEvents.length,
+  };
 }
 
 // ============================================================================

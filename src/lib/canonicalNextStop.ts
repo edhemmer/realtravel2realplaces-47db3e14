@@ -41,8 +41,8 @@ export interface NextStopEvent {
   locationLabel?: string;
   /** Source record ID for drill-through */
   sourceId: string;
-  /** Source type (booking | parking) */
-  sourceType: 'booking' | 'parking';
+  /** Source type (booking | parking | engagement) */
+  sourceType: 'booking' | 'parking' | 'engagement';
 }
 
 export interface NextStopResult {

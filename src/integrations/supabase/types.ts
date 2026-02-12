@@ -684,8 +684,10 @@ export type Database = {
           event_datetime: string
           event_type: Database["public"]["Enums"]["trip_event_type"]
           id: string
+          location_summary: string | null
           source_id: string
           source_type: Database["public"]["Enums"]["event_source_type"]
+          title: string | null
           trip_id: string
           updated_at: string
         }
@@ -694,8 +696,10 @@ export type Database = {
           event_datetime: string
           event_type: Database["public"]["Enums"]["trip_event_type"]
           id?: string
+          location_summary?: string | null
           source_id: string
           source_type: Database["public"]["Enums"]["event_source_type"]
+          title?: string | null
           trip_id: string
           updated_at?: string
         }
@@ -704,8 +708,10 @@ export type Database = {
           event_datetime?: string
           event_type?: Database["public"]["Enums"]["trip_event_type"]
           id?: string
+          location_summary?: string | null
           source_id?: string
           source_type?: Database["public"]["Enums"]["event_source_type"]
+          title?: string | null
           trip_id?: string
           updated_at?: string
         }
@@ -1146,7 +1152,7 @@ export type Database = {
       app_role: "admin" | "user"
       booking_type: "flight" | "stay" | "car_rental" | "activity" | "transport"
       destination_type: "beach" | "mountain" | "city" | "unspecified"
-      event_source_type: "booking" | "parking"
+      event_source_type: "booking" | "parking" | "engagement"
       expense_category:
         | "meals"
         | "transport"
@@ -1195,6 +1201,7 @@ export type Database = {
         | "rental_pickup"
         | "rental_return"
         | "parking_expiration"
+        | "engagement_start"
       trip_member_role: "owner" | "guest"
       trip_state: "active" | "locked" | "closed"
       trip_type: "business" | "personal" | "mixed"
@@ -1328,7 +1335,7 @@ export const Constants = {
       app_role: ["admin", "user"],
       booking_type: ["flight", "stay", "car_rental", "activity", "transport"],
       destination_type: ["beach", "mountain", "city", "unspecified"],
-      event_source_type: ["booking", "parking"],
+      event_source_type: ["booking", "parking", "engagement"],
       expense_category: [
         "meals",
         "transport",
@@ -1379,6 +1386,7 @@ export const Constants = {
         "rental_pickup",
         "rental_return",
         "parking_expiration",
+        "engagement_start",
       ],
       trip_member_role: ["owner", "guest"],
       trip_state: ["active", "locked", "closed"],

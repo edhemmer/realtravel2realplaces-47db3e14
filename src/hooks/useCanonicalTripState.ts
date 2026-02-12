@@ -29,6 +29,7 @@ import { useBookings } from './useBookings';
 import { useExpenses } from './useExpenses';
 import { useParking } from './useParking';
 import { useTripWeather } from './useWeather';
+import { useEngagementEvents } from './useTripEvents';
 import { useProfileTemperatureUnit } from './useProfileTemperatureUnit';
 
 // Re-export types for convenience
@@ -77,6 +78,8 @@ export function useCanonicalTripState(
   const { data: bookings = [], isLoading: bookingsLoading } = useBookings(tripId);
   const { data: expenses = [], isLoading: expensesLoading } = useExpenses(tripId);
   const { data: parkingList = [], isLoading: parkingLoading } = useParking(tripId);
+  // v2.2.5: Fetch engagement-sourced events for canonical timeline (plan-neutral)
+  const { data: engagementEvents = [], isLoading: engagementEventsLoading } = useEngagementEvents(tripId);
   
   const { unit: tempUnit } = useProfileTemperatureUnit();
   
@@ -90,12 +93,12 @@ export function useCanonicalTripState(
     tempUnit
   );
   
-  const isLoading = bookingsLoading || expensesLoading || parkingLoading || !trip;
+  const isLoading = bookingsLoading || expensesLoading || parkingLoading || engagementEventsLoading || !trip;
   
   // Memoize the canonical state calculation + weather integration
   const state = useMemo(() => {
     if (!trip) return null;
-    const base = getCanonicalTripState(trip, bookings, expenses, parkingList);
+    const base = getCanonicalTripState(trip, bookings, expenses, parkingList, engagementEvents);
     
     // v2.2.13: If frame is pending validation, do not populate weather snapshots
     // Weather should not be derived from unconfirmed trip frames
@@ -118,7 +121,7 @@ export function useCanonicalTripState(
     }
     
     return base;
-  }, [trip, bookings, expenses, parkingList, tripForecast]);
+  }, [trip, bookings, expenses, parkingList, engagementEvents, tripForecast]);
   
   return {
     state,
