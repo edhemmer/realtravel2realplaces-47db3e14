@@ -16,6 +16,8 @@ export interface NotificationPreferences {
   parking_expiry_minutes_before: number;
   stop_reminder_enabled: boolean;
   stop_reminder_minutes_before: number;
+  ticket_reminder_enabled: boolean;
+  ticket_reminder_days_before: number;
   created_at: string;
   updated_at: string;
 }

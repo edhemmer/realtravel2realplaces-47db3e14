@@ -382,6 +382,8 @@ export type Database = {
           parking_expiry_minutes_before: number
           stop_reminder_enabled: boolean
           stop_reminder_minutes_before: number
+          ticket_reminder_days_before: number
+          ticket_reminder_enabled: boolean
           updated_at: string
           user_id: string
         }
@@ -395,6 +397,8 @@ export type Database = {
           parking_expiry_minutes_before?: number
           stop_reminder_enabled?: boolean
           stop_reminder_minutes_before?: number
+          ticket_reminder_days_before?: number
+          ticket_reminder_enabled?: boolean
           updated_at?: string
           user_id: string
         }
@@ -408,6 +412,8 @@ export type Database = {
           parking_expiry_minutes_before?: number
           stop_reminder_enabled?: boolean
           stop_reminder_minutes_before?: number
+          ticket_reminder_days_before?: number
+          ticket_reminder_enabled?: boolean
           updated_at?: string
           user_id?: string
         }
