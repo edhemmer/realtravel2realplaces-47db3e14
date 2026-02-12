@@ -22,7 +22,7 @@ import { CreateTripDialog } from '@/components/trips/CreateTripDialog';
 import { TripLifecycleBadges, getTripCardLifecycleStyles } from '@/components/trips/TripLifecycleBadges';
 import { useAccess } from '@/hooks/useAccess';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
+
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -37,7 +37,6 @@ export default function Dashboard() {
   } = useSharedTrips();
   const deleteTrip = useDeleteTrip();
   const { isPro } = useAccess();
-  const { shouldShowOnboarding, isLoading: onboardingLoading } = useOnboardingStatus();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [tripToDelete, setTripToDelete] = useState<string | null>(null);
 
@@ -51,12 +50,7 @@ export default function Dashboard() {
     }
   }, [location.state]);
 
-  // Patch 2.1.18: Redirect to onboarding for first-time users (DB-backed)
-  useEffect(() => {
-    if (!isLoading && !sharedLoading && !onboardingLoading && shouldShowOnboarding) {
-      navigate('/onboarding');
-    }
-  }, [isLoading, sharedLoading, onboardingLoading, shouldShowOnboarding, navigate]);
+  // v2.3.x: Onboarding redirect removed — handled by centralized ProtectedRoute guard in App.tsx
 
   // v2.1.28: Stable callback for delete confirmation
   const handleDeleteTrip = useCallback(() => {
@@ -74,8 +68,8 @@ export default function Dashboard() {
   const handleRequestDelete = useCallback((id: string) => {
     setTripToDelete(id);
   }, []);
-  // Include onboarding loading state in overall loading check
-  if (isLoading || sharedLoading || onboardingLoading) {
+  // v2.3.x: Removed onboardingLoading from loading gate — handled by ProtectedRoute
+  if (isLoading || sharedLoading) {
     return <Layout>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
