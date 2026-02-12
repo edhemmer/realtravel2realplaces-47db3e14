@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Airport, getAirportByCode, formatAirportFull } from '@/lib/airportData';
 import {
   Drawer,
@@ -21,9 +20,7 @@ import {
   Info,
   Plane,
   X,
-  BookOpen,
 } from 'lucide-react';
-import { TravelEducationDrawer } from './TravelEducationDrawer';
 
 interface AirportInfoPanelProps {
   airportCode: string;
@@ -40,7 +37,7 @@ export function AirportInfoPanel({
   label 
 }: AirportInfoPanelProps) {
   const airport = getAirportByCode(airportCode);
-  const [travelGuideOpen, setTravelGuideOpen] = useState(false);
+  
 
   // Safely open external URLs
   const openUrl = (url: string | undefined) => {
@@ -247,30 +244,10 @@ export function AirportInfoPanel({
                 </div>
               </div>
 
-              {/* v2.5.0: Link to full Travel Guide */}
-              <Separator />
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={() => {
-                  onOpenChange(false);
-                  setTimeout(() => setTravelGuideOpen(true), 300);
-                }}
-              >
-                <BookOpen className="mr-2 h-4 w-4" />
-                View Full Travel Guide
-              </Button>
             </div>
           </div>
         </div>
       </DrawerContent>
-
-      {/* Travel Education Drawer */}
-      <TravelEducationDrawer 
-        open={travelGuideOpen} 
-        onOpenChange={setTravelGuideOpen}
-        initialTab="airport"
-      />
     </Drawer>
   );
 }

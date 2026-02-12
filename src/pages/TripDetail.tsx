@@ -33,7 +33,7 @@ import { TripSummaryReportTab } from '@/components/trips/tabs/TripSummaryReportT
 import { TripHeaderWidgets } from '@/components/trips/TripHeaderWidgets';
 import { TripStatusHeroBar } from '@/components/trips/TripStatusHeroBar';
 import { ProRetentionCountdownCard } from '@/components/trips/ProRetentionCountdownCard';
-import { TravelHelpButton } from '@/components/trips/TravelHelpButton';
+// TravelHelpButton removed — airport/international modules not yet live
 // v2.3.2: Mobile "Next Up" card
 import { MobileNextUpCard } from '@/components/trips/MobileNextUpCard';
 // v2.3.5: Mobile "Add Expense" field card
@@ -213,12 +213,7 @@ export default function TripDetail() {
                   </p>
                 </div>
 
-                {/* v2.5.0: Travel Guide Help Button */}
-                <TravelHelpButton 
-                  trip={trip} 
-                  hasFlights={hasFlights} 
-                  isInternational={isInternational} 
-                />
+                {/* Travel Guide removed — airport/international modules not yet live */}
               </div>
             </div>
 

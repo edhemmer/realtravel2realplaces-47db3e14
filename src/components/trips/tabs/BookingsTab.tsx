@@ -1077,10 +1077,6 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                 Add Booking
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-4">
-              <FileText className="w-3 h-3 inline mr-1" />
-              Drag & drop email/PDF parsing coming soon
-            </p>
           </CardContent>
         </Card>
       )}
@@ -1532,9 +1528,6 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
               <Upload className="w-6 h-6 mx-auto text-muted-foreground mb-2" />
               <p className="text-sm text-muted-foreground">
                 Drag & drop confirmation email/PDF
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Coming soon - auto-parse booking details
               </p>
             </div>
 
