@@ -41,6 +41,14 @@ function getStatusBadge(status: string) {
   }
 }
 
+/** v2.2.8: Map stored permission flags to human-readable label */
+function getPermissionLabel(member: { read_only: boolean; can_expenses: boolean; can_stay: boolean }): string {
+  if (member.can_expenses && member.can_stay) return 'Can Add Expenses + Stay';
+  if (member.can_expenses) return 'Can Add Expenses';
+  if (member.can_stay) return 'Can Add Stay';
+  return 'Read Only';
+}
+
 export function MembersTab({ tripId }: MembersTabProps) {
   const { isOwner } = useTripPermission();
   const { data: members = [], isLoading: membersLoading } = useTripMembers(tripId);
@@ -174,7 +182,10 @@ export function MembersTab({ tripId }: MembersTabProps) {
                   <p className="text-sm font-medium">
                     {owner.display_name || 'Trip Owner'}
                   </p>
-                  <Badge variant="secondary" className="text-[10px] mt-0.5">Owner</Badge>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <Badge variant="secondary" className="text-[10px]">Owner</Badge>
+                    <span className="text-[10px] text-muted-foreground">Full Access</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -191,7 +202,10 @@ export function MembersTab({ tripId }: MembersTabProps) {
                   <p className="text-sm font-medium">
                     {guest.display_name || 'Guest'}
                   </p>
-                  <Badge variant="outline" className="text-[10px] mt-0.5">Guest</Badge>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <Badge variant="outline" className="text-[10px]">Guest</Badge>
+                    <span className="text-[10px] text-muted-foreground">{getPermissionLabel(guest)}</span>
+                  </div>
                 </div>
               </div>
             </div>
