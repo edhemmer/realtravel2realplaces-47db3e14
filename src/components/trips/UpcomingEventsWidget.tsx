@@ -23,6 +23,7 @@ const EVENT_TYPE_LABELS: Record<TripEventType, string> = {
   rental_pickup: 'Rental Pickup',
   rental_return: 'Rental Return',
   parking_expiration: 'Parking Expiration',
+  engagement_start: 'Stop',
 };
 
 // Icons for event types
