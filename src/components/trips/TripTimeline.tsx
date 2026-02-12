@@ -13,8 +13,8 @@ import { Button } from '@/components/ui/button';
 import { CanonicalTimelineEvent } from '@/lib/canonicalTripState';
 import { DatetimeFormatPreference } from '@/lib/displayFormats';
 import { formatLocalTimeDirect, formatLocalDateDirect } from '@/lib/canonicalTimeNormalizer';
-// (removed duplicate import)
 import { UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
+import { resolveMapsFromTimelineEvent, openMapsDestination } from '@/lib/mapsDestination';
 import { 
   Plane, Building2, Car, CircleParking, Compass, Ticket, 
   TrainFront, Bus, TramFront, Ship, PartyPopper, MapPin, ExternalLink 
@@ -36,9 +36,10 @@ const openExternalUrl = (url: string | null | undefined, e: React.MouseEvent) =>
   window.open(safeUrl, '_blank', 'noopener,noreferrer');
 };
 
-const openInMaps = (address: string, e: React.MouseEvent) => {
+const openInMapsResolved = (event: CanonicalTimelineEvent, e: React.MouseEvent) => {
   e.stopPropagation();
-  window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank', 'noopener,noreferrer');
+  const dest = resolveMapsFromTimelineEvent(event);
+  if (dest) openMapsDestination(dest);
 };
 
 const getEventIcon = (type: string, transportMode?: string) => {
@@ -188,12 +189,12 @@ export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimel
                   </div>
                 </div>
                 <div className="flex gap-2 mt-1">
-                  {event.address && (
+                  {(event.address || event.departureAirportCode || event.title) && resolveMapsFromTimelineEvent(event) && (
                     <Button
                       size="sm"
                       variant="ghost"
                       className="h-6 px-2 text-xs"
-                      onClick={(e) => openInMaps(event.address!, e)}
+                      onClick={(e) => openInMapsResolved(event, e)}
                     >
                       <MapPin className="w-3 h-3 mr-1" />
                       Maps

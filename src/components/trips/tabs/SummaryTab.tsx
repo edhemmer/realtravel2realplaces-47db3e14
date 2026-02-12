@@ -181,7 +181,10 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
   };
 
   const openInMaps = (address: string) => {
-    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank', 'noopener,noreferrer');
+    const { resolveMapsDestination: resolve, openMapsDestination: open } = require('@/lib/mapsDestination');
+    const dest = resolve({ address });
+    if (dest) open(dest);
+    else window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank', 'noopener,noreferrer');
   };
 
   const downloadCalendar = () => {

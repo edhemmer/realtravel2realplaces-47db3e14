@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Plus, Trash2, CircleParking, MapPin, Clock, AlertTriangle, Pencil } from 'lucide-react';
+import { resolveMapsDestination, openMapsDestination } from '@/lib/mapsDestination';
 import { ParkingExpirationIndicator } from '@/components/trips/ParkingExpirationIndicator';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isAfter, isBefore, addMinutes } from 'date-fns';
@@ -159,8 +160,12 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
     }
   };
 
-  const openInMaps = (address: string) => {
-    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank', 'noopener,noreferrer');
+  const openInMaps = (parking: Parking) => {
+    const dest = resolveMapsDestination({
+      address: parking.address,
+      locationLabel: parking.label,
+    });
+    if (dest) openMapsDestination(dest);
   };
 
   const now = new Date();
@@ -309,7 +314,7 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
                     <p className="font-semibold">${Number(parking.total_cost).toFixed(2)}</p>
                   )}
                   {parking.address && (
-                    <Button size="sm" variant="outline" onClick={() => openInMaps(parking.address!)}>
+                    <Button size="sm" variant="outline" onClick={() => openInMaps(parking)}>
                       <MapPin className="w-3 h-3 mr-1" />
                       Open in Maps
                     </Button>
