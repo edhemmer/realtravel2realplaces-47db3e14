@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Bell, Plane, Receipt, CircleParking, MapPin } from 'lucide-react';
+import { Bell, Plane, Receipt, CircleParking, MapPin, Ticket } from 'lucide-react';
 import { useNotificationPreferences, useUpdateNotificationPreferences } from '@/hooks/useNotificationPreferences';
 import { toast } from 'sonner';
 
@@ -39,6 +39,8 @@ export function NotificationPreferencesCard() {
   const parking_expiry_minutes_before = prefs?.parking_expiry_minutes_before ?? 15;
   const stop_reminder_enabled = prefs?.stop_reminder_enabled ?? true;
   const stop_reminder_minutes_before = prefs?.stop_reminder_minutes_before ?? 60;
+  const ticket_reminder_enabled = prefs?.ticket_reminder_enabled ?? true;
+  const ticket_reminder_days_before = prefs?.ticket_reminder_days_before ?? 3;
 
   return (
     <Card>
@@ -162,6 +164,39 @@ export function NotificationPreferencesCard() {
           <Switch
             checked={stop_reminder_enabled}
             onCheckedChange={(checked) => handleUpdate({ stop_reminder_enabled: checked })}
+          />
+        </div>
+
+        {/* Ticket purchase reminders */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3 min-w-0">
+            <Ticket className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+            <div>
+              <Label className="text-sm font-medium">Ticket purchase reminders</Label>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Remind me to buy tickets for activities that need advance booking
+              </p>
+              {ticket_reminder_enabled && (
+                <Select
+                  value={String(ticket_reminder_days_before)}
+                  onValueChange={(val) => handleUpdate({ ticket_reminder_days_before: Number(val) })}
+                >
+                  <SelectTrigger className="w-36 h-8 text-xs mt-2">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 day before</SelectItem>
+                    <SelectItem value="3">3 days before</SelectItem>
+                    <SelectItem value="5">5 days before</SelectItem>
+                    <SelectItem value="7">7 days before</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </div>
+          <Switch
+            checked={ticket_reminder_enabled}
+            onCheckedChange={(checked) => handleUpdate({ ticket_reminder_enabled: checked })}
           />
         </div>
       </CardContent>

@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
     // Find flights departing within user's configured window that haven't been notified yet
     const { data: prefs } = await admin
       .from("notification_preferences")
-      .select("user_id, departure_enabled, departure_hours_before, expense_nudge_enabled, parking_expiry_enabled, parking_expiry_minutes_before, stop_reminder_enabled, stop_reminder_minutes_before");
+      .select("user_id, departure_enabled, departure_hours_before, expense_nudge_enabled, parking_expiry_enabled, parking_expiry_minutes_before, stop_reminder_enabled, stop_reminder_minutes_before, ticket_reminder_enabled, ticket_reminder_days_before");
 
     if (!prefs || prefs.length === 0) {
       return new Response(JSON.stringify({ success: true, message: "No users with preferences", created: 0 }), {
@@ -231,6 +231,48 @@ Deno.serve(async (req) => {
                 });
                 created++;
               }
+            }
+          }
+        }
+      }
+
+      // --- TICKET PURCHASE REMINDERS ---
+      if (userPrefs.ticket_reminder_enabled) {
+        const daysWindow = userPrefs.ticket_reminder_days_before || 3;
+        const windowEnd = new Date(now.getTime() + daysWindow * 24 * 60 * 60 * 1000);
+
+        const { data: activities } = await admin
+          .from("bookings")
+          .select("id, vendor_name, start_datetime, ticket_required, tickets_purchased")
+          .eq("trip_id", trip.id)
+          .eq("booking_type", "activity")
+          .eq("ticket_required", true)
+          .eq("tickets_purchased", false)
+          .gte("start_datetime", nowISO)
+          .lte("start_datetime", windowEnd.toISOString());
+
+        if (activities) {
+          for (const activity of activities) {
+            const { data: existing } = await admin
+              .from("notifications")
+              .select("id")
+              .eq("user_id", trip.user_id)
+              .eq("type", "ticket_reminder")
+              .eq("link_record_id", activity.id)
+              .limit(1);
+
+            if (!existing || existing.length === 0) {
+              await admin.from("notifications").insert({
+                user_id: trip.user_id,
+                trip_id: trip.id,
+                type: "ticket_reminder",
+                title: `Buy tickets: ${activity.vendor_name}`,
+                message: `${activity.vendor_name} requires advance tickets — ${trip.name}`,
+                link_tab: "bookings",
+                link_record_id: activity.id,
+                scheduled_for: nowISO,
+              });
+              created++;
             }
           }
         }
