@@ -26,6 +26,7 @@ import { TripAlertsContainer } from '@/containers/TripAlertsContainer';
 import { ParkingTab } from '@/components/trips/tabs/ParkingTab';
 import { PackingTab } from '@/components/trips/tabs/PackingTab';
 import { CompanionsTab } from '@/components/trips/tabs/CompanionsTab';
+import { MembersTab } from '@/components/trips/tabs/MembersTab';
 import { NotesTab } from '@/components/trips/tabs/NotesTab';
 import { ExploreTab } from '@/components/trips/tabs/ExploreTab';
 import { TripSummaryReportTab } from '@/components/trips/tabs/TripSummaryReportTab';
@@ -249,8 +250,8 @@ export default function TripDetail() {
                   <TabsTrigger value="tour">Tour</TabsTrigger>
                 )}
                 
-                {/* Common tabs continue */}
                 <TabsTrigger value="companions">Companions</TabsTrigger>
+                <TabsTrigger value="members">Members</TabsTrigger>
                 <TabsTrigger value="expenses">Expenses</TabsTrigger>
                 <TabsTrigger value="parking">Parking</TabsTrigger>
                 <TabsTrigger value="packing">Packing</TabsTrigger>
@@ -307,6 +308,10 @@ export default function TripDetail() {
                 
                 <TabsContent value="companions">
                   <CompanionsTab tripId={trip.id} />
+                </TabsContent>
+                {/* v2.2.3: Members tab — trip_members with invite UI */}
+                <TabsContent value="members">
+                  <MembersTab tripId={trip.id} />
                 </TabsContent>
                 <TabsContent value="expenses">
                   <TripExpensesContainer tripId={trip.id} trip={trip} autoOpenAdd={autoOpenExpense} onAutoOpenConsumed={() => setAutoOpenExpense(false)} />
