@@ -565,38 +565,12 @@ export function calculateTripCostSummary(
  * Call this after calculating totals to verify math
  */
 export function logExpenseDebug(
-  tripId: string,
-  expenses: Expense[],
-  summary: TripCostSummary
+  _tripId: string,
+  _expenses: Expense[],
+  _summary: TripCostSummary
 ): void {
-  // Only log in development
-  if (process.env.NODE_ENV === 'production') return;
-
-  console.group('ExpensesDebug');
-  console.log(`tripId=${tripId}`);
-  console.log(`expenseCount=${expenses.length}`);
-  console.log(`totalExpenses=${summary.expensesTotal.toFixed(2)}`);
-  console.log(`myShare=${summary.expensesMyShare.toFixed(2)}`);
-  console.groupEnd();
-
-  console.group('ExpensesDebugByCategory');
-  console.log(`Meals=${summary.byCategory.meals.toFixed(2)}`);
-  console.log(`Transport=${summary.byCategory.transport.toFixed(2)}`);
-  console.log(`Activity=${summary.byCategory.activity.toFixed(2)}`);
-  console.log(`Shopping=${summary.byCategory.shopping.toFixed(2)}`);
-  console.log(`Parking=${summary.byCategory.parking.toFixed(2)}`);
-  console.log(`Other=${summary.byCategory.other.toFixed(2)}`);
-  console.groupEnd();
-
-  console.group('TripCostDebug');
-  console.log(`tripId=${tripId}`);
-  console.log(`bookingsTotal=${summary.bookingsTotal.toFixed(2)}`);
-  console.log(`bookingsMyShare=${summary.bookingsMyShare.toFixed(2)}`);
-  console.log(`parkingTotal=${summary.parkingTotal.toFixed(2)}`);
-  console.log(`parkingMyShare=${summary.parkingMyShare.toFixed(2)}`);
-  console.log(`grandTotal=${summary.totalCost.toFixed(2)}`);
-  console.log(`totalMyShare=${summary.totalMyShare.toFixed(2)}`);
-  console.groupEnd();
+  // No-op in production. Retained as a stable call-site for future diagnostics.
+  return;
 }
 
 /**

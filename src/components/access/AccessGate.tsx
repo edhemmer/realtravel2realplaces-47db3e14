@@ -136,8 +136,6 @@ export function AdminOnly({ children, fallback = null, showLoadingState = false 
 interface FeatureGateProps extends GateProps {
   /** Function that receives access state and returns whether to show content */
   accessCheck: (access: ReturnType<typeof useAccess>) => boolean;
-  /** If true, bypasses the access check (useful for development) */
-  bypassGate?: boolean;
 }
 
 export function FeatureGate({ 
@@ -145,17 +143,11 @@ export function FeatureGate({
   fallback = null, 
   showLoadingState = false,
   accessCheck,
-  bypassGate = false,
 }: FeatureGateProps) {
   const access = useAccess();
 
   if (showLoadingState && access.isLoading) {
     return <div className="animate-pulse bg-muted rounded h-8 w-full" />;
-  }
-
-  // Allow bypassing for development/testing
-  if (bypassGate) {
-    return <>{children}</>;
   }
 
   if (!accessCheck(access)) {

@@ -393,7 +393,7 @@ describe('FeatureGate', () => {
       });
 
       const { queryByTestId } = render(
-        <FeatureGate accessCheck={(access) => access.canAccessBusinessFeatures} bypassGate>
+        <FeatureGate accessCheck={() => true}>
           <div data-testid="gated-content">Bypassed Content</div>
         </FeatureGate>
       );
