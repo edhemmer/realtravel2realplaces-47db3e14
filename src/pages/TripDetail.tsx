@@ -28,6 +28,8 @@ import { TripHeaderWidgets } from '@/components/trips/TripHeaderWidgets';
 import { TripStatusHeroBar } from '@/components/trips/TripStatusHeroBar';
 import { ProRetentionCountdownCard } from '@/components/trips/ProRetentionCountdownCard';
 import { TravelHelpButton } from '@/components/trips/TravelHelpButton';
+// v2.3.2: Mobile "Next Up" card
+import { MobileNextUpCard } from '@/components/trips/MobileNextUpCard';
 // Patch 2.2.3: Mobile-first layout components
 import { TripDetailLayout, type TripTab } from '@/components/layout';
 import { createContext, useContext, useState, useCallback, useMemo } from 'react';
@@ -144,6 +146,9 @@ export default function TripDetail() {
 
             {/* v2.1.6: Pro Retention Countdown Card - shows for Pro closed trips */}
             <ProRetentionCountdownCard trip={trip} />
+
+            {/* v2.3.2: Mobile "Next Up" card - mobile only, top of trip view */}
+            <MobileNextUpCard tripId={trip.id} trip={trip} />
 
             {/* Navigation */}
             <div className="flex flex-col gap-4">
