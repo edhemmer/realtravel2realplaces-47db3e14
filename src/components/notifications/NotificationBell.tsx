@@ -1,9 +1,13 @@
 /**
  * NotificationBell - Bell icon with unread count badge + dropdown of notifications
+ *
+ * Reads ONLY from canonical notifications output (useNotifications hook).
+ * No independent suppression or filtering — all preference enforcement
+ * happens in the canonical reminders engine (server-side).
  */
 
 import { useState } from 'react';
-import { Bell, Check, X, Plane, Receipt, CircleParking, MapPin } from 'lucide-react';
+import { Bell, Check, X, Plane, Receipt, CircleParking, MapPin, Ticket, Hotel, Car } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -24,16 +28,27 @@ import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 
+/** Map canonical reminder types to icons */
 function getNotificationIcon(type: string) {
   switch (type) {
     case 'departure':
       return <Plane className="w-4 h-4 text-primary shrink-0" />;
     case 'expense_nudge':
       return <Receipt className="w-4 h-4 text-amber-500 shrink-0" />;
-    case 'parking_expiry':
+    case 'parking_expiration':
+    case 'parking_expiry': // legacy compat
       return <CircleParking className="w-4 h-4 text-destructive shrink-0" />;
-    case 'stop_reminder':
+    case 'tour_start':
+    case 'next_stop':
+    case 'stop_reminder': // legacy compat
       return <MapPin className="w-4 h-4 text-primary shrink-0" />;
+    case 'ticket_required':
+    case 'ticket_reminder': // legacy compat
+      return <Ticket className="w-4 h-4 text-emerald-500 shrink-0" />;
+    case 'lodging_checkin':
+      return <Hotel className="w-4 h-4 text-primary shrink-0" />;
+    case 'car_pickup':
+      return <Car className="w-4 h-4 text-primary shrink-0" />;
     default:
       return <Bell className="w-4 h-4 text-muted-foreground shrink-0" />;
   }
@@ -116,7 +131,6 @@ export function NotificationBell() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80 p-0" sideOffset={8}>
-        {/* Header */}
         <div className="flex items-center justify-between px-3 py-2.5 border-b border-border/50">
           <span className="text-sm font-semibold text-foreground">Notifications</span>
           {unreadCount > 0 && (
@@ -130,7 +144,6 @@ export function NotificationBell() {
           )}
         </div>
 
-        {/* List */}
         {notifications.length === 0 ? (
           <div className="px-4 py-8 text-center text-sm text-muted-foreground">
             No notifications yet
@@ -149,7 +162,6 @@ export function NotificationBell() {
           </ScrollArea>
         )}
 
-        {/* Footer */}
         {notifications.length > 0 && (
           <div className="px-3 py-2 border-t border-border/50">
             <Button
