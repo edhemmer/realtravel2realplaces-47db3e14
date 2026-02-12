@@ -233,10 +233,6 @@ export function AirportSnapshotCard({ bookings }: AirportSnapshotCardProps) {
               )}
             </div>
 
-            {/* Expectation-setting subtitle */}
-            <p className="text-[11px] text-muted-foreground/70 mt-3 italic">
-              Airport tools in development — snapshot only.
-            </p>
           </div>
         </div>
       </CardContent>
