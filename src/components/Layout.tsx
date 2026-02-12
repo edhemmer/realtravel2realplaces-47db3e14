@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ContactSupportDialog } from '@/components/support/ContactSupportDialog';
 import { BrandHeader } from '@/components/BrandHeader';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -43,14 +44,16 @@ export function Layout({ children }: LayoutProps) {
           <BrandHeader variant="app">
 
           {user && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <User className="w-4 h-4 text-primary" />
-                  </div>
-                </Button>
-              </DropdownMenuTrigger>
+            <div className="flex items-center gap-1">
+              <NotificationBell />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <User className="w-4 h-4 text-primary" />
+                    </div>
+                  </Button>
+                </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <div className="px-2 py-1.5 text-sm text-muted-foreground">
                   {user.email}
@@ -88,6 +91,7 @@ export function Layout({ children }: LayoutProps) {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            </div>
           )}
           </BrandHeader>
         </div>
