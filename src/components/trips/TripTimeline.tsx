@@ -17,7 +17,7 @@ import { UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
 import { resolveMapsFromTimelineEvent, openMapsDestination } from '@/lib/mapsDestination';
 import { 
   Plane, Building2, Car, CircleParking, Compass, Ticket, 
-  TrainFront, Bus, TramFront, Ship, PartyPopper, MapPin, ExternalLink 
+  TrainFront, Bus, TramFront, Ship, PartyPopper, Navigation, ExternalLink 
 } from 'lucide-react';
 
 interface TripTimelineProps {
@@ -196,8 +196,8 @@ export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimel
                       className="h-6 px-2 text-xs"
                       onClick={(e) => openInMapsResolved(event, e)}
                     >
-                      <MapPin className="w-3 h-3 mr-1" />
-                      Maps
+                      <Navigation className="w-3 h-3 mr-1" />
+                      Navigate
                     </Button>
                   )}
                   {event.linkUrl && (
