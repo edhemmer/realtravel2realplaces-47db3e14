@@ -232,8 +232,8 @@ export default function TripDetail() {
         {/* v2.6.24: Subtle divider */}
         {isMobile && (
           <>
-            <div className="border-t border-muted/40 mt-2 mb-1.5" />
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-primary px-0.5 mb-1.5 select-none">
+            <div className="border-t border-muted/40 mt-3 mb-2" />
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-primary px-0.5 mb-2.5 select-none">
               {MOBILE_SECTION_LABELS[mobileActiveTab] || 'Now'}
             </p>
           </>
