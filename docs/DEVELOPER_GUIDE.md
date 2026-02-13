@@ -137,10 +137,15 @@ import { hasExplicitTime } from '@/lib/datetimeIntegrity';
 - Never use raw color classes (`text-white`, `bg-black`)
 - All colors must be HSL-based
 - Prefer existing component variants over custom styles
+- Use standardized action button colors: Explore = `bg-primary`, Add Expense = `bg-success` (v2.6.30)
+- All mobile primary action buttons: `h-12 rounded-xl font-semibold shadow-sm` (v2.6.30)
 
 ```tsx
 // ✅ Good - uses semantic tokens
 <div className="bg-card text-card-foreground border-primary/20">
+
+// ✅ Good - standardized action buttons (v2.6.30)
+<Button className="h-12 rounded-xl font-semibold shadow-sm bg-success text-success-foreground">Add Expense</Button>
 
 // ❌ Bad - raw colors
 <div className="bg-white text-black border-blue-500">
