@@ -27,5 +27,6 @@ export { TripBookingsContainer } from './TripBookingsContainer';
 export { TripTourContainer } from './TripTourContainer';
 export { TripExpensesContainer } from './TripExpensesContainer';
 export { TripAlertsContainer } from './TripAlertsContainer';
+export { NowCommandCenter } from './NowCommandCenter';
 export { MobileNavigationRouter } from './MobileNavigationRouter';
 export { DesktopTripShell, useDesktopTripShell } from './DesktopTripShell';

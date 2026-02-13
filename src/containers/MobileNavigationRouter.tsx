@@ -28,18 +28,15 @@ import { useState, useCallback, useEffect } from 'react';
 import { Trip } from '@/types/database';
 import { useAccess } from '@/hooks/useAccess';
 import { useExploreDiscovery } from '@/hooks/useExploreDiscovery';
-import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
 import { TripDetailLayout, type TripTab } from '@/components/layout';
 import { MobileSectionHeader } from '@/components/trips/MobileSectionHeader';
-import { ExecutionZone } from '@/components/trips/ExecutionZone';
-import { TripHeaderWidgets } from '@/components/trips/TripHeaderWidgets';
 import {
-  TripSummaryContainer,
   TripBookingsContainer,
   TripTourContainer,
   TripExpensesContainer,
   TripAlertsContainer,
 } from '@/containers';
+import { NowCommandCenter } from '@/containers/NowCommandCenter';
 import { ParkingTab } from '@/components/trips/tabs/ParkingTab';
 import { PackingTab } from '@/components/trips/tabs/PackingTab';
 import { CompanionsTab } from '@/components/trips/tabs/CompanionsTab';
@@ -100,8 +97,7 @@ export function MobileNavigationRouter({
   const { isPro, canAccessBusinessFeatures } = useAccess();
   const { hasDiscovered: hasDiscoveredExplore, markDiscovered: markExploreDiscovered } = useExploreDiscovery();
 
-  // v2.6.19: Canonical trip state for today action items
-  const { timelineEvents } = useCanonicalTripState(tripId, trip);
+  // v3.1.0: timelineEvents no longer needed here — NowCommandCenter handles its own state
 
   // v2.3.x: Mobile tab state — defaults to 'now'
   const [activeTab, setActiveTabRaw] = useState<TripTab>('now');
@@ -161,20 +157,7 @@ export function MobileNavigationRouter({
 
     return (
       <div className="mt-2">
-        {/* v2.6.21: Legacy standalone NOW label removed — section title now in header */}
-        {/* v2.6.19: NOW execution pills — base + today actionable items */}
-        {activeTab === 'now' && (
-          <div className="mb-3 space-y-3">
-            <ExecutionZone
-              timelineEvents={timelineEvents}
-              onExplore={() => handleTabChange('explore')}
-              onAddExpense={handleNowAddExpense}
-            />
-            <div className="md:hidden">
-              <TripHeaderWidgets trip={trip} />
-            </div>
-          </div>
-        )}
+        {/* v3.1.0: NOW tab content handled entirely by NowCommandCenter */}
         {sectionLabel && (
           <MobileSectionHeader
             sectionTitle={sectionLabel}
@@ -191,11 +174,12 @@ export function MobileNavigationRouter({
       // Primary mobile tabs
       case 'now':
         return (
-          <TripSummaryContainer 
-            tripId={tripId} 
-            trip={trip} 
-            onDrillThrough={onDrillThrough}
-            maxVisibleAlerts={3}
+          <NowCommandCenter
+            tripId={tripId}
+            trip={trip}
+            onViewFullTimeline={() => handleTabChange('plan')}
+            onAddExpense={handleNowAddExpense}
+            onParking={() => handleTabChange('parking')}
             onViewAllAlerts={() => handleTabChange('alerts')}
           />
         );
@@ -248,7 +232,16 @@ export function MobileNavigationRouter({
 
       // Fallback — should not happen due to legacy redirect
       default:
-        return <TripSummaryContainer tripId={tripId} trip={trip} onDrillThrough={onDrillThrough} />;
+        return (
+          <NowCommandCenter
+            tripId={tripId}
+            trip={trip}
+            onViewFullTimeline={() => handleTabChange('plan')}
+            onAddExpense={handleNowAddExpense}
+            onParking={() => handleTabChange('parking')}
+            onViewAllAlerts={() => handleTabChange('alerts')}
+          />
+        );
     }
   };
 
