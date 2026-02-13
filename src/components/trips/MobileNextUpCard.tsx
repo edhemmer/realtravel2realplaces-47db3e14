@@ -84,7 +84,7 @@ export function MobileNextUpCard({ tripId, trip }: MobileNextUpCardProps) {
             size="sm"
             variant={hasLocation ? "default" : "outline"}
             disabled={!hasLocation}
-            className="w-full min-h-[40px]"
+            className="w-full min-h-[40px] press-scale"
             onClick={() => {
               if (mapsDest) openMapsDestination(mapsDest);
             }}

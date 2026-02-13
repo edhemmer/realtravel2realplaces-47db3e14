@@ -193,7 +193,7 @@ export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimel
                     <Button
                       size="sm"
                       variant="default"
-                      className="h-6 px-2.5 text-[11px] rounded-full"
+                      className="h-6 px-2.5 text-[11px] rounded-full press-scale"
                       onClick={(e) => openInMapsResolved(event, e)}
                     >
                       <Navigation className="w-3 h-3 mr-1" />
@@ -204,7 +204,7 @@ export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimel
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-6 px-2 text-[11px]"
+                      className="h-6 px-2 text-[11px] press-scale-subtle"
                       onClick={(e) => openExternalUrl(event.linkUrl, e)}
                     >
                       <ExternalLink className="w-3 h-3 mr-1" />

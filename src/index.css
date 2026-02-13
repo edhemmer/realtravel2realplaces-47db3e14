@@ -212,6 +212,27 @@
     touch-action: manipulation;
   }
 
+  /* v2.6.1: Primary pill press feedback */
+  .press-scale {
+    @apply transition-transform duration-100 ease-out;
+  }
+  .press-scale:active {
+    transform: scale(0.97);
+  }
+
+  /* v2.6.1: Secondary pill press feedback (lighter) */
+  .press-scale-subtle {
+    @apply transition-transform duration-100 ease-out;
+  }
+  .press-scale-subtle:active {
+    transform: scale(0.985);
+  }
+
+  /* v2.6.1: Softened internal dividers */
+  .divider-soft {
+    @apply border-border/15;
+  }
+
   .animate-float {
     animation: float 6s ease-in-out infinite;
   }
