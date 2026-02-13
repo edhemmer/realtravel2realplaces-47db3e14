@@ -38,7 +38,7 @@ export function StickyQuickOpsStrip({
   };
 
   return (
-    <div className="md:hidden sticky bottom-16 z-30 px-3 pb-2">
+    <div className="md:hidden">
       <div className="flex items-center justify-around bg-card/95 backdrop-blur-sm border border-border/60 rounded-2xl px-2 py-1.5 shadow-lg mx-auto max-w-sm">
         <button
           className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl text-success hover:bg-success/8 active:bg-success/15 transition-colors"
