@@ -964,6 +964,18 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                   );
                 })()}
 
+                {/* v2.5.6: Gas Locator Pill for car rentals — directly under expense */}
+                {booking.booking_type === 'car_rental' && trip && (
+                  <GasLocatorPill
+                    endDatetime={booking.end_datetime}
+                    returnLocation={booking.return_location}
+                    address={booking.address}
+                    tripCity={trip.destination_city}
+                    tripState={trip.destination_state || undefined}
+                    tripCountry={trip.destination_country}
+                  />
+                )}
+
                 {/* Linked Companions */}
                 {getCompanionsForBooking(booking.id).length > 0 && (
                   <div className="pt-2 border-t">
@@ -1044,18 +1056,6 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                       </p>
                     )}
                   </div>
-                )}
-
-                {/* v2.5.6: Gas Locator Pill for car rentals on return day */}
-                {booking.booking_type === 'car_rental' && trip && (
-                  <GasLocatorPill
-                    endDatetime={booking.end_datetime}
-                    returnLocation={booking.return_location}
-                    address={booking.address}
-                    tripCity={trip.destination_city}
-                    tripState={trip.destination_state || undefined}
-                    tripCountry={trip.destination_country}
-                  />
                 )}
 
                 <div className="flex gap-2 pt-2">
