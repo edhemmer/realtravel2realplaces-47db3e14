@@ -50,6 +50,10 @@ interface SummaryTabProps {
   tripId: string;
   trip: Trip;
   onDrillThrough?: (target: DrillThroughTarget) => void;
+  /** v2.6.12: Max alerts visible on NOW tab (progressive disclosure) */
+  maxVisibleAlerts?: number;
+  /** v2.6.12: Navigate to full alerts view */
+  onViewAllAlerts?: () => void;
 }
 
 
@@ -84,7 +88,7 @@ const getDestinationLinks = (city: string, state: string | undefined, country: s
   };
 };
 
-export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
+export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onViewAllAlerts }: SummaryTabProps) {
   const [gasDialogOpen, setGasDialogOpen] = useState(false);
   const [selectedCompanion, setSelectedCompanion] = useState<Companion | null>(null);
   const [companionDialogOpen, setCompanionDialogOpen] = useState(false);
@@ -245,7 +249,11 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
 
       {/* Travel Alerts - Weather changes, departure reminders, parking expiry */}
       {hasAlerts && (
-        <TravelAlertsCard alerts={alerts} />
+        <TravelAlertsCard 
+          alerts={alerts} 
+          maxVisible={maxVisibleAlerts}
+          onViewAllAlerts={onViewAllAlerts}
+        />
       )}
 
       {/* TSA/Companion Warnings - Enhanced component with companion checks */}

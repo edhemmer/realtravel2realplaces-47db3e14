@@ -11,6 +11,10 @@ import { cn } from '@/lib/utils';
 interface TravelAlertsCardProps {
   alerts: TravelAlert[];
   className?: string;
+  /** v2.6.12: Max alerts to show before progressive disclosure */
+  maxVisible?: number;
+  /** v2.6.12: Called when user taps "View all alerts" */
+  onViewAllAlerts?: () => void;
 }
 
 const alertIcons: Record<TravelAlert['type'], React.ReactNode> = {
@@ -33,7 +37,7 @@ const severityBadgeStyles: Record<TravelAlert['severity'], string> = {
   info: 'bg-primary text-primary-foreground',
 };
 
-export function TravelAlertsCard({ alerts, className }: TravelAlertsCardProps) {
+export function TravelAlertsCard({ alerts, className, maxVisible, onViewAllAlerts }: TravelAlertsCardProps) {
   if (alerts.length === 0) {
     return null;
   }
@@ -41,6 +45,10 @@ export function TravelAlertsCard({ alerts, className }: TravelAlertsCardProps) {
   const criticalAlerts = alerts.filter(a => a.severity === 'critical');
   const warningAlerts = alerts.filter(a => a.severity === 'warning');
   const infoAlerts = alerts.filter(a => a.severity === 'info');
+
+  // v2.6.12: Progressive disclosure
+  const visibleAlerts = maxVisible ? alerts.slice(0, maxVisible) : alerts;
+  const hasMore = maxVisible ? alerts.length > maxVisible : false;
 
   return (
     <Card className={cn('border-2', className, 
@@ -80,7 +88,7 @@ export function TravelAlertsCard({ alerts, className }: TravelAlertsCardProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2.5">
-        {alerts.map((alert) => (
+        {visibleAlerts.map((alert) => (
           <div
             key={alert.id}
             className={cn(
@@ -121,6 +129,17 @@ export function TravelAlertsCard({ alerts, className }: TravelAlertsCardProps) {
             </Badge>
           </div>
         ))}
+        {/* v2.6.12: Progressive disclosure — link to full alerts view */}
+        {hasMore && onViewAllAlerts && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full h-8 text-xs text-primary font-medium"
+            onClick={onViewAllAlerts}
+          >
+            View all {alerts.length} alerts
+          </Button>
+        )}
       </CardContent>
     </Card>
   );

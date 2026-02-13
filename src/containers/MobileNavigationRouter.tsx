@@ -156,7 +156,15 @@ export function MobileNavigationRouter({
     switch (activeTab) {
       // Primary mobile tabs
       case 'now':
-        return <TripSummaryContainer tripId={tripId} trip={trip} onDrillThrough={onDrillThrough} />;
+        return (
+          <TripSummaryContainer 
+            tripId={tripId} 
+            trip={trip} 
+            onDrillThrough={onDrillThrough}
+            maxVisibleAlerts={3}
+            onViewAllAlerts={() => handleTabChange('alerts')}
+          />
+        );
       case 'plan':
         return <TripBookingsContainer tripId={tripId} trip={trip} />;
       case 'explore':
