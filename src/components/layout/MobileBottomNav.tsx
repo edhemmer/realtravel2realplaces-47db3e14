@@ -1,7 +1,7 @@
 /**
  * MobileBottomNav - Bottom navigation bar for mobile viewports
  * 
- * Patch 2.2.3: Mobile-first layout shell
+ * v2.3.x: Intent-based navigation — NOW, PLAN, EXPLORE, MONEY, MORE
  * v2.6.9: More dropdown aligned to card surface system
  * v2.6.10: Bottom nav surface, active-tab, and icon-label spacing normalized
  * 
@@ -11,24 +11,24 @@
  * Icon-label: gap-1, text-[10px] leading-none
  * More dropdown: rounded-xl, w-52, h-10 rows, max-w-[calc(100vw-1rem)]
  * 
- * Primary tabs: Summary, Timeline, Expenses, Alerts
- * More menu: Bookings, Tour (Business), Members, Companions, Parking, Packing, Explore, Report (Pro), Notes & Safety
+ * Primary tabs: NOW, PLAN, EXPLORE, MONEY
+ * More menu: Bookings, Tour (Business), Members, Companions, Parking, Packing, Alerts, Report (Pro), Notes & Safety
  */
 
 import { cn } from '@/lib/utils';
 import { 
-  LayoutDashboard, 
-  Plane, 
-  MapPin, 
-  Receipt, 
+  Zap,
+  CalendarDays,
+  Compass,
+  DollarSign,
   MoreHorizontal,
+  Plane,
+  MapPin,
   Package,
   CircleParking,
   Users,
-  Compass,
   FileText,
   StickyNote,
-  Clock,
   Bell
 } from 'lucide-react';
 import { useAccess } from '@/hooks/useAccess';
@@ -39,7 +39,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+/**
+ * v2.3.x: TripTab includes both mobile intent-based IDs and legacy/desktop IDs.
+ * Mobile primary: now, plan, explore, money
+ * Desktop/shared: summary, bookings, tour, companions, members, expenses, parking, packing, report, notes, timeline, alerts
+ */
 export type TripTab = 
+  | 'now'
+  | 'plan'
+  | 'money'
   | 'summary' 
   | 'bookings' 
   | 'tour' 
@@ -69,10 +77,10 @@ interface NavItem {
 }
 
 const PRIMARY_NAV_ITEMS: NavItem[] = [
-  { id: 'summary', label: 'Summary', icon: <LayoutDashboard className="w-5 h-5" /> },
-  { id: 'timeline', label: 'Timeline', icon: <Clock className="w-5 h-5" /> },
-  { id: 'expenses', label: 'Expenses', icon: <Receipt className="w-5 h-5" /> },
-  { id: 'alerts', label: 'Alerts', icon: <Bell className="w-5 h-5" /> },
+  { id: 'now', label: 'Now', icon: <Zap className="w-5 h-5" /> },
+  { id: 'plan', label: 'Plan', icon: <CalendarDays className="w-5 h-5" /> },
+  { id: 'explore', label: 'Explore', icon: <Compass className="w-5 h-5" /> },
+  { id: 'money', label: 'Money', icon: <DollarSign className="w-5 h-5" /> },
 ];
 
 const MORE_NAV_ITEMS: NavItem[] = [
@@ -82,7 +90,7 @@ const MORE_NAV_ITEMS: NavItem[] = [
   { id: 'companions', label: 'Companions', icon: <Users className="w-4 h-4" /> },
   { id: 'parking', label: 'Parking', icon: <CircleParking className="w-4 h-4" /> },
   { id: 'packing', label: 'Packing', icon: <Package className="w-4 h-4" /> },
-  { id: 'explore', label: 'Explore', icon: <Compass className="w-4 h-4" /> },
+  { id: 'alerts', label: 'Alerts', icon: <Bell className="w-4 h-4" /> },
   { id: 'report', label: 'Report', icon: <FileText className="w-4 h-4" />, requiresPro: true },
   { id: 'notes', label: 'Notes & Safety', icon: <StickyNote className="w-4 h-4" /> },
 ];
