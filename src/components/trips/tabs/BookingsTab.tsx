@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { resolveMapsDestination, openMapsDestination } from '@/lib/mapsDestination';
+import { GasLocatorPill } from '@/components/trips/GasLocatorPill';
 import { format, parseISO, isBefore, isAfter, startOfDay } from 'date-fns';
 import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER, parseDatetimeForDisplay } from '@/lib/datetimeIntegrity';
 import {
@@ -1043,6 +1044,18 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                       </p>
                     )}
                   </div>
+                )}
+
+                {/* v2.5.6: Gas Locator Pill for car rentals on return day */}
+                {booking.booking_type === 'car_rental' && trip && (
+                  <GasLocatorPill
+                    endDatetime={booking.end_datetime}
+                    returnLocation={booking.return_location}
+                    address={booking.address}
+                    tripCity={trip.destination_city}
+                    tripState={trip.destination_state || undefined}
+                    tripCountry={trip.destination_country}
+                  />
                 )}
 
                 <div className="flex gap-2 pt-2">
