@@ -1,5 +1,6 @@
 /**
- * Patch 2.1.17: Modal for adding an attraction to a trip
+ * Patch 2.1.17 / v2.6.20: Modal for adding an attraction to a trip
+ * v2.6.20: Start time is required; default date is today (within trip range)
  */
 
 import { useState, useEffect } from 'react';
@@ -37,8 +38,13 @@ export function AddToTripModal({ open, onOpenChange, attraction, trip }: AddToTr
   // Reset form when modal opens
   useEffect(() => {
     if (open && attraction) {
-      // Default to trip start date
-      setDate(trip.start_date);
+      // v2.6.20: Default to today if within trip range, otherwise trip start
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const defaultDate = (todayStr >= trip.start_date && todayStr <= trip.end_date)
+        ? todayStr
+        : trip.start_date;
+      setDate(defaultDate);
       setStartTime('');
       setNotes('');
       // Pre-select 14 days reminder if ticket required
@@ -177,18 +183,24 @@ export function AddToTripModal({ open, onOpenChange, attraction, trip }: AddToTr
             )}
           </div>
 
-          {/* Time picker */}
+          {/* Time picker — v2.6.20: Required */}
           <div className="space-y-2">
             <Label htmlFor="activity-time" className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
-              Start time (optional)
+              Start time <span className="text-destructive text-xs">*</span>
             </Label>
             <Input
               id="activity-time"
               type="time"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
+              required
             />
+            {!startTime && date && (
+              <p className="text-xs text-muted-foreground">
+                A start time is required so this stop appears on your timeline.
+              </p>
+            )}
           </div>
 
           {/* Notes */}
@@ -280,7 +292,7 @@ export function AddToTripModal({ open, onOpenChange, attraction, trip }: AddToTr
           </Button>
           <Button 
             onClick={handleSubmit}
-            disabled={!date || !isDateValid() || createActivity.isPending}
+            disabled={!date || !startTime || !isDateValid() || createActivity.isPending}
           >
             {createActivity.isPending ? 'Adding...' : 'Save and continue'}
           </Button>
