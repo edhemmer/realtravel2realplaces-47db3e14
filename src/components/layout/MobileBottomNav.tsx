@@ -148,7 +148,7 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
           <DropdownMenuContent 
             side="top" 
             align="end" 
-            className="w-48 mb-2"
+            className="w-52 mb-2 rounded-xl border-border/60 bg-card shadow-lg p-1.5 max-w-[calc(100vw-1rem)]"
             sideOffset={8}
           >
             {visibleMoreItems.map((item) => (
@@ -156,12 +156,12 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
                 key={item.id}
                 onClick={() => onTabChange(item.id)}
                 className={cn(
-                  "cursor-pointer",
+                  "cursor-pointer h-10 gap-3 px-3 rounded-lg text-sm font-medium",
                   activeTab === item.id && "bg-primary/10 text-primary"
                 )}
               >
-                {item.icon}
-                <span className="ml-2">{item.label}</span>
+                <span className="w-4 h-4 shrink-0 flex items-center justify-center">{item.icon}</span>
+                <span>{item.label}</span>
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>
