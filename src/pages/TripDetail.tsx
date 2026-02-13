@@ -278,8 +278,8 @@ export default function TripDetail() {
         </div>
       )}
 
-      {/* Widget container */}
-      <div className="mt-1.5 md:mt-0">
+      {/* Widget container — desktop only; mobile renders inside NOW tab via ExecutionZone */}
+      <div className="mt-1.5 md:mt-0 hidden md:block">
         <TripHeaderWidgets trip={trip} />
       </div>
     </div>
