@@ -2,13 +2,17 @@
  * MobileBottomNav - Bottom navigation bar for mobile viewports
  * 
  * Patch 2.2.3: Mobile-first layout shell
+ * v2.6.9: More dropdown aligned to card surface system
+ * v2.6.10: Bottom nav surface, active-tab, and icon-label spacing normalized
  * 
- * Shows a bottom tab bar on mobile (<768px) with labeled icons for:
- * - Summary
- * - Bookings
- * - Tour (Business only)
- * - Expenses
- * - More (Notes, Packing, etc.)
+ * Surface: bg-card, border-border/60, shadow-lg (no blur/opacity)
+ * Active: text-primary font-semibold bg-primary/10
+ * Inactive: text-muted-foreground font-medium
+ * Icon-label: gap-1, text-[10px] leading-none
+ * More dropdown: rounded-xl, w-52, h-10 rows, max-w-[calc(100vw-1rem)]
+ * 
+ * Primary tabs: Summary, Timeline, Expenses, Alerts
+ * More menu: Bookings, Tour (Business), Members, Companions, Parking, Packing, Explore, Report (Pro), Notes & Safety
  */
 
 import { cn } from '@/lib/utils';
