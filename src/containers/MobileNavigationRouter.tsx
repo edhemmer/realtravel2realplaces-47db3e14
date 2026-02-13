@@ -141,6 +141,14 @@ export function MobileNavigationRouter({
 
     return (
       <div className="mt-2">
+        {/* v2.6.14: Inline section label for NOW tab */}
+        {activeTab === 'now' && (
+          <div className="md:hidden px-0.5 pt-1 pb-1.5">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-primary/70">
+              Now
+            </span>
+          </div>
+        )}
         {sectionLabel && (
           <MobileSectionHeader
             sectionTitle={sectionLabel}

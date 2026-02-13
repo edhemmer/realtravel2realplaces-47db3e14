@@ -80,7 +80,7 @@ const PRIMARY_NAV_ITEMS: NavItem[] = [
   { id: 'now', label: 'Now', icon: <Zap className="w-5 h-5" /> },
   { id: 'plan', label: 'Plan', icon: <CalendarDays className="w-5 h-5" /> },
   { id: 'explore', label: 'Explore', icon: <Compass className="w-5 h-5" /> },
-  { id: 'money', label: 'Money', icon: <DollarSign className="w-5 h-5" /> },
+  { id: 'money', label: 'Expenses', icon: <DollarSign className="w-5 h-5" /> },
 ];
 
 const MORE_NAV_ITEMS: NavItem[] = [
