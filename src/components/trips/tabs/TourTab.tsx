@@ -247,7 +247,7 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h3 className="text-lg font-semibold">Tour Stops</h3>
@@ -332,7 +332,7 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-2">
+        <div className="grid gap-3">
           {stops.map((stop) => (
             <Card 
               key={stop.id} 

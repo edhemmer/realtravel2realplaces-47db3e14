@@ -795,7 +795,7 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header v1.3.2 */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -816,7 +816,7 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
 
       {/* Bookings Grid */}
       {bookings.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-5 md:grid-cols-2">
           {bookings.map((booking: Booking) => (
             <Card 
               key={booking.id} 
@@ -828,7 +828,7 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                 highlightedId === booking.id && "ring-2 ring-primary ring-offset-2 shadow-lg"
               )}
             >
-              <CardHeader className="pb-2">
+              <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getBookingColor(booking.booking_type)}`}>
