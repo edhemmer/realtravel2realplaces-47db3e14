@@ -233,7 +233,7 @@ export default function TripDetail() {
         {isMobile && (
           <>
             <div className="border-t border-muted/40 mt-2 mb-1.5" />
-            <p className="text-[11px] font-medium uppercase tracking-widest text-foreground/55 px-0.5 mb-1.5 select-none">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-primary px-0.5 mb-1.5 select-none">
               {MOBILE_SECTION_LABELS[mobileActiveTab] || 'Now'}
             </p>
           </>
