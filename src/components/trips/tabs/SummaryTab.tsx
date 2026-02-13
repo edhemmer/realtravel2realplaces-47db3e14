@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useDeviceLocation } from '@/hooks/useDeviceLocation';
+import { buildGoogleMapsSearchUrl, buildYelpSearchUrl, type LocationContext } from '@/lib/deviceLocation';
 import { useBookings } from '@/hooks/useBookings';
 import { useParking } from '@/hooks/useParking';
 import { useExpenses } from '@/hooks/useExpenses';
@@ -61,11 +63,10 @@ const openExternalUrl = (url: string | null | undefined) => {
   window.open(safeUrl, '_blank', 'noopener,noreferrer');
 };
 
-// Destination info links by country/region
-const getDestinationLinks = (city: string, state: string | undefined, country: string) => {
+// v2.5.3: Destination info links — coordinate-aware via canonical device location
+const getDestinationLinks = (city: string, state: string | undefined, country: string, ctx: LocationContext) => {
   const searchQuery = encodeURIComponent(`${city}${state ? ` ${state}` : ''} ${country}`);
-  const yelpQuery = encodeURIComponent(`${city}${state ? `, ${state}` : ''}`);
-  
+
   return {
     generalInfo: [
       { label: 'Travel Guide', url: `https://www.tripadvisor.com/Search?q=${searchQuery}`, icon: Globe },
@@ -73,12 +74,12 @@ const getDestinationLinks = (city: string, state: string | undefined, country: s
       { label: 'Local Events', url: `https://www.eventbrite.com/d/${searchQuery.toLowerCase().replace(/\s+/g, '-')}/events/`, icon: Calendar },
     ],
     dining: [
-      { label: 'Yelp Restaurants', url: `https://www.yelp.com/search?find_desc=Restaurants&find_loc=${yelpQuery}&attrs=RestaurantsPriceRange2.1,RestaurantsPriceRange2.2`, icon: Utensils },
-      { label: 'Google Maps Dining', url: `https://www.google.com/maps/search/restaurants+${searchQuery}`, icon: MapPin },
+      { label: 'Yelp Restaurants', url: buildYelpSearchUrl('Restaurants', ctx), icon: Utensils },
+      { label: 'Google Maps Dining', url: buildGoogleMapsSearchUrl('restaurants', ctx), icon: MapPin },
     ],
     attractions: [
       { label: 'Top Attractions', url: `https://www.tripadvisor.com/Attractions-${searchQuery}`, icon: Camera },
-      { label: 'Things to Do', url: `https://www.google.com/search?q=things+to+do+${searchQuery}`, icon: PartyPopper },
+      { label: 'Things to Do', url: buildGoogleMapsSearchUrl('things to do', ctx), icon: PartyPopper },
     ],
   };
 };
@@ -122,7 +123,17 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
     : (trip as any).transportation_mode;
 
   const tripDays = differenceInDays(parseISO(trip.end_date), parseISO(trip.start_date)) + 1;
-  const destinationLinks = getDestinationLinks(trip.destination_city, trip.destination_state, trip.destination_country);
+
+  // v2.5.3: Device location for coordinate-aware Helpful Links
+  const { coords: deviceCoords } = useDeviceLocation();
+  const locationCtx: LocationContext = useMemo(() => ({
+    deviceCoords,
+    city: trip.destination_city,
+    state: trip.destination_state || undefined,
+    country: trip.destination_country,
+  }), [deviceCoords, trip.destination_city, trip.destination_state, trip.destination_country]);
+
+  const destinationLinks = getDestinationLinks(trip.destination_city, trip.destination_state, trip.destination_country, locationCtx);
   const destinationDisplay = trip.destination_state 
     ? `${trip.destination_city}, ${trip.destination_state}, ${trip.destination_country}`
     : `${trip.destination_city}, ${trip.destination_country}`;
