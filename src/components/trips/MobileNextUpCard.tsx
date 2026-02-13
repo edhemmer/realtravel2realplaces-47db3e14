@@ -84,12 +84,12 @@ export function MobileNextUpCard({ tripId, trip }: MobileNextUpCardProps) {
             size="sm"
             variant={hasLocation ? "default" : "outline"}
             disabled={!hasLocation}
-            className="w-full min-h-[40px] press-scale"
+            className="w-full h-10 rounded-full text-sm font-medium press-scale mt-2"
             onClick={() => {
               if (mapsDest) openMapsDestination(mapsDest);
             }}
           >
-            <Navigation className="w-4 h-4 mr-1" />
+            <Navigation className="w-4 h-4" />
             {hasLocation ? 'Navigate' : 'No location available'}
           </Button>
         </CardContent>
