@@ -564,7 +564,7 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h3 className="text-lg font-semibold">Expenses</h3>
           {canEdit && (
-            <Button onClick={() => setDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90">
+            <Button onClick={() => setDialogOpen(true)} className="h-12 rounded-xl text-sm font-semibold shadow-sm bg-success text-success-foreground hover:bg-success/90 active:bg-success/80 md:h-10 md:rounded-md md:shadow-none md:bg-primary md:text-primary-foreground md:hover:bg-primary/90">
               <Plus className="w-4 h-4 mr-2" />
               Add Expense
             </Button>
@@ -812,7 +812,7 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
                   }
                 </p>
                 {canEdit && (
-                  <Button onClick={() => setDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90">
+                  <Button onClick={() => setDialogOpen(true)} className="h-12 rounded-xl text-sm font-semibold shadow-sm bg-success text-success-foreground hover:bg-success/90 active:bg-success/80 md:h-10 md:rounded-md md:shadow-none md:bg-primary md:text-primary-foreground md:hover:bg-primary/90">
                     <Plus className="w-4 h-4 mr-2" />
                     Add Expense
                   </Button>
