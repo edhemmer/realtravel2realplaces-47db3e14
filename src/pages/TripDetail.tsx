@@ -65,6 +65,23 @@ export type DrillThroughTarget = {
   recordId?: string;
 } | null;
 
+/** v2.6.21: Section labels for mobile header — normal casing */
+const MOBILE_SECTION_LABELS: Partial<Record<TripTab, string>> = {
+  now: 'Now',
+  plan: 'Plan',
+  explore: 'Explore',
+  money: 'Expenses',
+  bookings: 'Bookings',
+  tour: 'Tour',
+  members: 'Members',
+  companions: 'Companions',
+  parking: 'Parking',
+  packing: 'Packing',
+  alerts: 'Alerts',
+  report: 'Report',
+  notes: 'Notes & Safety',
+};
+
 export default function TripDetail() {
   const { tripId } = useParams<{ tripId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -92,6 +109,8 @@ export default function TripDetail() {
   const [autoOpenExpense, setAutoOpenExpense] = useState(false);
   // v2.3.x: External tab override for mobile router
   const [mobileExternalTab, setMobileExternalTab] = useState<TripTab | undefined>(undefined);
+  // v2.6.21: Track mobile active tab for header section title
+  const [mobileActiveTab, setMobileActiveTab] = useState<TripTab>('now');
 
   // v2.5.0: Determine if trip has flights or is international for Travel Guide context
   const hasFlights = useMemo(() => {
@@ -208,7 +227,7 @@ export default function TripDetail() {
         </div>
       </div>
 
-      {/* Mobile-only: compact metadata line */}
+      {/* Mobile-only: compact metadata line + section title */}
       <div className="md:hidden">
         <p className="flex flex-wrap items-center gap-1.5 text-[13px] leading-relaxed text-muted-foreground px-0.5">
           <span className="flex items-center gap-1">
@@ -226,6 +245,12 @@ export default function TripDetail() {
             <Users className="w-3 h-3" />
             {canEdit ? 'Shared (Edit)' : 'View Only'}
           </Badge>
+        )}
+        {/* v2.6.21: Dynamic section title beneath trip metadata */}
+        {isMobile && (
+          <p className="text-sm font-medium text-primary/80 mt-1 px-0.5">
+            {MOBILE_SECTION_LABELS[mobileActiveTab] || 'Now'}
+          </p>
         )}
       </div>
 
@@ -275,6 +300,7 @@ export default function TripDetail() {
               onAutoOpenConsumed={() => setAutoOpenExpense(false)}
               externalTab={mobileExternalTab}
               onExternalTabConsumed={handleMobileExternalTabConsumed}
+              onActiveTabChange={setMobileActiveTab}
             />
           </>
         ) : (
