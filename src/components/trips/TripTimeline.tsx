@@ -113,6 +113,24 @@ export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimel
     );
   }
 
+  // v2.6.5: Get today's local date for "Today" badge
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+  // Group events by date (extracted from eventLocalDateTime string)
+  const grouped: { date: string; events: CanonicalTimelineEvent[] }[] = [];
+  const use24h = datetimeFormat === 'DD/MM/YYYY 24h';
+
+  for (const event of events) {
+    const dateStr = event.eventLocalDateTime ? event.eventLocalDateTime.substring(0, 10) : '';
+    const lastGroup = grouped[grouped.length - 1];
+    if (lastGroup && lastGroup.date === dateStr) {
+      lastGroup.events.push(event);
+    } else {
+      grouped.push({ date: dateStr, events: [event] });
+    }
+  }
+
   return (
     <div className="relative">
       {/* v2.1.21: Single continuous vertical line - positioned behind all event icons */}
@@ -123,96 +141,111 @@ export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimel
         />
       )}
       
-      {/* Event list */}
+      {/* Event list grouped by day */}
       <div className="space-y-0.5">
-        {events.map((event, index) => {
-          // v2.1.22: Build subtitle dynamically for flights
-          const subtitle = event.eventType === 'flight' 
-            ? buildFlightSubtitle(event, datetimeFormat)
-            : event.subtitle;
-          
+        {grouped.map((group) => {
+          const isToday = group.date === todayStr;
+          const dateLabel = formatLocalDateDirect(group.date, use24h) || group.date;
+
           return (
-            <div 
-              key={event.id} 
-              className="relative flex gap-4 animate-slide-in cursor-pointer hover:bg-muted/50 rounded-lg p-2 -mx-2 transition-colors" 
-              style={{ animationDelay: `${index * 50}ms` }}
-              onClick={() => onEventClick?.(event)}
-            >
-              {/* Icon circle - sits on top of the vertical line */}
-              <div className="relative z-10 flex-shrink-0">
-                <div className="w-8 h-8 rounded-full bg-primary/10 border-2 border-background flex items-center justify-center text-primary">
-                  {getEventIcon(event.bookingType, event.transportMode)}
-                </div>
+            <div key={group.date}>
+              {/* v2.6.5: Day header with optional Today badge */}
+              <div className={`flex items-center gap-2 py-1.5 px-1 mb-0.5 rounded-md ${isToday ? 'bg-primary/5' : ''}`}>
+                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                  {dateLabel}
+                </span>
+                {isToday && (
+                  <Badge variant="default" className="text-[9px] h-4 px-1.5 py-0 font-semibold">
+                    Today
+                  </Badge>
+                )}
               </div>
-              
-              {/* Event content */}
-              <div className="flex-1 pb-3 min-w-0">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-[13px] leading-snug truncate">{event.title}</p>
-                    <p className="text-[11px] text-muted-foreground/80 truncate mt-0.5">{subtitle}</p>
-                    {/* Activity-specific badges */}
-                    {event.bookingType === 'activity' && (
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {event.ticketRequired && (
-                          <Badge variant="secondary" className="text-[10px] h-4 px-1 gap-0.5">
-                            <Ticket className="w-2.5 h-2.5" />
-                            Ticket
-                          </Badge>
+
+              {/* Events for this day */}
+              {group.events.map((event, index) => {
+                const subtitle = event.eventType === 'flight' 
+                  ? buildFlightSubtitle(event, datetimeFormat)
+                  : event.subtitle;
+
+                return (
+                  <div 
+                    key={event.id} 
+                    className={`relative flex gap-4 cursor-pointer hover:bg-muted/50 rounded-lg p-2 -mx-2 transition-colors ${isToday ? 'bg-primary/[0.02]' : ''}`}
+                    onClick={() => onEventClick?.(event)}
+                  >
+                    {/* Icon circle - sits on top of the vertical line */}
+                    <div className="relative z-10 flex-shrink-0">
+                      <div className={`w-8 h-8 rounded-full border-2 border-background flex items-center justify-center ${isToday ? 'bg-primary/15 text-primary' : 'bg-primary/10 text-primary'}`}>
+                        {getEventIcon(event.bookingType, event.transportMode)}
+                      </div>
+                    </div>
+                    
+                    {/* Event content */}
+                    <div className="flex-1 pb-3 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-[13px] leading-snug truncate">{event.title}</p>
+                          <p className="text-[11px] text-muted-foreground/80 truncate mt-0.5">{subtitle}</p>
+                          {/* Activity-specific badges */}
+                          {event.bookingType === 'activity' && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {event.ticketRequired && (
+                                <Badge variant="secondary" className="text-[10px] h-4 px-1 gap-0.5">
+                                  <Ticket className="w-2.5 h-2.5" />
+                                  Ticket
+                                </Badge>
+                              )}
+                              {event.ticketsPurchased && (
+                                <Badge variant="outline" className="text-[10px] h-4 px-1 bg-accent">
+                                  Tickets purchased
+                                </Badge>
+                              )}
+                              {event.activitySource && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  {event.activitySource === 'explore' ? 'From Explore' : 
+                                   event.activitySource === 'confirmation' ? 'From confirmation' : ''}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-right shrink-0 tabular-nums">
+                          <p className={`text-[11px] ${event.hasExplicitTime ? 'text-muted-foreground/80' : 'text-destructive font-medium'}`}>
+                            {event.hasExplicitTime
+                              ? (formatLocalTimeDirect(event.eventLocalDateTime, use24h) || UNKNOWN_TIME_PLACEHOLDER)
+                              : UNKNOWN_TIME_PLACEHOLDER
+                            }
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-1.5 mt-1">
+                        {(event.address || event.departureAirportCode || event.title) && resolveMapsFromTimelineEvent(event) && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="h-6 px-2.5 text-[11px] rounded-full press-scale"
+                            onClick={(e) => openInMapsResolved(event, e)}
+                          >
+                            <Navigation className="w-3 h-3 mr-1" />
+                            Navigate
+                          </Button>
                         )}
-                        {event.ticketsPurchased && (
-                          <Badge variant="outline" className="text-[10px] h-4 px-1 bg-accent">
-                            Tickets purchased
-                          </Badge>
-                        )}
-                        {event.activitySource && (
-                          <span className="text-[10px] text-muted-foreground">
-                            {event.activitySource === 'explore' ? 'From Explore' : 
-                             event.activitySource === 'confirmation' ? 'From confirmation' : ''}
-                          </span>
+                        {event.linkUrl && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 px-2 text-[11px] press-scale-subtle"
+                            onClick={(e) => openExternalUrl(event.linkUrl, e)}
+                          >
+                            <ExternalLink className="w-3 h-3 mr-1" />
+                            View
+                          </Button>
                         )}
                       </div>
-                    )}
+                    </div>
                   </div>
-                  <div className="text-right shrink-0 tabular-nums">
-                    <p className="font-medium text-xs">
-                      {/* v2.2.4: Use direct date extraction from stored string — no Date() timezone shifting */}
-                      {formatLocalDateDirect(event.eventLocalDateTime, datetimeFormat === 'DD/MM/YYYY 24h') || '--'}
-                    </p>
-                    <p className={`text-[11px] ${event.hasExplicitTime ? 'text-muted-foreground/80' : 'text-destructive font-medium'}`}>
-                      {/* v2.2.4: Use direct time extraction from stored string — no Date() timezone shifting */}
-                      {event.hasExplicitTime
-                        ? (formatLocalTimeDirect(event.eventLocalDateTime, datetimeFormat === 'DD/MM/YYYY 24h') || UNKNOWN_TIME_PLACEHOLDER)
-                        : UNKNOWN_TIME_PLACEHOLDER
-                      }
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-1.5 mt-1">
-                  {(event.address || event.departureAirportCode || event.title) && resolveMapsFromTimelineEvent(event) && (
-                    <Button
-                      size="sm"
-                      variant="default"
-                      className="h-6 px-2.5 text-[11px] rounded-full press-scale"
-                      onClick={(e) => openInMapsResolved(event, e)}
-                    >
-                      <Navigation className="w-3 h-3 mr-1" />
-                      Navigate
-                    </Button>
-                  )}
-                  {event.linkUrl && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 px-2 text-[11px] press-scale-subtle"
-                      onClick={(e) => openExternalUrl(event.linkUrl, e)}
-                    >
-                      <ExternalLink className="w-3 h-3 mr-1" />
-                      View
-                    </Button>
-                  )}
-                </div>
-              </div>
+                );
+              })}
             </div>
           );
         })}
