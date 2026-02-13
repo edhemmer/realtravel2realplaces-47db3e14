@@ -1,5 +1,6 @@
 import { useMemo, useEffect, useState } from 'react';
 import { useTripWeather } from './useWeather';
+import { useParkingReminders } from './useParkingReminders';
 import { Booking, Parking, Trip } from '@/types/database';
 import { parseISO, addMinutes, isBefore, isAfter, differenceInMinutes, format, differenceInDays } from 'date-fns';
 
@@ -273,35 +274,8 @@ export function useTravelAlerts(
     return alerts;
   }, [bookings, now]);
 
-  // Parking expiration alerts (15 min and 30 min before)
-  const parkingAlerts = useMemo(() => {
-    const alerts: TravelAlert[] = [];
-
-    parkingList.forEach(parking => {
-      if (!parking.end_datetime) return;
-      
-      const expirationTime = parseISO(parking.end_datetime);
-      const alert15 = addMinutes(expirationTime, -15);
-      const alert30 = addMinutes(expirationTime, -30);
-      const minutesUntilExpiry = differenceInMinutes(expirationTime, now);
-      
-      if (isAfter(now, alert30) && isBefore(now, expirationTime)) {
-        alerts.push({
-          id: `parking-${parking.id}`,
-          type: 'parking_expiry',
-          severity: minutesUntilExpiry <= 15 ? 'critical' : 'warning',
-          title: minutesUntilExpiry <= 15 ? '🚨 Parking Expiring NOW!' : '🅿️ Parking Expiring Soon',
-          message: `${parking.label} expires in ${minutesUntilExpiry} minutes${parking.level_section_space ? ` (${parking.level_section_space})` : ''}`,
-          actionLabel: parking.address ? 'Open Maps' : undefined,
-          actionUrl: parking.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(parking.address)}` : undefined,
-          relatedId: parking.id,
-          timestamp: now,
-        });
-      }
-    });
-
-    return alerts;
-  }, [parkingList, now]);
+  // v2.5.5: Canonical parking reminders — deterministic, persist across refresh/resume
+  const parkingAlerts = useParkingReminders(parkingList);
 
   // Check if trip is coming up (within 7 days) for packing reminder
   const tripPreparationAlerts = useMemo(() => {
