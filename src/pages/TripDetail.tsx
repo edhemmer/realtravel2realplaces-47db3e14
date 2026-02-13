@@ -230,14 +230,15 @@ export default function TripDetail() {
       </div>
 
       {/* v2.6.13: Primary zone — single-row horizontal scroll on mobile */}
+      {/* v2.6.19: MobileNextUpCard and MobileAddExpenseCard moved to NOW execution pills — only ProRetention stays in header */}
       <div className="flex gap-2 overflow-x-auto md:flex-col md:overflow-visible md:space-y-6 md:gap-0 px-0.5 md:px-0 scrollbar-hide pb-1 md:pb-0">
         <div className="shrink-0 md:shrink md:w-full min-w-[280px] md:min-w-0">
           <ProRetentionCountdownCard trip={trip} />
         </div>
-        <div className="shrink-0 md:shrink md:w-full min-w-[280px] md:min-w-0">
+        <div className="hidden md:block shrink-0 md:shrink md:w-full min-w-[280px] md:min-w-0">
           <MobileNextUpCard tripId={trip.id} trip={trip} />
         </div>
-        <div className="shrink-0 md:shrink md:w-full min-w-[240px] md:min-w-0">
+        <div className="hidden md:block shrink-0 md:shrink md:w-full min-w-[240px] md:min-w-0">
           <MobileAddExpenseCard onTap={handleMobileAddExpense} />
         </div>
       </div>

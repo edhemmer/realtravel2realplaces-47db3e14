@@ -28,8 +28,10 @@ import { useState, useCallback, useEffect } from 'react';
 import { Trip } from '@/types/database';
 import { useAccess } from '@/hooks/useAccess';
 import { useExploreDiscovery } from '@/hooks/useExploreDiscovery';
+import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
 import { TripDetailLayout, type TripTab } from '@/components/layout';
 import { MobileSectionHeader } from '@/components/trips/MobileSectionHeader';
+import { NowExecutionPills } from '@/components/trips/NowExecutionPills';
 import {
   TripSummaryContainer,
   TripBookingsContainer,
@@ -94,6 +96,9 @@ export function MobileNavigationRouter({
   const { isPro, canAccessBusinessFeatures } = useAccess();
   const { hasDiscovered: hasDiscoveredExplore, markDiscovered: markExploreDiscovered } = useExploreDiscovery();
 
+  // v2.6.19: Canonical trip state for today action items
+  const { timelineEvents } = useCanonicalTripState(tripId, trip);
+
   // v2.3.x: Mobile tab state — defaults to 'now'
   const [activeTab, setActiveTab] = useState<TripTab>('now');
 
@@ -134,6 +139,11 @@ export function MobileNavigationRouter({
     }
   }, [isPro, hasDiscoveredExplore, markExploreDiscovered]);
 
+  // v2.6.19: Add Expense from NOW pills — switch to money tab
+  const handleNowAddExpense = useCallback(() => {
+    setActiveTab('money');
+  }, []);
+
   /** Render content for the active tab */
   const renderTabContent = () => {
     // Show section header for "More" menu tabs
@@ -147,6 +157,16 @@ export function MobileNavigationRouter({
             <span className="text-[10px] font-semibold uppercase tracking-widest text-primary/70">
               Now
             </span>
+          </div>
+        )}
+        {/* v2.6.19: NOW execution pills — base + today actionable items */}
+        {activeTab === 'now' && (
+          <div className="mb-3">
+            <NowExecutionPills
+              timelineEvents={timelineEvents}
+              onExplore={() => handleTabChange('explore')}
+              onAddExpense={handleNowAddExpense}
+            />
           </div>
         )}
         {sectionLabel && (
