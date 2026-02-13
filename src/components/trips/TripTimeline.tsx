@@ -181,7 +181,7 @@ export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimel
                     </div>
                     
                     {/* Event content */}
-                    <div className="flex-1 pb-3 min-w-0">
+                    <div className="flex-1 pb-2 md:pb-3 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <p className="font-medium text-[13px] leading-snug truncate">{event.title}</p>

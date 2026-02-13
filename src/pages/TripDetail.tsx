@@ -229,11 +229,17 @@ export default function TripDetail() {
         )}
       </div>
 
-      {/* Primary zone */}
-      <div className="space-y-1.5 md:space-y-6 px-0.5 md:px-0">
-        <ProRetentionCountdownCard trip={trip} />
-        <MobileNextUpCard tripId={trip.id} trip={trip} />
-        <MobileAddExpenseCard onTap={handleMobileAddExpense} />
+      {/* v2.6.13: Primary zone — single-row horizontal scroll on mobile */}
+      <div className="flex gap-2 overflow-x-auto md:flex-col md:overflow-visible md:space-y-6 md:gap-0 px-0.5 md:px-0 scrollbar-hide pb-1 md:pb-0">
+        <div className="shrink-0 md:shrink md:w-full min-w-[280px] md:min-w-0">
+          <ProRetentionCountdownCard trip={trip} />
+        </div>
+        <div className="shrink-0 md:shrink md:w-full min-w-[280px] md:min-w-0">
+          <MobileNextUpCard tripId={trip.id} trip={trip} />
+        </div>
+        <div className="shrink-0 md:shrink md:w-full min-w-[240px] md:min-w-0">
+          <MobileAddExpenseCard onTap={handleMobileAddExpense} />
+        </div>
       </div>
 
       {/* Read-only banner */}
@@ -245,7 +251,7 @@ export default function TripDetail() {
       )}
 
       {/* Widget container */}
-      <div className="mt-2 md:mt-0">
+      <div className="mt-1.5 md:mt-0">
         <TripHeaderWidgets trip={trip} />
       </div>
     </div>
