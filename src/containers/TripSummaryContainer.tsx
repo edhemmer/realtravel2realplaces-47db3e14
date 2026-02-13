@@ -2,31 +2,29 @@
  * TripSummaryContainer - Container component for Trip Summary tab
  * 
  * Patch 2.2.2: Canonical trip containers & bug-fix-at-source architecture
+ * v2.6.12: Consumes DesktopTripShell context when available (no redundant computation)
  * 
  * This container:
- * - Fetches all data through canonical hooks
- * - Prepares clean, typed props for the presentational view
+ * - Checks DesktopTripShell context first (desktop path)
+ * - Falls back to independent hooks (mobile path / standalone use)
  * - Handles loading/error/empty states consistently
  * 
  * CANONICAL HELPERS USED:
- * - useAccess() for plan/tier info
- * - useCanonicalTripState() for trip basics & cost summary
- * - useTripWeather() for weather data
- * - useCompanions() for traveler count
+ * - useDesktopTripShell() for shell-provided state (desktop)
+ * - useAccess() for plan/tier info (fallback)
+ * - useCanonicalTripState() for trip basics & cost summary (fallback)
+ * - useTripWeather() for weather data (fallback)
  */
 
-import { useMemo } from 'react';
 import { Trip } from '@/types/database';
 import { useBookings } from '@/hooks/useBookings';
 import { useExpenses } from '@/hooks/useExpenses';
 import { useParking } from '@/hooks/useParking';
 import { useCompanions } from '@/hooks/useCompanions';
-import { useBookingCompanionsByTrip } from '@/hooks/useBookingCompanions';
-import { useTripWeather } from '@/hooks/useWeather';
-import { useTravelAlerts } from '@/hooks/useTravelAlerts';
 import { useAccess } from '@/hooks/useAccess';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useCanonicalTripStateFromData } from '@/hooks/useCanonicalTripState';
+import { useDesktopTripShell } from './DesktopTripShell';
 import { TripSectionLoading, TripSectionError } from '@/components/trips/TripSectionStates';
 import { SummaryTab } from '@/components/trips/tabs/SummaryTab';
 import type { DrillThroughTarget } from '@/pages/TripDetail';
@@ -38,44 +36,25 @@ interface TripSummaryContainerProps {
 }
 
 /**
- * Container that wires canonical hooks to SummaryTab
- * 
- * All data flows through canonical helpers:
- * - Cost calculations via useCanonicalTripState
- * - Weather via useTripWeather  
- * - Alerts via useTravelAlerts
+ * Container that wires canonical hooks to SummaryTab.
+ * v2.6.12: Prefers shell-provided state on desktop to avoid redundant computation.
  */
 export function TripSummaryContainer({ tripId, trip, onDrillThrough }: TripSummaryContainerProps) {
-  // Access control
-  const { isPro, isLoading: accessLoading } = useAccess();
-  const { data: userProfile } = useUserProfile();
+  // v2.6.12: Check shell context first (desktop path)
+  const shell = useDesktopTripShell();
   
-  // Canonical data fetching
+  // Fallback hooks — only compute when shell is not available (mobile path)
+  const { isPro, isLoading: accessLoading } = useAccess();
   const { data: bookings = [], isLoading: bookingsLoading, error: bookingsError } = useBookings(tripId);
   const { data: expenses = [], isLoading: expensesLoading, error: expensesError } = useExpenses(tripId);
   const { data: parkingList = [], isLoading: parkingLoading, error: parkingError } = useParking(tripId);
-  const { data: companions = [], isLoading: companionsLoading } = useCompanions(tripId);
   
-  // Temperature unit from user profile
-  const temperatureUnit = (userProfile?.temperature_unit as 'fahrenheit' | 'celsius') || 'fahrenheit';
+  // Loading state — shell-aware
+  const isLoading = shell
+    ? shell.isLoading || shell.isCanonicalLoading
+    : bookingsLoading || expensesLoading || parkingLoading || accessLoading;
   
-  // Weather data
-  const { tripForecast, weatherAnalysis, isLoading: weatherLoading } = useTripWeather(
-    trip.destination_city,
-    trip.destination_country,
-    trip.start_date,
-    trip.end_date,
-    trip.destination_state || undefined,
-    temperatureUnit
-  );
-  
-  // Canonical trip state (costs, timeline, dates)
-  const canonicalState = useCanonicalTripStateFromData(trip, bookings, expenses, parkingList);
-  
-  // Loading state
-  const isLoading = bookingsLoading || expensesLoading || parkingLoading || accessLoading;
-  
-  // Error state
+  // Error state (shell doesn't expose errors — raw hooks always run via React Query dedup)
   const hasError = bookingsError || expensesError || parkingError;
   
   if (isLoading) {
@@ -90,9 +69,8 @@ export function TripSummaryContainer({ tripId, trip, onDrillThrough }: TripSumma
     );
   }
   
-  // Render the presentational view with prepared props
-  // SummaryTab currently handles its own data fetching internally,
-  // but this container ensures the canonical hooks are used
+  // Render the presentational view
+  // SummaryTab handles its own data display internally
   return (
     <SummaryTab 
       tripId={tripId} 
