@@ -219,15 +219,15 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Destination Header */}
-      <Card className="bg-gradient-to-br from-primary/10 via-accent/5 to-background border-border/40">
-        <CardContent className="pt-6 pb-5">
-          <div className="flex items-center gap-3 mb-4">
-            <MapPin className="w-6 h-6 text-primary" />
+      <Card className="bg-gradient-to-br from-primary/10 via-accent/5 to-background border-border/40 shadow-sm">
+        <CardContent className="pt-5 pb-4">
+          <div className="flex items-center gap-3 mb-3">
+            <MapPin className="w-5 h-5 text-primary" />
             <div>
-              <h2 className="text-xl font-bold">{destinationDisplay}</h2>
-              <p className="text-sm text-muted-foreground">
+              <h2 className="text-lg font-bold tracking-tight">{destinationDisplay}</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
                 {formatTripDateRangeWithDuration(trip.start_date, trip.end_date, tripDays)}
               </p>
             </div>
@@ -299,19 +299,19 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
       )}
 
       {/* Section Divider */}
-      <div className="border-t border-border/30" />
+      <div className="border-t border-border/20 my-1" />
 
       {/* Destination Info & Recommendations */}
-      <Card className="border-border/40">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base flex items-center gap-2">
+      <Card className="border-border/40 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Info className="w-4 h-4 text-primary" />
             Destination Info & Recommendations
           </CardTitle>
-          <CardDescription className="flex items-center justify-between">
+          <CardDescription className="flex items-center justify-between text-xs">
             <span>Local links, dining (4+ stars, $-$$), and attractions</span>
             {/* v2.5.4: Location-mode indicator */}
-            <span className="text-[10px] text-muted-foreground/70 shrink-0 ml-2">
+            <span className="text-[10px] text-muted-foreground/60 shrink-0 ml-2">
               {locationLoading ? (
                 <span className="flex items-center gap-1">
                   <Loader2 className="w-3 h-3 animate-spin" />
@@ -392,16 +392,16 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
       </div>
 
       {/* Section Divider */}
-      <div className="border-t border-border/30" />
+      <div className="border-t border-border/20 my-1" />
 
       {/* Timeline */}
-      <Card className="border-border/40">
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
+      <Card className="border-border/40 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Calendar className="w-4 h-4 text-primary" />
             Trip Timeline
           </CardTitle>
-          <CardDescription>{tripDays} day{tripDays !== 1 ? 's' : ''} • {timeline.length} event{timeline.length !== 1 ? 's' : ''}</CardDescription>
+          <CardDescription className="text-xs">{tripDays} day{tripDays !== 1 ? 's' : ''} • {timeline.length} event{timeline.length !== 1 ? 's' : ''}</CardDescription>
         </CardHeader>
         <CardContent>
           {/* v2.1.21: Extracted to TripTimeline component with continuous vertical line */}

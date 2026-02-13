@@ -65,11 +65,11 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
     .sort((a: Parking, b: Parking) => parseISO(a.end_datetime!).getTime() - parseISO(b.end_datetime!).getTime())[0];
 
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid gap-3 md:grid-cols-3">
       {/* Weather Widget */}
-      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
+      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5 shadow-sm">
+        <CardHeader className="pb-1.5">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Thermometer className="w-4 h-4 text-primary" />
             Weather
           </CardTitle>
@@ -114,9 +114,9 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
       </Card>
 
       {/* Cost Summary Widget */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
+      <Card className="shadow-sm">
+        <CardHeader className="pb-1.5">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <DollarSign className="w-4 h-4 text-primary" />
             {TRIP_TOTAL_LABEL}
           </CardTitle>
@@ -124,10 +124,10 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
         <CardContent>
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Total</span>
-              <span className="text-xl font-bold">{formatCurrency(totalCost)}</span>
+              <span className="text-xs text-muted-foreground">Total</span>
+              <span className="text-lg font-bold tabular-nums">{formatCurrency(totalCost)}</span>
             </div>
-            <div className="flex justify-between items-center text-xs text-muted-foreground">
+            <div className="flex justify-between items-center text-[11px] text-muted-foreground/80 tabular-nums">
               <span>Bookings: {formatCurrency(bookingsTotal)}</span>
               <span>Expenses: {formatCurrency(expensesTotal)}</span>
             </div>
@@ -136,9 +136,9 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
       </Card>
 
       {/* Parking Activity Widget */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
+      <Card className="shadow-sm">
+        <CardHeader className="pb-1.5">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <CircleParking className="w-4 h-4 text-primary" />
             Parking
           </CardTitle>

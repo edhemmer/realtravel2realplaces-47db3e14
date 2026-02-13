@@ -213,15 +213,15 @@ export function AirportSnapshotCard({ bookings }: AirportSnapshotCardProps) {
   }
 
   return (
-    <Card className="border-border/40">
-      <CardContent className="pt-5 pb-4">
+    <Card className="border-border/40 shadow-sm">
+      <CardContent className="pt-4 pb-3">
         <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-            <Plane className="w-4 h-4 text-primary" />
+          <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <Plane className="w-3.5 h-3.5 text-primary" />
           </div>
           
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold mb-2">Airport Snapshot</h3>
+            <h3 className="text-xs font-semibold mb-1.5 uppercase tracking-wide text-muted-foreground">Airport Snapshot</h3>
             
             <div className="space-y-1.5">
               {departure && (
