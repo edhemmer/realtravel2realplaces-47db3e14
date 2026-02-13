@@ -82,8 +82,8 @@ export function TodayCompactTimeline({ timelineEvents, onViewFullTimeline }: Tod
 
   if (todayEvents.length === 0) {
     return (
-      <Card className="border-border/40 shadow-sm">
-        <CardContent className="py-4 text-center">
+      <Card className="border-border/30 bg-muted/30 shadow-none">
+        <CardContent className="py-3 text-center">
           <p className="text-xs text-muted-foreground">No events scheduled today.</p>
           <Button
             variant="ghost"
@@ -100,14 +100,14 @@ export function TodayCompactTimeline({ timelineEvents, onViewFullTimeline }: Tod
   }
 
   return (
-    <Card className="border-border/40 shadow-sm">
-      <CardHeader className="pb-2 pt-3 px-4">
-        <CardTitle className="text-xs font-semibold flex items-center gap-1.5 text-muted-foreground uppercase tracking-wider">
-          <Calendar className="w-3.5 h-3.5" />
+    <Card className="border-border/30 bg-muted/30 shadow-none">
+      <CardHeader className="pb-1.5 pt-2.5 px-3">
+        <CardTitle className="text-[10px] font-semibold flex items-center gap-1.5 text-muted-foreground uppercase tracking-wider">
+          <Calendar className="w-3 h-3" />
           Today
         </CardTitle>
       </CardHeader>
-      <CardContent className="px-4 pb-3 space-y-1">
+      <CardContent className="px-3 pb-2.5 space-y-0.5">
         {todayEvents.map((event) => {
           const eventTime = extractTime(event.eventLocalDateTime);
           const isPast = eventTime ? eventTime < nowTime : false;
