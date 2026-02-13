@@ -227,8 +227,17 @@ export default function TripDetail() {
         </div>
       </div>
 
-      {/* Mobile-only: compact metadata line + section title */}
+      {/* Mobile-only: mode bar + metadata */}
       <div className="md:hidden">
+        {/* v2.6.24: Subtle divider */}
+        {isMobile && (
+          <>
+            <div className="border-t border-muted/40 mt-2 mb-1.5" />
+            <p className="text-[11px] font-medium uppercase tracking-widest text-foreground/55 px-0.5 mb-1.5 select-none">
+              {MOBILE_SECTION_LABELS[mobileActiveTab] || 'Now'}
+            </p>
+          </>
+        )}
         <p className="flex flex-wrap items-center gap-1.5 text-[13px] leading-relaxed text-muted-foreground px-0.5">
           <span className="flex items-center gap-1">
             <MapPin className="w-3.5 h-3.5 shrink-0" />
@@ -245,14 +254,6 @@ export default function TripDetail() {
             <Users className="w-3 h-3" />
             {canEdit ? 'Shared (Edit)' : 'View Only'}
           </Badge>
-        )}
-        {/* v2.6.23: Section chip beneath trip metadata */}
-        {isMobile && (
-          <div className="mt-1.5 mb-0.5 px-0.5">
-            <span className="inline-block text-xs font-medium text-foreground/70 bg-muted/30 px-2.5 py-0.5 rounded-full select-none">
-              {MOBILE_SECTION_LABELS[mobileActiveTab] || 'Now'}
-            </span>
-          </div>
         )}
       </div>
 
