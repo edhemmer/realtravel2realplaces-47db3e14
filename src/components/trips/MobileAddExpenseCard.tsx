@@ -7,6 +7,7 @@
  */
 
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Plus, Receipt } from 'lucide-react';
 
 interface MobileAddExpenseCardProps {
@@ -25,13 +26,15 @@ export function MobileAddExpenseCard({ onTap }: MobileAddExpenseCardProps) {
               <p className="text-[11px] leading-snug text-muted-foreground">Quick capture on the go</p>
             </div>
           </div>
-          <button
+          <Button
             onClick={onTap}
-            className="w-full min-h-[40px] rounded-full bg-primary text-primary-foreground font-medium text-sm flex items-center justify-center gap-1.5 press-scale"
+            variant="secondary"
+            size="sm"
+            className="w-full h-10 rounded-full text-sm font-medium press-scale mt-2"
           >
             <Plus className="w-4 h-4" />
             Add Expense
-          </button>
+          </Button>
         </CardContent>
       </Card>
     </div>
