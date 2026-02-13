@@ -33,13 +33,17 @@ interface TripSummaryContainerProps {
   tripId: string;
   trip: Trip;
   onDrillThrough?: (target: DrillThroughTarget) => void;
+  /** v2.6.12: Max alerts on mobile NOW tab */
+  maxVisibleAlerts?: number;
+  /** v2.6.12: Navigate to full alerts view */
+  onViewAllAlerts?: () => void;
 }
 
 /**
  * Container that wires canonical hooks to SummaryTab.
  * v2.6.12: Prefers shell-provided state on desktop to avoid redundant computation.
  */
-export function TripSummaryContainer({ tripId, trip, onDrillThrough }: TripSummaryContainerProps) {
+export function TripSummaryContainer({ tripId, trip, onDrillThrough, maxVisibleAlerts, onViewAllAlerts }: TripSummaryContainerProps) {
   // v2.6.12: Check shell context first (desktop path)
   const shell = useDesktopTripShell();
   
@@ -76,6 +80,8 @@ export function TripSummaryContainer({ tripId, trip, onDrillThrough }: TripSumma
       tripId={tripId} 
       trip={trip} 
       onDrillThrough={onDrillThrough}
+      maxVisibleAlerts={maxVisibleAlerts}
+      onViewAllAlerts={onViewAllAlerts}
     />
   );
 }

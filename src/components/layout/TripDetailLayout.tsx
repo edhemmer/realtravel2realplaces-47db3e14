@@ -13,6 +13,7 @@
 import { ReactNode } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileBottomNav, TripTab } from './MobileBottomNav';
+import { BackToTopButton } from '@/components/trips/BackToTopButton';
 import { cn } from '@/lib/utils';
 
 interface TripDetailLayoutProps {
@@ -44,10 +45,13 @@ export function TripDetailLayout({
       
       {/* Mobile bottom navigation - only visible on mobile */}
       {isMobile && showBottomNav && (
-        <MobileBottomNav 
-          activeTab={activeTab} 
-          onTabChange={onTabChange} 
-        />
+        <>
+          <BackToTopButton />
+          <MobileBottomNav 
+            activeTab={activeTab} 
+            onTabChange={onTabChange} 
+          />
+        </>
       )}
     </div>
   );
