@@ -22,6 +22,7 @@ export function useCreateActivityFromExplore() {
         : activity.date;
 
       // Insert the booking with activity-specific fields
+      // v2.6.20: Store locationSummary as address too for timeline Navigate pill
       const { data: booking, error: bookingError } = await supabase
         .from('bookings')
         .insert({
@@ -37,6 +38,7 @@ export function useCreateActivityFromExplore() {
           booking_url: activity.bookingUrl || null,
           tickets_purchased: false,
           location_summary: activity.locationSummary,
+          address: activity.locationSummary || null,
         } as any)
         .select()
         .single();
