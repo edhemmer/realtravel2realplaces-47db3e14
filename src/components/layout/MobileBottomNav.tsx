@@ -106,8 +106,8 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
     <nav 
       className={cn(
         "fixed bottom-0 left-0 right-0 z-50",
-        "bg-card/95 backdrop-blur-lg border-t border-border",
-        "pb-safe", // Safe area for iOS home indicator
+        "bg-card border-t border-border/60 shadow-lg",
+        "pb-safe",
         className
       )}
     >
@@ -117,15 +117,15 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
             key={item.id}
             onClick={() => onTabChange(item.id)}
             className={cn(
-              "flex flex-col items-center justify-center gap-0.5 py-1.5 px-3 rounded-lg transition-colors min-w-[56px] min-h-[44px]",
-              "touch-manipulation", // Optimize for touch
+              "flex flex-col items-center justify-center gap-1 py-1.5 px-3 rounded-lg transition-colors min-w-[56px] min-h-[44px]",
+              "touch-manipulation",
               activeTab === item.id
-                ? "text-primary bg-primary/10"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                ? "text-primary font-semibold bg-primary/10"
+                : "text-muted-foreground font-medium hover:text-foreground hover:bg-muted/50"
             )}
           >
             {item.icon}
-            <span className="text-[10px] font-medium">{item.label}</span>
+            <span className="text-[10px] leading-none">{item.label}</span>
           </button>
         ))}
         
@@ -134,15 +134,15 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
           <DropdownMenuTrigger asChild>
             <button
               className={cn(
-                "flex flex-col items-center justify-center gap-0.5 py-1.5 px-3 rounded-lg transition-colors min-w-[56px] min-h-[44px]",
+                "flex flex-col items-center justify-center gap-1 py-1.5 px-3 rounded-lg transition-colors min-w-[56px] min-h-[44px]",
                 "touch-manipulation",
                 isMoreActive
-                  ? "text-primary bg-primary/10"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  ? "text-primary font-semibold bg-primary/10"
+                  : "text-muted-foreground font-medium hover:text-foreground hover:bg-muted/50"
               )}
             >
               <MoreHorizontal className="w-5 h-5" />
-              <span className="text-[10px] font-medium">More</span>
+              <span className="text-[10px] leading-none">More</span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent 
