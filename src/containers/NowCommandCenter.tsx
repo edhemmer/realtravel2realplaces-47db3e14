@@ -82,11 +82,23 @@ export function NowCommandCenter({
   }
 
   return (
-    <div className="space-y-4 pb-20">
+    <div className="space-y-5 pb-20">
       {/* 1. NextCriticalActionCard */}
       <NextCriticalActionCard tripId={tripId} trip={trip} />
 
-      {/* 2. ActiveAlertsStack — max 3, severity-ordered */}
+      {/* 2. Quick Actions Section */}
+      <div>
+        <p className="text-xs text-muted-foreground tracking-wide uppercase mb-2">Quick Actions</p>
+        <StickyQuickOpsStrip
+          onAddExpense={onAddExpense}
+          onExplore={onExplore}
+          onParking={onParking}
+          tripName={trip.name}
+        />
+        <div className="border-t border-border/30 mt-5" />
+      </div>
+
+      {/* 3. ActiveAlertsStack — max 3, severity-ordered */}
       {hasAlerts && (
         <TravelAlertsCard
           alerts={alerts}
@@ -95,18 +107,10 @@ export function NowCommandCenter({
         />
       )}
 
-      {/* 3. TodayCompactTimeline */}
+      {/* 4. TodayCompactTimeline */}
       <TodayCompactTimeline
         timelineEvents={timelineEvents}
         onViewFullTimeline={onViewFullTimeline}
-      />
-
-      {/* 4. StickyQuickOpsStrip */}
-      <StickyQuickOpsStrip
-        onAddExpense={onAddExpense}
-        onExplore={onExplore}
-        onParking={onParking}
-        tripName={trip.name}
       />
 
       {/* Gas Expense Dialog */}
