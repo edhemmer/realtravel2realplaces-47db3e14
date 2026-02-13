@@ -246,11 +246,13 @@ export default function TripDetail() {
             {canEdit ? 'Shared (Edit)' : 'View Only'}
           </Badge>
         )}
-        {/* v2.6.21: Dynamic section title beneath trip metadata */}
+        {/* v2.6.23: Section chip beneath trip metadata */}
         {isMobile && (
-          <p className="text-sm font-medium text-primary/80 mt-1 px-0.5">
-            {MOBILE_SECTION_LABELS[mobileActiveTab] || 'Now'}
-          </p>
+          <div className="mt-1.5 mb-0.5 px-0.5">
+            <span className="inline-block text-xs font-medium text-foreground/70 bg-muted/30 px-2.5 py-0.5 rounded-full select-none">
+              {MOBILE_SECTION_LABELS[mobileActiveTab] || 'Now'}
+            </span>
+          </div>
         )}
       </div>
 
