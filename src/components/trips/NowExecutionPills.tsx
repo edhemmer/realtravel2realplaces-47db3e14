@@ -51,18 +51,15 @@ export function NowExecutionPills({ timelineEvents, onExplore, onAddExpense }: N
       {/* Base pills — always present */}
       <div className="flex gap-2">
         <Button
-          variant="outline"
-          size="sm"
-          className="h-9 rounded-full text-xs font-medium press-scale flex-1"
+          variant="default"
+          className="h-12 rounded-xl text-sm font-semibold press-scale flex-1 shadow-sm"
           onClick={onExplore}
         >
           <Compass className="w-3.5 h-3.5" />
           Explore
         </Button>
         <Button
-          variant="outline"
-          size="sm"
-          className="h-9 rounded-full text-xs font-medium press-scale flex-1"
+          className="h-12 rounded-xl text-sm font-semibold press-scale flex-1 shadow-sm bg-success text-success-foreground hover:bg-success/90 active:bg-success/80"
           onClick={onAddExpense}
         >
           <Plus className="w-3.5 h-3.5" />

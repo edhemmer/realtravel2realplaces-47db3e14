@@ -28,9 +28,8 @@ export function MobileAddExpenseCard({ onTap }: MobileAddExpenseCardProps) {
           </div>
           <Button
             onClick={onTap}
-            variant="secondary"
             size="sm"
-            className="w-full h-10 rounded-full text-sm font-medium press-scale mt-2"
+            className="w-full h-12 rounded-xl text-sm font-semibold press-scale mt-2 shadow-sm bg-success text-success-foreground hover:bg-success/90 active:bg-success/80"
           >
             <Plus className="w-4 h-4" />
             Add Expense

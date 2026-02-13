@@ -48,15 +48,14 @@ export function ExecutionZone({ timelineEvents, onExplore, onAddExpense }: Execu
       <div className="flex gap-3">
         <Button
           variant="default"
-          className="h-12 rounded-xl text-sm font-semibold flex-1 press-scale"
+          className="h-12 rounded-xl text-sm font-semibold flex-1 press-scale shadow-sm"
           onClick={onExplore}
         >
           <Compass className="w-4 h-4" />
           Explore
         </Button>
         <Button
-          variant="default"
-          className="h-12 rounded-xl text-sm font-semibold flex-1 press-scale"
+          className="h-12 rounded-xl text-sm font-semibold flex-1 press-scale shadow-sm bg-success text-success-foreground hover:bg-success/90 active:bg-success/80"
           onClick={onAddExpense}
         >
           <Plus className="w-4 h-4" />
