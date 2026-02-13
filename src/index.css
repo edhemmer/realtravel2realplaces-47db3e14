@@ -212,9 +212,9 @@
     touch-action: manipulation;
   }
 
-  /* v2.6.1: Primary pill press feedback */
+  /* v2.6.3: Standardized transition timing — 150ms for all interactive elements */
   .press-scale {
-    @apply transition-transform duration-100 ease-out;
+    @apply transition-all duration-150 ease-out;
   }
   .press-scale:active {
     transform: scale(0.97);
@@ -222,7 +222,7 @@
 
   /* v2.6.1: Secondary pill press feedback (lighter) */
   .press-scale-subtle {
-    @apply transition-transform duration-100 ease-out;
+    @apply transition-all duration-150 ease-out;
   }
   .press-scale-subtle:active {
     transform: scale(0.985);
@@ -231,6 +231,26 @@
   /* v2.6.1: Softened internal dividers */
   .divider-soft {
     @apply border-border/15;
+  }
+
+  /* v2.6.3: Desktop-only card hover elevation */
+  @media (hover: hover) and (min-width: 768px) {
+    .card-elevate {
+      @apply transition-shadow duration-150 ease-out;
+    }
+    .card-elevate:hover {
+      box-shadow: 0 4px 12px -2px hsl(0 0% 0% / 0.08), 0 2px 4px -2px hsl(0 0% 0% / 0.04);
+    }
+  }
+
+  /* v2.6.3: Smooth fade for conditional elements */
+  .animate-soft-in {
+    animation: softFadeIn 0.2s ease-out both;
+  }
+
+  @keyframes softFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 
   .animate-float {
