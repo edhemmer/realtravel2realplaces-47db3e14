@@ -873,7 +873,7 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="space-y-2 text-sm">
+              <CardContent className="space-y-1.5 text-sm">
                 {/* Transport-specific: From → To display */}
                 {booking.booking_type === 'transport' && ((booking as any).from_location || (booking as any).to_location) && (
                   <div className="text-xs">
@@ -883,10 +883,10 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                     </span>
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="grid grid-cols-2 gap-1.5 text-xs">
                   <div>
-                    <span className="text-muted-foreground block">
-                      {booking.booking_type === 'transport' ? 'Departure' : 'Date/Time'}
+                    <span className="text-muted-foreground block text-[10px]">
+                      {booking.booking_type === 'transport' ? 'Departure' : 'When'}
                     </span>
                     {/* v2.2.0: Use safe datetime parsing to preserve original dates */}
                     {(() => {
@@ -924,7 +924,7 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                   )}
                   {booking.confirmation_number && booking.booking_type !== 'transport' && (
                     <div>
-                      <span className="text-muted-foreground block">Confirmation</span>
+                      <span className="text-muted-foreground block text-[10px]">Conf #</span>
                       <span className="font-mono font-medium">{booking.confirmation_number}</span>
                     </div>
                   )}
@@ -947,18 +947,18 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                   if (normalizedCost <= 0 && normalizedMyShare <= 0) return null;
                   
                   return (
-                    <div className="flex gap-4 pt-2 border-t border-border/15 text-xs">
-                      {normalizedCost > 0 && (
-                        <div>
-                          <span className="text-muted-foreground">Total: </span>
-                          <span className="font-medium">${normalizedCost.toFixed(2)}</span>
-                        </div>
-                      )}
+                    <div className="flex justify-between items-center pt-1.5 border-t border-border/15 text-xs">
+                      <div className="flex gap-3">
+                        {normalizedCost > 0 && (
+                          <span className="text-muted-foreground">
+                            ${normalizedCost.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
                       {normalizedMyShare > 0 && (
-                        <div>
-                          <span className="text-muted-foreground">My Share: </span>
-                          <span className="font-medium text-primary">${normalizedMyShare.toFixed(2)}</span>
-                        </div>
+                        <span className="font-medium text-primary tabular-nums">
+                          ${normalizedMyShare.toFixed(2)}
+                        </span>
                       )}
                     </div>
                   );
@@ -978,7 +978,7 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
 
                 {/* Linked Companions */}
                 {getCompanionsForBooking(booking.id).length > 0 && (
-                  <div className="pt-2 border-t">
+                  <div className="pt-1.5 border-t border-border/15">
                     <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
                       <Users className="w-3 h-3" />
                       Travelers
@@ -1003,7 +1003,7 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
 
                 {/* Activity ticket status (v2.1.17 / v2.1.19 enhancements) */}
                 {booking.booking_type === 'activity' && (
-                  <div className="pt-2 border-t space-y-1.5">
+                  <div className="pt-1.5 border-t border-border/15 space-y-1.5">
                     {/* Ticket status row */}
                     {(booking.ticket_required || booking.advance_recommended) && (
                       <div className="flex items-center gap-2 flex-wrap">

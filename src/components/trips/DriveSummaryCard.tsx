@@ -43,35 +43,29 @@ export function DriveSummaryCard({ trip, onAddGasExpense }: DriveSummaryCardProp
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3">
         {/* Route Details */}
-        <div className="space-y-3">
+        <div className="space-y-2">
           {trip.origin_address && (
             <div className="flex items-start gap-2">
-              <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+              <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <MapPin className="w-3 h-3 text-green-600" />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Starting from</p>
-                <p className="text-sm font-medium">{trip.origin_address}</p>
-              </div>
+              <p className="text-sm font-medium">{trip.origin_address}</p>
             </div>
           )}
           
           {hasRouteInfo && (
-            <div className="ml-3 border-l-2 border-dashed border-muted-foreground/30 h-4" />
+            <div className="ml-2.5 border-l-2 border-dashed border-muted-foreground/20 h-3" />
           )}
           
           <div className="flex items-start gap-2">
-            <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+            <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
               <MapPin className="w-3 h-3 text-red-600" />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Destination</p>
-              <p className="text-sm font-medium">
-                {trip.destination_address || `${trip.destination_city}${trip.destination_state ? `, ${trip.destination_state}` : ''}`}
-              </p>
-            </div>
+            <p className="text-sm font-medium">
+              {trip.destination_address || `${trip.destination_city}${trip.destination_state ? `, ${trip.destination_state}` : ''}`}
+            </p>
           </div>
         </div>
 
