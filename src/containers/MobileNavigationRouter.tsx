@@ -31,7 +31,8 @@ import { useExploreDiscovery } from '@/hooks/useExploreDiscovery';
 import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
 import { TripDetailLayout, type TripTab } from '@/components/layout';
 import { MobileSectionHeader } from '@/components/trips/MobileSectionHeader';
-import { NowExecutionPills } from '@/components/trips/NowExecutionPills';
+import { ExecutionZone } from '@/components/trips/ExecutionZone';
+import { TripHeaderWidgets } from '@/components/trips/TripHeaderWidgets';
 import {
   TripSummaryContainer,
   TripBookingsContainer,
@@ -163,12 +164,15 @@ export function MobileNavigationRouter({
         {/* v2.6.21: Legacy standalone NOW label removed — section title now in header */}
         {/* v2.6.19: NOW execution pills — base + today actionable items */}
         {activeTab === 'now' && (
-          <div className="mb-3">
-            <NowExecutionPills
+          <div className="mb-3 space-y-3">
+            <ExecutionZone
               timelineEvents={timelineEvents}
               onExplore={() => handleTabChange('explore')}
               onAddExpense={handleNowAddExpense}
             />
+            <div className="md:hidden">
+              <TripHeaderWidgets trip={trip} />
+            </div>
           </div>
         )}
         {sectionLabel && (
