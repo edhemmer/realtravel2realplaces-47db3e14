@@ -38,6 +38,7 @@ interface NowCommandCenterProps {
   trip: Trip;
   onViewFullTimeline: () => void;
   onAddExpense: () => void;
+  onExplore: () => void;
   onParking: () => void;
   onViewAllAlerts: () => void;
 }
@@ -60,6 +61,7 @@ export function NowCommandCenter({
   trip,
   onViewFullTimeline,
   onAddExpense,
+  onExplore,
   onParking,
   onViewAllAlerts,
 }: NowCommandCenterProps) {
@@ -75,16 +77,12 @@ export function NowCommandCenter({
 
   const showGas = useMemo(() => isRentalReturnDay(bookings), [bookings]);
 
-  const handleGas = useCallback(() => {
-    setGasDialogOpen(true);
-  }, []);
-
   if (isLoading) {
     return <TripSectionLoading message="Loading trip..." />;
   }
 
   return (
-    <div className="space-y-3 pb-20">
+    <div className="space-y-4 pb-20">
       {/* 1. NextCriticalActionCard */}
       <NextCriticalActionCard tripId={tripId} trip={trip} />
 
@@ -106,9 +104,8 @@ export function NowCommandCenter({
       {/* 4. StickyQuickOpsStrip */}
       <StickyQuickOpsStrip
         onAddExpense={onAddExpense}
+        onExplore={onExplore}
         onParking={onParking}
-        onGas={handleGas}
-        showGas={showGas}
         tripName={trip.name}
       />
 

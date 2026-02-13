@@ -78,8 +78,8 @@ export function NextCriticalActionCard({ tripId, trip }: NextCriticalActionCardP
   // Trip Complete state
   if (!nextStop) {
     return (
-      <Card className="border-border/40 bg-muted/20 shadow-sm">
-        <CardContent className="py-5 flex flex-col items-center gap-2">
+      <Card className="border-border/30 bg-muted/20 shadow-none">
+        <CardContent className="py-4 flex flex-col items-center gap-2">
           <CheckCircle2 className="w-8 h-8 text-success" />
           <p className="text-sm font-semibold text-foreground">Trip Complete</p>
           <p className="text-xs text-muted-foreground">No more upcoming events.</p>
@@ -92,8 +92,8 @@ export function NextCriticalActionCard({ tripId, trip }: NextCriticalActionCardP
   const hasLocation = !!mapsDest;
 
   return (
-    <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-background shadow-sm">
-      <CardContent className="py-4 px-4">
+    <Card className="border-primary/30 bg-gradient-to-br from-primary/8 to-background shadow-md">
+      <CardContent className="py-5 px-4">
         <div className="flex items-center gap-1.5 mb-1">
           <Clock className="w-3.5 h-3.5 text-primary" />
           <span className="text-xs font-semibold text-primary uppercase tracking-wider">

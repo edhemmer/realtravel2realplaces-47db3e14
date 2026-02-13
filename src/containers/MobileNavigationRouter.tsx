@@ -179,6 +179,7 @@ export function MobileNavigationRouter({
             trip={trip}
             onViewFullTimeline={() => handleTabChange('plan')}
             onAddExpense={handleNowAddExpense}
+            onExplore={() => handleTabChange('explore')}
             onParking={() => handleTabChange('parking')}
             onViewAllAlerts={() => handleTabChange('alerts')}
           />
@@ -238,6 +239,7 @@ export function MobileNavigationRouter({
             trip={trip}
             onViewFullTimeline={() => handleTabChange('plan')}
             onAddExpense={handleNowAddExpense}
+            onExplore={() => handleTabChange('explore')}
             onParking={() => handleTabChange('parking')}
             onViewAllAlerts={() => handleTabChange('alerts')}
           />
