@@ -101,9 +101,11 @@ The app follows a mobile-first responsive design:
 
 Key mobile features:
 - Safe area handling for iOS home indicator (`pb-safe`)
-- Touch-optimized targets (min 44x44px)
-- "More" dropdown for secondary tabs
+- Touch-optimized targets (min 56×44px)
+- "More" dropdown for secondary tabs (v2.6.9: card-surface-aligned)
 - Bottom nav visible across all trip sections
+- Surface styling aligned with card system (v2.6.10): `bg-card`, `border-border/60`, `shadow-lg`
+- Consistent active/inactive tab styling with `font-semibold`/`font-medium` weight shift
 
 ---
 

@@ -91,7 +91,7 @@ interface TripDetailLayoutProps {
 
 ### MobileBottomNav (`src/components/layout/MobileBottomNav.tsx`)
 
-Fixed bottom navigation bar for mobile viewports (Patch 2.2.3).
+Fixed bottom navigation bar for mobile viewports (Patch 2.2.3, refined v2.6.9–v2.6.10).
 
 **Props:**
 ```typescript
@@ -104,9 +104,22 @@ interface MobileBottomNavProps {
 
 **Features:**
 - Safe area handling (iOS home indicator)
-- Touch-optimized targets
+- Touch-optimized targets (min 56×44px)
 - "More" dropdown for secondary tabs
 - Plan-based tab visibility (Tour = Business, Report = Pro)
+
+**Surface Styling (v2.6.10):**
+- `bg-card` background, `border-border/60` top border, `shadow-lg` depth
+- No blur or opacity—matches card surface system
+- Active tab: `text-primary font-semibold bg-primary/10`
+- Inactive tab: `text-muted-foreground font-medium`
+- Icon-label spacing: `gap-1` with `leading-none` labels
+
+**More Dropdown (v2.6.9):**
+- `rounded-xl border-border/60 bg-card shadow-lg` container
+- `w-52` width, clamped to `max-w-[calc(100vw-1rem)]`
+- Menu rows: `h-10 gap-3 px-3 rounded-lg`
+- Icon container: `w-4 h-4 shrink-0`
 
 ---
 
