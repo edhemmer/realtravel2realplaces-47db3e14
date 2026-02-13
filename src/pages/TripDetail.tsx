@@ -40,7 +40,22 @@ import { MobileNextUpCard } from '@/components/trips/MobileNextUpCard';
 import { MobileAddExpenseCard } from '@/components/trips/MobileAddExpenseCard';
 // Patch 2.2.3: Mobile-first layout components
 import { TripDetailLayout, type TripTab } from '@/components/layout';
+// v2.3.10: Mobile context header for secondary tabs
+import { MobileSectionHeader } from '@/components/trips/MobileSectionHeader';
 import { createContext, useContext, useState, useCallback, useMemo } from 'react';
+
+// v2.3.10: Tabs accessible from "More" menu that get a section header on mobile
+const MORE_TAB_LABELS: Partial<Record<TripTab, string>> = {
+  bookings: 'Bookings',
+  tour: 'Tour',
+  members: 'Members',
+  companions: 'Companions',
+  parking: 'Parking',
+  packing: 'Packing',
+  explore: 'Explore',
+  report: 'Report',
+  notes: 'Notes & Safety',
+};
 
 // Context to share ownership info with child components
 interface TripPermissionContextType {
@@ -286,7 +301,13 @@ export default function TripDetail() {
               </TabsList>
 
               <div className="mt-4 sm:mt-6">
-                {/* Patch 2.2.2: Use container components for canonical data flow */}
+                {/* v2.3.10: Mobile section header for secondary ("More") tabs */}
+                {isMobile && MORE_TAB_LABELS[activeTab] && (
+                  <MobileSectionHeader
+                    sectionTitle={MORE_TAB_LABELS[activeTab]!}
+                    tripName={trip.name}
+                  />
+                )}
                 <TabsContent value="summary">
                   <TripSummaryContainer tripId={trip.id} trip={trip} onDrillThrough={handleDrillThrough} />
                 </TabsContent>
