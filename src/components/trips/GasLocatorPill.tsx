@@ -161,7 +161,7 @@ export function GasLocatorPill({
   return (
     <Badge
       variant="secondary"
-      className="cursor-pointer hover:bg-secondary/80 transition-all gap-1.5 text-xs py-1 px-2.5 select-none press-scale-subtle"
+      className="cursor-pointer hover:bg-secondary/80 transition-all duration-150 gap-1.5 text-xs py-1 px-2.5 select-none press-scale-subtle animate-soft-in"
       onClick={handleClick}
       aria-disabled={locationLoading}
     >
