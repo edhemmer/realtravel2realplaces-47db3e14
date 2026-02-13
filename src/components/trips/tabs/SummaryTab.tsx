@@ -223,7 +223,7 @@ export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onV
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3 md:space-y-5">
       {/* Destination Header */}
       <Card className="bg-gradient-to-br from-primary/10 via-accent/5 to-background border-border/40 shadow-sm">
         <CardContent className="pt-5 pb-4">
@@ -306,8 +306,8 @@ export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onV
         />
       )}
 
-      {/* Section Divider */}
-      <div className="border-t border-border/20 my-1" />
+      {/* v2.6.13: Tighter section divider on mobile */}
+      <div className="border-t border-border/20 my-0.5 md:my-1" />
 
       {/* Destination Info & Recommendations */}
       <Card className="border-border/40 shadow-sm">
@@ -399,8 +399,8 @@ export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onV
         </p>
       </div>
 
-      {/* Section Divider */}
-      <div className="border-t border-border/20 my-1" />
+      {/* v2.6.13: Tighter section divider on mobile */}
+      <div className="border-t border-border/20 my-0.5 md:my-1" />
 
       {/* Timeline */}
       <Card className="border-border/40 shadow-sm">

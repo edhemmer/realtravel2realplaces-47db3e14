@@ -140,7 +140,7 @@ export function MobileNavigationRouter({
     const sectionLabel = MORE_TAB_LABELS[activeTab];
 
     return (
-      <div className="mt-4">
+      <div className="mt-2">
         {sectionLabel && (
           <MobileSectionHeader
             sectionTitle={sectionLabel}
