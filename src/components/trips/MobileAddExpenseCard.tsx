@@ -27,7 +27,7 @@ export function MobileAddExpenseCard({ onTap }: MobileAddExpenseCardProps) {
           </div>
           <button
             onClick={onTap}
-            className="w-full min-h-[40px] rounded-full bg-primary text-primary-foreground font-medium text-sm flex items-center justify-center gap-1.5 transition-transform active:scale-[0.98]"
+            className="w-full min-h-[40px] rounded-full bg-primary text-primary-foreground font-medium text-sm flex items-center justify-center gap-1.5 press-scale"
           >
             <Plus className="w-4 h-4" />
             Add Expense

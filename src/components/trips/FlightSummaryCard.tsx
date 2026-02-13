@@ -211,7 +211,7 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                     <Button
                       size="sm"
                       variant="default"
-                      className="shrink-0 h-8 text-xs"
+                      className="shrink-0 h-8 text-xs press-scale"
                       onClick={() => {
                         const url = flight.link_url!.startsWith('http') 
                           ? flight.link_url! 
@@ -227,7 +227,7 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                 
                 {/* Per-flight travelers */}
                 {hasLinkedTravelers && (
-                  <div className="mt-3 pt-3 border-t border-muted pl-2">
+                  <div className="mt-3 pt-3 border-t border-border/15 pl-2">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1.5">
                       <Users className="w-3 h-3" />
                       Travelers on this flight
@@ -255,7 +255,7 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
 
         {/* All travelers footer */}
         {companions.length > 0 && (
-          <div className="mt-4 pt-4 border-t">
+          <div className="mt-4 pt-4 border-t border-border/15">
             <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
               <Users className="w-3 h-3" />
               All trip travelers

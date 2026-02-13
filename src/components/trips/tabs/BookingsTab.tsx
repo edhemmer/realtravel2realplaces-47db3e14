@@ -947,7 +947,7 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                   if (normalizedCost <= 0 && normalizedMyShare <= 0) return null;
                   
                   return (
-                    <div className="flex gap-4 pt-2 border-t text-xs">
+                    <div className="flex gap-4 pt-2 border-t border-border/15 text-xs">
                       {normalizedCost > 0 && (
                         <div>
                           <span className="text-muted-foreground">Total: </span>

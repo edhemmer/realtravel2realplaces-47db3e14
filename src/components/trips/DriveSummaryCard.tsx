@@ -80,7 +80,7 @@ export function DriveSummaryCard({ trip, onAddGasExpense }: DriveSummaryCardProp
           <Button 
             variant="default" 
             size="sm" 
-            className="flex-1 h-8 text-xs"
+            className="flex-1 h-8 text-xs press-scale"
             onClick={openDirections}
           >
             <Navigation className="w-3.5 h-3.5 mr-1" />
@@ -89,7 +89,7 @@ export function DriveSummaryCard({ trip, onAddGasExpense }: DriveSummaryCardProp
           <Button 
             variant="ghost" 
             size="sm" 
-            className="flex-1 h-8 text-xs"
+            className="flex-1 h-8 text-xs press-scale-subtle"
             onClick={onAddGasExpense}
           >
             <Fuel className="w-3.5 h-3.5 mr-1" />
