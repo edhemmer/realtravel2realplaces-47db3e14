@@ -2,23 +2,24 @@
  * TripAlertsContainer - Container component for Trip Alerts display
  * 
  * Patch 2.2.2: Canonical trip containers & bug-fix-at-source architecture
+ * v2.6.12: Consumes DesktopTripShell context when available (no redundant alert computation)
  * 
  * This container:
- * - Fetches alert data through canonical hooks
- * - Combines weather alerts, departure reminders, parking expiry
+ * - Checks DesktopTripShell context first for pre-computed alerts (desktop path)
+ * - Falls back to independent hooks (mobile path / standalone use)
  * - Handles loading/error/empty states consistently
  * 
  * CANONICAL HELPERS USED:
- * - useTripWeather() for weather-based alerts
- * - useTravelAlerts() for combined alert generation
- * - useAccess() for plan-gated alert features
+ * - useDesktopTripShell() for shell-provided alerts (desktop)
+ * - useTravelAlerts() for combined alert generation (fallback)
  */
 
-import { Trip, Booking, Parking } from '@/types/database';
+import { Trip } from '@/types/database';
 import { useBookings } from '@/hooks/useBookings';
 import { useParking } from '@/hooks/useParking';
 import { useTravelAlerts } from '@/hooks/useTravelAlerts';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useDesktopTripShell } from './DesktopTripShell';
 import { TripSectionLoading, TripSectionError, EmptyAlertsState } from '@/components/trips/TripSectionStates';
 import { TravelAlertsCard } from '@/components/trips/TravelAlertsCard';
 
@@ -29,29 +30,35 @@ interface TripAlertsContainerProps {
 }
 
 /**
- * Container that wires canonical hooks to TravelAlertsCard
- * 
- * Uses useTravelAlerts() which generates alerts from:
- * - Weather changes (via useTripWeather)
- * - Departure reminders (from flight bookings)
- * - Parking expiry warnings
+ * Container that wires canonical hooks to TravelAlertsCard.
+ * v2.6.12: Prefers shell-provided alerts on desktop to avoid redundant computation.
  */
 export function TripAlertsContainer({ tripId, trip, className }: TripAlertsContainerProps) {
+  // v2.6.12: Check shell context first (desktop path)
+  const shell = useDesktopTripShell();
+  
+  // Fallback hooks — only compute independently when shell is not available
   const { data: userProfile } = useUserProfile();
   const { data: bookings = [], isLoading: bookingsLoading, error: bookingsError } = useBookings(tripId);
   const { data: parkingList = [], isLoading: parkingLoading, error: parkingError } = useParking(tripId);
   
   const temperatureUnit = (userProfile?.temperature_unit as 'fahrenheit' | 'celsius') || 'fahrenheit';
   
-  // Get travel alerts using canonical hook
-  const { alerts, hasAlerts, weatherLoading } = useTravelAlerts(
+  // Fallback alert computation (mobile path)
+  const { alerts: fallbackAlerts, hasAlerts: fallbackHasAlerts, weatherLoading } = useTravelAlerts(
     trip, 
     bookings, 
     parkingList,
     temperatureUnit
   );
   
-  const isLoading = bookingsLoading || parkingLoading || weatherLoading;
+  // v2.6.12: Use shell-provided alerts when available
+  const alerts = shell ? shell.alerts : fallbackAlerts;
+  const hasAlerts = shell ? shell.hasAlerts : fallbackHasAlerts;
+  
+  const isLoading = shell
+    ? shell.isAlertsLoading
+    : bookingsLoading || parkingLoading || weatherLoading;
   const hasError = bookingsError || parkingError;
   
   if (isLoading) {

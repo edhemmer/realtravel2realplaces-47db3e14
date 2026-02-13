@@ -28,3 +28,4 @@ export { TripTourContainer } from './TripTourContainer';
 export { TripExpensesContainer } from './TripExpensesContainer';
 export { TripAlertsContainer } from './TripAlertsContainer';
 export { MobileNavigationRouter } from './MobileNavigationRouter';
+export { DesktopTripShell, useDesktopTripShell } from './DesktopTripShell';

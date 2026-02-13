@@ -21,10 +21,12 @@ import {
   TripTourContainer,
   TripExpensesContainer,
 } from '@/containers';
-// v2.3.9: Alerts container for mobile bottom nav
+// v2.3.9: Alerts container
 import { TripAlertsContainer } from '@/containers/TripAlertsContainer';
 // v2.3.x: Canonical mobile navigation router
 import { MobileNavigationRouter } from '@/containers/MobileNavigationRouter';
+// v2.6.12: Desktop canonical shell
+import { DesktopTripShell } from '@/containers/DesktopTripShell';
 import { ParkingTab } from '@/components/trips/tabs/ParkingTab';
 import { PackingTab } from '@/components/trips/tabs/PackingTab';
 import { CompanionsTab } from '@/components/trips/tabs/CompanionsTab';
@@ -276,93 +278,96 @@ export default function TripDetail() {
           >
             {renderTripHeader()}
 
-            {/* Desktop tab content section */}
-            <div className="mt-4 md:mt-0">
-              <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                <TabsList className="w-full justify-start overflow-x-auto flex-nowrap hidden md:flex">
-                  <TabsTrigger value="summary">Summary</TabsTrigger>
-                  <TabsTrigger value="bookings">Bookings</TabsTrigger>
-                  {canAccessBusinessFeatures && (
-                    <TabsTrigger value="tour">Tour</TabsTrigger>
-                  )}
-                  <TabsTrigger value="companions">Companions</TabsTrigger>
-                  <TabsTrigger value="members">Members</TabsTrigger>
-                  <TabsTrigger value="expenses">Expenses</TabsTrigger>
-                  <TabsTrigger value="parking">Parking</TabsTrigger>
-                  <TabsTrigger value="packing">Packing</TabsTrigger>
-                  <TabsTrigger value="explore" className="relative">
-                    Explore
-                    {isPro && !hasDiscoveredExplore && (
-                      <Badge 
-                        variant="secondary" 
-                        className="absolute -top-1.5 -right-1.5 h-4 px-1.5 text-[10px] font-semibold bg-primary text-primary-foreground"
-                      >
-                        New
-                      </Badge>
+            {/* v2.6.12: DesktopTripShell — canonical state computed once for all tabs */}
+            <DesktopTripShell tripId={trip.id} trip={trip}>
+              {/* Desktop tab content section */}
+              <div className="mt-4 md:mt-0">
+                <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+                  <TabsList className="w-full justify-start overflow-x-auto flex-nowrap hidden md:flex">
+                    <TabsTrigger value="summary">Summary</TabsTrigger>
+                    <TabsTrigger value="bookings">Bookings</TabsTrigger>
+                    {canAccessBusinessFeatures && (
+                      <TabsTrigger value="tour">Tour</TabsTrigger>
                     )}
-                  </TabsTrigger>
-                  {isPro && (
-                    <TabsTrigger value="report">Report</TabsTrigger>
-                  )}
-                  <TabsTrigger value="notes">Notes & Safety</TabsTrigger>
-                </TabsList>
+                    <TabsTrigger value="companions">Companions</TabsTrigger>
+                    <TabsTrigger value="members">Members</TabsTrigger>
+                    <TabsTrigger value="expenses">Expenses</TabsTrigger>
+                    <TabsTrigger value="parking">Parking</TabsTrigger>
+                    <TabsTrigger value="packing">Packing</TabsTrigger>
+                    <TabsTrigger value="explore" className="relative">
+                      Explore
+                      {isPro && !hasDiscoveredExplore && (
+                        <Badge 
+                          variant="secondary" 
+                          className="absolute -top-1.5 -right-1.5 h-4 px-1.5 text-[10px] font-semibold bg-primary text-primary-foreground"
+                        >
+                          New
+                        </Badge>
+                      )}
+                    </TabsTrigger>
+                    {isPro && (
+                      <TabsTrigger value="report">Report</TabsTrigger>
+                    )}
+                    <TabsTrigger value="notes">Notes & Safety</TabsTrigger>
+                  </TabsList>
 
-                <div className="mt-4 sm:mt-6">
-                  <TabsContent value="summary">
-                    <TripSummaryContainer tripId={trip.id} trip={trip} onDrillThrough={handleDrillThrough} />
-                  </TabsContent>
-                  <TabsContent value="bookings">
-                    <TripBookingsContainer 
-                      tripId={trip.id}
-                      trip={trip}
-                      highlightId={drillTarget?.tab === 'bookings' ? drillTarget.recordId : undefined}
-                      onHighlightConsumed={clearDrillTarget}
-                    />
-                  </TabsContent>
-                  <TabsContent value="timeline">
-                    <TripBookingsContainer tripId={trip.id} trip={trip} />
-                  </TabsContent>
-                  {canAccessBusinessFeatures && (
-                    <TabsContent value="tour">
-                      <TripTourContainer tripId={trip.id} trip={trip} />
+                  <div className="mt-4 sm:mt-6">
+                    <TabsContent value="summary">
+                      <TripSummaryContainer tripId={trip.id} trip={trip} onDrillThrough={handleDrillThrough} />
                     </TabsContent>
-                  )}
-                  <TabsContent value="companions">
-                    <CompanionsTab tripId={trip.id} />
-                  </TabsContent>
-                  <TabsContent value="members">
-                    <MembersTab tripId={trip.id} />
-                  </TabsContent>
-                  <TabsContent value="expenses">
-                    <TripExpensesContainer tripId={trip.id} trip={trip} autoOpenAdd={autoOpenExpense} onAutoOpenConsumed={() => setAutoOpenExpense(false)} />
-                  </TabsContent>
-                  <TabsContent value="parking">
-                    <ParkingTab 
-                      tripId={trip.id}
-                      highlightId={drillTarget?.tab === 'parking' ? drillTarget.recordId : undefined}
-                      onHighlightConsumed={clearDrillTarget}
-                    />
-                  </TabsContent>
-                  <TabsContent value="packing">
-                    <PackingTab tripId={trip.id} />
-                  </TabsContent>
-                  <TabsContent value="explore">
-                    <ExploreTab tripId={trip.id} trip={trip} />
-                  </TabsContent>
-                  {isPro && (
-                    <TabsContent value="report">
-                      <TripSummaryReportTab tripId={trip.id} />
+                    <TabsContent value="bookings">
+                      <TripBookingsContainer 
+                        tripId={trip.id}
+                        trip={trip}
+                        highlightId={drillTarget?.tab === 'bookings' ? drillTarget.recordId : undefined}
+                        onHighlightConsumed={clearDrillTarget}
+                      />
                     </TabsContent>
-                  )}
-                  <TabsContent value="notes">
-                    <NotesTab tripId={trip.id} />
-                  </TabsContent>
-                  <TabsContent value="alerts">
-                    <TripAlertsContainer tripId={trip.id} trip={trip} />
-                  </TabsContent>
-                </div>
-              </Tabs>
-            </div>
+                    <TabsContent value="timeline">
+                      <TripBookingsContainer tripId={trip.id} trip={trip} />
+                    </TabsContent>
+                    {canAccessBusinessFeatures && (
+                      <TabsContent value="tour">
+                        <TripTourContainer tripId={trip.id} trip={trip} />
+                      </TabsContent>
+                    )}
+                    <TabsContent value="companions">
+                      <CompanionsTab tripId={trip.id} />
+                    </TabsContent>
+                    <TabsContent value="members">
+                      <MembersTab tripId={trip.id} />
+                    </TabsContent>
+                    <TabsContent value="expenses">
+                      <TripExpensesContainer tripId={trip.id} trip={trip} autoOpenAdd={autoOpenExpense} onAutoOpenConsumed={() => setAutoOpenExpense(false)} />
+                    </TabsContent>
+                    <TabsContent value="parking">
+                      <ParkingTab 
+                        tripId={trip.id}
+                        highlightId={drillTarget?.tab === 'parking' ? drillTarget.recordId : undefined}
+                        onHighlightConsumed={clearDrillTarget}
+                      />
+                    </TabsContent>
+                    <TabsContent value="packing">
+                      <PackingTab tripId={trip.id} />
+                    </TabsContent>
+                    <TabsContent value="explore">
+                      <ExploreTab tripId={trip.id} trip={trip} />
+                    </TabsContent>
+                    {isPro && (
+                      <TabsContent value="report">
+                        <TripSummaryReportTab tripId={trip.id} />
+                      </TabsContent>
+                    )}
+                    <TabsContent value="notes">
+                      <NotesTab tripId={trip.id} />
+                    </TabsContent>
+                    <TabsContent value="alerts">
+                      <TripAlertsContainer tripId={trip.id} trip={trip} />
+                    </TabsContent>
+                  </div>
+                </Tabs>
+              </div>
+            </DesktopTripShell>
           </TripDetailLayout>
         )}
       </Layout>
