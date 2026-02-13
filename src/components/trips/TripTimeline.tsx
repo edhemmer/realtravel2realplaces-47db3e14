@@ -124,7 +124,7 @@ export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimel
       )}
       
       {/* Event list */}
-      <div className="space-y-0">
+      <div className="space-y-0.5">
         {events.map((event, index) => {
           // v2.1.22: Build subtitle dynamically for flights
           const subtitle = event.eventType === 'flight' 
@@ -146,11 +146,11 @@ export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimel
               </div>
               
               {/* Event content */}
-              <div className="flex-1 pb-4 min-w-0">
+              <div className="flex-1 pb-3 min-w-0">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-sm truncate">{event.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
+                    <p className="font-medium text-[13px] leading-snug truncate">{event.title}</p>
+                    <p className="text-[11px] text-muted-foreground/80 truncate mt-0.5">{subtitle}</p>
                     {/* Activity-specific badges */}
                     {event.bookingType === 'activity' && (
                       <div className="flex flex-wrap gap-1 mt-1">
@@ -174,12 +174,12 @@ export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimel
                       </div>
                     )}
                   </div>
-                  <div className="text-right text-xs shrink-0">
-                    <p className="font-medium">
+                  <div className="text-right shrink-0 tabular-nums">
+                    <p className="font-medium text-xs">
                       {/* v2.2.4: Use direct date extraction from stored string — no Date() timezone shifting */}
                       {formatLocalDateDirect(event.eventLocalDateTime, datetimeFormat === 'DD/MM/YYYY 24h') || '--'}
                     </p>
-                    <p className={event.hasExplicitTime ? 'text-muted-foreground' : 'text-destructive font-medium'}>
+                    <p className={`text-[11px] ${event.hasExplicitTime ? 'text-muted-foreground/80' : 'text-destructive font-medium'}`}>
                       {/* v2.2.4: Use direct time extraction from stored string — no Date() timezone shifting */}
                       {event.hasExplicitTime
                         ? (formatLocalTimeDirect(event.eventLocalDateTime, datetimeFormat === 'DD/MM/YYYY 24h') || UNKNOWN_TIME_PLACEHOLDER)
@@ -188,12 +188,12 @@ export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimel
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-2 mt-1">
+                <div className="flex gap-1.5 mt-1">
                   {(event.address || event.departureAirportCode || event.title) && resolveMapsFromTimelineEvent(event) && (
                     <Button
                       size="sm"
-                      variant="ghost"
-                      className="h-6 px-2 text-xs"
+                      variant="default"
+                      className="h-6 px-2.5 text-[11px] rounded-full"
                       onClick={(e) => openInMapsResolved(event, e)}
                     >
                       <Navigation className="w-3 h-3 mr-1" />
@@ -204,7 +204,7 @@ export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimel
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-6 px-2 text-xs"
+                      className="h-6 px-2 text-[11px]"
                       onClick={(e) => openExternalUrl(event.linkUrl, e)}
                     >
                       <ExternalLink className="w-3 h-3 mr-1" />

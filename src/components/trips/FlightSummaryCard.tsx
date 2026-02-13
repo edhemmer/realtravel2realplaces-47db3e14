@@ -79,21 +79,21 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
   };
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden shadow-sm">
       <CardHeader className="pb-3 bg-gradient-to-r from-sky-50 to-primary/5 dark:from-sky-950/30 dark:to-primary/10">
-        <CardTitle className="text-base flex items-center justify-between">
+        <CardTitle className="text-sm font-semibold flex items-center justify-between">
           <span className="flex items-center gap-2">
-            <Plane className="w-5 h-5 text-primary" />
+            <Plane className="w-4 h-4 text-primary" />
             Flight Summary
           </span>
-          <Badge variant="secondary" className="flex items-center gap-1">
+          <Badge variant="outline" className="flex items-center gap-1 text-[10px] font-normal text-muted-foreground">
             <Users className="w-3 h-3" />
             {totalTravelers} traveler{totalTravelers !== 1 ? 's' : ''}
           </Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent className="pt-4">
-        <div className="space-y-4">
+      <CardContent className="pt-3">
+        <div className="space-y-3">
           {flights.map((flight, index) => {
             const flightCompanions = getCompanionsForFlight(flight.id);
             const hasLinkedTravelers = flightCompanions.length > 0;
@@ -206,12 +206,12 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                     )}
                   </div>
                   
-                  {/* Action Button */}
+                  {/* Action Button — Primary action for this card */}
                   {flight.link_url && (
                     <Button
                       size="sm"
-                      variant="outline"
-                      className="shrink-0 h-9"
+                      variant="default"
+                      className="shrink-0 h-8 text-xs"
                       onClick={() => {
                         const url = flight.link_url!.startsWith('http') 
                           ? flight.link_url! 
@@ -219,7 +219,7 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                         window.open(url, '_blank', 'noopener,noreferrer');
                       }}
                     >
-                      <ExternalLink className="w-4 h-4 mr-1" />
+                      <ExternalLink className="w-3.5 h-3.5 mr-1" />
                       Manage
                     </Button>
                   )}

@@ -50,10 +50,10 @@ export function TravelAlertsCard({ alerts, className }: TravelAlertsCardProps) {
           ? 'border-warning/50 bg-warning/5'
           : 'border-primary/50 bg-primary/5'
     )}>
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Bell className={cn('w-5 h-5', 
+          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <Bell className={cn('w-4 h-4', 
               criticalAlerts.length > 0 
                 ? 'text-destructive animate-pulse' 
                 : warningAlerts.length > 0 
@@ -79,7 +79,7 @@ export function TravelAlertsCard({ alerts, className }: TravelAlertsCardProps) {
           Active reminders and weather updates
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-2.5">
         {alerts.map((alert) => (
           <div
             key={alert.id}

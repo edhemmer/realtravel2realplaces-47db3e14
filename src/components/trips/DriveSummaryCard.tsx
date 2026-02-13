@@ -28,15 +28,15 @@ export function DriveSummaryCard({ trip, onAddGasExpense }: DriveSummaryCardProp
   };
 
   return (
-    <Card>
+    <Card className="shadow-sm">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base flex items-center justify-between">
+        <CardTitle className="text-sm font-semibold flex items-center justify-between">
           <span className="flex items-center gap-2">
             <Car className="w-4 h-4 text-primary" />
             Road Trip
           </span>
           {trip.estimated_miles && (
-            <Badge variant="secondary" className="flex items-center gap-1">
+            <Badge variant="outline" className="flex items-center gap-1 text-[10px] font-normal text-muted-foreground">
               <Calculator className="w-3 h-3" />
               ~{Math.round(trip.estimated_miles)} miles
             </Badge>
@@ -78,21 +78,21 @@ export function DriveSummaryCard({ trip, onAddGasExpense }: DriveSummaryCardProp
         {/* Quick Actions */}
         <div className="flex gap-2 pt-2">
           <Button 
-            variant="outline" 
+            variant="default" 
             size="sm" 
-            className="flex-1"
+            className="flex-1 h-8 text-xs"
             onClick={openDirections}
           >
-            <Navigation className="w-4 h-4 mr-1" />
+            <Navigation className="w-3.5 h-3.5 mr-1" />
             Get Directions
           </Button>
           <Button 
-            variant="outline" 
+            variant="ghost" 
             size="sm" 
-            className="flex-1"
+            className="flex-1 h-8 text-xs"
             onClick={onAddGasExpense}
           >
-            <Fuel className="w-4 h-4 mr-1" />
+            <Fuel className="w-3.5 h-3.5 mr-1" />
             Add Gas
           </Button>
         </div>
