@@ -80,6 +80,8 @@ interface MobileNavigationRouterProps {
   /** External tab override (e.g. from MobileAddExpenseCard) */
   externalTab?: TripTab;
   onExternalTabConsumed?: () => void;
+  /** v2.6.21: Report active tab to parent for header section title */
+  onActiveTabChange?: (tab: TripTab) => void;
 }
 
 export function MobileNavigationRouter({
@@ -92,6 +94,7 @@ export function MobileNavigationRouter({
   onAutoOpenConsumed,
   externalTab,
   onExternalTabConsumed,
+  onActiveTabChange,
 }: MobileNavigationRouterProps) {
   const { isPro, canAccessBusinessFeatures } = useAccess();
   const { hasDiscovered: hasDiscoveredExplore, markDiscovered: markExploreDiscovered } = useExploreDiscovery();
@@ -100,7 +103,13 @@ export function MobileNavigationRouter({
   const { timelineEvents } = useCanonicalTripState(tripId, trip);
 
   // v2.3.x: Mobile tab state — defaults to 'now'
-  const [activeTab, setActiveTab] = useState<TripTab>('now');
+  const [activeTab, setActiveTabRaw] = useState<TripTab>('now');
+
+  // v2.6.21: Wrap setActiveTab to report changes to parent
+  const setActiveTab = useCallback((tab: TripTab) => {
+    setActiveTabRaw(tab);
+    onActiveTabChange?.(tab);
+  }, [onActiveTabChange]);
 
   // v2.3.x: Legacy route protection — redirect summary/timeline → now
   useEffect(() => {
@@ -151,14 +160,7 @@ export function MobileNavigationRouter({
 
     return (
       <div className="mt-2">
-        {/* v2.6.14: Inline section label for NOW tab */}
-        {activeTab === 'now' && (
-          <div className="md:hidden px-0.5 pt-1 pb-1.5">
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-primary/70">
-              Now
-            </span>
-          </div>
-        )}
+        {/* v2.6.21: Legacy standalone NOW label removed — section title now in header */}
         {/* v2.6.19: NOW execution pills — base + today actionable items */}
         {activeTab === 'now' && (
           <div className="mb-3">
