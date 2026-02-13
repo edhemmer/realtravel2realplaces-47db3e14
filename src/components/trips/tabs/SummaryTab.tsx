@@ -37,7 +37,7 @@ import {
   DatetimeFormatPreference,
 } from '@/lib/displayFormats';
 import { 
-  Calendar, MapPin, Download, ExternalLink, 
+  Calendar, MapPin, Download, ExternalLink, Loader2,
   Cloud, Sun, CloudRain, Snowflake, Info, Globe, Utensils, Camera, Bell, PartyPopper
 } from 'lucide-react';
 import { format, parseISO, isAfter, differenceInDays } from 'date-fns';
@@ -125,7 +125,7 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
   const tripDays = differenceInDays(parseISO(trip.end_date), parseISO(trip.start_date)) + 1;
 
   // v2.5.3: Device location for coordinate-aware Helpful Links
-  const { coords: deviceCoords } = useDeviceLocation();
+  const { coords: deviceCoords, isLoading: locationLoading } = useDeviceLocation();
   const locationCtx: LocationContext = useMemo(() => ({
     deviceCoords,
     city: trip.destination_city,
@@ -308,7 +308,28 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
             <Info className="w-4 h-4 text-primary" />
             Destination Info & Recommendations
           </CardTitle>
-          <CardDescription>Local links, dining (4+ stars, $-$$), and attractions</CardDescription>
+          <CardDescription className="flex items-center justify-between">
+            <span>Local links, dining (4+ stars, $-$$), and attractions</span>
+            {/* v2.5.4: Location-mode indicator */}
+            <span className="text-[10px] text-muted-foreground/70 shrink-0 ml-2">
+              {locationLoading ? (
+                <span className="flex items-center gap-1">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Getting location…
+                </span>
+              ) : deviceCoords ? (
+                <span className="flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  Using device location
+                </span>
+              ) : (
+                <span className="flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  Using trip location
+                </span>
+              )}
+            </span>
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-3">
@@ -332,7 +353,7 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
               </h4>
               <div className="space-y-1">
                 {destinationLinks.dining.map((link) => (
-                  <Button key={link.label} variant="ghost" size="sm" className="w-full justify-start h-8 text-xs" onClick={() => openExternalUrl(link.url)}>
+                  <Button key={link.label} variant="ghost" size="sm" disabled={locationLoading} className="w-full justify-start h-8 text-xs" onClick={() => openExternalUrl(link.url)}>
                     <link.icon className="w-3 h-3 mr-2" />
                     {link.label}
                     <ExternalLink className="w-3 h-3 ml-auto" />
@@ -346,7 +367,7 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
               </h4>
               <div className="space-y-1">
                 {destinationLinks.attractions.map((link) => (
-                  <Button key={link.label} variant="ghost" size="sm" className="w-full justify-start h-8 text-xs" onClick={() => openExternalUrl(link.url)}>
+                  <Button key={link.label} variant="ghost" size="sm" disabled={locationLoading} className="w-full justify-start h-8 text-xs" onClick={() => openExternalUrl(link.url)}>
                     <link.icon className="w-3 h-3 mr-2" />
                     {link.label}
                     <ExternalLink className="w-3 h-3 ml-auto" />
