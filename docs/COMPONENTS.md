@@ -50,11 +50,13 @@ Main trip view with mobile-first tabbed interface.
 - Tab navigation (Summary, Bookings, Parking, Expenses, etc.)
 - Drill-through navigation between tabs
 - Record highlighting on navigation
+- Mobile header: section mode title in primary color (v2.6.25), spacing-driven hierarchy with no divider (v2.6.27)
+- TripHeaderWidgets hidden on mobile header; rendered inside NOW tab via ExecutionZone (v2.6.28)
 
 **Mobile Navigation:**
 On viewports < 768px, navigation switches from top tabs to a fixed bottom navigation bar with:
-- Primary tabs: Summary, Timeline, Expenses, Alerts
-- "More" dropdown: Bookings, Tour (Business), Members, Companions, Parking, Packing, Explore, Report (Pro), Notes & Safety
+- Primary tabs: NOW, PLAN, EXPLORE, EXPENSES, MORE
+- "More" dropdown: Bookings, Tour (Business), Members, Companions, Parking, Packing, Alerts, Report (Pro), Notes & Safety
 
 **Drill-Through Target Type:**
 ```typescript
@@ -209,16 +211,41 @@ interface ExpenseCardProps {
 
 ### TripHeaderWidgets (`src/components/trips/TripHeaderWidgets.tsx`)
 
-Widget container shown at top of trip detail view.
+Widget container for trip overview data. Desktop: rendered in trip header. Mobile: rendered inside NOW tab below ExecutionZone (v2.6.28).
 
 **Props:**
 - `trip: Trip`
-- `tripId: string`
 
 **Includes:**
 - Weather widget
 - Cost summary
 - Parking status
+
+---
+
+### ExecutionZone (`src/components/trips/ExecutionZone.tsx`)
+
+v2.6.28: Mobile-only Command Center rendered at the top of the NOW tab. Execution-first: actions appear before informational widgets.
+
+**Props:**
+```typescript
+interface ExecutionZoneProps {
+  timelineEvents: CanonicalTimelineEvent[];
+  onExplore: () => void;
+  onAddExpense: () => void;
+}
+```
+
+**Sections:**
+- A) Primary Action Row (always visible): Explore (primary/blue) + Add Expense (success/green)
+- B) Conditional Timeline Action Row: today-relevant actionable items with Navigate buttons
+- C) Empty State: "No scheduled actions today."
+
+**Button Standardization (v2.6.30/v2.6.33):**
+- Explore = `bg-primary` (ocean teal blue) everywhere
+- Add Expense = `bg-success` (emerald green) everywhere
+- All primary actions: `h-12 rounded-xl font-semibold shadow-sm`
+- Consistent across NOW tab, Expenses tab, and all mobile contexts
 
 ---
 

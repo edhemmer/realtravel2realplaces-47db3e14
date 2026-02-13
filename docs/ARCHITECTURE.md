@@ -90,7 +90,7 @@ docs/
 └── COMPONENTS.md        # Component documentation
 ```
 
-### Mobile-First Architecture (Patch 2.2.3)
+### Mobile-First Architecture (Patch 2.2.3, refined v2.6.x)
 
 The app follows a mobile-first responsive design:
 
@@ -106,6 +106,9 @@ Key mobile features:
 - Bottom nav visible across all trip sections
 - Surface styling aligned with card system (v2.6.10): `bg-card`, `border-border/60`, `shadow-lg`
 - Consistent active/inactive tab styling with `font-semibold`/`font-medium` weight shift
+- Section mode title in primary color, spacing-driven hierarchy with no divider (v2.6.25–v2.6.27)
+- ExecutionZone: execution-first Command Center at top of NOW tab (v2.6.28)
+- Global action button standardization: Explore=primary/blue, Add Expense=success/green (v2.6.30–v2.6.33)
 
 ---
 
