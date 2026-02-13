@@ -558,7 +558,7 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex flex-col gap-3">
         {/* Header v1.3.2 */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -610,7 +610,7 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
       />
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-5 md:grid-cols-3">
 
         {/* v2.1.3: Business vs Personal Summary for Mixed Trips */}
         {isMixedTrip && purposeBreakdown && (
@@ -620,19 +620,19 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
         )}
 
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-3">
             <CardDescription>Total Expenses</CardDescription>
             <CardTitle className="text-2xl">{formatCurrency(displayTotalAmount)}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-3">
             <CardDescription>{MY_SHARE_LABEL}</CardDescription>
             <CardTitle className="text-2xl text-primary">{formatCurrency(displayTotalMyShare)}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-3">
             <CardDescription>Top Category</CardDescription>
             <CardTitle className="text-lg capitalize">
               {Object.entries(byCategory)

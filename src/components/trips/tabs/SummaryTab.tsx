@@ -219,7 +219,7 @@ export function SummaryTab({ tripId, trip, onDrillThrough }: SummaryTabProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Destination Header */}
       <Card className="bg-gradient-to-br from-primary/10 via-accent/5 to-background border-border/40 shadow-sm">
         <CardContent className="pt-5 pb-4">
