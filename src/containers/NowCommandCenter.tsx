@@ -1,21 +1,18 @@
 /**
- * v3.1.0: NowCommandCenter Container
+ * v3.10.8: NowCommandCenter Container
  *
  * Mobile-only execution-first command center for the NOW tab.
- * Replaces TripSummaryContainer on mobile — desktop unchanged.
+ * 
+ * CANONICAL SINGLE SOURCE: Calls buildCanonicalTodayExecutionStack ONCE
+ * and passes pre-sorted output to all child surfaces. No child re-sorts.
  *
  * RENDER TREE:
- * 1. NextCriticalActionCard — countdown to next event
- * 2. ActiveAlertsStack — max 3, severity-ordered
- * 3. TodayCompactTimeline — today-only events, past dimmed
- * 4. StickyQuickOpsStrip — icon-only actions above bottom nav
- *
- * REMOVED FROM NOW (relocated to PLAN/desktop):
- * - Multi-day timeline
- * - Full booking cards
- * - Destination info
- * - Trip totals
- * - Explore content
+ * 1. StickyQuickOpsStrip — icon-only quick actions
+ * 2. Timeline button — routes to full timeline
+ * 3. TodayCriticalActionsCard — critical actions (pre-sorted)
+ * 4. NextCriticalActionCard — countdown to next event
+ * 5. ActiveAlertsStack — max 3, severity-ordered
+ * 6. TodayCompactTimeline — today-only events (pre-sorted)
  */
 
 import { useState, useCallback, useMemo } from 'react';
@@ -35,6 +32,7 @@ import { StickyQuickOpsStrip } from '@/components/trips/now/StickyQuickOpsStrip'
 import { TripSectionLoading } from '@/components/trips/TripSectionStates';
 import { getLocalNowString } from '@/lib/canonicalNextStop';
 import { getNowParkingHighlight } from '@/lib/canonicalParkingHighlight';
+import { buildCanonicalTodayExecutionStack } from '@/lib/canonicalTodayExecutionStack';
 import { useForegroundResume } from '@/hooks/useForegroundResume';
 
 interface NowCommandCenterProps {
@@ -113,6 +111,19 @@ export function NowCommandCenter({
     return new Set([activeParkingHighlight.parking.id]);
   }, [activeParkingHighlight]);
 
+  // v3.10.8: SINGLE canonical TODAY execution stack — computed ONCE
+  const todayExecution = useMemo(
+    () => buildCanonicalTodayExecutionStack(
+      timelineEvents,
+      undefined,
+      undefined,
+      activeStayAddress,
+      activeParkingIds,
+    ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [timelineEvents, activeStayAddress, activeParkingIds, resumeTick]
+  );
+
   if (isLoading) {
     return <TripSectionLoading message="Loading trip..." />;
   }
@@ -138,13 +149,13 @@ export function NowCommandCenter({
         <ChevronRight className="w-4 h-4 text-primary/60" />
       </button>
 
-      {/* 2. Critical Today Actions (Checkout → Return → Gas) */}
-      <TodayCriticalActionsCard timelineEvents={timelineEvents} activeStayAddress={activeStayAddress} />
+      {/* 3. Critical Today Actions — from canonical stack (pre-sorted, no re-sort) */}
+      <TodayCriticalActionsCard criticalActions={todayExecution.criticalActions} />
 
-      {/* 3. NextCriticalActionCard */}
+      {/* 4. NextCriticalActionCard */}
       <NextCriticalActionCard tripId={tripId} trip={trip} />
 
-      {/* 3. ActiveAlertsStack — max 3, severity-ordered */}
+      {/* 5. ActiveAlertsStack — max 3, severity-ordered */}
       {hasAlerts && (
         <TravelAlertsCard
           alerts={alerts}
@@ -153,11 +164,8 @@ export function NowCommandCenter({
         />
       )}
 
-      {/* 4. TodayCompactTimeline — today-only actionable items */}
-      <TodayCompactTimeline
-        timelineEvents={timelineEvents}
-        activeParkingIds={activeParkingIds}
-      />
+      {/* 6. TodayCompactTimeline — from canonical stack (pre-sorted, no re-sort) */}
+      <TodayCompactTimeline todayTimelineRows={todayExecution.todayTimelineRows} />
 
       {/* Gas Expense Dialog */}
       <GasExpenseDialog

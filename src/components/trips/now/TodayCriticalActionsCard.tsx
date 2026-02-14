@@ -1,17 +1,14 @@
 /**
- * v3.10.7: TodayCriticalActionsCard
+ * v3.10.8: TodayCriticalActionsCard
  *
  * Renders canonical critical actions (Checkout, Get Gas, Return Rental, Drive Smart)
- * from the canonical resolver. No custom logic — purely driven by resolver output.
+ * from the canonical TODAY execution stack. No sorting — receives pre-ordered actions.
  */
 
-import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Navigation, Building2, Car, Fuel, AlertTriangle, Route } from 'lucide-react';
-import type { CanonicalTimelineEvent } from '@/lib/canonicalTripState';
 import {
-  getTodayCriticalActions,
   buildGasSearchUrl,
   buildDriveSmartUrl,
   type TodayCriticalAction,
@@ -22,8 +19,8 @@ import {
 } from '@/lib/mapsDestination';
 
 interface TodayCriticalActionsCardProps {
-  timelineEvents: CanonicalTimelineEvent[];
-  activeStayAddress?: string | null;
+  /** Pre-sorted critical actions from buildCanonicalTodayExecutionStack */
+  criticalActions: TodayCriticalAction[];
 }
 
 const ACTION_ICONS: Record<string, React.ReactNode> = {
@@ -62,13 +59,8 @@ function handleNavigate(action: TodayCriticalAction) {
   }
 }
 
-export function TodayCriticalActionsCard({ timelineEvents, activeStayAddress }: TodayCriticalActionsCardProps) {
-  const actions = useMemo(
-    () => getTodayCriticalActions(timelineEvents, undefined, undefined, activeStayAddress),
-    [timelineEvents, activeStayAddress]
-  );
-
-  if (actions.length === 0) return null;
+export function TodayCriticalActionsCard({ criticalActions }: TodayCriticalActionsCardProps) {
+  if (criticalActions.length === 0) return null;
 
   return (
     <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-background shadow-sm">
@@ -79,7 +71,7 @@ export function TodayCriticalActionsCard({ timelineEvents, activeStayAddress }: 
         </CardTitle>
       </CardHeader>
       <CardContent className="px-4 pb-3 space-y-2.5">
-        {actions.map((action) => (
+        {criticalActions.map((action) => (
           <div
             key={action.id}
             className="flex items-center gap-3 py-2"
