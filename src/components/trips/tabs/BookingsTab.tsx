@@ -49,6 +49,8 @@ import { ParseOriginHint, EstimatedHint, ParseOrigin } from '@/components/trips/
 import { normalizeFlightBookingCosts } from '@/lib/expenseCalculations';
 // v2.2.12: Import ingestion validator for confirmation time checking
 import { validateParsedBookingTimes, shouldValidateBookingType } from '@/lib/bookingIngestionValidator';
+// v3.9.5: Direct digit extraction for edit form population
+import { extractDatetimeLocalValue } from '@/lib/canonicalTimeNormalizer';
 import { normalizeDatetimeForStorage } from '@/lib/datetimeIntegrity';
 
 // Helper to safely open external URLs in new tab
@@ -235,14 +237,15 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
   };
 
   // Helper to validate parsed dates before applying to form
+  // v3.9.5: Extract digits directly — no Date() timezone shift
   const validateBookingDates = (startDatetime: string | null, endDatetime: string | null): { valid: boolean; startDt?: string; endDt?: string } => {
     if (!startDatetime) return { valid: true };
     
-    const startDt = new Date(startDatetime).toISOString().slice(0, 16);
-    const endDt = endDatetime ? new Date(endDatetime).toISOString().slice(0, 16) : '';
+    const startDt = extractDatetimeLocalValue(startDatetime);
+    const endDt = endDatetime ? extractDatetimeLocalValue(endDatetime) : '';
     
-    // Check if end is before start (invalid)
-    if (endDt && new Date(endDt) < new Date(startDt)) {
+    // Check if end is before start (invalid) — lexicographic comparison on YYYY-MM-DDTHH:mm
+    if (endDt && endDt < startDt) {
       return { valid: false };
     }
     
@@ -545,8 +548,9 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
     setBookingType(booking.booking_type);
     setFormData({
       vendor_name: booking.vendor_name || '',
-      start_datetime: booking.start_datetime ? new Date(booking.start_datetime).toISOString().slice(0, 16) : '',
-      end_datetime: booking.end_datetime ? new Date(booking.end_datetime).toISOString().slice(0, 16) : '',
+      // v3.9.5: Extract digits directly — no Date() timezone shift
+      start_datetime: extractDatetimeLocalValue(booking.start_datetime),
+      end_datetime: extractDatetimeLocalValue(booking.end_datetime),
       address: booking.address || '',
       confirmation_number: booking.confirmation_number || '',
       total_cost: booking.total_cost?.toString() || '',
@@ -577,11 +581,13 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
 
   // Actual save logic (called after validation or confirmation)
   const performSubmit = async () => {
+    // v3.9.5: Send datetime-local values directly — digits represent destination-local time.
+    // Do NOT convert via new Date().toISOString() which uses device timezone.
     const bookingData = {
       booking_type: bookingType,
       vendor_name: formData.vendor_name,
-      start_datetime: new Date(formData.start_datetime).toISOString(),
-      end_datetime: formData.end_datetime ? new Date(formData.end_datetime).toISOString() : null,
+      start_datetime: formData.start_datetime,
+      end_datetime: formData.end_datetime || null,
       address: formData.address || null,
       confirmation_number: formData.confirmation_number || null,
       total_cost: formData.total_cost ? parseFloat(formData.total_cost) : 0,
