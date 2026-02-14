@@ -114,6 +114,11 @@ export interface UpdateEngagementInput {
 /**
  * Fetch all Engagements for a Trip, ordered by date and start_time
  */
+/**
+ * v3.8.5: Defensive filter — only show user-curated stops ('manual' or 'parsed').
+ * Explicitly excludes any system-derived origin values to prevent auto-drafted
+ * items from appearing in Tour, even if future code paths introduce them.
+ */
 export function useEngagements(tripId: string) {
   return useQuery({
     queryKey: ['engagements', tripId],
@@ -122,6 +127,7 @@ export function useEngagements(tripId: string) {
         .from('engagements')
         .select('*')
         .eq('trip_id', tripId)
+        .in('origin', ['manual', 'parsed'])
         .order('date', { ascending: true })
         .order('start_time', { ascending: true });
 
@@ -241,6 +247,11 @@ export function useUpdateEngagement() {
 /**
  * Delete an Engagement
  */
+/**
+ * v3.8.5: Hard delete + broad cache invalidation.
+ * Invalidates engagements, trip-events, and trip-detail queries to ensure
+ * the deleted stop never reappears on refresh, resume, or hydration.
+ */
 export function useDeleteEngagement() {
   const queryClient = useQueryClient();
 
@@ -257,8 +268,12 @@ export function useDeleteEngagement() {
       }
     },
     onSuccess: (_, variables) => {
+      // Invalidate all caches that could resurrect the deleted stop
       queryClient.invalidateQueries({ queryKey: ['engagements', variables.tripId] });
       queryClient.invalidateQueries({ queryKey: ['engagement', variables.id] });
+      // v3.8.5: Also invalidate trip-events so the trigger-deleted event disappears
+      queryClient.invalidateQueries({ queryKey: ['trip-events', variables.tripId] });
+      queryClient.invalidateQueries({ queryKey: ['trip-events'] });
     },
   });
 }
