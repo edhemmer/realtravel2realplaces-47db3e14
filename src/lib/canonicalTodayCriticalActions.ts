@@ -59,6 +59,10 @@ export interface TodayCriticalAction {
   navTarget: CriticalActionNavTarget;
   sourceId: string;
   sourceType: 'booking' | 'parking' | 'engagement';
+  /** v3.10.10: Location display (e.g., IATA code for flights) — never confirmation number */
+  displayLocation?: string;
+  /** v3.10.10: Sub-meta display (e.g., confirmation number) — separate from location */
+  displaySubMeta?: string;
 }
 
 /**
@@ -214,6 +218,7 @@ export function getTodayCriticalActionsWithBuffer(
         };
       }
       // v3.10.9: Emit FLIGHT critical action (only future flights)
+      // v3.10.10: Separate displayLocation (IATA) from displaySubMeta (confirmation)
       if (eventTime >= nowTime) {
         actions.push({
           id: `critical-flight-${event.sourceId}`,
@@ -224,6 +229,8 @@ export function getTodayCriticalActionsWithBuffer(
           navTarget: { address: event.address },
           sourceId: event.sourceId,
           sourceType: event.sourceType,
+          displayLocation: event.departureAirportCode || undefined,
+          displaySubMeta: event.confirmationNumber || undefined,
         });
       }
     }
