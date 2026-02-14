@@ -18,10 +18,13 @@ import {
 import { getLocalNowString } from '@/lib/canonicalNextStop';
 import type { CanonicalTimelineEvent } from '@/lib/canonicalTripState';
 import { cn } from '@/lib/utils';
+import { formatParkingTime12h, getParkingWindowMs } from '@/lib/canonicalParkingHighlight';
 
 interface TodayCompactTimelineProps {
   timelineEvents: CanonicalTimelineEvent[];
   onViewFullTimeline: () => void;
+  /** v3.7.1: Set of parking IDs that are currently active. Parking not in this set is filtered out. */
+  activeParkingIds?: Set<string>;
 }
 
 function extractDate(dt: string | undefined): string | null {
@@ -62,7 +65,7 @@ const getEventIcon = (type: string) => {
   }
 };
 
-export function TodayCompactTimeline({ timelineEvents, onViewFullTimeline }: TodayCompactTimelineProps) {
+export function TodayCompactTimeline({ timelineEvents, onViewFullTimeline, activeParkingIds }: TodayCompactTimelineProps) {
   const nowStr = getLocalNowString();
   const todayDate = nowStr.substring(0, 10);
   const nowTime = nowStr.substring(11, 16);
@@ -71,14 +74,21 @@ export function TodayCompactTimeline({ timelineEvents, onViewFullTimeline }: Tod
     return timelineEvents
       .filter((e) => {
         const eventDate = extractDate(e.eventLocalDateTime);
-        return eventDate === todayDate;
+        if (eventDate !== todayDate) return false;
+
+        // v3.7.1: Filter out parking events that are not currently active
+        if (e.sourceType === 'parking' && activeParkingIds) {
+          if (!activeParkingIds.has(e.sourceId)) return false;
+        }
+
+        return true;
       })
       .sort((a, b) => {
         const ta = extractTime(a.eventLocalDateTime) || '99:99';
         const tb = extractTime(b.eventLocalDateTime) || '99:99';
         return ta.localeCompare(tb);
       });
-  }, [timelineEvents, todayDate]);
+  }, [timelineEvents, todayDate, activeParkingIds]);
 
   if (todayEvents.length === 0) {
     return (
@@ -109,8 +119,25 @@ export function TodayCompactTimeline({ timelineEvents, onViewFullTimeline }: Tod
       </CardHeader>
       <CardContent className="px-3 pb-2.5 space-y-0.5">
         {todayEvents.map((event) => {
-          const eventTime = extractTime(event.eventLocalDateTime);
-          const isPast = eventTime ? eventTime < nowTime : false;
+          // v3.7.1: For parking events, use Date() conversion for correct local time
+          // (parking datetimes are stored in UTC, substring extraction gives UTC digits)
+          let displayTime: string;
+          let isPast: boolean;
+          
+          if (event.sourceType === 'parking' && event.eventLocalDateTime) {
+            const eventMs = new Date(event.eventLocalDateTime).getTime();
+            if (!isNaN(eventMs)) {
+              displayTime = formatParkingTime12h(eventMs);
+              isPast = eventMs < Date.now();
+            } else {
+              displayTime = '--:--';
+              isPast = false;
+            }
+          } else {
+            const eventTime = extractTime(event.eventLocalDateTime);
+            displayTime = eventTime ? formatTime12h(eventTime) : '--:--';
+            isPast = eventTime ? eventTime < nowTime : false;
+          }
 
           return (
             <div
@@ -127,7 +154,7 @@ export function TodayCompactTimeline({ timelineEvents, onViewFullTimeline }: Tod
                 <p className="text-sm font-medium truncate">{event.title}</p>
               </div>
               <span className="text-xs text-muted-foreground tabular-nums shrink-0">
-                {eventTime ? formatTime12h(eventTime) : '--:--'}
+                {displayTime}
               </span>
             </div>
           );
