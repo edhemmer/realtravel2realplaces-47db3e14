@@ -28,6 +28,7 @@ const ACTION_ICONS: Record<string, React.ReactNode> = {
   GET_GAS: <Fuel className="w-4 h-4" />,
   RETURN_RENTAL: <Car className="w-4 h-4" />,
   DRIVE_SMART: <Route className="w-4 h-4" />,
+  DRIVE_SMART_AIRPORT: <Route className="w-4 h-4" />,
   FLIGHT: <Plane className="w-4 h-4" />,
 };
 
@@ -36,6 +37,7 @@ const ACTION_COLORS: Record<string, string> = {
   GET_GAS: 'text-emerald-600 bg-emerald-500/10',
   RETURN_RENTAL: 'text-primary bg-primary/10',
   DRIVE_SMART: 'text-blue-600 bg-blue-500/10',
+  DRIVE_SMART_AIRPORT: 'text-blue-600 bg-blue-500/10',
   FLIGHT: 'text-orange-600 bg-orange-500/10',
 };
 
@@ -46,7 +48,7 @@ function handleNavigate(action: TodayCriticalAction) {
     return;
   }
 
-  if (action.actionType === 'DRIVE_SMART') {
+  if (action.actionType === 'DRIVE_SMART' || action.actionType === 'DRIVE_SMART_AIRPORT') {
     const url = buildDriveSmartUrl(action.navTarget);
     window.open(url, '_blank', 'noopener,noreferrer');
     return;
@@ -106,7 +108,7 @@ export function TodayCriticalActionsCard({ criticalActions }: TodayCriticalActio
               onClick={() => handleNavigate(action)}
             >
               <Navigation className="w-3 h-3 mr-1" />
-              {action.actionType === 'DRIVE_SMART' ? 'Route' : 'Navigate'}
+              {(action.actionType === 'DRIVE_SMART' || action.actionType === 'DRIVE_SMART_AIRPORT') ? 'Route' : 'Navigate'}
             </Button>
           </div>
         ))}

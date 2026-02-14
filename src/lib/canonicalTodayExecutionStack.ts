@@ -74,6 +74,7 @@ const EXECUTION_MODE_ALLOWED: Set<CriticalActionType> = new Set([
   'GET_GAS',
   'RETURN_RENTAL',
   'DRIVE_SMART',
+  'DRIVE_SMART_AIRPORT',
   'FLIGHT',
 ]);
 
