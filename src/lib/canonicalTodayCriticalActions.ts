@@ -112,8 +112,9 @@ export function getTodayCriticalActions(
 
     const eventTime = extractTime(event.eventLocalDateTime);
 
-    // Skip events that already passed
-    if (eventTime && eventTime < nowTime) continue;
+    // v3.9.2: Stay checkout must remain visible until checkout time passes
+    // Other events skip once passed
+    if (eventTime && eventTime < nowTime && event.eventType !== 'hotel_checkout') continue;
 
     if (event.eventType === 'hotel_checkout') {
       actions.push({

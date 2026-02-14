@@ -630,6 +630,8 @@ function sortTimelineExecutionOrder(events: CanonicalTimelineEvent[]): Canonical
         // Classify: 0=active, 1=future, 2=past
         const classifyStatus = (startT: string, evt: CanonicalTimelineEvent): number => {
           if (startT > nowTime) return 1; // future
+          // v3.9.2: hotel_checkin is ACTIVE all day (until checkout event passes)
+          if (evt.eventType === 'hotel_checkin') return 0; // always active on check-in day
           // Started — check if ended
           const endT = getEventEndTime(evt);
           if (endT && endT <= nowTime) return 2; // past

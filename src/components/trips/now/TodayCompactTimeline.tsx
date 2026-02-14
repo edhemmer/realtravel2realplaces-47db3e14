@@ -17,7 +17,6 @@ import {
 import { getLocalNowString } from '@/lib/canonicalNextStop';
 import type { CanonicalTimelineEvent } from '@/lib/canonicalTripState';
 import { cn } from '@/lib/utils';
-import { formatParkingTime12h } from '@/lib/canonicalParkingHighlight';
 
 interface TodayCompactTimelineProps {
   timelineEvents: CanonicalTimelineEvent[];
@@ -45,16 +44,6 @@ function formatTime12h(time: string): string {
   return `${h12}:${m} ${ampm}`;
 }
 
-/**
- * v3.7.3: Get local day key from ms timestamp using device local time.
- */
-function getLocalDayKey(ms: number): string {
-  const d = new Date(ms);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
 
 const getEventIcon = (type: string) => {
   switch (type) {
@@ -82,21 +71,21 @@ export function TodayCompactTimeline({ timelineEvents, activeParkingIds }: Today
   const todayEvents = useMemo(() => {
     return timelineEvents
       .filter((e) => {
-        // v3.7.3: For parking, use Date()-based local day key (UTC-stored datetimes)
+        // v3.9.2: Parking uses same string-based date comparison as other events
+        // eventLocalDateTime is already normalized by canonical time normalizer
         if (e.sourceType === 'parking') {
           if (activeParkingIds && !activeParkingIds.has(e.sourceId)) return false;
-          if (e.eventLocalDateTime) {
-            const eventMs = new Date(e.eventLocalDateTime).getTime();
-            if (!isNaN(eventMs)) {
-              return getLocalDayKey(eventMs) === todayDate;
-            }
-          }
-          return false;
+          const eventDate = extractDate(e.eventLocalDateTime);
+          return eventDate === todayDate;
         }
 
         // Non-parking: string-based date comparison
         const eventDate = extractDate(e.eventLocalDateTime);
         if (eventDate !== todayDate) return false;
+
+        // v3.9.2: Stay check-in events remain visible until checkout time passes
+        // (stays are ACTIVE from check-in until checkout — never hide early)
+        if (e.eventType === 'hotel_checkin') return true;
 
         // v3.7.3: Exclude expired items (event time already passed)
         const eventTime = extractTime(e.eventLocalDateTime);
@@ -126,24 +115,10 @@ export function TodayCompactTimeline({ timelineEvents, activeParkingIds }: Today
       </CardHeader>
       <CardContent className="px-3 pb-2.5 space-y-0.5">
         {todayEvents.map((event) => {
-          // v3.7.1: For parking events, use Date() conversion for correct local time
-          let displayTime: string;
-          let isPast: boolean;
-          
-          if (event.sourceType === 'parking' && event.eventLocalDateTime) {
-            const eventMs = new Date(event.eventLocalDateTime).getTime();
-            if (!isNaN(eventMs)) {
-              displayTime = formatParkingTime12h(eventMs);
-              isPast = eventMs < Date.now();
-            } else {
-              displayTime = '--:--';
-              isPast = false;
-            }
-          } else {
-            const eventTime = extractTime(event.eventLocalDateTime);
-            displayTime = eventTime ? formatTime12h(eventTime) : '--:--';
-            isPast = eventTime ? eventTime < nowTime : false;
-          }
+          // v3.9.2: All events use canonical string-based time extraction
+          const eventTime = extractTime(event.eventLocalDateTime);
+          const displayTime = eventTime ? formatTime12h(eventTime) : '--:--';
+          const isPast = eventTime ? eventTime < nowTime : false;
 
           return (
             <div
