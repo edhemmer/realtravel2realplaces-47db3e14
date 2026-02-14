@@ -1,56 +1,40 @@
 /**
- * v3.3.8: StickyQuickOpsStrip
+ * v3.4.2: StickyQuickOpsStrip
  *
- * Contextual quick-action bar for mobile NOW tab.
- * Actions: Parking, Timeline, Bookings.
- *
- * v3.3.8: Semantic color upgrade
- * - Timeline: solid primary (blue) bg, white icon/text
- * - Bookings: solid primary (blue) bg, white icon/text
- * - Parking: outline style, neutral gray
- *
- * Compact height (~44px). Hidden on desktop.
+ * Two-button quick-action bar for mobile NOW tab.
+ * Actions: Add Expense (emerald), Explore (navy).
+ * Compact, premium styling. Hidden on desktop.
  */
 
-import { CircleParking, CalendarDays, Plane } from 'lucide-react';
+import { DollarSign, Compass } from 'lucide-react';
 
 interface StickyQuickOpsStripProps {
-  onParking: () => void;
-  onTimeline: () => void;
-  onBookings: () => void;
+  onAddExpense: () => void;
+  onExplore: () => void;
 }
 
 export function StickyQuickOpsStrip({
-  onParking,
-  onTimeline,
-  onBookings,
+  onAddExpense,
+  onExplore,
 }: StickyQuickOpsStripProps) {
   return (
     <div className="md:hidden">
-      <div className="flex items-center justify-around bg-card/95 backdrop-blur-sm border border-border/60 rounded-2xl px-3 py-2 shadow-lg mx-auto max-w-sm">
+      <div className="flex items-center gap-4 bg-white border border-border/40 rounded-2xl px-3 py-2 mx-auto max-w-sm">
         <button
-          className="flex flex-col items-center gap-1 px-4 py-1.5 rounded-2xl bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 active:bg-primary/80 transition-colors"
-          onClick={onTimeline}
-          aria-label="Timeline"
+          className="flex-1 flex items-center justify-center gap-2 h-[52px] rounded-xl bg-success text-success-foreground shadow-sm hover:bg-success/90 active:scale-[0.98] transition-all"
+          onClick={onAddExpense}
+          aria-label="Add Expense"
         >
-          <CalendarDays className="w-5 h-5" />
-          <span className="text-[10px] font-semibold leading-none">Timeline</span>
+          <DollarSign className="w-5 h-5" />
+          <span className="text-sm font-medium">Add Expense</span>
         </button>
         <button
-          className="flex flex-col items-center gap-1 px-4 py-1.5 rounded-2xl bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 active:bg-primary/80 transition-colors"
-          onClick={onBookings}
-          aria-label="Bookings"
+          className="flex-1 flex items-center justify-center gap-2 h-[52px] rounded-xl bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 active:scale-[0.98] transition-all"
+          onClick={onExplore}
+          aria-label="Explore"
         >
-          <Plane className="w-5 h-5" />
-          <span className="text-[10px] font-semibold leading-none">Bookings</span>
-        </button>
-        <button
-          className="flex flex-col items-center gap-1 px-4 py-1.5 rounded-2xl border border-border/60 text-muted-foreground hover:bg-muted/50 active:bg-muted transition-colors"
-          onClick={onParking}
-          aria-label="Parking"
-        >
-          <CircleParking className="w-5 h-5" />
-          <span className="text-[10px] font-medium leading-none">Parking</span>
+          <Compass className="w-5 h-5" />
+          <span className="text-sm font-medium">Explore</span>
         </button>
       </div>
     </div>

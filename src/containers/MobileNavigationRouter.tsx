@@ -189,8 +189,8 @@ export function MobileNavigationRouter({
             onViewFullTimeline={() => handleTabChange('plan')}
             onParking={() => handleTabChange('parking')}
             onViewAllAlerts={() => handleTabChange('alerts')}
-            onTimeline={() => { handleTabChange('plan'); setPlanSubView('timeline'); }}
-            onBookings={() => { handleTabChange('plan'); setPlanSubView('bookings'); }}
+            onAddExpense={() => handleTabChange('expenses')}
+            onExplore={() => handleTabChange('explore')}
           />
         );
       case 'plan':
@@ -280,8 +280,8 @@ export function MobileNavigationRouter({
             onViewFullTimeline={() => handleTabChange('plan')}
             onParking={() => handleTabChange('parking')}
             onViewAllAlerts={() => handleTabChange('alerts')}
-            onTimeline={() => { handleTabChange('plan'); setPlanSubView('timeline'); }}
-            onBookings={() => { handleTabChange('plan'); setPlanSubView('bookings'); }}
+            onAddExpense={() => handleTabChange('expenses')}
+            onExplore={() => handleTabChange('explore')}
           />
         );
     }
