@@ -9,5 +9,8 @@ verify_jwt = false
 [functions.parse-receipt-image]
 verify_jwt = false
 
+[functions.parse-booking-image]
+verify_jwt = false
+
 [functions.generate-notifications]
 verify_jwt = false
