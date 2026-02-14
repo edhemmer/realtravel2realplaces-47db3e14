@@ -1,82 +1,192 @@
 /**
- * v3.4.8: Canonical Explore Origin Model
+ * v3.5.1: Canonical Explore Origin Resolver
  *
- * Single source of truth for where Explore searches from.
- * All Explore queries MUST use originLatLng from this model.
+ * Single source of truth for Explore search origin.
+ * Auto-selects between DEVICE and STAY based on arrival detection.
+ * No user-facing selectors — origin is resolved automatically.
+ *
+ * RULES:
+ * 1. Find targetStay (active or next upcoming stay)
+ * 2. If no stays → use DEVICE (if available), else prompt to add stay
+ * 3. If arrival detected (within 15mi OR past check-in time) → DEVICE
+ * 4. Otherwise → STAY (destination-based)
+ * 5. If arrival=true but DEVICE denied → fall back to STAY
+ * 6. Never fall back to trip city
  */
 
-export type ExploreOriginType = 'DEVICE' | 'STAY' | 'MANUAL';
+import type { Booking } from '@/types/database';
+import type { DeviceCoords } from '@/lib/deviceLocation';
 
-export type ExploreOriginStatus = 'READY' | 'NEEDS_PERMISSION' | 'NEEDS_STAY' | 'NEEDS_MANUAL';
+// ============================================================================
+// TYPES
+// ============================================================================
 
-export interface ExploreOriginLatLng {
-  lat: number;
-  lng: number;
+export type ResolvedOriginMode = 'DEVICE' | 'STAY' | 'NO_ORIGIN';
+
+export interface ResolvedExploreOrigin {
+  mode: ResolvedOriginMode;
+  /** Human-readable label for the subtitle */
+  label: string;
+  /** Search coordinates (null if text-based search) */
+  lat: number | undefined;
+  lng: number | undefined;
+  /** Text-based search city (when lat/lng unavailable) */
+  searchCity: string | undefined;
+  searchState: string | undefined;
+  /** Whether arrival has been detected */
+  isArrived: boolean;
+  /** The target stay used for resolution (if any) */
+  targetStay: Booking | null;
+  /** Prompt message when no origin can be resolved */
+  noOriginMessage: string | null;
 }
 
-export interface ExploreOrigin {
-  originType: ExploreOriginType;
-  originLabel: string;
-  originLatLng: ExploreOriginLatLng | null;
-  originStatus: ExploreOriginStatus;
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+/**
+ * Haversine distance in miles between two lat/lng points.
+ */
+function haversineDistanceMiles(
+  lat1: number, lng1: number,
+  lat2: number, lng2: number
+): number {
+  const R = 3958.8; // Earth radius in miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) *
+    Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 /**
- * Build a DEVICE origin from device coords.
+ * Find target stay: active stay first, then next upcoming by check-in.
  */
-export function buildDeviceOrigin(
-  coords: { lat: number; lng: number } | null,
-  status: 'granted' | 'denied' | 'unavailable' | 'requesting' | 'idle'
-): ExploreOrigin {
-  if (coords && status === 'granted') {
+export function findTargetStay(bookings: Booking[]): Booking | null {
+  const stays = bookings.filter((b) => b.booking_type === 'stay');
+  if (stays.length === 0) return null;
+
+  const now = new Date();
+
+  // Active stay: check-in <= now <= check-out
+  const active = stays.find((s) => {
+    const checkIn = new Date(s.start_datetime);
+    const checkOut = s.end_datetime ? new Date(s.end_datetime) : null;
+    return checkIn <= now && (!checkOut || checkOut >= now);
+  });
+  if (active) return active;
+
+  // Next upcoming stay by check-in
+  const upcoming = stays
+    .filter((s) => new Date(s.start_datetime) > now)
+    .sort((a, b) => new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime());
+  if (upcoming.length > 0) return upcoming[0];
+
+  // Fallback: most recent stay (trip may be ongoing)
+  const sorted = [...stays].sort(
+    (a, b) => new Date(b.start_datetime).getTime() - new Date(a.start_datetime).getTime()
+  );
+  return sorted[0];
+}
+
+/**
+ * Detect arrival based on distance and/or check-in time.
+ */
+function detectArrival(
+  deviceCoords: DeviceCoords | null,
+  targetStay: Booking
+): boolean {
+  const now = new Date();
+  const checkIn = new Date(targetStay.start_datetime);
+
+  // Time-based: past check-in time
+  if (now >= checkIn) return true;
+
+  // Distance-based: within 15 miles (requires both device and stay coords)
+  // Since stays don't store lat/lng in the DB, distance check only works
+  // if we had geocoded the stay address. For now, time-based is primary.
+  // In production, you'd geocode the stay address and compare.
+
+  return false;
+}
+
+// ============================================================================
+// RESOLVER
+// ============================================================================
+
+export function resolveExploreOrigin(
+  bookings: Booking[],
+  deviceCoords: DeviceCoords | null,
+  deviceLocationDenied: boolean,
+  tripDestinationState?: string | null
+): ResolvedExploreOrigin {
+  const targetStay = findTargetStay(bookings);
+
+  // === No stays at all ===
+  if (!targetStay) {
+    // Use device location if available
+    if (deviceCoords) {
+      return {
+        mode: 'DEVICE',
+        label: 'Current location',
+        lat: deviceCoords.lat,
+        lng: deviceCoords.lng,
+        searchCity: undefined,
+        searchState: undefined,
+        isArrived: false,
+        targetStay: null,
+        noOriginMessage: null,
+      };
+    }
+    // No stays, no device → prompt
     return {
-      originType: 'DEVICE',
-      originLabel: 'Current location',
-      originLatLng: { lat: coords.lat, lng: coords.lng },
-      originStatus: 'READY',
+      mode: 'NO_ORIGIN',
+      label: '',
+      lat: undefined,
+      lng: undefined,
+      searchCity: undefined,
+      searchState: undefined,
+      isArrived: false,
+      targetStay: null,
+      noOriginMessage: 'Add a stay to explore near your destination.',
     };
   }
-  return {
-    originType: 'DEVICE',
-    originLabel: 'Current location',
-    originLatLng: null,
-    originStatus: status === 'denied' || status === 'unavailable' ? 'NEEDS_PERMISSION' : 'READY',
-  };
-}
 
-/**
- * Build a STAY origin from a booking.
- */
-export function buildStayOrigin(
-  stayName: string,
-  address: string | null
-): ExploreOrigin {
-  // In a real implementation, we'd geocode the address to get lat/lng.
-  // For now, we mark as READY if we have an address (mock behavior matches existing).
-  return {
-    originType: 'STAY',
-    originLabel: stayName || 'My stay',
-    originLatLng: null, // Would be geocoded in production
-    originStatus: 'READY',
-  };
-}
+  // === Has target stay ===
+  const isArrived = detectArrival(deviceCoords, targetStay);
 
-/**
- * Build a MANUAL origin from user-entered text.
- */
-export function buildManualOrigin(locationText: string): ExploreOrigin {
-  if (!locationText.trim()) {
+  // Arrived + device available → DEVICE
+  if (isArrived && deviceCoords) {
     return {
-      originType: 'MANUAL',
-      originLabel: '',
-      originLatLng: null,
-      originStatus: 'NEEDS_MANUAL',
+      mode: 'DEVICE',
+      label: 'Current location',
+      lat: deviceCoords.lat,
+      lng: deviceCoords.lng,
+      searchCity: undefined,
+      searchState: undefined,
+      isArrived: true,
+      targetStay,
+      noOriginMessage: null,
     };
   }
+
+  // Not arrived OR arrived but device denied → STAY
+  const stayLabel = targetStay.property_name || targetStay.vendor_name || 'My stay';
+  const staySearchCity = targetStay.address || targetStay.property_name || targetStay.vendor_name;
+
   return {
-    originType: 'MANUAL',
-    originLabel: locationText.trim(),
-    originLatLng: null, // Would be geocoded in production
-    originStatus: 'READY',
+    mode: 'STAY',
+    label: `Your stay (${stayLabel})`,
+    lat: undefined,
+    lng: undefined,
+    searchCity: staySearchCity || undefined,
+    searchState: tripDestinationState || undefined,
+    isArrived,
+    targetStay,
+    noOriginMessage: null,
   };
 }
