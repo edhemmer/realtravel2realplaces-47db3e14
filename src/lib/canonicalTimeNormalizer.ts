@@ -228,6 +228,72 @@ export function formatLocalTimeDirect(
 }
 
 /**
+ * v3.8.7: Convert a UTC-stored datetime string to a local datetime string
+ * in the given IANA timezone.
+ * 
+ * Input:  "2026-02-15 00:30:00+00" or "2026-02-15T00:30:00.000Z" (UTC)
+ * Output: "2026-02-14T19:30:00" (local naive string for America/New_York)
+ * 
+ * This ensures eventLocalDateTime contains the correct local digits
+ * for direct extraction by formatLocalTimeDirect.
+ * 
+ * If timezone is null or conversion fails, returns the original string as-is.
+ */
+export function convertUtcToLocalString(
+  utcDatetimeStr: string | null | undefined,
+  ianaTimezone: string | null
+): string | undefined {
+  if (!utcDatetimeStr) return undefined;
+  if (!ianaTimezone) return utcDatetimeStr;
+
+  try {
+    // Normalize to parseable ISO format
+    let normalized = utcDatetimeStr.trim();
+    // Handle "2026-02-15 00:30:00+00" format → replace space with T
+    if (normalized.length >= 19 && normalized[10] === ' ') {
+      normalized = normalized.substring(0, 10) + 'T' + normalized.substring(11);
+    }
+    // Ensure it ends with Z or has offset for UTC parsing
+    if (!normalized.endsWith('Z') && !normalized.match(/[+-]\d{2}:?\d{0,2}$/)) {
+      // No timezone info — assume it's already local, return as-is
+      return utcDatetimeStr;
+    }
+
+    const d = new Date(normalized);
+    if (isNaN(d.getTime())) return utcDatetimeStr;
+
+    // Use Intl.DateTimeFormat to get local date/time parts in the target timezone
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: ianaTimezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    }).formatToParts(d);
+
+    const get = (type: Intl.DateTimeFormatPartTypes) =>
+      parts.find(p => p.type === type)?.value || '00';
+
+    const year = get('year');
+    const month = get('month');
+    const day = get('day');
+    let hour = get('hour');
+    // Intl may return "24" for midnight in some locales
+    if (hour === '24') hour = '00';
+    const minute = get('minute');
+    const second = get('second');
+
+    // Return naive local datetime (no Z, no offset)
+    return `${year}-${month}-${day}T${hour}:${minute}:${second}`;
+  } catch {
+    return utcDatetimeStr;
+  }
+}
+
+/**
  * Extract and format the date portion directly from a stored datetime string.
  * Uses only the YYYY-MM-DD digits, not `new Date()` timezone conversion.
  * 

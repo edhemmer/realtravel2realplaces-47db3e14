@@ -24,7 +24,7 @@ import {
 import { hasExplicitTime } from './datetimeIntegrity';
 import { getAirportTimeZone } from './airportTimezones';
 import { WeatherSnapshot } from './canonicalWeather';
-import { resolveBookingTimezone, resolveDestinationTimezone } from './canonicalTimeNormalizer';
+import { resolveBookingTimezone, resolveDestinationTimezone, convertUtcToLocalString } from './canonicalTimeNormalizer';
 
 // ============================================================================
 // TYPES
@@ -342,8 +342,8 @@ export function buildCanonicalTimeline(
           hasExplicitTime: hasExplicitTime(booking.start_datetime),
           address: booking.address,
           linkUrl: booking.link_url,
-          // v2.2.10: Canonical local time
-          eventLocalDateTime: booking.start_datetime,
+          // v3.8.7: Convert UTC to destination-local for correct display
+          eventLocalDateTime: convertUtcToLocalString(booking.start_datetime, destTz),
           eventTimeZone: destTz,
         });
         // Check-out
@@ -360,8 +360,8 @@ export function buildCanonicalTimeline(
             hasExplicitTime: hasExplicitTime(booking.end_datetime),
             address: booking.address,
             linkUrl: booking.link_url,
-            // v2.2.10: Canonical local time
-            eventLocalDateTime: booking.end_datetime || undefined,
+            // v3.8.7: Convert UTC to destination-local
+            eventLocalDateTime: convertUtcToLocalString(booking.end_datetime, destTz),
             eventTimeZone: destTz,
           });
         }
@@ -381,8 +381,8 @@ export function buildCanonicalTimeline(
           hasExplicitTime: hasExplicitTime(booking.start_datetime),
           address: booking.pickup_location || booking.address,
           linkUrl: booking.link_url,
-          // v2.2.10: Canonical local time
-          eventLocalDateTime: booking.start_datetime,
+          // v3.8.7: Convert UTC to destination-local
+          eventLocalDateTime: convertUtcToLocalString(booking.start_datetime, destTz),
           eventTimeZone: destTz,
         });
         // Drop-off
@@ -399,8 +399,8 @@ export function buildCanonicalTimeline(
             hasExplicitTime: hasExplicitTime(booking.end_datetime),
             address: booking.return_location || booking.pickup_location || booking.address,
             linkUrl: booking.link_url,
-            // v2.2.10: Canonical local time
-            eventLocalDateTime: booking.end_datetime || undefined,
+            // v3.8.7: Convert UTC to destination-local
+            eventLocalDateTime: convertUtcToLocalString(booking.end_datetime, destTz),
             eventTimeZone: destTz,
           });
         }
@@ -421,8 +421,8 @@ export function buildCanonicalTimeline(
           address: booking.address,
           linkUrl: booking.link_url,
           transportMode: booking.transport_mode,
-          // v2.2.10: Canonical local time
-          eventLocalDateTime: booking.start_datetime,
+          // v3.8.7: Convert UTC to destination-local
+          eventLocalDateTime: convertUtcToLocalString(booking.start_datetime, destTz),
           eventTimeZone: destTz,
         });
         // Transport arrival
@@ -440,8 +440,8 @@ export function buildCanonicalTimeline(
             address: booking.address,
             linkUrl: booking.link_url,
             transportMode: booking.transport_mode,
-            // v2.2.10: Canonical local time
-            eventLocalDateTime: booking.end_datetime || undefined,
+            // v3.8.7: Convert UTC to destination-local
+            eventLocalDateTime: convertUtcToLocalString(booking.end_datetime, destTz),
             eventTimeZone: destTz,
           });
         }
@@ -464,8 +464,8 @@ export function buildCanonicalTimeline(
           ticketRequired: booking.ticket_required || booking.advance_recommended || false,
           ticketsPurchased: booking.tickets_purchased || false,
           activitySource: booking.activity_source || undefined,
-          // v2.2.10: Canonical local time
-          eventLocalDateTime: booking.start_datetime,
+          // v3.8.7: Convert UTC to destination-local
+          eventLocalDateTime: convertUtcToLocalString(booking.start_datetime, destTz),
           eventTimeZone: destTz,
         });
         // Activity end (if specified)
@@ -482,8 +482,8 @@ export function buildCanonicalTimeline(
             hasExplicitTime: hasExplicitTime(booking.end_datetime),
             address: booking.address,
             linkUrl: booking.link_url || booking.booking_url,
-            // v2.2.10: Canonical local time
-            eventLocalDateTime: booking.end_datetime || undefined,
+            // v3.8.7: Convert UTC to destination-local
+            eventLocalDateTime: convertUtcToLocalString(booking.end_datetime, destTz),
             eventTimeZone: destTz,
           });
         }
@@ -513,8 +513,8 @@ export function buildCanonicalTimeline(
       datetime: startDate,
       hasExplicitTime: hasExplicitTime(parking.start_datetime),
       address: parking.address,
-      // v2.2.10: Canonical local time
-      eventLocalDateTime: parking.start_datetime,
+      // v3.8.7: Convert UTC to destination-local
+      eventLocalDateTime: convertUtcToLocalString(parking.start_datetime, destTz),
       eventTimeZone: destTz,
     });
     
@@ -531,8 +531,8 @@ export function buildCanonicalTimeline(
         datetime: endDate,
         hasExplicitTime: hasExplicitTime(parking.end_datetime),
         address: parking.address,
-        // v2.2.10: Canonical local time
-        eventLocalDateTime: parking.end_datetime || undefined,
+        // v3.8.7: Convert UTC to destination-local
+        eventLocalDateTime: convertUtcToLocalString(parking.end_datetime, destTz),
         eventTimeZone: destTz,
       });
     }
@@ -559,7 +559,8 @@ export function buildCanonicalTimeline(
         datetime: evtDate,
         hasExplicitTime: hasExplicitTime(evt.event_datetime),
         address: evt.location_summary || undefined,
-        eventLocalDateTime: evt.event_datetime,
+        // v3.8.7: Convert UTC to destination-local
+        eventLocalDateTime: convertUtcToLocalString(evt.event_datetime, destTz),
         eventTimeZone: destTz,
       });
     });

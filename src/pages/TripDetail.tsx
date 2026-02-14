@@ -35,6 +35,7 @@ import { NotesTab } from '@/components/trips/tabs/NotesTab';
 import { ExploreTab } from '@/components/trips/tabs/ExploreTab';
 import { TripSummaryReportTab } from '@/components/trips/tabs/TripSummaryReportTab';
 import { TripHeaderWidgets } from '@/components/trips/TripHeaderWidgets';
+import { DestinationInfoCard } from '@/components/trips/DestinationInfoCard';
 import { TripStatusHeroBar } from '@/components/trips/TripStatusHeroBar';
 import { ProRetentionCountdownCard } from '@/components/trips/ProRetentionCountdownCard';
 // v2.3.2: Mobile "Next Up" card
@@ -281,6 +282,11 @@ export default function TripDetail() {
       {/* Widget container — desktop only; mobile renders inside NOW tab via ExecutionZone */}
       <div className="mt-1.5 md:mt-0 hidden md:block">
         <TripHeaderWidgets trip={trip} />
+      </div>
+
+      {/* v3.8.6: Destination Info — under trip header, above tab content */}
+      <div className="mt-2 md:mt-3">
+        <DestinationInfoCard trip={trip} />
       </div>
     </div>
   );
