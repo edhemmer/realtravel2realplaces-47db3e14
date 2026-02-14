@@ -17,7 +17,7 @@ import { UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
 import { resolveMapsFromTimelineEvent, openMapsDestination } from '@/lib/mapsDestination';
 import { 
   Plane, Building2, Car, CircleParking, Compass, Ticket, 
-  TrainFront, Bus, TramFront, Ship, PartyPopper, Navigation, ExternalLink 
+  TrainFront, Bus, TramFront, Ship, PartyPopper, Navigation
 } from 'lucide-react';
 
 interface TripTimelineProps {
@@ -26,15 +26,7 @@ interface TripTimelineProps {
   onEventClick?: (event: CanonicalTimelineEvent) => void;
 }
 
-// Helper to safely open external URLs in new tab
-const openExternalUrl = (url: string | null | undefined, e: React.MouseEvent) => {
-  e.stopPropagation();
-  if (!url) return;
-  const safeUrl = url.startsWith('http://') || url.startsWith('https://') 
-    ? url 
-    : `https://${url}`;
-  window.open(safeUrl, '_blank', 'noopener,noreferrer');
-};
+// v3.6.1: openExternalUrl removed — "View" inline button removed; row tap handles detail view
 
 const openInMapsResolved = (event: CanonicalTimelineEvent, e: React.MouseEvent) => {
   e.stopPropagation();
@@ -136,7 +128,7 @@ export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimel
       {/* v2.1.21: Single continuous vertical line - positioned behind all event icons */}
       {events.length > 1 && (
         <div 
-          className="absolute left-4 top-4 bottom-4 w-px bg-border -translate-x-1/2"
+          className="absolute left-[20px] top-4 bottom-4 w-px bg-border -translate-x-1/2"
           aria-hidden="true"
         />
       )}
@@ -162,33 +154,37 @@ export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimel
               </div>
 
               {/* Events for this day */}
-              {group.events.map((event, index) => {
+              {group.events.map((event) => {
                 const subtitle = event.eventType === 'flight' 
                   ? buildFlightSubtitle(event, datetimeFormat)
                   : event.subtitle;
 
+                const eventDateStr = event.eventLocalDateTime ? event.eventLocalDateTime.substring(0, 10) : '';
+                const eventTimeStr = event.eventLocalDateTime ? event.eventLocalDateTime.substring(11, 16) : '';
+                const isPast = eventDateStr < todayStr || (eventDateStr === todayStr && !!eventTimeStr && eventTimeStr < `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
+
                 return (
                   <div 
                     key={event.id} 
-                    className={`relative flex gap-4 cursor-pointer hover:bg-muted/50 rounded-lg p-2 -mx-2 transition-colors ${isToday ? 'bg-primary/[0.02]' : ''}`}
+                    className={`relative flex gap-3 cursor-pointer hover:bg-muted/50 rounded-lg py-1.5 px-1.5 -mx-1.5 transition-colors ${isToday ? 'bg-primary/[0.02]' : ''} ${isPast ? 'opacity-90' : ''}`}
                     onClick={() => onEventClick?.(event)}
                   >
-                    {/* Icon circle - sits on top of the vertical line */}
+                    {/* Icon circle - v3.6.1: reduced from w-8 h-8 to w-7 h-7 */}
                     <div className="relative z-10 flex-shrink-0">
-                      <div className={`w-8 h-8 rounded-full border-2 border-background flex items-center justify-center ${isToday ? 'bg-primary/15 text-primary' : 'bg-primary/10 text-primary'}`}>
+                      <div className={`w-7 h-7 rounded-full border-2 border-background flex items-center justify-center ${isToday ? 'bg-primary/15 text-primary' : isPast ? 'bg-muted/60 text-muted-foreground' : 'bg-primary/10 text-primary'}`}>
                         {getEventIcon(event.bookingType, event.transportMode)}
                       </div>
                     </div>
                     
-                    {/* Event content */}
-                    <div className="flex-1 pb-2 md:pb-3 min-w-0">
+                    {/* Event content - v3.6.1: reduced bottom padding */}
+                    <div className="flex-1 pb-1 md:pb-2 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <p className="font-medium text-[13px] leading-snug truncate">{event.title}</p>
-                          <p className="text-[11px] text-muted-foreground/80 truncate mt-0.5">{subtitle}</p>
+                          <p className="font-medium text-[13px] leading-tight truncate">{event.title}</p>
+                          <p className="text-[11px] text-muted-foreground/80 truncate mt-px">{subtitle}</p>
                           {/* Activity-specific badges */}
                           {event.bookingType === 'activity' && (
-                            <div className="flex flex-wrap gap-1 mt-1">
+                            <div className="flex flex-wrap gap-1 mt-0.5">
                               {event.ticketRequired && (
                                 <Badge variant="secondary" className="text-[10px] h-4 px-1 gap-0.5">
                                   <Ticket className="w-2.5 h-2.5" />
@@ -209,8 +205,9 @@ export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimel
                             </div>
                           )}
                         </div>
-                        <div className="text-right shrink-0 tabular-nums">
-                          <p className={`text-[11px] ${event.hasExplicitTime ? 'text-muted-foreground/80' : 'text-destructive font-medium'}`}>
+                        {/* v3.6.1: time - reduced size, medium gray, aligned to title */}
+                        <div className="text-right shrink-0 tabular-nums pt-px">
+                          <p className={`text-[10px] ${event.hasExplicitTime ? 'text-muted-foreground/70' : 'text-destructive font-medium'}`}>
                             {event.hasExplicitTime
                               ? (formatLocalTimeDirect(event.eventLocalDateTime, use24h) || UNKNOWN_TIME_PLACEHOLDER)
                               : UNKNOWN_TIME_PLACEHOLDER
@@ -218,30 +215,20 @@ export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimel
                           </p>
                         </div>
                       </div>
-                      <div className="flex gap-1.5 mt-1">
-                        {(event.address || event.departureAirportCode || event.title) && resolveMapsFromTimelineEvent(event) && (
+                      {/* v3.6.1: Navigate button - h-[34px], no shadow, content-hugging; View button removed */}
+                      {(event.address || event.departureAirportCode || event.title) && resolveMapsFromTimelineEvent(event) && (
+                        <div className="mt-1">
                           <Button
                             size="sm"
                             variant="default"
-                            className="h-6 px-2.5 text-[11px] rounded-full press-scale"
+                            className={`h-[34px] px-3 text-[11px] rounded-full shadow-none press-scale ${isPast ? 'opacity-80' : ''}`}
                             onClick={(e) => openInMapsResolved(event, e)}
                           >
                             <Navigation className="w-3 h-3 mr-1" />
                             Navigate
                           </Button>
-                        )}
-                        {event.linkUrl && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 px-2 text-[11px] press-scale-subtle"
-                            onClick={(e) => openExternalUrl(event.linkUrl, e)}
-                          >
-                            <ExternalLink className="w-3 h-3 mr-1" />
-                            View
-                          </Button>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
