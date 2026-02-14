@@ -1,28 +1,26 @@
 /**
- * v3.1.0: TodayCompactTimeline
+ * v3.7.3: TodayCompactTimeline
  *
- * Compact timeline filtered to today's events only.
- * Past rows get opacity-50, future rows full opacity.
- * Includes "View Full Timeline" link → routes to PLAN.
+ * Compact timeline filtered to today's actionable events only.
+ * Expired/completed items are excluded. Tomorrow items never appear.
+ * No "View Full Timeline" link — NOW has a single Timeline entry point.
  *
- * Uses string-based date/time comparison — no Date() for logic.
+ * Uses string-based date/time comparison — no Date() for logic (except parking).
  */
 
 import { useMemo } from 'react';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Calendar, Plane, Building2, Car, CircleParking, Compass,
-  Ticket, TrainFront, PartyPopper, ChevronRight
+  Ticket, TrainFront, PartyPopper
 } from 'lucide-react';
 import { getLocalNowString } from '@/lib/canonicalNextStop';
 import type { CanonicalTimelineEvent } from '@/lib/canonicalTripState';
 import { cn } from '@/lib/utils';
-import { formatParkingTime12h, getParkingWindowMs } from '@/lib/canonicalParkingHighlight';
+import { formatParkingTime12h } from '@/lib/canonicalParkingHighlight';
 
 interface TodayCompactTimelineProps {
   timelineEvents: CanonicalTimelineEvent[];
-  onViewFullTimeline: () => void;
   /** v3.7.1: Set of parking IDs that are currently active. Parking not in this set is filtered out. */
   activeParkingIds?: Set<string>;
 }
@@ -47,6 +45,17 @@ function formatTime12h(time: string): string {
   return `${h12}:${m} ${ampm}`;
 }
 
+/**
+ * v3.7.3: Get local day key from ms timestamp using device local time.
+ */
+function getLocalDayKey(ms: number): string {
+  const d = new Date(ms);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 const getEventIcon = (type: string) => {
   switch (type) {
     case 'flight':
@@ -65,7 +74,7 @@ const getEventIcon = (type: string) => {
   }
 };
 
-export function TodayCompactTimeline({ timelineEvents, onViewFullTimeline, activeParkingIds }: TodayCompactTimelineProps) {
+export function TodayCompactTimeline({ timelineEvents, activeParkingIds }: TodayCompactTimelineProps) {
   const nowStr = getLocalNowString();
   const todayDate = nowStr.substring(0, 10);
   const nowTime = nowStr.substring(11, 16);
@@ -73,13 +82,25 @@ export function TodayCompactTimeline({ timelineEvents, onViewFullTimeline, activ
   const todayEvents = useMemo(() => {
     return timelineEvents
       .filter((e) => {
+        // v3.7.3: For parking, use Date()-based local day key (UTC-stored datetimes)
+        if (e.sourceType === 'parking') {
+          if (activeParkingIds && !activeParkingIds.has(e.sourceId)) return false;
+          if (e.eventLocalDateTime) {
+            const eventMs = new Date(e.eventLocalDateTime).getTime();
+            if (!isNaN(eventMs)) {
+              return getLocalDayKey(eventMs) === todayDate;
+            }
+          }
+          return false;
+        }
+
+        // Non-parking: string-based date comparison
         const eventDate = extractDate(e.eventLocalDateTime);
         if (eventDate !== todayDate) return false;
 
-        // v3.7.1: Filter out parking events that are not currently active
-        if (e.sourceType === 'parking' && activeParkingIds) {
-          if (!activeParkingIds.has(e.sourceId)) return false;
-        }
+        // v3.7.3: Exclude expired items (event time already passed)
+        const eventTime = extractTime(e.eventLocalDateTime);
+        if (eventTime && eventTime < nowTime) return false;
 
         return true;
       })
@@ -88,25 +109,11 @@ export function TodayCompactTimeline({ timelineEvents, onViewFullTimeline, activ
         const tb = extractTime(b.eventLocalDateTime) || '99:99';
         return ta.localeCompare(tb);
       });
-  }, [timelineEvents, todayDate, activeParkingIds]);
+  }, [timelineEvents, todayDate, nowTime, activeParkingIds]);
 
+  // v3.7.3: Do not render TODAY block if no actionable items today
   if (todayEvents.length === 0) {
-    return (
-      <Card className="border-border/30 bg-muted/30 shadow-none">
-        <CardContent className="py-3 text-center">
-          <p className="text-xs text-muted-foreground">No events scheduled today.</p>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="mt-2 text-xs text-primary font-medium h-8"
-            onClick={onViewFullTimeline}
-          >
-            View Full Timeline
-            <ChevronRight className="w-3.5 h-3.5 ml-1" />
-          </Button>
-        </CardContent>
-      </Card>
-    );
+    return null;
   }
 
   return (
@@ -120,7 +127,6 @@ export function TodayCompactTimeline({ timelineEvents, onViewFullTimeline, activ
       <CardContent className="px-3 pb-2.5 space-y-0.5">
         {todayEvents.map((event) => {
           // v3.7.1: For parking events, use Date() conversion for correct local time
-          // (parking datetimes are stored in UTC, substring extraction gives UTC digits)
           let displayTime: string;
           let isPast: boolean;
           
@@ -159,15 +165,6 @@ export function TodayCompactTimeline({ timelineEvents, onViewFullTimeline, activ
             </div>
           );
         })}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full text-xs text-primary font-medium h-8 mt-1"
-          onClick={onViewFullTimeline}
-        >
-          View Full Timeline
-          <ChevronRight className="w-3.5 h-3.5 ml-1" />
-        </Button>
       </CardContent>
     </Card>
   );

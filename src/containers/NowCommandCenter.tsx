@@ -136,10 +136,9 @@ export function NowCommandCenter({
         />
       )}
 
-      {/* 4. TodayCompactTimeline */}
+      {/* 4. TodayCompactTimeline — today-only actionable items */}
       <TodayCompactTimeline
         timelineEvents={timelineEvents}
-        onViewFullTimeline={onViewFullTimeline}
         activeParkingIds={activeParkingIds}
       />
 
