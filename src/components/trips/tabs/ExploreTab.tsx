@@ -12,7 +12,6 @@ import { useState, useCallback, useMemo } from 'react';
 import { Trip } from '@/types/database';
 import { AttractionSuggestion } from '@/types/attraction';
 import { useAttractions } from '@/hooks/useAttractions';
-import { useAccess } from '@/hooks/useAccess';
 import { useBookings } from '@/hooks/useBookings';
 import { useDeviceLocation } from '@/hooks/useDeviceLocation';
 import { getDeviceLocation } from '@/lib/deviceLocation';
@@ -26,9 +25,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import {
-  Compass, Sparkles, Loader2, AlertCircle,
+  Compass, Loader2, AlertCircle,
   Building2, Navigation, RefreshCw, Search, MapPinned,
 } from 'lucide-react';
 
@@ -40,7 +38,7 @@ interface ExploreTabProps {
 type RadiusOption = '5' | '10' | '25' | '50';
 
 export function ExploreTab({ tripId, trip }: ExploreTabProps) {
-  const { isPro } = useAccess();
+  // v3.10.12: No plan gating — Explore available to all tiers
   const { canEdit } = useTripPermission();
   const { data: bookings = [] } = useBookings(tripId);
   const deviceLocation = useDeviceLocation();
@@ -60,7 +58,8 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
     );
   }, [bookings, deviceLocation.coords, deviceLocation.status, trip.destination_state, refreshCounter]);
 
-  const canFetch = isPro && origin.mode !== 'NO_ORIGIN' && (
+  // v3.10.12: Explore available to all tiers — no plan gating on fetch
+  const canFetch = origin.mode !== 'NO_ORIGIN' && (
     origin.lat !== undefined || origin.searchCity !== undefined
   );
 
@@ -102,25 +101,7 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
     refetch();
   }, [refetch]);
 
-  // === FREE USER TEASER ===
-  if (!isPro) {
-    return (
-      <Card className="border-dashed">
-        <CardContent className="py-12 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="p-3 rounded-full bg-primary/10">
-              <Sparkles className="w-8 h-8 text-primary" />
-            </div>
-          </div>
-          <h3 className="text-lg font-semibold mb-2">Explore is a Pro feature</h3>
-          <p className="text-muted-foreground max-w-md mx-auto">
-            Discover nearby attractions, get ticket reminders, and add activities to your trip with Pro.
-          </p>
-          <Badge variant="secondary" className="mt-4">Pro</Badge>
-        </CardContent>
-      </Card>
-    );
-  }
+  // v3.10.12: Explore is available to all plan tiers — no Free user teaser
 
   // === NO ORIGIN ===
   if (origin.mode === 'NO_ORIGIN') {
