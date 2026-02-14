@@ -6,14 +6,14 @@
 import { useRef } from 'react';
 import { AttractionSuggestion } from '@/types/attraction';
 import { Button } from '@/components/ui/button';
-import { Navigation, Star, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Navigation, Star, MapPin, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 
 interface ExploreCarouselProps {
   items: AttractionSuggestion[];
-  onSave?: (attraction: AttractionSuggestion) => void;
+  onAdd?: (attraction: AttractionSuggestion) => void;
 }
 
-export function ExploreCarousel({ items, onSave }: ExploreCarouselProps) {
+export function ExploreCarousel({ items, onAdd }: ExploreCarouselProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const scroll = (dir: 'left' | 'right') => {
@@ -125,14 +125,15 @@ export function ExploreCarousel({ items, onSave }: ExploreCarouselProps) {
                   <Navigation className="w-3 h-3" />
                   Navigate
                 </Button>
-                {onSave && (
+                {onAdd && (
                   <Button
                     size="sm"
                     variant="outline"
                     className="h-8 text-xs px-2"
-                    onClick={() => onSave(item)}
+                    onClick={() => onAdd(item)}
                   >
-                    Save
+                    <Plus className="w-3 h-3 mr-1" />
+                    Add
                   </Button>
                 )}
               </div>
