@@ -1345,6 +1345,10 @@ export type Database = {
         }
         Returns: Json
       }
+      update_trip_dates: {
+        Args: { p_end_date: string; p_start_date: string; p_trip_id: string }
+        Returns: Json
+      }
       user_can_create_trip: { Args: { p_user_id: string }; Returns: boolean }
       user_can_write_trip: { Args: { p_trip_id: string }; Returns: boolean }
       user_has_booking_access: {

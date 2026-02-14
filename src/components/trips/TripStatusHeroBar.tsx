@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { Trip, TripState } from '@/types/database';
 import { useAccess } from '@/hooks/useAccess';
 import { Badge } from '@/components/ui/badge';
-import { Lock, Archive, Clock, Moon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Lock, Archive, Clock, Moon, CalendarCog } from 'lucide-react';
 import { differenceInDays, parseISO, startOfDay, isBefore } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { EditTripDatesDialog } from './EditTripDatesDialog';
 
 interface TripStatusHeroBarProps {
   trip: Trip;
@@ -15,8 +18,9 @@ interface TripStatusHeroBarProps {
  */
 export function TripStatusHeroBar({ trip }: TripStatusHeroBarProps) {
    const { isPro } = useAccess();
+   const [editDatesOpen, setEditDatesOpen] = useState(false);
    const tripState = (trip.trip_state || 'active') as TripState;
-   
+
    // Calculate days until deletion for Pro closed trips
    const today = startOfDay(new Date());
    const tripEndDate = startOfDay(parseISO(trip.end_date));
@@ -72,28 +76,40 @@ export function TripStatusHeroBar({ trip }: TripStatusHeroBarProps) {
    const statusConfig = getStatusConfig();
  
     return (
+      <>
       <div className="sticky top-16 z-40 -mx-4 px-4 sm:-mx-0 sm:px-0">
         <div className="bg-card/95 backdrop-blur-md border border-border/50 rounded-lg shadow-sm">
           <div className="flex items-center justify-between gap-4 px-5 py-3.5">
             {/* Trip name - primary focal point */}
-            <h2 className="font-bold text-xl truncate flex-1">{trip.name}</h2>
+             <h2 className="font-bold text-xl truncate flex-1">{trip.name}</h2>
   
-            {/* Status Badge - clearly aligned right with comfortable spacing */}
-            <Badge 
-              variant="outline"
-              className={cn(
-                'flex items-center gap-1.5 border transition-all duration-300 shrink-0 px-3 py-1',
-                statusConfig.className,
-                isUrgent && 'animate-pulse'
-              )}
-            >
-              {statusConfig.icon}
-              {statusConfig.label}
-            </Badge>
-          </div>
+             {/* v3.10.4: Edit Trip Dates — always available */}
+             <Button
+               variant="ghost"
+               size="sm"
+               className="shrink-0 text-xs gap-1.5 text-muted-foreground hover:text-foreground h-8"
+               onClick={() => setEditDatesOpen(true)}
+             >
+               <CalendarCog className="w-3.5 h-3.5" />
+               <span className="hidden sm:inline">Edit Dates</span>
+             </Button>
+
+             {/* Status Badge */}
+             <Badge 
+               variant="outline"
+               className={cn(
+                 'flex items-center gap-1.5 border transition-all duration-300 shrink-0 px-3 py-1',
+                 statusConfig.className,
+                 isUrgent && 'animate-pulse'
+               )}
+             >
+               {statusConfig.icon}
+               {statusConfig.label}
+             </Badge>
+           </div>
   
-          {/* Retention warning line for Pro closed trips */}
-          {showRetentionWarning && (
+           {/* Retention warning line for Pro closed trips */}
+           {showRetentionWarning && (
             <div className="px-5 pb-3 -mt-1">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Clock className="w-3.5 h-3.5" />
@@ -111,5 +127,13 @@ export function TripStatusHeroBar({ trip }: TripStatusHeroBarProps) {
           )}
         </div>
       </div>
+
+      {/* v3.10.4: Edit Trip Dates dialog */}
+      <EditTripDatesDialog
+        open={editDatesOpen}
+        onOpenChange={setEditDatesOpen}
+        trip={trip}
+      />
+    </>
     );
   }
