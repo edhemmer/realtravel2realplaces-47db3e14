@@ -30,7 +30,7 @@ import { getCachedDeviceLocation } from './deviceLocation';
 // TYPES
 // ============================================================================
 
-export type CriticalActionType = 'CHECKOUT' | 'RETURN_RENTAL' | 'GET_GAS' | 'DRIVE_SMART' | 'FLIGHT';
+export type CriticalActionType = 'CHECKOUT' | 'RETURN_RENTAL' | 'GET_GAS' | 'DRIVE_SMART' | 'DRIVE_SMART_AIRPORT' | 'FLIGHT';
 
 export interface CriticalActionNavTarget {
   address?: string;
@@ -335,12 +335,59 @@ export function getTodayCriticalActionsWithBuffer(
     });
   }
 
-  // Sort by strict order: CHECKOUT(0) → GET_GAS(1) → RETURN_RENTAL(2) → DRIVE_SMART(3) → FLIGHT(4)
+  // v3.10.13: Fallback DRIVE_SMART_AIRPORT when flight today but no rental return
+  if (!rentalReturnEvent && airportBuffer) {
+    // Find the earliest future flight event to use as destination
+    const flightAction = actions.find(a => a.actionType === 'FLIGHT');
+    if (flightAction) {
+      // Resolve airport navigation destination
+      const flightEvent = timelineEvents.find(
+        e => e.sourceId === flightAction.sourceId && isFlightDepartureEventType(e.eventType)
+      );
+      const iataCode = flightEvent?.departureAirportCode;
+
+      // Only emit if we can build a safe navigation target
+      if (iataCode || flightEvent?.address) {
+        const driveNav: CriticalActionNavTarget = {};
+
+        // Destination: address > IATA-based query
+        if (flightEvent?.address) {
+          driveNav.destinationAddress = flightEvent.address;
+        } else if (iataCode) {
+          driveNav.destinationAddress = `${iataCode} airport`;
+        }
+
+        // Origin: device location → active stay address → omit (Maps defaults)
+        const deviceCoords = getCachedDeviceLocation();
+        if (deviceCoords) {
+          driveNav.originLat = deviceCoords.lat;
+          driveNav.originLng = deviceCoords.lng;
+        } else if (activeStayAddress) {
+          driveNav.originAddress = activeStayAddress;
+        }
+
+        actions.push({
+          id: `critical-drive-airport-${flightAction.sourceId}`,
+          actionType: 'DRIVE_SMART_AIRPORT',
+          label: 'Drive Smart',
+          time: flightAction.time,
+          timeDisplay: flightAction.time ? `By ${formatTime12h(flightAction.time)}` : 'Before flight',
+          navTarget: driveNav,
+          sourceId: flightAction.sourceId,
+          sourceType: flightAction.sourceType,
+          displayLocation: iataCode || undefined,
+        });
+      }
+    }
+  }
+
+  // Sort by strict order: CHECKOUT(0) → GET_GAS(1) → RETURN_RENTAL(2) → DRIVE_SMART(3) → DRIVE_SMART_AIRPORT(3.5) → FLIGHT(4)
   const ORDER: Record<CriticalActionType, number> = {
     CHECKOUT: 0,
     GET_GAS: 1,
     RETURN_RENTAL: 2,
     DRIVE_SMART: 3,
+    DRIVE_SMART_AIRPORT: 3.5,
     FLIGHT: 4,
   };
   actions.sort((a, b) => ORDER[a.actionType] - ORDER[b.actionType]);
