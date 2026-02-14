@@ -14,7 +14,8 @@ import { resolveMapsDestination, openMapsDestination } from '@/lib/mapsDestinati
 import { ParkingExpirationIndicator } from '@/components/trips/ParkingExpirationIndicator';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isAfter, isBefore, addMinutes } from 'date-fns';
- import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER, parseDatetimeForDisplay } from '@/lib/datetimeIntegrity';
+import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER, parseDatetimeForDisplay } from '@/lib/datetimeIntegrity';
+import { extractDatetimeLocalValue } from '@/lib/canonicalTimeNormalizer';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -110,8 +111,9 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
     setFormData({
       parking_type: parking.parking_type,
       label: parking.label,
-      start_datetime: parking.start_datetime ? format(parseISO(parking.start_datetime), "yyyy-MM-dd'T'HH:mm") : '',
-      end_datetime: parking.end_datetime ? format(parseISO(parking.end_datetime), "yyyy-MM-dd'T'HH:mm") : '',
+      // v3.9.5: Extract digits directly — no Date() timezone shift
+      start_datetime: extractDatetimeLocalValue(parking.start_datetime),
+      end_datetime: extractDatetimeLocalValue(parking.end_datetime),
       billing_type: parking.billing_type,
       address: parking.address || '',
       level_section_space: parking.level_section_space || '',
@@ -124,11 +126,13 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // v3.9.5: Send datetime-local values directly — digits represent destination-local time.
+    // Do NOT convert via new Date().toISOString() which uses device timezone.
     const parkingData = {
       parking_type: formData.parking_type,
       label: formData.label,
-      start_datetime: new Date(formData.start_datetime).toISOString(),
-      end_datetime: formData.end_datetime ? new Date(formData.end_datetime).toISOString() : undefined,
+      start_datetime: formData.start_datetime,
+      end_datetime: formData.end_datetime || undefined,
       billing_type: formData.billing_type,
       address: formData.address || undefined,
       level_section_space: formData.level_section_space || undefined,
