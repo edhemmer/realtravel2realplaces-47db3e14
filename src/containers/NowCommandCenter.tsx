@@ -87,6 +87,19 @@ export function NowCommandCenter({
 
   const showGas = useMemo(() => isRentalReturnDay(bookings), [bookings]);
 
+  // v3.10.7: Derive active stay address for DRIVE_SMART origin fallback
+  const activeStayAddress = useMemo(() => {
+    const todayDate = getLocalNowString().substring(0, 10);
+    const activeStay = bookings.find(
+      (b) =>
+        b.booking_type === 'stay' &&
+        b.start_datetime.substring(0, 10) <= todayDate &&
+        b.end_datetime &&
+        b.end_datetime.substring(0, 10) >= todayDate
+    );
+    return activeStay?.address || null;
+  }, [bookings]);
+
   // v3.7.1: Canonical active parking highlight
   const activeParkingHighlight = useMemo(
     () => getNowParkingHighlight(parkingList, Date.now()),
@@ -126,7 +139,7 @@ export function NowCommandCenter({
       </button>
 
       {/* 2. Critical Today Actions (Checkout → Return → Gas) */}
-      <TodayCriticalActionsCard timelineEvents={timelineEvents} />
+      <TodayCriticalActionsCard timelineEvents={timelineEvents} activeStayAddress={activeStayAddress} />
 
       {/* 3. NextCriticalActionCard */}
       <NextCriticalActionCard tripId={tripId} trip={trip} />

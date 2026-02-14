@@ -1,5 +1,5 @@
 /**
- * v3.10.6: Canonical Today Critical Actions Resolver
+ * v3.10.7: Canonical Today Critical Actions Resolver
  *
  * Derives today's critical execution actions from the canonical timeline.
  * Powers NOW and any execution surface.
@@ -7,20 +7,19 @@
  * ACTION TYPES (rendered in this order):
  *   1. CHECKOUT — stay checkout today
  *   2. GET_GAS — synthetic: when rental return exists today (45 min before return)
- *   3. RETURN_RENTAL — rental return / airport return / preflight today
+ *   3. RETURN_RENTAL — rental return today
+ *   4. DRIVE_SMART — traffic-aware route to rental return destination
  *
- * Each action provides:
- *   - label: human-readable action name
- *   - time: HH:MM local time (or null if untimed)
- *   - navTarget: { address, lat?, lng? } for maps navigation
- *   - actionType: discriminated union key
+ * AIRPORT_BUFFER: canonical urgency marker (flight_departure - 90 min).
+ * Not rendered as its own card but exported for urgency ranking.
  *
  * RULES:
  * - String-based time comparison only (no Date() for logic)
  * - GET_GAS appears whenever rental return exists today (not yet passed)
  * - GET_GAS time = rental_return_time minus 45 minutes (string math)
- * - GET_GAS navTarget uses device location if within 20 mi of return, else return location
- * - No trip-city fallback for gas origin
+ * - DRIVE_SMART appears whenever rental return exists today
+ * - DRIVE_SMART origin: device location → active stay address → rental return address
+ * - No trip-city fallback for any navigation target
  */
 
 import type { CanonicalTimelineEvent } from './canonicalTripState';
@@ -31,7 +30,7 @@ import { getCachedDeviceLocation } from './deviceLocation';
 // TYPES
 // ============================================================================
 
-export type CriticalActionType = 'CHECKOUT' | 'RETURN_RENTAL' | 'GET_GAS';
+export type CriticalActionType = 'CHECKOUT' | 'RETURN_RENTAL' | 'GET_GAS' | 'DRIVE_SMART';
 
 export interface CriticalActionNavTarget {
   address?: string;
@@ -39,6 +38,14 @@ export interface CriticalActionNavTarget {
   lng?: number;
   /** For gas: search query */
   searchQuery?: string;
+  /** For DRIVE_SMART: origin address/coords */
+  originAddress?: string;
+  originLat?: number;
+  originLng?: number;
+  /** For DRIVE_SMART: destination address/coords */
+  destinationAddress?: string;
+  destinationLat?: number;
+  destinationLng?: number;
 }
 
 export interface TodayCriticalAction {
@@ -52,6 +59,19 @@ export interface TodayCriticalAction {
   navTarget: CriticalActionNavTarget;
   sourceId: string;
   sourceType: 'booking' | 'parking' | 'engagement';
+}
+
+/**
+ * v3.10.7: AIRPORT_BUFFER urgency marker.
+ * Exported for use by urgency ranking / NextUp selection.
+ */
+export interface AirportBufferMarker {
+  /** HH:MM local time = flight departure - 90 min */
+  bufferTime: string;
+  /** Flight departure HH:MM */
+  flightTime: string;
+  /** Source flight event ID */
+  sourceId: string;
 }
 
 // ============================================================================
@@ -123,20 +143,49 @@ function isRentalReturnEventType(eventType: string): boolean {
     eventType === 'car_return';
 }
 
+/**
+ * Determine if an event type is a flight departure.
+ */
+function isFlightDepartureEventType(eventType: string): boolean {
+  return eventType === 'flight' || eventType === 'flight_departure';
+}
+
 // ============================================================================
 // RESOLVER
 // ============================================================================
 
+export interface TodayCriticalActionsResult {
+  actions: TodayCriticalAction[];
+  /** v3.10.7: AIRPORT_BUFFER marker if a flight departs today */
+  airportBuffer: AirportBufferMarker | null;
+}
+
 /**
  * Resolve today's critical actions from canonical timeline events.
- * Returns actions in strict order: CHECKOUT → GET_GAS → RETURN_RENTAL
+ * Returns actions in strict order: CHECKOUT → GET_GAS → RETURN_RENTAL → DRIVE_SMART
+ *
+ * @param activeStayAddress - Address of current/active stay (for DRIVE_SMART origin fallback)
  */
 export function getTodayCriticalActions(
   timelineEvents: CanonicalTimelineEvent[],
   nowLocal?: string,
-  /** Optional: return location coords for proximity check */
   returnLocationCoords?: { lat: number; lng: number } | null,
+  activeStayAddress?: string | null,
 ): TodayCriticalAction[] {
+  return getTodayCriticalActionsWithBuffer(
+    timelineEvents, nowLocal, returnLocationCoords, activeStayAddress
+  ).actions;
+}
+
+/**
+ * Full resolver returning both actions and the AIRPORT_BUFFER marker.
+ */
+export function getTodayCriticalActionsWithBuffer(
+  timelineEvents: CanonicalTimelineEvent[],
+  nowLocal?: string,
+  returnLocationCoords?: { lat: number; lng: number } | null,
+  activeStayAddress?: string | null,
+): TodayCriticalActionsResult {
   const nowStr = nowLocal ?? getLocalNowString();
   const todayDate = nowStr.substring(0, 10);
   const nowTime = nowStr.substring(11, 16);
@@ -144,13 +193,26 @@ export function getTodayCriticalActions(
   const actions: TodayCriticalAction[] = [];
   let rentalReturnEvent: CanonicalTimelineEvent | null = null;
   let rentalReturnTime: string | null = null;
+  let airportBuffer: AirportBufferMarker | null = null;
 
-  // Pass 1: Collect CHECKOUT and RETURN_RENTAL from today's events
+  // Pass 1: Collect CHECKOUT, RETURN_RENTAL, and detect flights for AIRPORT_BUFFER
   for (const event of timelineEvents) {
     const eventDate = extractDate(event.eventLocalDateTime);
     if (eventDate !== todayDate) continue;
 
     const eventTime = extractTime(event.eventLocalDateTime);
+
+    // v3.10.7: Detect flight departure today for AIRPORT_BUFFER
+    if (isFlightDepartureEventType(event.eventType) && eventTime) {
+      const bufferTime = subtractMinutesFromTime(eventTime, 90);
+      if (!airportBuffer || bufferTime < airportBuffer.bufferTime) {
+        airportBuffer = {
+          bufferTime,
+          flightTime: eventTime,
+          sourceId: event.sourceId,
+        };
+      }
+    }
 
     // v3.9.2: Stay checkout must remain visible until checkout time passes
     // Other events skip once passed
@@ -185,16 +247,12 @@ export function getTodayCriticalActions(
     }
   }
 
-  // Pass 2: Synthesize GET_GAS if rental return exists today (not yet passed)
+  // Pass 2: Synthesize GET_GAS if rental return exists today
   if (rentalReturnEvent) {
-    // Gas time = rental return time minus 45 minutes (string math)
     const gasTime = rentalReturnTime
       ? subtractMinutesFromTime(rentalReturnTime, 45)
       : null;
 
-    // Determine gas search origin:
-    // If device location available AND within 20 miles of return location → device
-    // Else → return location (no trip-city fallback)
     const deviceCoords = getCachedDeviceLocation();
     let useDevice = false;
 
@@ -205,7 +263,6 @@ export function getTodayCriticalActions(
       );
       useDevice = dist <= 20;
     } else if (deviceCoords && !returnLocationCoords) {
-      // No return coords to compare — use device as best guess
       useDevice = true;
     }
 
@@ -223,21 +280,54 @@ export function getTodayCriticalActions(
       sourceId: rentalReturnEvent.sourceId,
       sourceType: rentalReturnEvent.sourceType,
     });
+
+    // Pass 3: Synthesize DRIVE_SMART (traffic-aware route to return)
+    // Origin: device location → active stay → rental return address
+    const driveNav: CriticalActionNavTarget = {
+      destinationAddress: rentalReturnEvent.address,
+    };
+
+    if (deviceCoords) {
+      driveNav.originLat = deviceCoords.lat;
+      driveNav.originLng = deviceCoords.lng;
+    } else if (activeStayAddress) {
+      driveNav.originAddress = activeStayAddress;
+    }
+    // If neither device nor stay, origin is omitted — Maps uses "current location"
+
+    // Destination coords if available
+    if (returnLocationCoords) {
+      driveNav.destinationLat = returnLocationCoords.lat;
+      driveNav.destinationLng = returnLocationCoords.lng;
+    }
+
+    // DRIVE_SMART time = same as rental return time (depart by then)
+    actions.push({
+      id: `critical-drive-${rentalReturnEvent.sourceId}`,
+      actionType: 'DRIVE_SMART',
+      label: 'Drive Smart',
+      time: rentalReturnTime,
+      timeDisplay: rentalReturnTime ? `By ${formatTime12h(rentalReturnTime)}` : 'Before return',
+      navTarget: driveNav,
+      sourceId: rentalReturnEvent.sourceId,
+      sourceType: rentalReturnEvent.sourceType,
+    });
   }
 
-  // Sort by strict order: CHECKOUT(0) → GET_GAS(1) → RETURN_RENTAL(2)
+  // Sort by strict order: CHECKOUT(0) → GET_GAS(1) → RETURN_RENTAL(2) → DRIVE_SMART(3)
   const ORDER: Record<CriticalActionType, number> = {
     CHECKOUT: 0,
     GET_GAS: 1,
     RETURN_RENTAL: 2,
+    DRIVE_SMART: 3,
   };
   actions.sort((a, b) => ORDER[a.actionType] - ORDER[b.actionType]);
 
-  return actions;
+  return { actions, airportBuffer };
 }
 
 // ============================================================================
-// GAS MAPS URL BUILDER
+// URL BUILDERS
 // ============================================================================
 
 /**
@@ -251,4 +341,32 @@ export function buildGasSearchUrl(navTarget: CriticalActionNavTarget): string {
     return `https://www.google.com/maps/search/gas+station+near+${encodeURIComponent(navTarget.address)}`;
   }
   return 'https://www.google.com/maps/search/gas+station';
+}
+
+/**
+ * v3.10.7: Build a Google Maps directions URL for DRIVE_SMART.
+ * Uses origin + destination for traffic-aware "depart now" routing.
+ */
+export function buildDriveSmartUrl(navTarget: CriticalActionNavTarget): string {
+  const params = new URLSearchParams();
+  params.set('api', '1');
+
+  // Origin
+  if (navTarget.originLat != null && navTarget.originLng != null) {
+    params.set('origin', `${navTarget.originLat},${navTarget.originLng}`);
+  } else if (navTarget.originAddress) {
+    params.set('origin', navTarget.originAddress);
+  }
+  // If no origin, Google Maps defaults to current location
+
+  // Destination
+  if (navTarget.destinationLat != null && navTarget.destinationLng != null) {
+    params.set('destination', `${navTarget.destinationLat},${navTarget.destinationLng}`);
+  } else if (navTarget.destinationAddress) {
+    params.set('destination', navTarget.destinationAddress);
+  }
+
+  params.set('travelmode', 'driving');
+
+  return `https://www.google.com/maps/dir/?${params.toString()}`;
 }
