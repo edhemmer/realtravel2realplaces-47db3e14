@@ -1,45 +1,54 @@
 /**
- * v3.8.6: TodayCriticalActionsCard
+ * v3.10.7: TodayCriticalActionsCard
  *
- * Renders canonical critical actions (Checkout, Return Rental, Get Gas)
+ * Renders canonical critical actions (Checkout, Get Gas, Return Rental, Drive Smart)
  * from the canonical resolver. No custom logic — purely driven by resolver output.
  */
 
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Navigation, Building2, Car, Fuel, AlertTriangle } from 'lucide-react';
+import { Navigation, Building2, Car, Fuel, AlertTriangle, Route } from 'lucide-react';
 import type { CanonicalTimelineEvent } from '@/lib/canonicalTripState';
 import {
   getTodayCriticalActions,
   buildGasSearchUrl,
+  buildDriveSmartUrl,
   type TodayCriticalAction,
 } from '@/lib/canonicalTodayCriticalActions';
 import {
   resolveMapsDestination,
   openMapsDestination,
-  buildMapsDirectionsUrl,
 } from '@/lib/mapsDestination';
 
 interface TodayCriticalActionsCardProps {
   timelineEvents: CanonicalTimelineEvent[];
+  activeStayAddress?: string | null;
 }
 
 const ACTION_ICONS: Record<string, React.ReactNode> = {
   CHECKOUT: <Building2 className="w-4 h-4" />,
-  RETURN_RENTAL: <Car className="w-4 h-4" />,
   GET_GAS: <Fuel className="w-4 h-4" />,
+  RETURN_RENTAL: <Car className="w-4 h-4" />,
+  DRIVE_SMART: <Route className="w-4 h-4" />,
 };
 
 const ACTION_COLORS: Record<string, string> = {
   CHECKOUT: 'text-amber-600 bg-amber-500/10',
   GET_GAS: 'text-emerald-600 bg-emerald-500/10',
   RETURN_RENTAL: 'text-primary bg-primary/10',
+  DRIVE_SMART: 'text-blue-600 bg-blue-500/10',
 };
 
 function handleNavigate(action: TodayCriticalAction) {
   if (action.actionType === 'GET_GAS') {
     const url = buildGasSearchUrl(action.navTarget);
+    window.open(url, '_blank', 'noopener,noreferrer');
+    return;
+  }
+
+  if (action.actionType === 'DRIVE_SMART') {
+    const url = buildDriveSmartUrl(action.navTarget);
     window.open(url, '_blank', 'noopener,noreferrer');
     return;
   }
@@ -53,10 +62,10 @@ function handleNavigate(action: TodayCriticalAction) {
   }
 }
 
-export function TodayCriticalActionsCard({ timelineEvents }: TodayCriticalActionsCardProps) {
+export function TodayCriticalActionsCard({ timelineEvents, activeStayAddress }: TodayCriticalActionsCardProps) {
   const actions = useMemo(
-    () => getTodayCriticalActions(timelineEvents),
-    [timelineEvents]
+    () => getTodayCriticalActions(timelineEvents, undefined, undefined, activeStayAddress),
+    [timelineEvents, activeStayAddress]
   );
 
   if (actions.length === 0) return null;
@@ -93,7 +102,7 @@ export function TodayCriticalActionsCard({ timelineEvents }: TodayCriticalAction
               onClick={() => handleNavigate(action)}
             >
               <Navigation className="w-3 h-3 mr-1" />
-              Navigate
+              {action.actionType === 'DRIVE_SMART' ? 'Route' : 'Navigate'}
             </Button>
           </div>
         ))}
