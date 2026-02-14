@@ -8,7 +8,7 @@
  * Flights now appear as a single row showing both departure and arrival info.
  */
 
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@/components/ui/badge'; // used by activity badges
 import { Button } from '@/components/ui/button';
 import { CanonicalTimelineEvent } from '@/lib/canonicalTripState';
 import { DatetimeFormatPreference } from '@/lib/displayFormats';
@@ -139,22 +139,45 @@ export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimel
           const isToday = group.date === todayStr;
           const dateLabel = formatLocalDateDirect(group.date, use24h) || group.date;
 
+          // v3.6.5: Determine day name for TODAY header
+          const dayName = (() => {
+            if (!isToday) return '';
+            const d = new Date(group.date + 'T12:00:00');
+            return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+          })();
+
+          // v3.6.5: Find first upcoming event index within today
+          const firstUpcomingIdx = isToday
+            ? group.events.findIndex((ev) => {
+                const evDate = ev.eventLocalDateTime ? ev.eventLocalDateTime.substring(0, 10) : '';
+                const evTime = ev.eventLocalDateTime ? ev.eventLocalDateTime.substring(11, 16) : '';
+                return !(evDate < todayStr || (evDate === todayStr && !!evTime && evTime < `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`));
+              })
+            : -1;
+
           return (
             <div key={group.date}>
-              {/* v2.6.5: Day header with optional Today badge */}
-              <div className={`flex items-center gap-2 py-1.5 px-1 mb-0.5 rounded-md ${isToday ? 'bg-primary/5' : ''}`}>
-                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-                  {dateLabel}
-                </span>
-                {isToday && (
-                  <Badge variant="default" className="text-[9px] h-4 px-1.5 py-0 font-semibold">
+              {/* v3.6.5: Date header — TODAY gets command header, others stay standard */}
+              {isToday ? (
+                <div className="pt-3 pb-2 px-1 mb-0.5">
+                  <p className="text-[13px] font-bold text-foreground uppercase tracking-wide leading-tight">
                     Today
-                  </Badge>
-                )}
-              </div>
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">
+                    {dayName}
+                  </p>
+                  <div className="mt-1.5 h-[2px] w-10 rounded-full bg-foreground/15" />
+                </div>
+              ) : (
+                <div className="py-1.5 px-1 mb-0.5">
+                  <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                    {dateLabel}
+                  </span>
+                </div>
+              )}
 
               {/* Events for this day */}
-              {group.events.map((event) => {
+              {group.events.map((event, eventIdx) => {
                 const subtitle = event.eventType === 'flight' 
                   ? buildFlightSubtitle(event, datetimeFormat)
                   : event.subtitle;
@@ -162,13 +185,18 @@ export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimel
                 const eventDateStr = event.eventLocalDateTime ? event.eventLocalDateTime.substring(0, 10) : '';
                 const eventTimeStr = event.eventLocalDateTime ? event.eventLocalDateTime.substring(11, 16) : '';
                 const isPast = eventDateStr < todayStr || (eventDateStr === todayStr && !!eventTimeStr && eventTimeStr < `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`);
+                const isFirstUpcoming = isToday && eventIdx === firstUpcomingIdx;
 
                 return (
                   <div 
                     key={event.id} 
-                    className={`relative flex gap-3 cursor-pointer hover:bg-muted/50 rounded-lg py-1.5 px-1.5 -mx-1.5 transition-colors ${isToday ? 'bg-primary/[0.02]' : ''} ${isPast ? 'opacity-90' : ''}`}
+                    className={`relative flex gap-3 cursor-pointer hover:bg-muted/50 rounded-lg py-1.5 px-1.5 -mx-1.5 transition-colors ${isToday ? 'bg-foreground/[0.02]' : ''} ${isPast ? 'opacity-90' : ''}`}
                     onClick={() => onEventClick?.(event)}
                   >
+                    {/* v3.6.5: Left accent bar for first upcoming item in Today */}
+                    {isFirstUpcoming && (
+                      <div className="absolute left-0 top-1.5 bottom-1.5 w-[2.5px] rounded-full bg-foreground/20" />
+                    )}
                     {/* Icon circle - v3.6.1: reduced from w-8 h-8 to w-7 h-7 */}
                     <div className="relative z-10 flex-shrink-0">
                       <div className={`w-7 h-7 rounded-full border-2 border-background flex items-center justify-center ${isToday ? 'bg-primary/15 text-primary' : isPast ? 'bg-muted/60 text-muted-foreground' : 'bg-primary/10 text-primary'}`}>
@@ -180,7 +208,7 @@ export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimel
                     <div className="flex-1 pb-1 md:pb-2 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <p className="font-medium text-[13px] leading-tight truncate">{event.title}</p>
+                          <p className={`text-[13px] leading-tight truncate ${isFirstUpcoming ? 'font-semibold' : 'font-medium'}`}>{event.title}</p>
                           <p className="text-[11px] text-muted-foreground/80 truncate mt-px">{subtitle}</p>
                           {/* Activity-specific badges */}
                           {event.bookingType === 'activity' && (
