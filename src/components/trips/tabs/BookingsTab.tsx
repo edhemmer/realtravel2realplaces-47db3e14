@@ -19,7 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { 
   Plus, Plane, Building2, Car, PartyPopper, Trash2, Pencil,
   ExternalLink, MapPin, AlertTriangle, Link2, Upload, FileText, Users,
-  ClipboardPaste, Loader2, Scan, CircleParking, Ticket, CheckCircle2,
+  ClipboardPaste, Loader2, Scan, CircleParking, Ticket, CheckCircle2, Camera,
   TrainFront, Bus, TramFront, Ship, Compass
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -120,6 +120,10 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
   const [showDateWarning, setShowDateWarning] = useState(false);
   const [dateWarningMessage, setDateWarningMessage] = useState('');
   const [pendingSubmit, setPendingSubmit] = useState(false);
+
+  // v3.10.14: Photo parse state
+  const [isPhotoParsing, setIsPhotoParsing] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   // v2.0.7: Highlight state for drill-through
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
@@ -543,6 +547,123 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
     await parseBookingText(pastedText, 'pasted_text');
   }, [pastedText, parseBookingText]);
 
+  // v3.10.14: Photo upload → parse → populate form draft
+  const handlePhotoUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Permission guard: only canEdit users can save (enforced at save time via RLS),
+    // but we allow upload + parse for review
+    if (!canEdit) {
+      toast.warning('You can view parsed results but saving requires edit permission.');
+    }
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/heic', 'image/heif'];
+    if (!validTypes.includes(file.type) && !file.name.match(/\.(jpg|jpeg|png|heic|heif)$/i)) {
+      toast.error('Please upload a JPG, PNG, or HEIC image.');
+      return;
+    }
+
+    // Size cap: 10MB
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Image must be under 10MB.');
+      return;
+    }
+
+    setIsPhotoParsing(true);
+    toast.info('Parsing booking from photo...');
+
+    try {
+      // Convert to base64 in memory — no persistence
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          // Strip data:image/...;base64, prefix
+          const base64Data = result.split(',')[1];
+          resolve(base64Data);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const { data, error } = await supabase.functions.invoke('parse-booking-image', {
+        body: { tripId, imageBase64: base64 },
+      });
+
+      if (error) {
+        console.error('Photo parse network error:', error);
+        toast.error('Connection error. Please try again.');
+        return;
+      }
+
+      if (data?.success && data?.data?.draftBookings?.length > 0) {
+        const draft = data.data.draftBookings[0];
+        const warnings = data.data.warnings || [];
+        const confidence = data.data.confidence || 75;
+
+        // Populate the form with draft data
+        setBookingType(draft.booking_type || 'flight');
+        
+        const dateValidation = validateBookingDates(draft.start_datetime, draft.end_datetime);
+        
+        setFormData(prev => ({
+          ...prev,
+          vendor_name: draft.vendor_name || '',
+          start_datetime: dateValidation.valid ? (dateValidation.startDt || '') : '',
+          end_datetime: dateValidation.valid ? (dateValidation.endDt || '') : '',
+          confirmation_number: draft.confirmation_number || '',
+          total_cost: draft.total_cost?.toString() || '',
+          address: draft.address || '',
+          airline: draft.airline || '',
+          passenger_name: draft.passenger_name || '',
+          property_name: draft.property_name || '',
+          stay_type: draft.stay_type || 'hotel',
+          rental_company: draft.rental_company || '',
+          pickup_location: draft.pickup_location || '',
+          return_location: draft.return_location || '',
+          notes: draft.notes || '',
+        }));
+
+        setParseSource('pasted_text');
+        setTimeIsEstimated(!draft.start_datetime || !/T\d{2}:\d{2}/.test(draft.start_datetime));
+
+        // Open the booking dialog for review
+        setDialogOpen(true);
+
+        if (warnings.length > 0) {
+          toast.warning('Photo parsed with warnings', {
+            description: warnings.join('. '),
+            duration: 6000,
+          });
+        } else if (confidence < 70) {
+          toast.info('Photo parsed — please verify details', {
+            description: 'Some fields may need correction.',
+            duration: 5000,
+          });
+        } else {
+          toast.success(data.message || 'Photo parsed! Review and save.', {
+            description: 'You can edit any field before saving.',
+            duration: 5000,
+          });
+        }
+      } else {
+        toast.warning(data?.message || "Couldn't extract booking details from photo.", {
+          description: 'Try a clearer photo or enter details manually.',
+          duration: 5000,
+        });
+      }
+    } catch (err) {
+      console.error('Photo parse error:', err);
+      toast.error('Something went wrong. Please enter details manually.');
+    } finally {
+      setIsPhotoParsing(false);
+      // Reset file input so same file can be re-selected
+      if (photoInputRef.current) photoInputRef.current.value = '';
+    }
+  }, [tripId, canEdit, validateBookingDates]);
+
   const openEditDialog = (booking: Booking) => {
     setEditingBooking(booking);
     setBookingType(booking.booking_type);
@@ -813,11 +934,33 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
           </p>
         </div>
         {canEdit && (
-          <Button onClick={() => setDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Booking
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => photoInputRef.current?.click()}
+              disabled={isPhotoParsing}
+            >
+              {isPhotoParsing ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Camera className="w-4 h-4 mr-2" />
+              )}
+              {isPhotoParsing ? 'Parsing...' : 'Upload Photo'}
+            </Button>
+            <Button onClick={() => setDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Booking
+            </Button>
+          </div>
         )}
+        {/* v3.10.14: Hidden file input for photo upload — no persistence */}
+        <input
+          ref={photoInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/heic,image/heif,.jpg,.jpeg,.png,.heic,.heif"
+          className="hidden"
+          onChange={handlePhotoUpload}
+        />
       </div>
 
       {/* Bookings Grid */}
@@ -1097,6 +1240,10 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
               Add your flights, stays, trains, buses, car rentals, and activities
             </p>
             <div className="flex gap-2">
+              <Button variant="outline" onClick={() => photoInputRef.current?.click()} disabled={isPhotoParsing}>
+                {isPhotoParsing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Camera className="w-4 h-4 mr-2" />}
+                {isPhotoParsing ? 'Parsing...' : 'Upload Photo'}
+              </Button>
               <Button onClick={() => setDialogOpen(true)}>
                 <Plus className="w-4 h-4 mr-2" />
                 Add Booking
