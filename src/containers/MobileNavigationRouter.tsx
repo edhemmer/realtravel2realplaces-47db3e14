@@ -191,6 +191,7 @@ export function MobileNavigationRouter({
             onViewAllAlerts={() => handleTabChange('alerts')}
             onAddExpense={() => handleTabChange('expenses')}
             onExplore={() => handleTabChange('explore')}
+            onTimeline={() => { handleTabChange('plan'); setPlanSubView('timeline'); }}
           />
         );
       case 'plan':
@@ -282,6 +283,7 @@ export function MobileNavigationRouter({
             onViewAllAlerts={() => handleTabChange('alerts')}
             onAddExpense={() => handleTabChange('expenses')}
             onExplore={() => handleTabChange('explore')}
+            onTimeline={() => { handleTabChange('plan'); setPlanSubView('timeline'); }}
           />
         );
     }
