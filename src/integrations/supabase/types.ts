@@ -779,6 +779,59 @@ export type Database = {
           },
         ]
       }
+      trip_engagements: {
+        Row: {
+          address: string | null
+          category: string | null
+          created_at: string
+          end_time: string | null
+          id: string
+          lat: number | null
+          lng: number | null
+          location_name: string | null
+          source: string
+          start_time: string
+          title: string
+          trip_id: string
+        }
+        Insert: {
+          address?: string | null
+          category?: string | null
+          created_at?: string
+          end_time?: string | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          location_name?: string | null
+          source?: string
+          start_time: string
+          title: string
+          trip_id: string
+        }
+        Update: {
+          address?: string | null
+          category?: string | null
+          created_at?: string
+          end_time?: string | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          location_name?: string | null
+          source?: string
+          start_time?: string
+          title?: string
+          trip_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_engagements_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip_events: {
         Row: {
           created_at: string
