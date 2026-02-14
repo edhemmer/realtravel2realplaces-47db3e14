@@ -20,6 +20,12 @@ export interface AttractionSuggestion {
   bookingInfo: AttractionBookingInfo;
   locationSummary: string;
   websiteUrl?: string;
+  /** Distance from search origin in miles (set by engine) */
+  distanceMiles?: number;
+  /** Rating out of 5 */
+  rating?: number;
+  /** Number of reviews */
+  reviewCount?: number;
 }
 
 export type ReminderOption = '30_days' | '14_days' | '7_days' | 'custom';
