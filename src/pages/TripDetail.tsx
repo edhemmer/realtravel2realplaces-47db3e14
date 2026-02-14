@@ -70,7 +70,7 @@ const MOBILE_SECTION_LABELS: Partial<Record<TripTab, string>> = {
   now: 'Now',
   plan: 'Plan',
   explore: 'Explore',
-  money: 'Expenses',
+  expenses: 'Expenses',
   bookings: 'Bookings',
   tour: 'Tour',
   members: 'Members',

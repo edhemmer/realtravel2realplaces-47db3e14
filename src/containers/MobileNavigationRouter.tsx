@@ -20,7 +20,7 @@
  * - now     → TripSummaryContainer (primary zone: status, next-up, alerts)
  * - plan    → TripBookingsContainer (chronological planning view)
  * - explore → ExploreTab
- * - money   → TripExpensesContainer
+ * - expenses → TripExpensesContainer
  * - bookings/tour/companions/members/parking/packing/alerts/report/notes → More menu tabs
  */
 
@@ -28,8 +28,11 @@ import { useState, useCallback, useEffect } from 'react';
 import { Trip } from '@/types/database';
 import { useAccess } from '@/hooks/useAccess';
 import { useExploreDiscovery } from '@/hooks/useExploreDiscovery';
+import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { TripDetailLayout, type TripTab } from '@/components/layout';
 import { MobileSectionHeader } from '@/components/trips/MobileSectionHeader';
+import { TripTimeline } from '@/components/trips/TripTimeline';
 import {
   TripBookingsContainer,
   TripTourContainer,
@@ -48,7 +51,7 @@ import type { DrillThroughTarget } from '@/pages/TripDetail';
 
 /**
  * Tabs shown via the "More" menu that get a section header on mobile.
- * Primary tabs (now, plan, explore, money) do NOT get a section header.
+ * Primary tabs (now, plan, explore, expenses) do NOT get a section header.
  */
 const MORE_TAB_LABELS: Partial<Record<TripTab, string>> = {
   bookings: 'Bookings',
@@ -61,9 +64,6 @@ const MORE_TAB_LABELS: Partial<Record<TripTab, string>> = {
   report: 'Report',
   notes: 'Notes & Safety',
 };
-
-/** Legacy tabs that should redirect to NOW on mobile */
-const LEGACY_REDIRECT_TABS: TripTab[] = ['summary', 'timeline'];
 
 interface MobileNavigationRouterProps {
   tripId: string;
@@ -96,11 +96,15 @@ export function MobileNavigationRouter({
 }: MobileNavigationRouterProps) {
   const { isPro, canAccessBusinessFeatures } = useAccess();
   const { hasDiscovered: hasDiscoveredExplore, markDiscovered: markExploreDiscovered } = useExploreDiscovery();
-
-  // v3.1.0: timelineEvents no longer needed here — NowCommandCenter handles its own state
+  // v3.3.2: Timeline data for PLAN > Timeline sub-view
+  const { timelineEvents } = useCanonicalTripState(tripId, trip);
+  const { data: userProfile } = useUserProfile();
+  const datetimeFormat = (userProfile?.preferred_datetime_format as 'MM/DD/YYYY 12h' | 'DD/MM/YYYY 24h') || 'MM/DD/YYYY 12h';
 
   // v2.3.x: Mobile tab state — defaults to 'now'
   const [activeTab, setActiveTabRaw] = useState<TripTab>('now');
+  // v3.3.2: PLAN sub-view state — defaults to 'timeline' for 1-tap timeline access
+  const [planSubView, setPlanSubView] = useState<'timeline' | 'bookings'>('timeline');
 
   // v2.6.21: Wrap setActiveTab to report changes to parent
   const setActiveTab = useCallback((tab: TripTab) => {
@@ -108,10 +112,13 @@ export function MobileNavigationRouter({
     onActiveTabChange?.(tab);
   }, [onActiveTabChange]);
 
-  // v2.3.x: Legacy route protection — redirect summary/timeline → now
+  // v3.3.2: Legacy route protection — redirect summary → now, timeline → plan
   useEffect(() => {
-    if (LEGACY_REDIRECT_TABS.includes(activeTab)) {
+    if (activeTab === 'summary') {
       setActiveTab('now');
+    } else if (activeTab === 'timeline') {
+      setActiveTab('plan');
+      setPlanSubView('timeline');
     }
   }, [activeTab]);
 
@@ -122,7 +129,7 @@ export function MobileNavigationRouter({
       if (externalTab === 'summary') {
         setActiveTab('now');
       } else if (externalTab === 'expenses') {
-        setActiveTab('money');
+        setActiveTab('expenses');
       } else {
         setActiveTab(externalTab);
       }
@@ -130,11 +137,17 @@ export function MobileNavigationRouter({
     }
   }, [externalTab, onExternalTabConsumed]);
 
-  // v2.3.x: Canonical tab change handler — no duplicate fetching
+  // v3.3.2: Canonical tab change handler — no duplicate fetching
   const handleTabChange = useCallback((tab: TripTab) => {
     // Redirect legacy tabs
-    if (LEGACY_REDIRECT_TABS.includes(tab)) {
+    if (tab === 'summary') {
       setActiveTab('now');
+      return;
+    }
+    // v3.3.2: timeline → plan with timeline sub-view
+    if (tab === 'timeline') {
+      setActiveTab('plan');
+      setPlanSubView('timeline');
       return;
     }
     setActiveTab(tab);
@@ -145,9 +158,9 @@ export function MobileNavigationRouter({
     }
   }, [isPro, hasDiscoveredExplore, markExploreDiscovered]);
 
-  // v2.6.19: Add Expense from NOW pills — switch to money tab
+  // v2.6.19: Add Expense from NOW pills — switch to expenses tab
   const handleNowAddExpense = useCallback(() => {
-    setActiveTab('money');
+    setActiveTab('expenses');
   }, []);
 
   /** Render content for the active tab */
@@ -185,12 +198,43 @@ export function MobileNavigationRouter({
           />
         );
       case 'plan':
-        return <TripBookingsContainer tripId={tripId} trip={trip} />;
+        return (
+          <div>
+            {/* v3.3.2: Segmented control — Timeline | Bookings */}
+            <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1 mb-3">
+              <button
+                onClick={() => setPlanSubView('timeline')}
+                className={`flex-1 text-xs font-semibold py-2 rounded-md transition-colors ${
+                  planSubView === 'timeline'
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Timeline
+              </button>
+              <button
+                onClick={() => setPlanSubView('bookings')}
+                className={`flex-1 text-xs font-semibold py-2 rounded-md transition-colors ${
+                  planSubView === 'bookings'
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Bookings
+              </button>
+            </div>
+            {planSubView === 'timeline' ? (
+              <TripTimeline events={timelineEvents} datetimeFormat={datetimeFormat} />
+            ) : (
+              <TripBookingsContainer tripId={tripId} trip={trip} />
+            )}
+          </div>
+        );
       case 'explore':
         return <ExploreTab tripId={tripId} trip={trip} />;
-      case 'money':
+      case 'expenses':
         return (
-          <TripExpensesContainer 
+          <TripExpensesContainer
             tripId={tripId} 
             trip={trip} 
             autoOpenAdd={autoOpenExpense} 

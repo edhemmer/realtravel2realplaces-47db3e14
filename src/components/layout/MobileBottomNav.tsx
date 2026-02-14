@@ -1,9 +1,10 @@
 /**
  * MobileBottomNav - Bottom navigation bar for mobile viewports
  * 
- * v2.3.x: Intent-based navigation — NOW, PLAN, EXPLORE, MONEY, MORE
+ * v2.3.x: Intent-based navigation — NOW, PLAN, EXPLORE, EXPENSES, MORE
  * v2.6.9: More dropdown aligned to card surface system
  * v2.6.10: Bottom nav surface, active-tab, and icon-label spacing normalized
+ * v3.3.2: Renamed Money→Expenses, removed 'money' TripTab ID
  * 
  * Surface: bg-card, border-border/60, shadow-lg (no blur/opacity)
  * Active: text-primary font-semibold bg-primary/10
@@ -11,7 +12,7 @@
  * Icon-label: gap-1, text-[10px] leading-none
  * More dropdown: rounded-xl, w-52, h-10 rows, max-w-[calc(100vw-1rem)]
  * 
- * Primary tabs: NOW, PLAN, EXPLORE, MONEY
+ * Primary tabs: NOW, PLAN, EXPLORE, EXPENSES
  * More menu: Bookings, Tour (Business), Members, Companions, Parking, Packing, Alerts, Report (Pro), Notes & Safety
  */
 
@@ -41,13 +42,12 @@ import {
 
 /**
  * v2.3.x: TripTab includes both mobile intent-based IDs and legacy/desktop IDs.
- * Mobile primary: now, plan, explore, money
+ * Mobile primary: now, plan, explore, expenses
  * Desktop/shared: summary, bookings, tour, companions, members, expenses, parking, packing, report, notes, timeline, alerts
  */
 export type TripTab = 
   | 'now'
   | 'plan'
-  | 'money'
   | 'summary' 
   | 'bookings' 
   | 'tour' 
@@ -80,7 +80,7 @@ const PRIMARY_NAV_ITEMS: NavItem[] = [
   { id: 'now', label: 'Now', icon: <Zap className="w-5 h-5" /> },
   { id: 'plan', label: 'Plan', icon: <CalendarDays className="w-5 h-5" /> },
   { id: 'explore', label: 'Explore', icon: <Compass className="w-5 h-5" /> },
-  { id: 'money', label: 'Expenses', icon: <DollarSign className="w-5 h-5" /> },
+  { id: 'expenses', label: 'Expenses', icon: <DollarSign className="w-5 h-5" /> },
 ];
 
 const MORE_NAV_ITEMS: NavItem[] = [
