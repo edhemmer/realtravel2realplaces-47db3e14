@@ -1,12 +1,11 @@
 /**
- * v3.5.1: Explore tab with auto-origin resolution
+ * v3.6.0: Premium Explore screen with carousel + sectioned feed
  *
- * No user-facing selectors. Origin is resolved automatically:
- * - Near stay destination when traveling
- * - Current device location after arrival
- * - Premium hint line when showing destination-based results
+ * Consumes v3.5.2 engine via useAttractions, then applies
+ * ExploreRankingAndSections for carousel + vertical sections.
  *
- * Refresh re-runs the resolver and re-queries.
+ * No user-facing selectors. Origin resolved automatically via
+ * canonical resolveExploreOrigin helper.
  */
 
 import { useState, useCallback, useMemo } from 'react';
@@ -18,7 +17,10 @@ import { useBookings } from '@/hooks/useBookings';
 import { useDeviceLocation } from '@/hooks/useDeviceLocation';
 import { getDeviceLocation } from '@/lib/deviceLocation';
 import { useTripPermission } from '@/pages/TripDetail';
-import { AttractionCard } from '@/components/trips/explore/AttractionCard';
+import { resolveExploreOrigin } from '@/types/exploreOrigin';
+import { buildExploreSections } from '@/lib/exploreRankingSections';
+import { ExploreCarousel } from '@/components/trips/explore/ExploreCarousel';
+import { ExploreSectionFeed } from '@/components/trips/explore/ExploreSectionFeed';
 import { AddToTripModal } from '@/components/trips/explore/AddToTripModal';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,10 +28,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
-  Compass, MapPin, Search, Sparkles, Loader2, AlertCircle,
-  Building2, MapPinned, Navigation, RefreshCw
+  Compass, Sparkles, Loader2, AlertCircle,
+  Building2, Navigation, RefreshCw, Search, MapPinned,
 } from 'lucide-react';
-import { resolveExploreOrigin } from '@/types/exploreOrigin';
 
 interface ExploreTabProps {
   tripId: string;
@@ -49,7 +50,7 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [refreshCounter, setRefreshCounter] = useState(0);
 
-  // v3.5.1: Canonical origin resolution — single source of truth
+  // Canonical origin resolution
   const origin = useMemo(() => {
     return resolveExploreOrigin(
       bookings,
@@ -57,15 +58,13 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
       deviceLocation.status === 'denied' || deviceLocation.status === 'unavailable',
       trip.destination_state
     );
-    // refreshCounter forces re-computation after manual refresh
   }, [bookings, deviceLocation.coords, deviceLocation.status, trip.destination_state, refreshCounter]);
 
-  // Can we fetch?
   const canFetch = isPro && origin.mode !== 'NO_ORIGIN' && (
     origin.lat !== undefined || origin.searchCity !== undefined
   );
 
-  // Fetch attractions using resolved origin
+  // v3.5.2 engine
   const { data: attractions = [], isLoading, error, refetch } = useAttractions({
     city: origin.searchCity,
     state: origin.searchState,
@@ -75,20 +74,35 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
     enabled: canFetch,
   });
 
+  // v3.6.0: Ranking + sectioning
+  const { rightNow, sections } = useMemo(() => {
+    if (attractions.length === 0) return { rightNow: [], sections: [] };
+    return buildExploreSections(attractions);
+  }, [attractions]);
+
   // Handlers
-  const handleAddToTrip = (attraction: AttractionSuggestion) => {
+  const handleSave = (attraction: AttractionSuggestion) => {
+    if (!canEdit) return;
     setSelectedAttraction(attraction);
     setAddModalOpen(true);
   };
 
+  const handleNavigate = (attraction: AttractionSuggestion) => {
+    const query = attraction.locationSummary || attraction.name;
+    window.open(
+      `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(query)}`,
+      '_blank',
+      'noopener,noreferrer'
+    );
+  };
+
   const handleRefresh = useCallback(async () => {
-    // Re-read device location (won't re-prompt if already denied)
     await getDeviceLocation();
     setRefreshCounter((c) => c + 1);
     refetch();
   }, [refetch]);
 
-  // Free user teaser
+  // === FREE USER TEASER ===
   if (!isPro) {
     return (
       <Card className="border-dashed">
@@ -108,7 +122,7 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
     );
   }
 
-  // No origin — prompt to add stay
+  // === NO ORIGIN ===
   if (origin.mode === 'NO_ORIGIN') {
     return (
       <Card className="border-dashed border-amber-300/50 bg-amber-50/30 dark:bg-amber-950/10">
@@ -127,11 +141,26 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
     );
   }
 
+  // === MAIN EXPLORE SCREEN ===
   return (
-    <div className="space-y-4">
-      {/* v3.5.1: Origin subtitle + refresh */}
-      <div className="flex items-center justify-between px-1">
-        <div className="flex items-center gap-1.5 min-w-0">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="space-y-1 px-1">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-foreground tracking-tight">Explore</h2>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0 h-8 w-8"
+            onClick={handleRefresh}
+            aria-label="Refresh results"
+          >
+            <RefreshCw className="w-4 h-4 text-muted-foreground" />
+          </Button>
+        </div>
+
+        {/* Subtitle */}
+        <div className="flex items-center gap-1.5">
           {origin.mode === 'DEVICE' ? (
             <Navigation className="w-3.5 h-3.5 text-primary shrink-0" />
           ) : (
@@ -141,23 +170,14 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
             Exploring near: {origin.label}
           </span>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="shrink-0 h-8 w-8"
-          onClick={handleRefresh}
-          aria-label="Refresh results"
-        >
-          <RefreshCw className="w-4 h-4 text-muted-foreground" />
-        </Button>
-      </div>
 
-      {/* v3.5.1: Premium hint — only when showing stay-based results pre-arrival */}
-      {origin.mode === 'STAY' && !origin.isArrived && (
-        <p className="text-xs text-muted-foreground/70 px-1 leading-relaxed">
-          Showing ideas near your stay. This will auto-refresh when you arrive.
-        </p>
-      )}
+        {/* Pre-arrival hint */}
+        {origin.mode === 'STAY' && !origin.isArrived && (
+          <p className="text-xs text-muted-foreground/70 leading-relaxed">
+            Showing ideas near your stay. This updates when you arrive.
+          </p>
+        )}
+      </div>
 
       {/* Radius selector */}
       <div className="flex items-center gap-2 px-1">
@@ -178,76 +198,72 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
         </Select>
       </div>
 
-      {/* Results */}
-      <div className="space-y-4">
-        {deviceLocation.isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-            <span className="ml-2 text-muted-foreground">Getting your location…</span>
-          </div>
-        ) : isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-            <span className="ml-2 text-muted-foreground">Finding attractions…</span>
-          </div>
-        ) : error ? (
-          <Card className="border-dashed">
-            <CardContent className="py-12 text-center">
-              <div className="flex justify-center mb-4">
-                <div className="p-3 rounded-full bg-muted">
-                  <AlertCircle className="w-8 h-8 text-muted-foreground" />
-                </div>
+      {/* Content */}
+      {deviceLocation.isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          <span className="ml-2 text-muted-foreground">Getting your location…</span>
+        </div>
+      ) : isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          <span className="ml-2 text-muted-foreground">Finding attractions…</span>
+        </div>
+      ) : error ? (
+        <Card className="border-dashed">
+          <CardContent className="py-12 text-center">
+            <div className="flex justify-center mb-4">
+              <div className="p-3 rounded-full bg-muted">
+                <AlertCircle className="w-8 h-8 text-muted-foreground" />
               </div>
-              <h3 className="text-base font-medium mb-2">
-                We couldn&apos;t load nearby attractions right now
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Try again or check back later.
-              </p>
-              <Button variant="outline" size="sm" onClick={handleRefresh}>
-                <RefreshCw className="w-4 h-4 mr-1.5" />
-                Try again
+            </div>
+            <h3 className="text-base font-medium mb-2">
+              We couldn&apos;t load nearby attractions right now
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Try again or check back later.
+            </p>
+            <Button variant="outline" size="sm" onClick={handleRefresh}>
+              <RefreshCw className="w-4 h-4 mr-1.5" />
+              Try again
+            </Button>
+          </CardContent>
+        </Card>
+      ) : attractions.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="py-12 text-center">
+            <div className="flex justify-center mb-4">
+              <div className="p-3 rounded-full bg-muted">
+                <MapPinned className="w-8 h-8 text-muted-foreground" />
+              </div>
+            </div>
+            <h3 className="text-base font-medium mb-2">No places found in this area</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Try a larger search radius.
+            </p>
+            {radius !== '50' && (
+              <Button variant="outline" size="sm" onClick={() => setRadius('50')}>
+                Increase radius to 50 miles
               </Button>
-            </CardContent>
-          </Card>
-        ) : attractions.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="py-12 text-center">
-              <div className="flex justify-center mb-4">
-                <div className="p-3 rounded-full bg-muted">
-                  <MapPinned className="w-8 h-8 text-muted-foreground" />
-                </div>
-              </div>
-              <h3 className="text-base font-medium mb-2">No places found in this area</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Try a larger search radius.
-              </p>
-              {radius !== '50' && (
-                <Button variant="outline" size="sm" onClick={() => setRadius('50')}>
-                  Increase radius to 50 miles
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        ) : (
-          <>
-            <div className="flex items-center justify-between px-1">
-              <p className="text-sm text-muted-foreground">
-                {attractions.length} attraction{attractions.length !== 1 ? 's' : ''} found
-              </p>
-            </div>
-            <div className="grid gap-4">
-              {attractions.map((attraction) => (
-                <AttractionCard
-                  key={attraction.id}
-                  attraction={attraction}
-                  onAddToTrip={canEdit ? handleAddToTrip : () => {}}
-                />
-              ))}
-            </div>
-          </>
-        )}
-      </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-8">
+          {/* Right Now carousel */}
+          <ExploreCarousel
+            items={rightNow}
+            onSave={canEdit ? handleSave : undefined}
+          />
+
+          {/* Sectioned feed */}
+          <ExploreSectionFeed
+            sections={sections}
+            onNavigate={handleNavigate}
+            onSave={handleSave}
+          />
+        </div>
+      )}
 
       {/* Add to Trip Modal */}
       <AddToTripModal
