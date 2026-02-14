@@ -30,6 +30,7 @@ import { CalendarDays, ChevronRight } from 'lucide-react';
 import { GasExpenseDialog } from '@/components/trips/GasExpenseDialog';
 import { NextCriticalActionCard } from '@/components/trips/now/NextCriticalActionCard';
 import { TodayCompactTimeline } from '@/components/trips/now/TodayCompactTimeline';
+import { TodayCriticalActionsCard } from '@/components/trips/now/TodayCriticalActionsCard';
 import { StickyQuickOpsStrip } from '@/components/trips/now/StickyQuickOpsStrip';
 import { TripSectionLoading } from '@/components/trips/TripSectionStates';
 import { getLocalNowString } from '@/lib/canonicalNextStop';
@@ -124,7 +125,10 @@ export function NowCommandCenter({
         <ChevronRight className="w-4 h-4 text-primary/60" />
       </button>
 
-      {/* 2. NextCriticalActionCard */}
+      {/* 2. Critical Today Actions (Checkout → Return → Gas) */}
+      <TodayCriticalActionsCard timelineEvents={timelineEvents} />
+
+      {/* 3. NextCriticalActionCard */}
       <NextCriticalActionCard tripId={tripId} trip={trip} />
 
       {/* 3. ActiveAlertsStack — max 3, severity-ordered */}
