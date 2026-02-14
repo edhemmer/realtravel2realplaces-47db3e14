@@ -30,7 +30,7 @@ import { getCachedDeviceLocation } from './deviceLocation';
 // TYPES
 // ============================================================================
 
-export type CriticalActionType = 'CHECKOUT' | 'RETURN_RENTAL' | 'GET_GAS' | 'DRIVE_SMART';
+export type CriticalActionType = 'CHECKOUT' | 'RETURN_RENTAL' | 'GET_GAS' | 'DRIVE_SMART' | 'FLIGHT';
 
 export interface CriticalActionNavTarget {
   address?: string;
@@ -203,6 +203,7 @@ export function getTodayCriticalActionsWithBuffer(
     const eventTime = extractTime(event.eventLocalDateTime);
 
     // v3.10.7: Detect flight departure today for AIRPORT_BUFFER
+    // v3.10.9: Also emit FLIGHT critical action
     if (isFlightDepartureEventType(event.eventType) && eventTime) {
       const bufferTime = subtractMinutesFromTime(eventTime, 90);
       if (!airportBuffer || bufferTime < airportBuffer.bufferTime) {
@@ -211,6 +212,19 @@ export function getTodayCriticalActionsWithBuffer(
           flightTime: eventTime,
           sourceId: event.sourceId,
         };
+      }
+      // v3.10.9: Emit FLIGHT critical action (only future flights)
+      if (eventTime >= nowTime) {
+        actions.push({
+          id: `critical-flight-${event.sourceId}`,
+          actionType: 'FLIGHT',
+          label: event.title || 'Flight',
+          time: eventTime,
+          timeDisplay: formatTime12h(eventTime),
+          navTarget: { address: event.address },
+          sourceId: event.sourceId,
+          sourceType: event.sourceType,
+        });
       }
     }
 
@@ -314,12 +328,13 @@ export function getTodayCriticalActionsWithBuffer(
     });
   }
 
-  // Sort by strict order: CHECKOUT(0) → GET_GAS(1) → RETURN_RENTAL(2) → DRIVE_SMART(3)
+  // Sort by strict order: CHECKOUT(0) → GET_GAS(1) → RETURN_RENTAL(2) → DRIVE_SMART(3) → FLIGHT(4)
   const ORDER: Record<CriticalActionType, number> = {
     CHECKOUT: 0,
     GET_GAS: 1,
     RETURN_RENTAL: 2,
     DRIVE_SMART: 3,
+    FLIGHT: 4,
   };
   actions.sort((a, b) => ORDER[a.actionType] - ORDER[b.actionType]);
 

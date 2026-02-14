@@ -1,21 +1,15 @@
 /**
- * v3.10.8: NowCommandCenter Container
+ * v3.10.9: NowCommandCenter Container
  *
  * Mobile-only execution-first command center for the NOW tab.
  * 
  * CANONICAL SINGLE SOURCE: Calls buildCanonicalTodayExecutionStack ONCE
  * and passes pre-sorted output to all child surfaces. No child re-sorts.
  *
- * RENDER TREE:
- * 1. StickyQuickOpsStrip — icon-only quick actions
- * 2. Timeline button — routes to full timeline
- * 3. TodayCriticalActionsCard — critical actions (pre-sorted)
- * 4. NextCriticalActionCard — countdown to next event
- * 5. ActiveAlertsStack — max 3, severity-ordered
- * 6. TodayCompactTimeline — today-only events (pre-sorted)
+ * v3.10.9: Reads isExecutionMode from stack to show DEPARTURE MODE label.
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Trip, Booking } from '@/types/database';
 import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
 import { useBookings } from '@/hooks/useBookings';
@@ -23,7 +17,7 @@ import { useParking } from '@/hooks/useParking';
 import { useTravelAlerts } from '@/hooks/useTravelAlerts';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { TravelAlertsCard } from '@/components/trips/TravelAlertsCard';
-import { CalendarDays, ChevronRight } from 'lucide-react';
+import { CalendarDays, ChevronRight, AlertTriangle } from 'lucide-react';
 import { GasExpenseDialog } from '@/components/trips/GasExpenseDialog';
 import { NextCriticalActionCard } from '@/components/trips/now/NextCriticalActionCard';
 import { TodayCompactTimeline } from '@/components/trips/now/TodayCompactTimeline';
@@ -130,7 +124,7 @@ export function NowCommandCenter({
 
   return (
     <div className="space-y-5 pb-20">
-      {/* 1. Quick Actions — above NextCriticalActionCard */}
+      {/* 1. Quick Actions */}
       <div className="mb-1">
         <StickyQuickOpsStrip
           onAddExpense={onAddExpense}
@@ -148,6 +142,16 @@ export function NowCommandCenter({
         <span className="flex-1 text-left text-sm font-medium text-foreground">Timeline</span>
         <ChevronRight className="w-4 h-4 text-primary/60" />
       </button>
+
+      {/* v3.10.9: Departure Mode label bar */}
+      {todayExecution.isExecutionMode && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-orange-500/10 border border-orange-500/30 rounded-xl">
+          <AlertTriangle className="w-4 h-4 text-orange-600 shrink-0" />
+          <span className="text-xs font-bold text-orange-600 uppercase tracking-wider">
+            Departure Mode
+          </span>
+        </div>
+      )}
 
       {/* 3. Critical Today Actions — from canonical stack (pre-sorted, no re-sort) */}
       <TodayCriticalActionsCard criticalActions={todayExecution.criticalActions} />
