@@ -493,10 +493,13 @@ export function buildCanonicalTimeline(
   
   // Process parking
   parkingList.forEach(parking => {
-    // v2.2.5: Date objects from date portion only — for legacy `datetime` field only.
-    const pStartDateStr = extractDateFromDatetime(parking.start_datetime);
+    // v3.9.7: Use local wall-time columns as source of truth for display
+    const startLocalStr = parking.start_local_datetime || parking.start_datetime;
+    const endLocalStr = parking.end_local_datetime || parking.end_datetime;
+    
+    const pStartDateStr = extractDateFromDatetime(startLocalStr);
     const startDate = pStartDateStr ? parseDateAtNoon(pStartDateStr) : null;
-    const pEndDateStr = parking.end_datetime ? extractDateFromDatetime(parking.end_datetime) : null;
+    const pEndDateStr = endLocalStr ? extractDateFromDatetime(endLocalStr) : null;
     const endDate = pEndDateStr ? parseDateAtNoon(pEndDateStr) : null;
     
     if (!startDate) return;
@@ -511,11 +514,11 @@ export function buildCanonicalTimeline(
       title: parking.label,
       subtitle: `Start · ${parking.parking_type}`,
       datetime: startDate,
-      hasExplicitTime: hasExplicitTime(parking.start_datetime),
+      hasExplicitTime: hasExplicitTime(startLocalStr),
       address: parking.address,
-      // v3.8.7: Convert UTC to destination-local
-      eventLocalDateTime: convertUtcToLocalString(parking.start_datetime, destTz),
-      eventTimeZone: destTz,
+      // v3.9.7: Use local wall-time directly — no conversion needed
+      eventLocalDateTime: startLocalStr,
+      eventTimeZone: parking.end_timezone || destTz,
     });
     
     // Parking end
@@ -529,11 +532,11 @@ export function buildCanonicalTimeline(
         title: parking.label,
         subtitle: `End · ${parking.parking_type}`,
         datetime: endDate,
-        hasExplicitTime: hasExplicitTime(parking.end_datetime),
+        hasExplicitTime: hasExplicitTime(endLocalStr),
         address: parking.address,
-        // v3.8.7: Convert UTC to destination-local
-        eventLocalDateTime: convertUtcToLocalString(parking.end_datetime, destTz),
-        eventTimeZone: destTz,
+        // v3.9.7: Use local wall-time directly — no conversion needed
+        eventLocalDateTime: endLocalStr,
+        eventTimeZone: parking.end_timezone || destTz,
       });
     }
   });
