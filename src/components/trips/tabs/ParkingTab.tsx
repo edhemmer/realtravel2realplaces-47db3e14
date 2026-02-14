@@ -13,9 +13,8 @@ import { Plus, Trash2, CircleParking, MapPin, Clock, AlertTriangle, Pencil } fro
 import { resolveMapsDestination, openMapsDestination } from '@/lib/mapsDestination';
 import { ParkingExpirationIndicator } from '@/components/trips/ParkingExpirationIndicator';
 import { cn } from '@/lib/utils';
-import { format, parseISO, isAfter, isBefore, addMinutes } from 'date-fns';
-import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER, parseDatetimeForDisplay } from '@/lib/datetimeIntegrity';
-import { extractDatetimeLocalValue } from '@/lib/canonicalTimeNormalizer';
+import { UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
+import { extractDatetimeLocalValue, formatLocalTimeDirect, formatLocalDateDirect } from '@/lib/canonicalTimeNormalizer';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -111,9 +110,9 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
     setFormData({
       parking_type: parking.parking_type,
       label: parking.label,
-      // v3.9.5: Extract digits directly — no Date() timezone shift
-      start_datetime: extractDatetimeLocalValue(parking.start_datetime),
-      end_datetime: extractDatetimeLocalValue(parking.end_datetime),
+      // v3.9.7: Prefer local wall-time columns for edit form — exact user-entered values
+      start_datetime: parking.start_local_datetime || extractDatetimeLocalValue(parking.start_datetime),
+      end_datetime: parking.end_local_datetime || extractDatetimeLocalValue(parking.end_datetime),
       billing_type: parking.billing_type,
       address: parking.address || '',
       level_section_space: parking.level_section_space || '',
@@ -126,18 +125,23 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // v3.9.5: Send datetime-local values directly — digits represent destination-local time.
-    // Do NOT convert via new Date().toISOString() which uses device timezone.
+    // v3.9.7: Send datetime-local values directly — digits represent destination-local time.
+    // Also persist local wall-time columns for guaranteed correct display.
+    const endLocal = formData.end_datetime || undefined;
+    const startLocal = formData.start_datetime;
     const parkingData = {
       parking_type: formData.parking_type,
       label: formData.label,
-      start_datetime: formData.start_datetime,
-      end_datetime: formData.end_datetime || undefined,
+      start_datetime: startLocal,
+      end_datetime: endLocal,
       billing_type: formData.billing_type,
       address: formData.address || undefined,
       level_section_space: formData.level_section_space || undefined,
       total_cost: formData.total_cost ? parseFloat(formData.total_cost) : 0,
       my_share: formData.my_share ? parseFloat(formData.my_share) : 0,
+      // v3.9.7: Store exact user-entered local times (no conversion)
+      end_local_datetime: endLocal,
+      start_local_datetime: startLocal,
     };
 
     if (editingParking) {
@@ -174,13 +178,19 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
 
   const now = new Date();
 
+  // v3.9.7: Use end_local_datetime for status — string comparison, no Date() math
   const getParkingStatus = (parking: Parking) => {
-    if (!parking.end_datetime) return 'active';
-    const endTime = parseISO(parking.end_datetime);
-    const alertTime = addMinutes(now, 15);
-    
-    if (isBefore(endTime, now)) return 'expired';
-    if (isBefore(endTime, alertTime)) return 'expiring';
+    const endStr = parking.end_local_datetime || parking.end_datetime;
+    if (!endStr) return 'active';
+    // Build a comparable local ISO string from device "now"
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const nowLocal = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    const endNorm = endStr.substring(0, 16); // YYYY-MM-DDTHH:mm
+    if (endNorm <= nowLocal) return 'expired';
+    // Check if expiring within 15 minutes — add 15 min to now
+    const soon = new Date(now.getTime() + 15 * 60000);
+    const soonLocal = `${soon.getFullYear()}-${pad(soon.getMonth()+1)}-${pad(soon.getDate())}T${pad(soon.getHours())}:${pad(soon.getMinutes())}`;
+    if (endNorm <= soonLocal) return 'expiring';
     return 'active';
   };
 
@@ -274,35 +284,29 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
                 <CardContent className="space-y-2 text-sm">
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Clock className="w-4 h-4" />
-                    {/* v2.2.0: Use safe datetime parsing to preserve original dates */}
+                    {/* v3.9.7: Display from local wall-time columns — no Date() math */}
                     <span>
                       {(() => {
-                        const startDate = parseDatetimeForDisplay(parking.start_datetime);
-                        return startDate ? format(startDate, 'MMM d') : '--';
+                        const src = parking.start_local_datetime || parking.start_datetime;
+                        return formatLocalDateDirect(src) || '--';
                       })()},{' '}
-                      {hasExplicitTime(parking.start_datetime) ? (
-                        (() => {
-                          const startDate = parseDatetimeForDisplay(parking.start_datetime);
-                          return startDate ? format(startDate, 'h:mm a') : '--';
-                        })()
-                      ) : (
-                        <span className="text-destructive font-medium">{UNKNOWN_TIME_PLACEHOLDER}</span>
-                      )}
-                      {parking.end_datetime && (
+                      {(() => {
+                        const src = parking.start_local_datetime || parking.start_datetime;
+                        const t = formatLocalTimeDirect(src);
+                        return t || <span className="text-destructive font-medium">{UNKNOWN_TIME_PLACEHOLDER}</span>;
+                      })()}
+                      {(parking.end_local_datetime || parking.end_datetime) && (
                         <>
                           {' - '}
                           {(() => {
-                            const endDate = parseDatetimeForDisplay(parking.end_datetime);
-                            return endDate ? format(endDate, 'MMM d') : '--';
+                            const src = parking.end_local_datetime || parking.end_datetime;
+                            return formatLocalDateDirect(src) || '--';
                           })()},{' '}
-                          {hasExplicitTime(parking.end_datetime) ? (
-                            (() => {
-                              const endDate = parseDatetimeForDisplay(parking.end_datetime);
-                              return endDate ? format(endDate, 'h:mm a') : '--';
-                            })()
-                          ) : (
-                            <span className="text-destructive font-medium">{UNKNOWN_TIME_PLACEHOLDER}</span>
-                          )}
+                          {(() => {
+                            const src = parking.end_local_datetime || parking.end_datetime;
+                            const t = formatLocalTimeDirect(src);
+                            return t || <span className="text-destructive font-medium">{UNKNOWN_TIME_PLACEHOLDER}</span>;
+                          })()}
                         </>
                       )}
                     </span>

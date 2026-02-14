@@ -519,12 +519,15 @@ export type Database = {
           billing_type: Database["public"]["Enums"]["parking_billing"]
           created_at: string
           end_datetime: string | null
+          end_local_datetime: string | null
+          end_timezone: string | null
           id: string
           label: string
           level_section_space: string | null
           my_share: number | null
           parking_type: Database["public"]["Enums"]["parking_type"]
           start_datetime: string
+          start_local_datetime: string | null
           total_cost: number | null
           trip_id: string
           updated_at: string
@@ -534,12 +537,15 @@ export type Database = {
           billing_type?: Database["public"]["Enums"]["parking_billing"]
           created_at?: string
           end_datetime?: string | null
+          end_local_datetime?: string | null
+          end_timezone?: string | null
           id?: string
           label: string
           level_section_space?: string | null
           my_share?: number | null
           parking_type: Database["public"]["Enums"]["parking_type"]
           start_datetime: string
+          start_local_datetime?: string | null
           total_cost?: number | null
           trip_id: string
           updated_at?: string
@@ -549,12 +555,15 @@ export type Database = {
           billing_type?: Database["public"]["Enums"]["parking_billing"]
           created_at?: string
           end_datetime?: string | null
+          end_local_datetime?: string | null
+          end_timezone?: string | null
           id?: string
           label?: string
           level_section_space?: string | null
           my_share?: number | null
           parking_type?: Database["public"]["Enums"]["parking_type"]
           start_datetime?: string
+          start_local_datetime?: string | null
           total_cost?: number | null
           trip_id?: string
           updated_at?: string

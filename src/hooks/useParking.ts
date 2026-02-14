@@ -31,6 +31,10 @@ interface CreateParkingData {
   level_section_space?: string;
   total_cost?: number;
   my_share?: number;
+  // v3.9.7: Local wall-time columns
+  end_local_datetime?: string;
+  end_timezone?: string;
+  start_local_datetime?: string;
 }
 
 export function useCreateParking() {

@@ -112,6 +112,10 @@ export interface Parking {
   level_section_space?: string;
   total_cost: number;
   my_share: number;
+  // v3.9.7: Local wall-time columns (source of truth for display)
+  end_local_datetime?: string;
+  end_timezone?: string;
+  start_local_datetime?: string;
   created_at: string;
   updated_at: string;
 }

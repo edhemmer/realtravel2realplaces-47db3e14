@@ -26,16 +26,24 @@ export interface ActiveParkingHighlight {
 }
 
 /**
- * Extract { startMs, endMs } from a parking record using the same datetime
- * fields the Parking screen uses: start_datetime and end_datetime.
- *
- * Returns null if either field is missing or unparseable.
+ * v3.9.7: Extract { startMs, endMs } from a parking record using local wall-time columns.
+ * Falls back to start_datetime/end_datetime for legacy records.
+ * Interprets as device-local time (no UTC shift).
  */
 export function getParkingWindowMs(parking: Parking): ParkingWindow | null {
-  if (!parking.start_datetime || !parking.end_datetime) return null;
+  const startStr = parking.start_local_datetime || parking.start_datetime;
+  const endStr = parking.end_local_datetime || parking.end_datetime;
+  if (!startStr || !endStr) return null;
 
-  const startMs = new Date(parking.start_datetime).getTime();
-  const endMs = new Date(parking.end_datetime).getTime();
+  // Parse as local time by stripping any timezone suffix
+  const normalizeLocal = (s: string) => {
+    let n = s.trim().replace(' ', 'T');
+    n = n.replace(/Z$/i, '').replace(/[+-]\d{2}:?\d{0,2}$/, '');
+    return new Date(n).getTime();
+  };
+
+  const startMs = normalizeLocal(startStr);
+  const endMs = normalizeLocal(endStr);
 
   if (isNaN(startMs) || isNaN(endMs)) return null;
   if (endMs <= startMs) return null;
