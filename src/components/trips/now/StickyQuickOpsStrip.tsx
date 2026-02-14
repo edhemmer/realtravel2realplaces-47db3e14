@@ -1,61 +1,29 @@
 /**
- * v3.2.0: StickyQuickOpsStrip
+ * v3.3.5: StickyQuickOpsStrip
  *
- * Labeled quick-action bar, sticky above bottom nav on mobile.
- * Actions: Expense, Explore, Parking, Share.
+ * Contextual quick-action bar for mobile NOW tab.
+ * Actions: Parking, Timeline, Bookings.
+ * No duplication of bottom-nav global tabs (Expense, Explore removed).
  *
  * Compact height (~44px). Hidden on desktop.
  */
 
-import { Button } from '@/components/ui/button';
-import { DollarSign, Compass, CircleParking, Share2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { CircleParking, CalendarDays, Plane } from 'lucide-react';
 
 interface StickyQuickOpsStripProps {
-  onAddExpense: () => void;
-  onExplore: () => void;
   onParking: () => void;
-  tripName: string;
+  onTimeline: () => void;
+  onBookings: () => void;
 }
 
 export function StickyQuickOpsStrip({
-  onAddExpense,
-  onExplore,
   onParking,
-  tripName,
+  onTimeline,
+  onBookings,
 }: StickyQuickOpsStripProps) {
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: tripName, text: `Check out my trip: ${tripName}` });
-      } catch {
-        // User cancelled
-      }
-    } else {
-      await navigator.clipboard.writeText(window.location.href);
-      toast.success('Link copied to clipboard');
-    }
-  };
-
   return (
     <div className="md:hidden">
       <div className="flex items-center justify-around bg-card/95 backdrop-blur-sm border border-border/60 rounded-2xl px-2 py-1.5 shadow-lg mx-auto max-w-sm">
-        <button
-          className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl text-success hover:bg-success/8 active:bg-success/15 transition-colors"
-          onClick={onAddExpense}
-          aria-label="Add Expense"
-        >
-          <DollarSign className="w-5 h-5" />
-          <span className="text-[10px] font-medium leading-none">Expense</span>
-        </button>
-        <button
-          className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl text-primary hover:bg-primary/8 active:bg-primary/15 transition-colors"
-          onClick={onExplore}
-          aria-label="Explore"
-        >
-          <Compass className="w-5 h-5" />
-          <span className="text-[10px] font-medium leading-none">Explore</span>
-        </button>
         <button
           className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl text-foreground/70 hover:bg-accent/50 active:bg-accent transition-colors"
           onClick={onParking}
@@ -66,11 +34,19 @@ export function StickyQuickOpsStrip({
         </button>
         <button
           className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl text-foreground/70 hover:bg-accent/50 active:bg-accent transition-colors"
-          onClick={handleShare}
-          aria-label="Share"
+          onClick={onTimeline}
+          aria-label="Timeline"
         >
-          <Share2 className="w-5 h-5" />
-          <span className="text-[10px] font-medium leading-none">Share</span>
+          <CalendarDays className="w-5 h-5" />
+          <span className="text-[10px] font-medium leading-none">Timeline</span>
+        </button>
+        <button
+          className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl text-foreground/70 hover:bg-accent/50 active:bg-accent transition-colors"
+          onClick={onBookings}
+          aria-label="Bookings"
+        >
+          <Plane className="w-5 h-5" />
+          <span className="text-[10px] font-medium leading-none">Bookings</span>
         </button>
       </div>
     </div>
