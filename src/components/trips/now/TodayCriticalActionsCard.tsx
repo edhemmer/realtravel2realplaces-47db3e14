@@ -7,7 +7,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Navigation, Building2, Car, Fuel, AlertTriangle, Route, Plane } from 'lucide-react';
+import { Navigation, Building2, Car, Fuel, AlertTriangle, Route, Plane, MapPin } from 'lucide-react';
 import {
   buildGasSearchUrl,
   buildDriveSmartUrl,
@@ -85,8 +85,18 @@ export function TodayCriticalActionsCard({ criticalActions }: TodayCriticalActio
               <p className="text-sm font-semibold text-foreground truncate">
                 {action.label}
               </p>
+              {/* v3.10.10: IATA code with pin icon — separate from confirmation */}
+              {action.displayLocation && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <MapPin className="w-3 h-3 shrink-0" />
+                  {action.displayLocation}
+                </p>
+              )}
               <p className="text-xs text-muted-foreground">
                 {action.timeDisplay}
+                {action.displaySubMeta && (
+                  <span className="ml-1.5">· {action.displaySubMeta}</span>
+                )}
               </p>
             </div>
             <Button

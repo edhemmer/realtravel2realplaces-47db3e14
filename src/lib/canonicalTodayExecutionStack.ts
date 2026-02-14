@@ -45,6 +45,10 @@ export interface TodayTimelineRow {
   timeDisplay: string;
   /** Whether this event has already passed */
   isPast: boolean;
+  /** v3.10.10: Location display for flights (IATA code) — never confirmation number */
+  displayLocation?: string;
+  /** v3.10.10: Sub-meta (e.g., confirmation number) — separate from location */
+  displaySubMeta?: string;
 }
 
 export interface TodayExecutionOutput {
@@ -190,11 +194,14 @@ export function buildCanonicalTodayExecutionStack(
     // Stay check-in always visible; other past items still included but marked
     const isPast = eventTime ? eventTime < nowTime : false;
 
+    // v3.10.10: Separate displayLocation (IATA) from displaySubMeta (confirmation)
     todayTimelineRows.push({
       event,
       time: eventTime,
       timeDisplay: formatTime12h(eventTime),
       isPast,
+      displayLocation: event.departureAirportCode || undefined,
+      displaySubMeta: event.confirmationNumber || undefined,
     });
   }
 

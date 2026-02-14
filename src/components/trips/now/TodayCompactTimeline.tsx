@@ -10,7 +10,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Calendar, Plane, Building2, Car, CircleParking, Compass,
-  Ticket, TrainFront, PartyPopper
+  Ticket, TrainFront, PartyPopper, MapPin
 } from 'lucide-react';
 import type { TodayTimelineRow } from '@/lib/canonicalTodayExecutionStack';
 import { cn } from '@/lib/utils';
@@ -63,6 +63,16 @@ export function TodayCompactTimeline({ todayTimelineRows }: TodayCompactTimeline
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{row.event.title}</p>
+              {/* v3.10.10: IATA code with pin — confirmation as separate text */}
+              {row.displayLocation && (
+                <p className="text-[11px] text-muted-foreground flex items-center gap-0.5">
+                  <MapPin className="w-2.5 h-2.5 shrink-0" />
+                  {row.displayLocation}
+                  {row.displaySubMeta && (
+                    <span className="ml-1">· {row.displaySubMeta}</span>
+                  )}
+                </p>
+              )}
             </div>
             <span className="text-xs text-muted-foreground tabular-nums shrink-0">
               {row.timeDisplay}
