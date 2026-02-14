@@ -2,26 +2,7 @@
  * MobileNavigationRouter — Canonical mobile navigation container
  * 
  * v2.3.x: Mobile Redesign v3 — intent-based bottom navigation
- * 
- * This is the SINGLE source of truth for mobile tab state and routing.
- * All mobile navigation flows through this container.
- * 
- * RESPONSIBILITIES:
- * 1. Owns selected tab state for mobile (no per-tab trip fetching)
- * 2. Enforces mobile default entry: NOW if activeTrip, else trip selection
- * 3. Legacy Summary → NOW redirect on mobile
- * 4. Tab switching does not trigger duplicate network calls
- * 
- * ARCHITECTURE:
- * TripDetail (mobile) → MobileNavigationRouter → Tab Content
- * TripDetail (desktop) → existing Tabs component (unchanged)
- * 
- * TAB MAPPING (mobile intent → content):
- * - now     → TripSummaryContainer (primary zone: status, next-up, alerts)
- * - plan    → TripBookingsContainer (chronological planning view)
- * - explore → ExploreTab
- * - expenses → TripExpensesContainer
- * - bookings/tour/companions/members/parking/packing/alerts/report/notes → More menu tabs
+ * v3.5.1: Removed per-entry Explore origin hints — ExploreTab auto-resolves
  */
 
 import { useState, useCallback, useEffect } from 'react';
@@ -30,7 +11,6 @@ import { useAccess } from '@/hooks/useAccess';
 import { useExploreDiscovery } from '@/hooks/useExploreDiscovery';
 import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import type { ExploreOriginType } from '@/types/exploreOrigin';
 import { TripDetailLayout, type TripTab } from '@/components/layout';
 import { MobileSectionHeader } from '@/components/trips/MobileSectionHeader';
 import { TripTimeline } from '@/components/trips/TripTimeline';
@@ -97,25 +77,19 @@ export function MobileNavigationRouter({
 }: MobileNavigationRouterProps) {
   const { isPro, canAccessBusinessFeatures } = useAccess();
   const { hasDiscovered: hasDiscoveredExplore, markDiscovered: markExploreDiscovered } = useExploreDiscovery();
-  // v3.3.2: Timeline data for PLAN > Timeline sub-view
   const { timelineEvents } = useCanonicalTripState(tripId, trip);
   const { data: userProfile } = useUserProfile();
   const datetimeFormat = (userProfile?.preferred_datetime_format as 'MM/DD/YYYY 12h' | 'DD/MM/YYYY 24h') || 'MM/DD/YYYY 12h';
 
-  // v2.3.x: Mobile tab state — defaults to 'now'
   const [activeTab, setActiveTabRaw] = useState<TripTab>('now');
-  // v3.3.2: PLAN sub-view state — defaults to 'timeline' for 1-tap timeline access
   const [planSubView, setPlanSubView] = useState<'timeline' | 'bookings'>('timeline');
-  // v3.4.8: Explore origin hint — set before switching to explore tab
-  const [exploreOriginHint, setExploreOriginHint] = useState<ExploreOriginType | undefined>(undefined);
 
-  // v2.6.21: Wrap setActiveTab to report changes to parent
   const setActiveTab = useCallback((tab: TripTab) => {
     setActiveTabRaw(tab);
     onActiveTabChange?.(tab);
   }, [onActiveTabChange]);
 
-  // v3.3.2: Legacy route protection — redirect summary → now, timeline → plan
+  // Legacy route protection
   useEffect(() => {
     if (activeTab === 'summary') {
       setActiveTab('now');
@@ -125,10 +99,9 @@ export function MobileNavigationRouter({
     }
   }, [activeTab]);
 
-  // v2.3.x: Consume external tab changes (e.g. from MobileAddExpenseCard)
+  // Consume external tab changes
   useEffect(() => {
     if (externalTab) {
-      // Map legacy tabs to mobile equivalents
       if (externalTab === 'summary') {
         setActiveTab('now');
       } else if (externalTab === 'expenses') {
@@ -140,40 +113,28 @@ export function MobileNavigationRouter({
     }
   }, [externalTab, onExternalTabConsumed]);
 
-  // v3.3.2: Canonical tab change handler — no duplicate fetching
+  // v3.5.1: Canonical tab change — no per-entry origin logic
   const handleTabChange = useCallback((tab: TripTab) => {
-    // Redirect legacy tabs
     if (tab === 'summary') {
       setActiveTab('now');
       return;
     }
-    // v3.3.2: timeline → plan with timeline sub-view
     if (tab === 'timeline') {
       setActiveTab('plan');
       setPlanSubView('timeline');
       return;
     }
-    // v3.4.8: Set DEVICE origin when entering explore from bottom nav
-    if (tab === 'explore' && !exploreOriginHint) {
-      setExploreOriginHint('DEVICE');
-    }
     setActiveTab(tab);
     
-    // Mark Explore as discovered when switching to that tab
     if (tab === 'explore' && isPro && !hasDiscoveredExplore) {
       markExploreDiscovered();
     }
-  }, [isPro, hasDiscoveredExplore, markExploreDiscovered, exploreOriginHint]);
+  }, [isPro, hasDiscoveredExplore, markExploreDiscovered]);
 
-
-  /** Render content for the active tab */
   const renderTabContent = () => {
-    // Show section header for "More" menu tabs
     const sectionLabel = MORE_TAB_LABELS[activeTab];
-
     return (
       <div className="mt-2">
-        {/* v3.1.0: NOW tab content handled entirely by NowCommandCenter */}
         {sectionLabel && (
           <MobileSectionHeader
             sectionTitle={sectionLabel}
@@ -187,7 +148,6 @@ export function MobileNavigationRouter({
 
   const renderActiveTab = () => {
     switch (activeTab) {
-      // Primary mobile tabs
       case 'now':
         return (
           <NowCommandCenter
@@ -197,14 +157,13 @@ export function MobileNavigationRouter({
             onParking={() => handleTabChange('parking')}
             onViewAllAlerts={() => handleTabChange('alerts')}
             onAddExpense={() => handleTabChange('expenses')}
-            onExplore={() => { setExploreOriginHint('DEVICE'); handleTabChange('explore'); }}
+            onExplore={() => handleTabChange('explore')}
             onTimeline={() => { handleTabChange('plan'); setPlanSubView('timeline'); }}
           />
         );
       case 'plan':
         return (
           <div>
-            {/* v3.3.2: Segmented control — Timeline | Bookings */}
             <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1 mb-3">
               <button
                 onClick={() => setPlanSubView('timeline')}
@@ -235,7 +194,7 @@ export function MobileNavigationRouter({
           </div>
         );
       case 'explore':
-        return <ExploreTab tripId={tripId} trip={trip} initialOrigin={exploreOriginHint} />;
+        return <ExploreTab tripId={tripId} trip={trip} />;
       case 'expenses':
         return (
           <TripExpensesContainer
@@ -246,7 +205,6 @@ export function MobileNavigationRouter({
           />
         );
 
-      // More menu tabs
       case 'bookings':
         return (
           <TripBookingsContainer 
@@ -279,7 +237,6 @@ export function MobileNavigationRouter({
       case 'notes':
         return <NotesTab tripId={tripId} />;
 
-      // Fallback — should not happen due to legacy redirect
       default:
         return (
           <NowCommandCenter
@@ -289,7 +246,7 @@ export function MobileNavigationRouter({
             onParking={() => handleTabChange('parking')}
             onViewAllAlerts={() => handleTabChange('alerts')}
             onAddExpense={() => handleTabChange('expenses')}
-            onExplore={() => { setExploreOriginHint('DEVICE'); handleTabChange('explore'); }}
+            onExplore={() => handleTabChange('explore')}
             onTimeline={() => { handleTabChange('plan'); setPlanSubView('timeline'); }}
           />
         );
