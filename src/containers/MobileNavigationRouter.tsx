@@ -30,6 +30,7 @@ import { useAccess } from '@/hooks/useAccess';
 import { useExploreDiscovery } from '@/hooks/useExploreDiscovery';
 import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import type { ExploreOriginType } from '@/types/exploreOrigin';
 import { TripDetailLayout, type TripTab } from '@/components/layout';
 import { MobileSectionHeader } from '@/components/trips/MobileSectionHeader';
 import { TripTimeline } from '@/components/trips/TripTimeline';
@@ -105,6 +106,8 @@ export function MobileNavigationRouter({
   const [activeTab, setActiveTabRaw] = useState<TripTab>('now');
   // v3.3.2: PLAN sub-view state — defaults to 'timeline' for 1-tap timeline access
   const [planSubView, setPlanSubView] = useState<'timeline' | 'bookings'>('timeline');
+  // v3.4.8: Explore origin hint — set before switching to explore tab
+  const [exploreOriginHint, setExploreOriginHint] = useState<ExploreOriginType | undefined>(undefined);
 
   // v2.6.21: Wrap setActiveTab to report changes to parent
   const setActiveTab = useCallback((tab: TripTab) => {
@@ -150,13 +153,17 @@ export function MobileNavigationRouter({
       setPlanSubView('timeline');
       return;
     }
+    // v3.4.8: Set DEVICE origin when entering explore from bottom nav
+    if (tab === 'explore' && !exploreOriginHint) {
+      setExploreOriginHint('DEVICE');
+    }
     setActiveTab(tab);
     
     // Mark Explore as discovered when switching to that tab
     if (tab === 'explore' && isPro && !hasDiscoveredExplore) {
       markExploreDiscovered();
     }
-  }, [isPro, hasDiscoveredExplore, markExploreDiscovered]);
+  }, [isPro, hasDiscoveredExplore, markExploreDiscovered, exploreOriginHint]);
 
 
   /** Render content for the active tab */
@@ -190,7 +197,7 @@ export function MobileNavigationRouter({
             onParking={() => handleTabChange('parking')}
             onViewAllAlerts={() => handleTabChange('alerts')}
             onAddExpense={() => handleTabChange('expenses')}
-            onExplore={() => handleTabChange('explore')}
+            onExplore={() => { setExploreOriginHint('DEVICE'); handleTabChange('explore'); }}
             onTimeline={() => { handleTabChange('plan'); setPlanSubView('timeline'); }}
           />
         );
@@ -228,7 +235,7 @@ export function MobileNavigationRouter({
           </div>
         );
       case 'explore':
-        return <ExploreTab tripId={tripId} trip={trip} />;
+        return <ExploreTab tripId={tripId} trip={trip} initialOrigin={exploreOriginHint} />;
       case 'expenses':
         return (
           <TripExpensesContainer
@@ -282,7 +289,7 @@ export function MobileNavigationRouter({
             onParking={() => handleTabChange('parking')}
             onViewAllAlerts={() => handleTabChange('alerts')}
             onAddExpense={() => handleTabChange('expenses')}
-            onExplore={() => handleTabChange('explore')}
+            onExplore={() => { setExploreOriginHint('DEVICE'); handleTabChange('explore'); }}
             onTimeline={() => { handleTabChange('plan'); setPlanSubView('timeline'); }}
           />
         );
