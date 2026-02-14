@@ -158,10 +158,6 @@ export function MobileNavigationRouter({
     }
   }, [isPro, hasDiscoveredExplore, markExploreDiscovered]);
 
-  // v2.6.19: Add Expense from NOW pills — switch to expenses tab
-  const handleNowAddExpense = useCallback(() => {
-    setActiveTab('expenses');
-  }, []);
 
   /** Render content for the active tab */
   const renderTabContent = () => {
@@ -191,10 +187,10 @@ export function MobileNavigationRouter({
             tripId={tripId}
             trip={trip}
             onViewFullTimeline={() => handleTabChange('plan')}
-            onAddExpense={handleNowAddExpense}
-            onExplore={() => handleTabChange('explore')}
             onParking={() => handleTabChange('parking')}
             onViewAllAlerts={() => handleTabChange('alerts')}
+            onTimeline={() => { handleTabChange('plan'); setPlanSubView('timeline'); }}
+            onBookings={() => { handleTabChange('plan'); setPlanSubView('bookings'); }}
           />
         );
       case 'plan':
@@ -282,10 +278,10 @@ export function MobileNavigationRouter({
             tripId={tripId}
             trip={trip}
             onViewFullTimeline={() => handleTabChange('plan')}
-            onAddExpense={handleNowAddExpense}
-            onExplore={() => handleTabChange('explore')}
             onParking={() => handleTabChange('parking')}
             onViewAllAlerts={() => handleTabChange('alerts')}
+            onTimeline={() => { handleTabChange('plan'); setPlanSubView('timeline'); }}
+            onBookings={() => { handleTabChange('plan'); setPlanSubView('bookings'); }}
           />
         );
     }

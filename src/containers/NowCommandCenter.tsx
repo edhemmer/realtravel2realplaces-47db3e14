@@ -37,10 +37,10 @@ interface NowCommandCenterProps {
   tripId: string;
   trip: Trip;
   onViewFullTimeline: () => void;
-  onAddExpense: () => void;
-  onExplore: () => void;
   onParking: () => void;
   onViewAllAlerts: () => void;
+  onTimeline: () => void;
+  onBookings: () => void;
 }
 
 /**
@@ -60,10 +60,10 @@ export function NowCommandCenter({
   tripId,
   trip,
   onViewFullTimeline,
-  onAddExpense,
-  onExplore,
   onParking,
   onViewAllAlerts,
+  onTimeline,
+  onBookings,
 }: NowCommandCenterProps) {
   const { timelineEvents, isLoading } = useCanonicalTripState(tripId, trip);
   const { data: bookings = [] } = useBookings(tripId);
@@ -83,20 +83,19 @@ export function NowCommandCenter({
 
   return (
     <div className="space-y-5 pb-20">
-      {/* 1. NextCriticalActionCard */}
-      <NextCriticalActionCard tripId={tripId} trip={trip} />
-
-      {/* 2. Quick Actions Section */}
+      {/* 1. Quick Actions Section — above NextCriticalActionCard */}
       <div>
         <p className="text-xs text-muted-foreground tracking-wide uppercase mb-2">Quick Actions</p>
         <StickyQuickOpsStrip
-          onAddExpense={onAddExpense}
-          onExplore={onExplore}
           onParking={onParking}
-          tripName={trip.name}
+          onTimeline={onTimeline}
+          onBookings={onBookings}
         />
         <div className="border-t border-border/30 mt-5" />
       </div>
+
+      {/* 2. NextCriticalActionCard */}
+      <NextCriticalActionCard tripId={tripId} trip={trip} />
 
       {/* 3. ActiveAlertsStack — max 3, severity-ordered */}
       {hasAlerts && (
