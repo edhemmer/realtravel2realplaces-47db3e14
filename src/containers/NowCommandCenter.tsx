@@ -33,6 +33,8 @@ import { TodayCompactTimeline } from '@/components/trips/now/TodayCompactTimelin
 import { StickyQuickOpsStrip } from '@/components/trips/now/StickyQuickOpsStrip';
 import { TripSectionLoading } from '@/components/trips/TripSectionStates';
 import { getLocalNowString } from '@/lib/canonicalNextStop';
+import { getNowParkingHighlight } from '@/lib/canonicalParkingHighlight';
+import { useForegroundResume } from '@/hooks/useForegroundResume';
 
 interface NowCommandCenterProps {
   tripId: string;
@@ -77,8 +79,25 @@ export function NowCommandCenter({
   const { alerts, hasAlerts } = useTravelAlerts(trip, bookings, parkingList, temperatureUnit);
 
   const [gasDialogOpen, setGasDialogOpen] = useState(false);
+  const [resumeTick, setResumeTick] = useState(0);
+
+  // v3.7.1: Recompute on foreground resume
+  useForegroundResume(() => setResumeTick((t) => t + 1));
 
   const showGas = useMemo(() => isRentalReturnDay(bookings), [bookings]);
+
+  // v3.7.1: Canonical active parking highlight
+  const activeParkingHighlight = useMemo(
+    () => getNowParkingHighlight(parkingList, Date.now()),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [parkingList, resumeTick]
+  );
+
+  // v3.7.1: Set of active parking source IDs for TodayCompactTimeline filtering
+  const activeParkingIds = useMemo(() => {
+    if (!activeParkingHighlight) return new Set<string>();
+    return new Set([activeParkingHighlight.parking.id]);
+  }, [activeParkingHighlight]);
 
   if (isLoading) {
     return <TripSectionLoading message="Loading trip..." />;
@@ -121,6 +140,7 @@ export function NowCommandCenter({
       <TodayCompactTimeline
         timelineEvents={timelineEvents}
         onViewFullTimeline={onViewFullTimeline}
+        activeParkingIds={activeParkingIds}
       />
 
       {/* Gas Expense Dialog */}
