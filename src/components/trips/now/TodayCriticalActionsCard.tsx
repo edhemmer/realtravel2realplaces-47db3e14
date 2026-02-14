@@ -1,13 +1,13 @@
 /**
- * v3.10.8: TodayCriticalActionsCard
+ * v3.10.9: TodayCriticalActionsCard
  *
- * Renders canonical critical actions (Checkout, Get Gas, Return Rental, Drive Smart)
+ * Renders canonical critical actions (Checkout, Get Gas, Return Rental, Drive Smart, Flight)
  * from the canonical TODAY execution stack. No sorting — receives pre-ordered actions.
  */
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Navigation, Building2, Car, Fuel, AlertTriangle, Route } from 'lucide-react';
+import { Navigation, Building2, Car, Fuel, AlertTriangle, Route, Plane } from 'lucide-react';
 import {
   buildGasSearchUrl,
   buildDriveSmartUrl,
@@ -28,6 +28,7 @@ const ACTION_ICONS: Record<string, React.ReactNode> = {
   GET_GAS: <Fuel className="w-4 h-4" />,
   RETURN_RENTAL: <Car className="w-4 h-4" />,
   DRIVE_SMART: <Route className="w-4 h-4" />,
+  FLIGHT: <Plane className="w-4 h-4" />,
 };
 
 const ACTION_COLORS: Record<string, string> = {
@@ -35,6 +36,7 @@ const ACTION_COLORS: Record<string, string> = {
   GET_GAS: 'text-emerald-600 bg-emerald-500/10',
   RETURN_RENTAL: 'text-primary bg-primary/10',
   DRIVE_SMART: 'text-blue-600 bg-blue-500/10',
+  FLIGHT: 'text-orange-600 bg-orange-500/10',
 };
 
 function handleNavigate(action: TodayCriticalAction) {

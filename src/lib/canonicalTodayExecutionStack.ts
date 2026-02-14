@@ -1,19 +1,24 @@
 /**
- * v3.10.8: Canonical TODAY Execution Stack
+ * v3.10.9: Canonical TODAY Execution Stack
  *
  * SINGLE SOURCE OF TRUTH for all TODAY-related ordering.
  * All TODAY consumers (Critical Actions, Next Up, Today Timeline)
  * MUST derive from this stack — no independent re-sorting allowed.
  *
- * Produces one ordered list of TodayExecutionItem that merges:
+ * Produces one ordered list merging:
  *   - Canonical timeline events for today
- *   - Synthetic critical actions (CHECKOUT, GET_GAS, RETURN_RENTAL, DRIVE_SMART)
+ *   - Synthetic critical actions (CHECKOUT, GET_GAS, RETURN_RENTAL, DRIVE_SMART, FLIGHT)
  *   - AIRPORT_BUFFER urgency marker
+ *   - isExecutionMode flag for departure urgency
  *
  * ORDERING CONTRACT:
- *   1. Critical actions in enforced order: CHECKOUT → GET_GAS → RETURN_RENTAL → DRIVE_SMART
+ *   1. Critical actions in enforced order: CHECKOUT → GET_GAS → RETURN_RENTAL → DRIVE_SMART → FLIGHT
  *   2. Non-critical timeline events in time order (stable tie-breaker by id)
  *   3. Critical actions appear before timeline events at the same time
+ *
+ * EXECUTION MODE:
+ *   Activated when flight departure today AND (now >= airportBuffer OR flight <= 4h away).
+ *   In execution mode, criticalActions are filtered to departure-related types only.
  *
  * No Date(), no epoch math, no browser timezone conversions.
  */
@@ -23,6 +28,7 @@ import {
   getTodayCriticalActionsWithBuffer,
   type TodayCriticalAction,
   type AirportBufferMarker,
+  type CriticalActionType,
 } from './canonicalTodayCriticalActions';
 import { getLocalNowString } from './canonicalNextStop';
 
@@ -48,9 +54,24 @@ export interface TodayExecutionOutput {
   todayTimelineRows: TodayTimelineRow[];
   /** AIRPORT_BUFFER marker for urgency (may be null) */
   airportBuffer: AirportBufferMarker | null;
+  /** v3.10.9: True when inside departure window (flight ≤4h or past airport buffer) */
+  isExecutionMode: boolean;
   /** The "now" string used for this computation (for determinism checks) */
   computedAt: string;
 }
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+/** Critical action types allowed during execution mode */
+const EXECUTION_MODE_ALLOWED: Set<CriticalActionType> = new Set([
+  'CHECKOUT',
+  'GET_GAS',
+  'RETURN_RENTAL',
+  'DRIVE_SMART',
+  'FLIGHT',
+]);
 
 // ============================================================================
 // HELPERS (string-based, no Date())
@@ -80,6 +101,35 @@ function formatTime12h(time: string | null): string {
   return `${h12}:${m} ${ampm}`;
 }
 
+/**
+ * Convert HH:MM to total minutes. String-based, no Date().
+ */
+function timeToMinutes(time: string): number {
+  return parseInt(time.substring(0, 2)) * 60 + parseInt(time.substring(3, 5));
+}
+
+/**
+ * Detect departure execution mode.
+ * True when: flight departure today AND (now >= bufferTime OR flight ≤ 4h away).
+ * All comparisons are string/integer-based.
+ */
+function detectExecutionMode(
+  nowTime: string,
+  airportBuffer: AirportBufferMarker | null,
+): boolean {
+  if (!airportBuffer) return false;
+
+  // Check: now >= airport buffer time
+  if (nowTime >= airportBuffer.bufferTime) return true;
+
+  // Check: flight departure ≤ 4 hours from now
+  const nowMins = timeToMinutes(nowTime);
+  const flightMins = timeToMinutes(airportBuffer.flightTime);
+  const diffMins = flightMins - nowMins;
+
+  return diffMins >= 0 && diffMins <= 240; // 4 hours = 240 minutes
+}
+
 // ============================================================================
 // MAIN BUILDER
 // ============================================================================
@@ -106,14 +156,22 @@ export function buildCanonicalTodayExecutionStack(
   const nowTime = nowStr.substring(11, 16);
 
   // 1. Get critical actions from canonical resolver (already in enforced order)
-  const { actions: criticalActions, airportBuffer } = getTodayCriticalActionsWithBuffer(
+  const { actions: allCriticalActions, airportBuffer } = getTodayCriticalActionsWithBuffer(
     timelineEvents,
     nowStr,
     returnLocationCoords,
     activeStayAddress,
   );
 
-  // 2. Build today timeline rows (filtered, sorted ONCE here)
+  // 2. Detect execution mode
+  const isExecutionMode = detectExecutionMode(nowTime, airportBuffer);
+
+  // 3. Filter critical actions in execution mode (suppress non-essential)
+  const criticalActions = isExecutionMode
+    ? allCriticalActions.filter((a) => EXECUTION_MODE_ALLOWED.has(a.actionType))
+    : allCriticalActions;
+
+  // 4. Build today timeline rows (filtered, sorted ONCE here)
   const todayTimelineRows: TodayTimelineRow[] = [];
 
   for (const event of timelineEvents) {
@@ -132,9 +190,6 @@ export function buildCanonicalTodayExecutionStack(
     // Stay check-in always visible; other past items still included but marked
     const isPast = eventTime ? eventTime < nowTime : false;
 
-    // For compact timeline: exclude expired items (except hotel_checkin)
-    // Keep all items in the canonical output; consumers can filter isPast if needed
-
     todayTimelineRows.push({
       event,
       time: eventTime,
@@ -149,7 +204,6 @@ export function buildCanonicalTodayExecutionStack(
     const tb = b.time || '99:99';
     const cmp = ta.localeCompare(tb);
     if (cmp !== 0) return cmp;
-    // Stable tie-breaker: by event id
     return a.event.id.localeCompare(b.event.id);
   });
 
@@ -157,6 +211,7 @@ export function buildCanonicalTodayExecutionStack(
     criticalActions,
     todayTimelineRows,
     airportBuffer,
+    isExecutionMode,
     computedAt: nowStr,
   };
 }
