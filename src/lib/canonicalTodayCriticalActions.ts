@@ -1,13 +1,13 @@
 /**
- * v3.8.6: Canonical Today Critical Actions Resolver
+ * v3.10.6: Canonical Today Critical Actions Resolver
  *
  * Derives today's critical execution actions from the canonical timeline.
  * Powers NOW and any execution surface.
  *
  * ACTION TYPES (rendered in this order):
  *   1. CHECKOUT — stay checkout today
- *   2. RETURN_RENTAL — rental return / airport return / preflight today
- *   3. GET_GAS — synthetic: when rental return is ≤ 4 hours away
+ *   2. GET_GAS — synthetic: when rental return exists today (45 min before return)
+ *   3. RETURN_RENTAL — rental return / airport return / preflight today
  *
  * Each action provides:
  *   - label: human-readable action name
@@ -17,8 +17,10 @@
  *
  * RULES:
  * - String-based time comparison only (no Date() for logic)
- * - GET_GAS appears when rental return is ≤ 240 minutes away
- * - GET_GAS navTarget uses device location if available, else return location
+ * - GET_GAS appears whenever rental return exists today (not yet passed)
+ * - GET_GAS time = rental_return_time minus 45 minutes (string math)
+ * - GET_GAS navTarget uses device location if within 20 mi of return, else return location
+ * - No trip-city fallback for gas origin
  */
 
 import type { CanonicalTimelineEvent } from './canonicalTripState';
@@ -80,8 +82,45 @@ function formatTime12h(time: string | null): string {
   return `${h12}:${m} ${ampm}`;
 }
 
-function timeToMinutes(time: string): number {
-  return parseInt(time.substring(0, 2)) * 60 + parseInt(time.substring(3, 5));
+/**
+ * Subtract minutes from a HH:MM string using pure string/integer math.
+ * Returns HH:MM (clamped to 00:00 floor).
+ */
+function subtractMinutesFromTime(time: string, minutes: number): string {
+  const h = parseInt(time.substring(0, 2));
+  const m = parseInt(time.substring(3, 5));
+  let totalMins = h * 60 + m - minutes;
+  if (totalMins < 0) totalMins = 0;
+  const newH = Math.floor(totalMins / 60);
+  const newM = totalMins % 60;
+  return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`;
+}
+
+/**
+ * Haversine distance in miles between two lat/lng pairs.
+ * Pure math — no Date() or external dependencies.
+ */
+function haversineDistanceMiles(
+  lat1: number, lng1: number,
+  lat2: number, lng2: number
+): number {
+  const R = 3958.8; // Earth radius in miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/**
+ * Determine if a rental return event type matches any known variant.
+ */
+function isRentalReturnEventType(eventType: string): boolean {
+  return eventType === 'rental_dropoff' ||
+    eventType === 'rental_return' ||
+    eventType === 'car_return';
 }
 
 // ============================================================================
@@ -90,16 +129,17 @@ function timeToMinutes(time: string): number {
 
 /**
  * Resolve today's critical actions from canonical timeline events.
- * Returns actions in strict order: CHECKOUT → RETURN_RENTAL → GET_GAS
+ * Returns actions in strict order: CHECKOUT → GET_GAS → RETURN_RENTAL
  */
 export function getTodayCriticalActions(
   timelineEvents: CanonicalTimelineEvent[],
   nowLocal?: string,
+  /** Optional: return location coords for proximity check */
+  returnLocationCoords?: { lat: number; lng: number } | null,
 ): TodayCriticalAction[] {
   const nowStr = nowLocal ?? getLocalNowString();
   const todayDate = nowStr.substring(0, 10);
   const nowTime = nowStr.substring(11, 16);
-  const nowMins = timeToMinutes(nowTime);
 
   const actions: TodayCriticalAction[] = [];
   let rentalReturnEvent: CanonicalTimelineEvent | null = null;
@@ -129,7 +169,7 @@ export function getTodayCriticalActions(
       });
     }
 
-    if (event.eventType === 'rental_dropoff') {
+    if (isRentalReturnEventType(event.eventType)) {
       rentalReturnEvent = event;
       rentalReturnTime = eventTime;
       actions.push({
@@ -145,36 +185,51 @@ export function getTodayCriticalActions(
     }
   }
 
-  // Pass 2: Synthesize GET_GAS if rental return is ≤ 4 hours away
-  if (rentalReturnEvent && rentalReturnTime) {
-    const returnMins = timeToMinutes(rentalReturnTime);
-    const minsUntilReturn = returnMins - nowMins;
+  // Pass 2: Synthesize GET_GAS if rental return exists today (not yet passed)
+  if (rentalReturnEvent) {
+    // Gas time = rental return time minus 45 minutes (string math)
+    const gasTime = rentalReturnTime
+      ? subtractMinutesFromTime(rentalReturnTime, 45)
+      : null;
 
-    if (minsUntilReturn > 0 && minsUntilReturn <= 240) {
-      // Prefer device location for gas search; fall back to return address
-      const deviceCoords = getCachedDeviceLocation();
-      const gasNav: CriticalActionNavTarget = deviceCoords
-        ? { lat: deviceCoords.lat, lng: deviceCoords.lng, searchQuery: 'gas station' }
-        : { address: rentalReturnEvent.address, searchQuery: 'gas station' };
+    // Determine gas search origin:
+    // If device location available AND within 20 miles of return location → device
+    // Else → return location (no trip-city fallback)
+    const deviceCoords = getCachedDeviceLocation();
+    let useDevice = false;
 
-      actions.push({
-        id: `critical-gas-${rentalReturnEvent.sourceId}`,
-        actionType: 'GET_GAS',
-        label: 'Get gas before return',
-        time: null, // Synthetic — no fixed time
-        timeDisplay: `Return in ${Math.floor(minsUntilReturn / 60)}h ${minsUntilReturn % 60}m`,
-        navTarget: gasNav,
-        sourceId: rentalReturnEvent.sourceId,
-        sourceType: rentalReturnEvent.sourceType,
-      });
+    if (deviceCoords && returnLocationCoords) {
+      const dist = haversineDistanceMiles(
+        deviceCoords.lat, deviceCoords.lng,
+        returnLocationCoords.lat, returnLocationCoords.lng
+      );
+      useDevice = dist <= 20;
+    } else if (deviceCoords && !returnLocationCoords) {
+      // No return coords to compare — use device as best guess
+      useDevice = true;
     }
+
+    const gasNav: CriticalActionNavTarget = useDevice && deviceCoords
+      ? { lat: deviceCoords.lat, lng: deviceCoords.lng, searchQuery: 'gas station' }
+      : { address: rentalReturnEvent.address, searchQuery: 'gas station' };
+
+    actions.push({
+      id: `critical-gas-${rentalReturnEvent.sourceId}`,
+      actionType: 'GET_GAS',
+      label: 'Get Gas',
+      time: gasTime,
+      timeDisplay: gasTime ? formatTime12h(gasTime) : 'Before return',
+      navTarget: gasNav,
+      sourceId: rentalReturnEvent.sourceId,
+      sourceType: rentalReturnEvent.sourceType,
+    });
   }
 
-  // Sort by strict order: CHECKOUT(0) → RETURN_RENTAL(1) → GET_GAS(2)
+  // Sort by strict order: CHECKOUT(0) → GET_GAS(1) → RETURN_RENTAL(2)
   const ORDER: Record<CriticalActionType, number> = {
     CHECKOUT: 0,
-    RETURN_RENTAL: 1,
-    GET_GAS: 2,
+    GET_GAS: 1,
+    RETURN_RENTAL: 2,
   };
   actions.sort((a, b) => ORDER[a.actionType] - ORDER[b.actionType]);
 
