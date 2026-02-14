@@ -26,6 +26,7 @@ import { useParking } from '@/hooks/useParking';
 import { useTravelAlerts } from '@/hooks/useTravelAlerts';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { TravelAlertsCard } from '@/components/trips/TravelAlertsCard';
+import { CalendarDays, ChevronRight } from 'lucide-react';
 import { GasExpenseDialog } from '@/components/trips/GasExpenseDialog';
 import { NextCriticalActionCard } from '@/components/trips/now/NextCriticalActionCard';
 import { TodayCompactTimeline } from '@/components/trips/now/TodayCompactTimeline';
@@ -41,6 +42,7 @@ interface NowCommandCenterProps {
   onViewAllAlerts: () => void;
   onAddExpense: () => void;
   onExplore: () => void;
+  onTimeline: () => void;
 }
 
 /**
@@ -64,6 +66,7 @@ export function NowCommandCenter({
   onViewAllAlerts,
   onAddExpense,
   onExplore,
+  onTimeline,
 }: NowCommandCenterProps) {
   const { timelineEvents, isLoading } = useCanonicalTripState(tripId, trip);
   const { data: bookings = [] } = useBookings(tripId);
@@ -90,6 +93,17 @@ export function NowCommandCenter({
           onExplore={onExplore}
         />
       </div>
+
+      {/* 2. Timeline secondary row */}
+      <button
+        className="md:hidden w-full flex items-center gap-3 px-4 h-12 bg-primary/5 border border-border/40 rounded-xl hover:bg-primary/10 active:bg-primary/15 transition-colors"
+        onClick={onTimeline}
+        aria-label="View Timeline"
+      >
+        <CalendarDays className="w-5 h-5 text-primary" />
+        <span className="flex-1 text-left text-sm font-medium text-foreground">Timeline</span>
+        <ChevronRight className="w-4 h-4 text-primary/60" />
+      </button>
 
       {/* 2. NextCriticalActionCard */}
       <NextCriticalActionCard tripId={tripId} trip={trip} />
