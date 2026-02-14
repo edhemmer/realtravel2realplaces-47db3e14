@@ -126,10 +126,11 @@ export function MobileNavigationRouter({
     }
     setActiveTab(tab);
     
-    if (tab === 'explore' && isPro && !hasDiscoveredExplore) {
+    // v3.10.12: Explore available to all tiers
+    if (tab === 'explore' && !hasDiscoveredExplore) {
       markExploreDiscovered();
     }
-  }, [isPro, hasDiscoveredExplore, markExploreDiscovered]);
+  }, [hasDiscoveredExplore, markExploreDiscovered]);
 
   const renderTabContent = () => {
     const sectionLabel = MORE_TAB_LABELS[activeTab];

@@ -139,10 +139,10 @@ export default function TripDetail() {
   // v2.1.29: Desktop tab change handler
   const handleTabChange = useCallback((value: string | TripTab) => {
     setActiveTab(value as TripTab);
-    if (value === 'explore' && isPro && !hasDiscoveredExplore) {
+    if (value === 'explore' && !hasDiscoveredExplore) {
       markExploreDiscovered();
     }
-  }, [isPro, hasDiscoveredExplore, markExploreDiscovered]);
+  }, [hasDiscoveredExplore, markExploreDiscovered]);
 
   // v2.3.x: Mobile "Add Expense" handler — sets external tab for mobile router
   const handleMobileAddExpense = useCallback(() => {
@@ -333,7 +333,7 @@ export default function TripDetail() {
                     <TabsTrigger value="packing">Packing</TabsTrigger>
                     <TabsTrigger value="explore" className="relative">
                       Explore
-                      {isPro && !hasDiscoveredExplore && (
+                      {!hasDiscoveredExplore && (
                         <Badge 
                           variant="secondary" 
                           className="absolute -top-1.5 -right-1.5 h-4 px-1.5 text-[10px] font-semibold bg-primary text-primary-foreground"
