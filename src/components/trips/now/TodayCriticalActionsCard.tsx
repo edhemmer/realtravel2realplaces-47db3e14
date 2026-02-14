@@ -33,8 +33,8 @@ const ACTION_ICONS: Record<string, React.ReactNode> = {
 
 const ACTION_COLORS: Record<string, string> = {
   CHECKOUT: 'text-amber-600 bg-amber-500/10',
-  RETURN_RENTAL: 'text-primary bg-primary/10',
   GET_GAS: 'text-emerald-600 bg-emerald-500/10',
+  RETURN_RENTAL: 'text-primary bg-primary/10',
 };
 
 function handleNavigate(action: TodayCriticalAction) {
