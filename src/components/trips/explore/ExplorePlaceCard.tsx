@@ -6,12 +6,12 @@
 import { AttractionSuggestion } from '@/types/attraction';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Star, MapPin, Navigation, Bookmark, Ticket } from 'lucide-react';
+import { Star, MapPin, Navigation, Plus, Ticket } from 'lucide-react';
 
 interface ExplorePlaceCardProps {
   attraction: AttractionSuggestion;
   onNavigate: () => void;
-  onSave: () => void;
+  onAdd: () => void;
 }
 
 function getPriceBadgeClasses(priceLevel: string): string {
@@ -29,7 +29,7 @@ function getPriceBadgeClasses(priceLevel: string): string {
   }
 }
 
-export function ExplorePlaceCard({ attraction, onNavigate, onSave }: ExplorePlaceCardProps) {
+export function ExplorePlaceCard({ attraction, onNavigate, onAdd }: ExplorePlaceCardProps) {
   const showTicketBadge =
     attraction.bookingInfo.ticketRequired || attraction.bookingInfo.advanceRecommended;
 
@@ -114,10 +114,10 @@ export function ExplorePlaceCard({ attraction, onNavigate, onSave }: ExplorePlac
             size="sm"
             variant="outline"
             className="h-7 text-xs gap-1 px-2"
-            onClick={onSave}
+            onClick={onAdd}
           >
-            <Bookmark className="w-3 h-3" />
-            Save
+            <Plus className="w-3 h-3" />
+            Add
           </Button>
         </div>
       </div>

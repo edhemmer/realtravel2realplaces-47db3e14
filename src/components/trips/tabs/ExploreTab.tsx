@@ -21,7 +21,7 @@ import { resolveExploreOrigin } from '@/types/exploreOrigin';
 import { buildExploreSections } from '@/lib/exploreRankingSections';
 import { ExploreCarousel } from '@/components/trips/explore/ExploreCarousel';
 import { ExploreSectionFeed } from '@/components/trips/explore/ExploreSectionFeed';
-import { AddToTripModal } from '@/components/trips/explore/AddToTripModal';
+import { AddToTimelineModal } from '@/components/trips/explore/AddToTimelineModal';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -81,7 +81,7 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
   }, [attractions]);
 
   // Handlers
-  const handleSave = (attraction: AttractionSuggestion) => {
+  const handleAdd = (attraction: AttractionSuggestion) => {
     if (!canEdit) return;
     setSelectedAttraction(attraction);
     setAddModalOpen(true);
@@ -253,20 +253,20 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
           {/* Right Now carousel */}
           <ExploreCarousel
             items={rightNow}
-            onSave={canEdit ? handleSave : undefined}
+            onAdd={canEdit ? handleAdd : undefined}
           />
 
           {/* Sectioned feed */}
           <ExploreSectionFeed
             sections={sections}
             onNavigate={handleNavigate}
-            onSave={handleSave}
+            onAdd={handleAdd}
           />
         </div>
       )}
 
-      {/* Add to Trip Modal */}
-      <AddToTripModal
+      {/* Add to Timeline Modal */}
+      <AddToTimelineModal
         open={addModalOpen}
         onOpenChange={setAddModalOpen}
         attraction={selectedAttraction}

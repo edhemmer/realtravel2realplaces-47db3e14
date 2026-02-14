@@ -13,12 +13,12 @@ import { ChevronDown } from 'lucide-react';
 interface ExploreSectionFeedProps {
   sections: ExploreSection[];
   onNavigate: (attraction: AttractionSuggestion) => void;
-  onSave: (attraction: AttractionSuggestion) => void;
+  onAdd: (attraction: AttractionSuggestion) => void;
 }
 
 const INITIAL_SHOW = 4;
 
-export function ExploreSectionFeed({ sections, onNavigate, onSave }: ExploreSectionFeedProps) {
+export function ExploreSectionFeed({ sections, onNavigate, onAdd }: ExploreSectionFeedProps) {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
   const toggleExpand = (sectionId: string) => {
@@ -63,7 +63,7 @@ export function ExploreSectionFeed({ sections, onNavigate, onSave }: ExploreSect
                   key={item.id}
                   attraction={item}
                   onNavigate={() => onNavigate(item)}
-                  onSave={() => onSave(item)}
+                  onAdd={() => onAdd(item)}
                 />
               ))}
             </div>
