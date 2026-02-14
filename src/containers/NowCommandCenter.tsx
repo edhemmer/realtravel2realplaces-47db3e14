@@ -39,8 +39,8 @@ interface NowCommandCenterProps {
   onViewFullTimeline: () => void;
   onParking: () => void;
   onViewAllAlerts: () => void;
-  onTimeline: () => void;
-  onBookings: () => void;
+  onAddExpense: () => void;
+  onExplore: () => void;
 }
 
 /**
@@ -62,8 +62,8 @@ export function NowCommandCenter({
   onViewFullTimeline,
   onParking,
   onViewAllAlerts,
-  onTimeline,
-  onBookings,
+  onAddExpense,
+  onExplore,
 }: NowCommandCenterProps) {
   const { timelineEvents, isLoading } = useCanonicalTripState(tripId, trip);
   const { data: bookings = [] } = useBookings(tripId);
@@ -83,15 +83,12 @@ export function NowCommandCenter({
 
   return (
     <div className="space-y-5 pb-20">
-      {/* 1. Quick Actions Section — above NextCriticalActionCard */}
-      <div>
-        <p className="text-xs text-muted-foreground tracking-wide uppercase mb-2">Quick Actions</p>
+      {/* 1. Quick Actions — above NextCriticalActionCard */}
+      <div className="mb-1">
         <StickyQuickOpsStrip
-          onParking={onParking}
-          onTimeline={onTimeline}
-          onBookings={onBookings}
+          onAddExpense={onAddExpense}
+          onExplore={onExplore}
         />
-        <div className="border-t border-border/30 mt-5" />
       </div>
 
       {/* 2. NextCriticalActionCard */}
