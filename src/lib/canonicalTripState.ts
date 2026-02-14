@@ -565,31 +565,93 @@ export function buildCanonicalTimeline(
     });
   }
 
-  // v2.2.4: Sort using eventLocalDateTime strings (direct digit comparison)
-  // to avoid timezone-shifted Date.getTime() values changing event order.
+  // v3.8.3: Execution-based in-day sorting
+  return sortTimelineExecutionOrder(events);
+}
+
+/**
+ * v3.8.3: Extract HH:MM:SS time portion from an eventLocalDateTime string.
+ */
+function extractTimePortion(eventLocalDateTime: string | undefined): string {
+  if (!eventLocalDateTime) return '';
+  const tIdx = eventLocalDateTime.indexOf('T');
+  return tIdx !== -1 ? eventLocalDateTime.substring(tIdx + 1, tIdx + 9) : '';
+}
+
+/**
+ * v3.8.3: Get the end-time string for an event (used for active detection).
+ * Returns HH:MM:SS or empty string if no end info available on this event.
+ */
+function getEventEndTime(event: CanonicalTimelineEvent): string {
+  if (event.eventType === 'flight' && event.arrivalLocalTime) {
+    return extractTimePortion(event.arrivalLocalTime);
+  }
+  // Most start events don't carry their own end time; treat as point-in-time
+  return '';
+}
+
+/**
+ * v3.8.3: Execution-based sort for canonical timeline events.
+ *
+ * Cross-day: chronological (ascending by date).
+ * Within today:
+ *   1. Active (started, not ended) — ascending by start
+ *   2. Future (not started) — ascending by start
+ *   3. Past (started and ended) — descending by start (most recent first)
+ * Within non-today days: simple ascending by time.
+ */
+function sortTimelineExecutionOrder(events: CanonicalTimelineEvent[]): CanonicalTimelineEvent[] {
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const nowTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
   return events.sort((a, b) => {
-    // Primary sort: by the canonical local datetime string (YYYY-MM-DDTHH:MM:SS)
     const aStr = a.eventLocalDateTime || '';
     const bStr = b.eventLocalDateTime || '';
-    
-    // Compare date portions first (YYYY-MM-DD)
     const aDate = aStr.substring(0, 10);
     const bDate = bStr.substring(0, 10);
+
+    // Different days: chronological
     if (aDate < bDate) return -1;
     if (aDate > bDate) return 1;
-    
-    // Same date: explicit times come first, unknown times after
+
+    // Same day: explicit times before unknown times
     if (a.hasExplicitTime && !b.hasExplicitTime) return -1;
     if (!a.hasExplicitTime && b.hasExplicitTime) return 1;
-    
-    // Both have explicit times: compare time portions (HH:MM:SS)
+
+    // Both have explicit times
     if (a.hasExplicitTime && b.hasExplicitTime) {
-      const aTime = aStr.indexOf('T') !== -1 ? aStr.substring(aStr.indexOf('T') + 1, aStr.indexOf('T') + 9) : '';
-      const bTime = bStr.indexOf('T') !== -1 ? bStr.substring(bStr.indexOf('T') + 1, bStr.indexOf('T') + 9) : '';
+      const aTime = extractTimePortion(aStr);
+      const bTime = extractTimePortion(bStr);
+
+      // Execution-based ordering only for today
+      if (aDate === todayStr) {
+        // Classify: 0=active, 1=future, 2=past
+        const classifyStatus = (startT: string, evt: CanonicalTimelineEvent): number => {
+          if (startT > nowTime) return 1; // future
+          // Started — check if ended
+          const endT = getEventEndTime(evt);
+          if (endT && endT <= nowTime) return 2; // past
+          return 0; // active (started, not ended or no end info)
+        };
+
+        const aStatus = classifyStatus(aTime, a);
+        const bStatus = classifyStatus(bTime, b);
+
+        if (aStatus !== bStatus) return aStatus - bStatus;
+
+        // Same bucket: past → descending, else ascending
+        if (aStatus === 2) {
+          return aTime > bTime ? -1 : aTime < bTime ? 1 : 0;
+        }
+        return aTime < bTime ? -1 : aTime > bTime ? 1 : 0;
+      }
+
+      // Non-today: ascending
       if (aTime < bTime) return -1;
       if (aTime > bTime) return 1;
     }
-    
+
     return 0;
   });
 }
