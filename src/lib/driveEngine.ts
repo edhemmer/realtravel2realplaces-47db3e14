@@ -256,6 +256,111 @@ function resolveRouteSignals(
 }
 
 // ============================================================================
+// PRIORITIZATION & SUPPRESSION (deterministic, max 3 signals)
+// ============================================================================
+
+const SEVERITY_RANK: Record<DriveSignalSeverity, number> = {
+  critical: 3,
+  warning: 2,
+  info: 1,
+};
+
+/**
+ * Deterministic sort: severity desc → effectiveDate asc → effectiveTime asc (null last) → id asc.
+ */
+function sortSignals(signals: DriveSignal[]): DriveSignal[] {
+  return [...signals].sort((a, b) => {
+    // Severity desc
+    const sevDiff = SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity];
+    if (sevDiff !== 0) return sevDiff;
+
+    // effectiveDate asc (undefined last)
+    const dateA = a.effectiveDate ?? '\uffff';
+    const dateB = b.effectiveDate ?? '\uffff';
+    if (dateA < dateB) return -1;
+    if (dateA > dateB) return 1;
+
+    // effectiveTime asc via timeToMinutes (null last)
+    const minsA = a.effectiveTime ? timeToMinutes(a.effectiveTime) : null;
+    const minsB = b.effectiveTime ? timeToMinutes(b.effectiveTime) : null;
+    if (minsA != null && minsB != null) {
+      if (minsA !== minsB) return minsA - minsB;
+    } else if (minsA != null) return -1;
+    else if (minsB != null) return 1;
+
+    // Stable tiebreak by id
+    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+  });
+}
+
+/**
+ * Deduplicate by id, then by same (type + related record) keeping higher severity.
+ */
+function deduplicateSignals(signals: DriveSignal[]): DriveSignal[] {
+  // Deduplicate by id
+  const seenIds = new Set<string>();
+  const unique: DriveSignal[] = [];
+  for (const s of signals) {
+    if (seenIds.has(s.id)) continue;
+    seenIds.add(s.id);
+    unique.push(s);
+  }
+
+  // Deduplicate by same type-family + related record (keep higher severity)
+  const recordKeys = new Map<string, DriveSignal>();
+  const result: DriveSignal[] = [];
+  for (const s of unique) {
+    const relKey = s.related?.bookingId ?? s.related?.parkingId;
+    if (relKey) {
+      const compositeKey = `${s.type}:${relKey}`;
+      const existing = recordKeys.get(compositeKey);
+      if (existing) {
+        // Keep higher severity (already sorted desc, so first wins)
+        if (SEVERITY_RANK[s.severity] > SEVERITY_RANK[existing.severity]) {
+          // Replace
+          const idx = result.indexOf(existing);
+          if (idx !== -1) result[idx] = s;
+          recordKeys.set(compositeKey, s);
+        }
+        continue;
+      }
+      recordKeys.set(compositeKey, s);
+    }
+    result.push(s);
+  }
+  return result;
+}
+
+const MAX_SIGNALS = 3;
+
+function prioritizeAndSuppress(signals: DriveSignal[]): DriveSignal[] {
+  const sorted = sortSignals(signals);
+  const deduped = deduplicateSignals(sorted);
+
+  const hasCritical = deduped.some(s => s.severity === 'critical');
+
+  let filtered: DriveSignal[];
+  if (hasCritical) {
+    // Suppress all info; keep critical + warning
+    filtered = deduped.filter(s => s.severity !== 'info');
+    // Max 2 critical
+    let critCount = 0;
+    filtered = filtered.filter(s => {
+      if (s.severity === 'critical') {
+        critCount++;
+        return critCount <= 2;
+      }
+      return true;
+    });
+  } else {
+    filtered = deduped;
+  }
+
+  // Cap at MAX_SIGNALS
+  return filtered.slice(0, MAX_SIGNALS);
+}
+
+// ============================================================================
 // MAIN ENGINE (pure, deterministic)
 // ============================================================================
 
@@ -289,13 +394,5 @@ export function computeDriveSignals(input: DriveEngineInput): DriveSignal[] {
     ...resolveRouteSignals(input.bookings, input.canonicalTimelineEvents, todayDate),
   ];
 
-  // Sort by severity: critical → warning → info (stable within each group)
-  const SEVERITY_ORDER: Record<DriveSignalSeverity, number> = {
-    critical: 0,
-    warning: 1,
-    info: 2,
-  };
-  signals.sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]);
-
-  return signals;
+  return prioritizeAndSuppress(signals);
 }
