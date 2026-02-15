@@ -9,9 +9,10 @@
  * This prevents browser timezone shifts on timestamptz values.
  */
 
-import { format, parseISO, isSameYear } from 'date-fns';
-import { UNKNOWN_TIME_PLACEHOLDER, parseDatetimeForDisplay, hasExplicitTime } from './datetimeIntegrity';
+import { format } from 'date-fns';
+import { UNKNOWN_TIME_PLACEHOLDER, hasExplicitTime } from './datetimeIntegrity';
 import { formatLocalTimeDirect, formatLocalDateDirect } from './canonicalTimeNormalizer';
+import { formatDateRange, isValidDateOnly } from './canonicalTimePolicy';
 
 // ============================================================================
 // TRIP DATE RANGE FORMATTING
@@ -29,25 +30,12 @@ import { formatLocalTimeDirect, formatLocalDateDirect } from './canonicalTimeNor
  * - TripStatusHeroBar (if dates shown)
  */
 export function formatTripDateRange(startDate: string, endDate: string): string {
-  const start = parseISO(startDate);
-  const end = parseISO(endDate);
-  
-  // Same year: "Feb 10–15, 2026"
-  if (isSameYear(start, end)) {
-    const startMonth = format(start, 'MMM');
-    const endMonth = format(end, 'MMM');
-    
-    // Same month: "Feb 10–15, 2026"
-    if (startMonth === endMonth) {
-      return `${startMonth} ${format(start, 'd')}–${format(end, 'd')}, ${format(end, 'yyyy')}`;
-    }
-    
-    // Different months: "Feb 10 – Mar 3, 2026"
-    return `${format(start, 'MMM d')} – ${format(end, 'MMM d')}, ${format(end, 'yyyy')}`;
+  // v3.11.1: Use canonical time policy — no parseISO, no Date objects
+  if (isValidDateOnly(startDate) && isValidDateOnly(endDate)) {
+    return formatDateRange(startDate, endDate);
   }
-  
-  // Cross-year: "Dec 28, 2025 – Jan 3, 2026"
-  return `${format(start, 'MMM d, yyyy')} – ${format(end, 'MMM d, yyyy')}`;
+  // Fallback for non-standard formats
+  return `${startDate} – ${endDate}`;
 }
 
 /**

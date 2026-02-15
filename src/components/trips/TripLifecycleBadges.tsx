@@ -1,8 +1,8 @@
  import { Trip, TripState } from '@/types/database';
  import { Badge } from '@/components/ui/badge';
- import { Lock, Archive, Clock, Moon } from 'lucide-react';
- import { differenceInDays, parseISO, startOfDay, isBefore } from 'date-fns';
+ import { Lock, Archive, Clock, Moon, CalendarClock } from 'lucide-react';
  import { cn } from '@/lib/utils';
+ import { getTripDisplayStatus, getTodayDateOnly, daysBetween } from '@/lib/canonicalTimePolicy';
  
  interface TripLifecycleBadgesProps {
    trip: Trip;
@@ -13,16 +13,19 @@
  
  export function TripLifecycleBadges({ trip, isPro, compact = false, showPlanBadge = false }: TripLifecycleBadgesProps) {
    const tripState = (trip.trip_state || 'active') as TripState;
+   const today = getTodayDateOnly();
+   
+   // v3.11.1: Canonical trip display status using string comparison
+   const displayStatus = getTripDisplayStatus(trip.start_date, trip.end_date, today);
    
    // Calculate days until deletion for Pro closed trips
-   const today = startOfDay(new Date());
-   const tripEndDate = startOfDay(parseISO(trip.end_date));
-   const daysSinceEnd = differenceInDays(today, tripEndDate);
+   const daysSinceEnd = daysBetween(trip.end_date, today);
    const daysUntilDeletion = 45 - daysSinceEnd;
    
-   // v2.1.7: Display "Inactive" for ACTIVE trips past their end date
-   const isPastEndDate = isBefore(tripEndDate, today);
-   const isDisplayInactive = tripState === 'active' && isPastEndDate;
+   // v3.11.1: Display "Inactive" for ACTIVE trips past their end date
+   const isDisplayInactive = tripState === 'active' && displayStatus === 'PAST';
+   // v3.11.1: Display "Upcoming" for ACTIVE trips that haven't started
+   const isDisplayFuture = tripState === 'active' && displayStatus === 'FUTURE';
 
    const isProClosedTrip = isPro && tripState === 'closed';
    const showRetentionBadge = isProClosedTrip && daysUntilDeletion > 0;
@@ -30,7 +33,17 @@
    const isDeletingTomorrow = showRetentionBadge && daysUntilDeletion <= 1;
  
    const getStatusConfig = () => {
-     // v2.1.7: Check for display-only "Inactive" state first
+     // v3.11.1: Check for display-only "Upcoming" state (future trip)
+     if (isDisplayFuture) {
+       return {
+         label: 'Upcoming',
+         icon: <CalendarClock className="w-3 h-3" />,
+         className: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30',
+         show: true,
+       };
+     }
+
+     // v2.1.7: Check for display-only "Inactive" state
      if (isDisplayInactive) {
        return {
          label: 'Inactive',
@@ -133,10 +146,8 @@
    isPro: boolean
  ): { cardClassName: string; isLocked: boolean; isClosedUrgent: boolean } {
    const tripState = (trip.trip_state || 'active') as TripState;
-   
-   const today = startOfDay(new Date());
-   const tripEndDate = startOfDay(parseISO(trip.end_date));
-   const daysSinceEnd = differenceInDays(today, tripEndDate);
+   const today = getTodayDateOnly();
+   const daysSinceEnd = daysBetween(trip.end_date, today);
    const daysUntilDeletion = 45 - daysSinceEnd;
    
    const isLocked = tripState === 'locked';
