@@ -16,6 +16,7 @@ import { useBookings } from '@/hooks/useBookings';
 import { useParking } from '@/hooks/useParking';
 import { useTravelAlerts } from '@/hooks/useTravelAlerts';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useDriveEngine } from '@/hooks/useDriveEngine';
 import { TravelAlertsCard } from '@/components/trips/TravelAlertsCard';
 import { CalendarDays, ChevronRight, AlertTriangle } from 'lucide-react';
 import { GasExpenseDialog } from '@/components/trips/GasExpenseDialog';
@@ -28,6 +29,8 @@ import { getLocalNowString } from '@/lib/canonicalNextStop';
 import { getNowParkingHighlight } from '@/lib/canonicalParkingHighlight';
 import { buildCanonicalTodayExecutionStack } from '@/lib/canonicalTodayExecutionStack';
 import { useForegroundResume } from '@/hooks/useForegroundResume';
+import type { TravelAlert } from '@/hooks/useTravelAlerts';
+import type { DriveSignal } from '@/lib/driveEngine';
 
 interface NowCommandCenterProps {
   tripId: string;
@@ -69,7 +72,10 @@ export function NowCommandCenter({
   const { data: userProfile } = useUserProfile();
   const temperatureUnit = (userProfile?.temperature_unit as 'fahrenheit' | 'celsius') || 'fahrenheit';
 
-  const { alerts, hasAlerts } = useTravelAlerts(trip, bookings, parkingList, temperatureUnit);
+  const { alerts: travelAlerts, hasAlerts: hasTravelAlerts } = useTravelAlerts(trip, bookings, parkingList, temperatureUnit);
+
+  // v3.12.0: Canonical Drive Engine — single source of drive intelligence
+  const { signals: driveSignals } = useDriveEngine({ tripId, trip });
 
   const [gasDialogOpen, setGasDialogOpen] = useState(false);
   const [resumeTick, setResumeTick] = useState(0);
@@ -118,6 +124,38 @@ export function NowCommandCenter({
     [timelineEvents, activeStayAddress, activeParkingIds, resumeTick]
   );
 
+  // v3.12.0: Map DriveSignal[] → TravelAlert[] for unified rendering
+  const mergedAlerts = useMemo((): TravelAlert[] => {
+    const driveAlerts: TravelAlert[] = driveSignals.map((s): TravelAlert => ({
+      id: s.id,
+      type: s.type === 'PARKING_EXPIRING_SOON' ? 'parking_expiry'
+        : s.type === 'WEATHER_ROUTE_RISK' ? 'severe_weather'
+        : 'departure_reminder',
+      severity: s.severity,
+      title: s.title,
+      message: s.message,
+      actionLabel: s.actionLabel,
+      actionUrl: undefined,
+      relatedId: s.related?.parkingId || s.related?.bookingId,
+      timestamp: new Date(),
+    }));
+
+    // Merge: drive signals first (they're drive-specific), then existing travel alerts
+    // Deduplicate parking alerts: if Drive Engine already covers a parking ID, skip from travelAlerts
+    const driveParking = new Set(
+      driveSignals
+        .filter(s => s.type === 'PARKING_EXPIRING_SOON' && s.related?.parkingId)
+        .map(s => s.related!.parkingId!)
+    );
+    const filteredTravel = travelAlerts.filter(a =>
+      !(a.type === 'parking_expiry' && a.relatedId && driveParking.has(a.relatedId))
+    );
+
+    const combined = [...driveAlerts, ...filteredTravel];
+    const severityOrder = { critical: 0, warning: 1, info: 2 };
+    return combined.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
+  }, [driveSignals, travelAlerts]);
+
   if (isLoading) {
     return <TripSectionLoading message="Loading trip..." />;
   }
@@ -159,10 +197,10 @@ export function NowCommandCenter({
       {/* 4. NextCriticalActionCard */}
       <NextCriticalActionCard tripId={tripId} trip={trip} />
 
-      {/* 5. ActiveAlertsStack — max 3, severity-ordered */}
-      {hasAlerts && (
+      {/* 5. ActiveAlertsStack — max 3, severity-ordered, merged with Drive Engine signals */}
+      {(hasTravelAlerts || driveSignals.length > 0) && (
         <TravelAlertsCard
-          alerts={alerts}
+          alerts={mergedAlerts}
           maxVisible={3}
           onViewAllAlerts={onViewAllAlerts}
         />
