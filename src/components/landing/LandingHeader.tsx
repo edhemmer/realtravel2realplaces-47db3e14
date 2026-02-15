@@ -14,7 +14,7 @@ export default function LandingHeader() {
           <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
             <Link 
               to="/auth" 
-              className="text-sm text-[hsl(var(--landing-text-muted))] hover:text-white transition-colors hidden sm:inline"
+              className="text-sm text-[hsl(var(--landing-text-muted))] hover:text-white transition-colors"
             >
               Log in
             </Link>
