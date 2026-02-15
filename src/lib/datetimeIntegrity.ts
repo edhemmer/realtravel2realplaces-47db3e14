@@ -20,8 +20,7 @@
  * v2.2.4: hasExplicitTime now uses direct string digit extraction
  * instead of parseISO + getHours to avoid browser timezone shifts.
  */
-
-import { format, parseISO } from 'date-fns';
+// v3.11.2: Removed parseISO import — all logic uses string extraction
 
 /**
  * v2.2.0: Unknown time placeholder constant
@@ -98,33 +97,31 @@ export function normalizeDatetimeForStorage(datetime: string | null | undefined)
     return datetime;
   }
   
-  // For datetime strings, parse and validate
-  try {
-    const parsed = parseISO(datetime);
-    if (isNaN(parsed.getTime())) return null;
-    
-    // Check if this has an explicit time
-    if (hasExplicitTime(datetime)) {
-      // v2.2.10: Store as naive local datetime, NOT UTC.
-      // The time digits from the source represent local time at the event's location.
-      // Strip any timezone suffix and return YYYY-MM-DDTHH:MM:SS format.
-      const tIndex = datetime.indexOf('T');
-      if (tIndex !== -1) {
-        const datePart = datetime.substring(0, 10);
-        const timePart = datetime.substring(tIndex + 1)
-          .replace(/Z$/, '')
-          .replace(/[+-]\d{2}:\d{2}$/, '')
-          .substring(0, 8);
-        return `${datePart}T${timePart}`;
-      }
-      // Fallback: format without UTC conversion
-      return format(parsed, "yyyy-MM-dd'T'HH:mm:ss");
-    } else {
-      // No explicit time - store as date-only to prevent timezone issues
-      return format(parsed, 'yyyy-MM-dd');
+  // v3.11.2: Pure string extraction — no parseISO, no Date objects
+  const datePart = datetime.substring(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return null;
+  
+  if (hasExplicitTime(datetime)) {
+    // Strip timezone suffix and return YYYY-MM-DDTHH:MM:SS format
+    const tIndex = datetime.indexOf('T');
+    if (tIndex !== -1) {
+      const timePart = datetime.substring(tIndex + 1)
+        .replace(/Z$/, '')
+        .replace(/[+-]\d{2}:\d{2}$/, '')
+        .replace(/[+-]\d{2}$/, '')
+        .substring(0, 8);
+      return `${datePart}T${timePart}`;
     }
-  } catch {
+    // Space-separated format
+    const spaceMatch = datetime.match(/^\d{4}-\d{2}-\d{2}\s+(\d{2}:\d{2}(?::\d{2})?)/);
+    if (spaceMatch) {
+      const t = spaceMatch[1].length === 5 ? `${spaceMatch[1]}:00` : spaceMatch[1];
+      return `${datePart}T${t}`;
+    }
     return null;
+  } else {
+    // No explicit time - store as date-only
+    return datePart;
   }
 }
 
@@ -137,21 +134,20 @@ export function normalizeDatetimeForStorage(datetime: string | null | undefined)
  * 
  * Returns the Date object for formatting in UI.
  */
-export function parseDatetimeForDisplay(datetime: string | null | undefined): Date | null {
+export function parseDatetimeForDisplay(datetime: string | null | undefined): string | null {
   if (!datetime) return null;
   
-  try {
-    // For date-only strings, parse at local midnight to prevent drift
-    if (isDateOnly(datetime)) {
-      // Append T00:00:00 to interpret as local time, not UTC
-      return parseISO(`${datetime}T00:00:00`);
-    }
-    
-    // For full datetime strings, parse normally
-    return parseISO(datetime);
-  } catch {
-    return null;
+  // v3.11.2: Return the normalized string — no Date object needed.
+  // Callers that need formatted output should use canonicalTimePolicy or displayFormats.
+  const datePart = datetime.substring(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return null;
+  
+  if (isDateOnly(datetime)) {
+    return datetime;
   }
+  
+  // Return as normalized LocalDateTime string
+  return normalizeDatetimeForStorage(datetime);
 }
 
 /**

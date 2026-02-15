@@ -1,10 +1,13 @@
 /**
- * v3.11.1: Canonical Time Types
+ * v3.11.2: Canonical Time Types
  * 
  * Type definitions for the no-math time compliance system.
  * All date/time values in the app are represented as branded string types.
  * No Date objects, no epoch math, no timezone conversions.
  */
+
+const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
+const LOCAL_DT_RE = /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/;
 
 /**
  * Date-only string in YYYY-MM-DD format.
@@ -35,3 +38,33 @@ export type TimeHHMM = string; // "HH:MM"
  * Independent of trip_state (which is a server-side lifecycle value).
  */
 export type TripDisplayStatus = 'FUTURE' | 'ACTIVE' | 'PAST';
+
+// ============================================================================
+// TYPE CONSTRUCTORS / VALIDATORS
+// ============================================================================
+
+/**
+ * Validate and return a DateOnly string. Returns null if invalid.
+ * Use this at boundaries where raw strings enter the system.
+ */
+export function asDateOnly(str: string | null | undefined): DateOnly | null {
+  if (!str) return null;
+  const d = str.substring(0, 10);
+  return DATE_ONLY_RE.test(d) ? d : null;
+}
+
+/**
+ * Validate and return a LocalDateTime string. Returns null if invalid.
+ * Strips timezone suffixes (Z, +00:00, etc.) to preserve local digits.
+ */
+export function asLocalDateTime(str: string | null | undefined): LocalDateTime | null {
+  if (!str) return null;
+  if (!LOCAL_DT_RE.test(str)) return null;
+  // Strip timezone suffix — keep only YYYY-MM-DDTHH:mm(:ss)
+  const stripped = str
+    .replace(/Z$/, '')
+    .replace(/[+-]\d{2}:\d{2}$/, '')
+    .replace(/[+-]\d{2}$/, '');
+  // Normalize space separator to T
+  return stripped.replace(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})/, '$1T$2');
+}

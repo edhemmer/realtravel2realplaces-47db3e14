@@ -25,8 +25,9 @@ import {
 import { cn } from '@/lib/utils';
 import { resolveMapsDestination, openMapsDestination } from '@/lib/mapsDestination';
 import { GasLocatorPill } from '@/components/trips/GasLocatorPill';
-import { format, parseISO, isBefore, isAfter, startOfDay } from 'date-fns';
-import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER, parseDatetimeForDisplay } from '@/lib/datetimeIntegrity';
+// v3.11.2: Removed date-fns parseISO/format — using canonical time policy
+import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER, extractDateForDisplay } from '@/lib/datetimeIntegrity';
+import { extractDateOnly, extractTimeHHMM, formatDateOnly, formatLocalDateTime } from '@/lib/canonicalTimePolicy';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -792,23 +793,24 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
     }
     
     // 2. Check if booking dates fall outside trip dates (warning, not blocking)
+    // v3.11.2: Use string comparison — no parseISO / new Date()
     if (trip && formData.start_datetime) {
-      const tripStart = startOfDay(parseISO(trip.start_date));
-      const tripEnd = startOfDay(parseISO(trip.end_date));
-      const bookingStart = startOfDay(new Date(formData.start_datetime));
-      const bookingEnd = formData.end_datetime 
-        ? startOfDay(new Date(formData.end_datetime)) 
-        : bookingStart;
+      const tripStartStr = trip.start_date.substring(0, 10);
+      const tripEndStr = trip.end_date.substring(0, 10);
+      const bookingStartStr = formData.start_datetime.substring(0, 10);
+      const bookingEndStr = formData.end_datetime
+        ? formData.end_datetime.substring(0, 10)
+        : bookingStartStr;
       
-      const isOutsideTripDates = isBefore(bookingStart, tripStart) || 
-                                  isAfter(bookingEnd, tripEnd) ||
-                                  isBefore(bookingEnd, tripStart) ||
-                                  isAfter(bookingStart, tripEnd);
+      const isOutsideTripDates = bookingStartStr < tripStartStr || 
+                                  bookingEndStr > tripEndStr ||
+                                  bookingEndStr < tripStartStr ||
+                                  bookingStartStr > tripEndStr;
       
       if (isOutsideTripDates) {
-        // Show warning dialog instead of blocking
+        const fmtDate = (d: string) => formatDateOnly(d);
         setDateWarningMessage(
-          `These booking dates (${format(bookingStart, 'MMM d')}${formData.end_datetime ? ` - ${format(bookingEnd, 'MMM d')}` : ''}) are outside the current trip dates (${format(tripStart, 'MMM d')} - ${format(tripEnd, 'MMM d')}). Are you sure this booking belongs to this trip?`
+          `These booking dates (${fmtDate(bookingStartStr)}${formData.end_datetime ? ` - ${fmtDate(bookingEndStr)}` : ''}) are outside the current trip dates (${fmtDate(tripStartStr)} - ${fmtDate(tripEndStr)}). Are you sure this booking belongs to this trip?`
         );
         setPendingSubmit(true);
         setShowDateWarning(true);
@@ -1037,15 +1039,16 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                     <span className="text-muted-foreground block text-[10px]">
                       {booking.booking_type === 'transport' ? 'Departure' : 'When'}
                     </span>
-                    {/* v2.2.0: Use safe datetime parsing to preserve original dates */}
+                    {/* v3.11.2: Use canonical string display — no parseDatetimeForDisplay/Date */}
                     {(() => {
-                      const startDate = parseDatetimeForDisplay(booking.start_datetime);
-                      return startDate ? (
+                      const dateStr = extractDateOnly(booking.start_datetime);
+                      const timeStr = hasExplicitTime(booking.start_datetime)
+                        ? formatLocalDateTime(booking.start_datetime)
+                        : null;
+                      return dateStr ? (
                         <span className="font-medium">
-                          {format(startDate, 'MMM d')},{' '}
-                          {hasExplicitTime(booking.start_datetime) ? (
-                            format(startDate, 'h:mm a')
-                          ) : (
+                          {formatDateOnly(dateStr)},{' '}
+                          {timeStr ? timeStr : (
                             <span className="text-destructive">{UNKNOWN_TIME_PLACEHOLDER}</span>
                           )}
                         </span>
@@ -1057,13 +1060,14 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                     <div>
                       <span className="text-muted-foreground block">Arrival</span>
                       {(() => {
-                        const endDate = parseDatetimeForDisplay(booking.end_datetime);
-                        return endDate ? (
+                        const dateStr = extractDateOnly(booking.end_datetime);
+                        const timeStr = hasExplicitTime(booking.end_datetime)
+                          ? formatLocalDateTime(booking.end_datetime)
+                          : null;
+                        return dateStr ? (
                           <span className="font-medium">
-                            {format(endDate, 'MMM d')},{' '}
-                            {hasExplicitTime(booking.end_datetime) ? (
-                              format(endDate, 'h:mm a')
-                            ) : (
+                            {formatDateOnly(dateStr)},{' '}
+                            {timeStr ? timeStr : (
                               <span className="text-destructive">{UNKNOWN_TIME_PLACEHOLDER}</span>
                             )}
                           </span>

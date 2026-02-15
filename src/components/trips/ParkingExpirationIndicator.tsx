@@ -2,6 +2,7 @@ import { useParking } from '@/hooks/useParking';
 import { useAccess } from '@/hooks/useAccess';
 import { Clock } from 'lucide-react';
 import { formatLocalTimeDirect } from '@/lib/canonicalTimeNormalizer';
+import { getNowLocalDateTime, compareLocalDateTime } from '@/lib/canonicalTimePolicy';
 
 interface ParkingExpirationIndicatorProps {
   tripId: string;
@@ -34,11 +35,11 @@ export function ParkingExpirationIndicator({ tripId, parkingId }: ParkingExpirat
   if (!endStr) return null;
 
   // Check if expiration is in the future using string comparison
-  const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const nowLocal = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
-  const endNorm = endStr.substring(0, 16);
-  if (endNorm <= nowLocal) return null;
+  // v3.11.2: Use canonical time policy — no new Date()
+  const nowLocal = getNowLocalDateTime();
+  const endNorm = endStr.substring(0, 16).replace(' ', 'T');
+  const nowNorm = nowLocal.replace(' ', 'T');
+  if (compareLocalDateTime(endNorm, nowNorm) <= 0) return null;
 
   const timeDisplay = formatLocalTimeDirect(endStr);
   if (!timeDisplay) return null;
