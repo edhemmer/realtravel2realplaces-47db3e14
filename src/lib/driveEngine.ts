@@ -266,6 +266,22 @@ const SEVERITY_RANK: Record<DriveSignalSeverity, number> = {
 };
 
 /**
+ * Map each signal type to a logical family so that different signal types
+ * affecting the same record (e.g. TOLL_ACK_REQUIRED + TOLL_REMINDER_TODAY
+ * for the same booking) collapse into a single representative signal.
+ */
+type DriveSignalFamily = 'PARKING' | 'TOLL' | 'WEATHER_ROUTE' | 'ROAD_CLOSURE' | 'REROUTE';
+
+const SIGNAL_FAMILY: Record<DriveSignalType, DriveSignalFamily> = {
+  PARKING_EXPIRING_SOON: 'PARKING',
+  TOLL_ACK_REQUIRED: 'TOLL',
+  TOLL_REMINDER_TODAY: 'TOLL',
+  WEATHER_ROUTE_RISK: 'WEATHER_ROUTE',
+  ROAD_CLOSURE_RISK: 'ROAD_CLOSURE',
+  DRIVE_REROUTE_SUGGESTION: 'REROUTE',
+};
+
+/**
  * Deterministic sort: severity desc → effectiveDate asc → effectiveTime asc (null last) → id asc.
  */
 function sortSignals(signals: DriveSignal[]): DriveSignal[] {
@@ -310,9 +326,9 @@ function deduplicateSignals(signals: DriveSignal[]): DriveSignal[] {
   const recordKeys = new Map<string, DriveSignal>();
   const result: DriveSignal[] = [];
   for (const s of unique) {
-    const relKey = s.related?.bookingId ?? s.related?.parkingId;
+    const relKey = s.related?.bookingId ?? s.related?.parkingId ?? s.related?.segmentId;
     if (relKey) {
-      const compositeKey = `${s.type}:${relKey}`;
+      const compositeKey = `${SIGNAL_FAMILY[s.type]}:${relKey}`;
       const existing = recordKeys.get(compositeKey);
       if (existing) {
         // Keep higher severity (already sorted desc, so first wins)
