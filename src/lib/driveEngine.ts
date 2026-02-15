@@ -13,7 +13,6 @@ import type { CanonicalTimelineEvent } from './canonicalTripState';
 import type { Trip, Booking, Parking } from '@/types/database';
 import type { DeviceCoords } from './deviceLocation';
 import type { WeatherCondition } from './canonicalWeather';
-import { getLocalNowString } from './canonicalNextStop';
 import { getParkingWindowMs } from './canonicalParkingHighlight';
 
 // ============================================================================
@@ -70,6 +69,8 @@ export interface DriveEngineInput {
   canonicalTimelineEvents: CanonicalTimelineEvent[];
   deviceLocationCoords: DeviceCoords | null;
   weatherContext?: DriveEngineWeatherContext;
+  /** Canonical today date — YYYY-MM-DD, injected by caller */
+  todayDateOnly: string;
   /** Override for testing — YYYY-MM-DD HH:MM format */
   nowLocal?: string;
 }
@@ -80,20 +81,14 @@ export interface DriveEngineInput {
 
 /**
  * Build a local "YYYY-MM-DDTHH:mm" string for parking comparison.
- * Uses getLocalNowString which produces device-local time.
+ * nowLocal MUST be provided by caller — no internal clock access.
  */
-function getLocalNowNorm(nowLocal?: string): string {
-  const raw = nowLocal ?? getLocalNowString();
+function getLocalNowNorm(nowLocal: string): string {
   // Normalize: "YYYY-MM-DD HH:MM" → "YYYY-MM-DDTHH:MM"
-  const norm = raw.length >= 16 && raw[10] === ' '
-    ? raw.substring(0, 10) + 'T' + raw.substring(11, 16)
-    : raw.substring(0, 16);
+  const norm = nowLocal.length >= 16 && nowLocal[10] === ' '
+    ? nowLocal.substring(0, 10) + 'T' + nowLocal.substring(11, 16)
+    : nowLocal.substring(0, 16);
   return norm;
-}
-
-function extractDateOnly(nowLocal?: string): string {
-  const raw = nowLocal ?? getLocalNowString();
-  return raw.substring(0, 10);
 }
 
 /**
@@ -273,8 +268,9 @@ function resolveRouteSignals(
  * NO TIMEZONE MATH: String comparisons only.
  */
 export function computeDriveSignals(input: DriveEngineInput): DriveSignal[] {
-  const nowNorm = getLocalNowNorm(input.nowLocal);
-  const todayDate = extractDateOnly(input.nowLocal);
+  const todayDate = input.todayDateOnly;
+  // nowLocal is required for time-based parking comparisons; fall back to todayDate + midnight
+  const nowNorm = getLocalNowNorm(input.nowLocal ?? (todayDate + ' 00:00'));
 
   // Detect if there's a drive-relevant segment today (rental, transport, flight)
   const hasDriveSegmentToday = input.bookings.some(b => {
