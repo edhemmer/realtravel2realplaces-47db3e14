@@ -4,14 +4,14 @@ export default function LandingHeader() {
   return (
     <header className="landing-header">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="h-16 sm:h-20 flex items-center justify-between">
-          {/* Typographic wordmark */}
+        <div className="h-16 sm:h-20 flex items-center justify-center relative">
+          {/* Centered typographic wordmark */}
           <Link to="/" className="landing-wordmark" aria-label="Real Travel 2 Real Places">
             Real Travel 2 Real Places
           </Link>
 
-          {/* Right-side actions */}
-          <div className="flex items-center gap-3 sm:gap-4">
+          {/* Right-side actions — absolutely positioned */}
+          <div className="absolute right-0 flex items-center gap-3 sm:gap-4">
             <Link 
               to="/auth" 
               className="text-sm text-[hsl(var(--landing-text-muted))] hover:text-white transition-colors"
