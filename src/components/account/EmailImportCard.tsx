@@ -122,7 +122,7 @@ export function EmailImportCard() {
       <CardContent>
         {!isPro ? (
           <p className="text-sm text-muted-foreground">
-            Email import is available on Pro and Business plans. Coming soon.
+            Email import is available on Pro and Business plans.
           </p>
         ) : isLoading ? (
           <div className="animate-pulse h-12 bg-muted rounded-lg" />
