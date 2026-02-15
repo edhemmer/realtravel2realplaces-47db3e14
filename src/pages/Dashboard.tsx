@@ -15,8 +15,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, MapPin, Calendar, Plane, Trash2, Users, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { isBefore, startOfDay, parseISO } from 'date-fns';
 import { formatTripDateRange } from '@/lib/displayFormats';
+import { getTodayDateOnly } from '@/lib/canonicalTimePolicy';
 import { Trip } from '@/types/database';
 import { CreateTripDialog } from '@/components/trips/CreateTripDialog';
 import { TripLifecycleBadges, getTripCardLifecycleStyles } from '@/components/trips/TripLifecycleBadges';
@@ -96,10 +96,9 @@ export default function Dashboard() {
     const { cardClassName, isLocked } = getTripCardLifecycleStyles(trip as Trip, isPro);
     const tripState = (trip as Trip).trip_state || 'active';
     
-    // v2.0.2: Determine if trip is in the past for visual de-emphasis
-    const tripEndDate = startOfDay(parseISO(trip.end_date));
-    const today = startOfDay(new Date());
-    const isPastTrip = isBefore(tripEndDate, today);
+    // v3.11.7: Strict YYYY-MM-DD string comparison — no Date objects, no timezone drift
+    const todayStr = getTodayDateOnly();
+    const isPastTrip = trip.end_date < todayStr;
     
     // v2.1.7: Hide delete for Free users
     const canDelete = isPro && !isShared && tripState === 'active';

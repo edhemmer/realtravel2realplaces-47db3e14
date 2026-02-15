@@ -6,7 +6,7 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { TripEventType } from '@/types/tripEvent';
 import { Plane, Building2, Car, CircleParking, Clock, ChevronRight } from 'lucide-react';
 import { formatEventDatetime, DatetimeFormatPreference } from '@/lib/displayFormats';
-import { getNowLocalDateTime, compareLocalDateTime } from '@/lib/canonicalTimePolicy';
+import { getTodayDateOnly, getNowLocalDateTime, extractTimeHHMM } from '@/lib/canonicalTimePolicy';
 import type { DrillThroughTarget } from '@/pages/TripDetail';
 
 interface UpcomingEventsWidgetProps {
@@ -108,13 +108,19 @@ export function UpcomingEventsWidget({ tripId, onDrillThrough }: UpcomingEventsW
     return null;
   }
 
-  // v3.11.2: Filter to upcoming events using canonical string comparison — no Date()
-  const nowStr = getNowLocalDateTime().replace(' ', 'T');
+  // v3.11.7: Strict date+time separation — no Date(), no timezone math
+  const todayStr = getTodayDateOnly();
+  const nowTimeStr = extractTimeHHMM(getNowLocalDateTime()) || '00:00';
   const upcomingEvents = events
     .filter(event => {
       if (!event.event_datetime) return false;
-      const eventNorm = event.event_datetime.substring(0, 16).replace(' ', 'T');
-      return compareLocalDateTime(eventNorm, nowStr) > 0;
+      const eventDate = event.event_datetime.substring(0, 10);
+      if (eventDate > todayStr) return true; // Future date → upcoming
+      if (eventDate < todayStr) return false; // Past date → not upcoming
+      // Same day (today): only upcoming if explicit time exists and is after now
+      const eventTime = extractTimeHHMM(event.event_datetime);
+      if (!eventTime) return false; // No time on today → do not treat as upcoming (no guessing)
+      return eventTime > nowTimeStr;
     })
     .slice(0, 5); // Max 5 events per spec
 

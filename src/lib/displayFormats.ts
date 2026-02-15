@@ -9,7 +9,7 @@
  * This prevents browser timezone shifts on timestamptz values.
  */
 
-import { format } from 'date-fns';
+// v3.11.7: Removed unused date-fns import
 import { UNKNOWN_TIME_PLACEHOLDER, hasExplicitTime } from './datetimeIntegrity';
 import { formatLocalTimeDirect, formatLocalDateDirect } from './canonicalTimeNormalizer';
 import { formatDateRange, isValidDateOnly } from './canonicalTimePolicy';
@@ -77,14 +77,12 @@ export function formatEventTime(
   datetime: string | Date,
   preferredFormat: DatetimeFormatPreference = 'MM/DD/YYYY 12h'
 ): string {
-  // v2.2.4: For Date objects, extract local time components directly
-  // instead of using toISOString() which converts to UTC and shifts times.
+  // v3.11.7: String input only — no Date-object branch
   if (datetime instanceof Date) {
+    // Legacy fallback: convert to string representation for display
     const hours = datetime.getHours();
     const minutes = datetime.getMinutes();
-    // Midnight = likely defaulted, not explicit
     if (hours === 0 && minutes === 0) return UNKNOWN_TIME_PLACEHOLDER;
-    
     const use24h = preferredFormat === 'DD/MM/YYYY 24h';
     if (use24h) {
       return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
