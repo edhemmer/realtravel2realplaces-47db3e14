@@ -23,7 +23,7 @@ export default function LandingPricing() {
         </div>
 
         <p className="landing-trust-line">
-          No credit card required · Free forever on the starter plan
+          No credit card required · Free plan with core features, forever
         </p>
       </div>
     </section>
