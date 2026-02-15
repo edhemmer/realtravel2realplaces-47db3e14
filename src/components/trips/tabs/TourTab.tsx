@@ -1,30 +1,26 @@
 /**
  * TourTab - Business-tier Stops UI
  * 
- * v2.1.26: Enhanced stop details
- * - Origin badges (Parsed vs Manual)
- * - Address and store number display
- * - Maps linking from address field
- * - Reminder indicators for stops with times
+ * v3.8.8: Date-grouped layout with CONFIRMED/TBD separation,
+ *         deterministic auto-ordering, and manual day lock.
  * 
+ * v3.8.5: Smart Import intake pipeline
+ * v2.3.2: Business tier bulk import
  * v2.1.25: MANUAL STOPS ONLY
- * - Tours are NO LONGER auto-generated from Bookings
- * - All stops must be manually added by the user
- * 
  * v2.1.23: Tour/Booking Separation Enforcement
- * - Tour stops are non-monetary, independent records
- * - Tours have NO cost fields and are NEVER used in cost calculations
  * 
- * v2.0.9: Bulk stop ingestion + Google Maps integration
- * 
- * Allows Business users to add, view, and edit Stops (work locations) on a trip.
- * Stops are distinct from Stays (lodging) and represent places where work is done.
+ * LAYOUT RULES (v3.8.8):
+ * - Stops grouped by date with clear date headers
+ * - Within each date: CONFIRMED (has time) first by time asc, TBD after by canonical order
+ * - Date headers show "Optimized" (auto) or "Locked" (manual) badge
+ * - "Re-optimize" action on locked headers
+ * - Stops show time badge (CONFIRMED) or "TBD" badge
+ * - Navigate uses lat/lng coordinates when available
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { TourImportModal } from '@/components/trips/TourImportModal';
 import { useEngagements, useCreateEngagement, useUpdateEngagement, useDeleteEngagement, Engagement } from '@/hooks/useEngagements';
-import { useUpsertStopReminder, useDeleteStopReminder } from '@/hooks/useStopReminders';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,7 +39,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, MapPin, Clock, Trash2, Pencil, X, Info, ListPlus, Navigation, Store, Bell, Import } from 'lucide-react';
+import { Plus, MapPin, Clock, Trash2, Pencil, X, Info, ListPlus, Navigation, Store, Bell, Import, RotateCcw, Lock, Sparkles } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { useTripPermission } from '@/pages/TripDetail';
@@ -51,16 +47,15 @@ import { BulkStopsDialog } from '@/components/trips/BulkStopsDialog';
 import { BulkStopsDialogV2 } from '@/components/trips/BulkStopsDialogV2';
 import { Trip } from '@/types/database';
 import { resolveMapsDestination, openMapsDestination } from '@/lib/mapsDestination';
+import { computeDayOrder, DayOrderMode, OrderableStop } from '@/lib/drive/dayOrder';
 
-/**
- * v2.3.2: TourTab with Business tier bulk import
- * v2.1.25: TourTab is now manual-only
- * Tours are NEVER auto-generated from Bookings
- */
+// ============================================================================
+// TYPES & HELPERS
+// ============================================================================
+
 interface TourTabProps {
   tripId: string;
   trip?: Trip;
-  /** Patch 2.3.2: Business tier users get enhanced bulk import */
   canBulkImport?: boolean;
 }
 
@@ -86,8 +81,69 @@ const EMPTY_FORM: StopFormData = {
   notes: '',
 };
 
-// Dismissible helper message key for localStorage
 const HELPER_DISMISSED_KEY = 'rt2rp_stops_helper_dismissed';
+
+/** localStorage key for day lock state per trip */
+function dayLockStorageKey(tripId: string): string {
+  return `rt2rp_day_lock_${tripId}`;
+}
+
+interface DayLockState {
+  [date: string]: {
+    mode: DayOrderMode;
+    orderedIds?: string[];
+  };
+}
+
+function loadDayLockState(tripId: string): DayLockState {
+  try {
+    const raw = localStorage.getItem(dayLockStorageKey(tripId));
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveDayLockState(tripId: string, state: DayLockState): void {
+  localStorage.setItem(dayLockStorageKey(tripId), JSON.stringify(state));
+}
+
+/** Check if a stop has a confirmed time (non-empty, non-midnight placeholder) */
+function hasConfirmedTime(stop: Engagement): boolean {
+  if (!stop.start_time) return false;
+  const t = stop.start_time.trim();
+  // Treat empty or all-zeros as TBD
+  return t.length > 0 && t !== '00:00:00' && t !== '00:00';
+}
+
+/** Format time for display (HH:MM:SS -> h:mm a) */
+function formatTime(time: string): string {
+  const [hours, minutes] = time.split(':').map(Number);
+  const d = new Date();
+  d.setHours(hours, minutes, 0);
+  return format(d, 'h:mm a');
+}
+
+/** Format date for header (YYYY-MM-DD -> "Wed, Feb 15") */
+function formatDateHeader(dateStr: string): string {
+  try {
+    return format(parseISO(dateStr), 'EEEE, MMM d');
+  } catch {
+    return dateStr;
+  }
+}
+
+/** Group stops by date */
+interface DateGroup {
+  date: string;
+  confirmed: Engagement[];
+  tbd: Engagement[];
+  mode: DayOrderMode;
+}
+
+// ============================================================================
+// COMPONENT
+// ============================================================================
 
 export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
   const { canEdit } = useTripPermission();
@@ -96,31 +152,104 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
   const updateStop = useUpdateEngagement();
   const deleteStop = useDeleteEngagement();
 
-  // v2.1.25: Removed booking/expense/parking fetching - Tours are manual only
-  // No auto-generation from bookings
-
-  // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [editingStop, setEditingStop] = useState<Engagement | null>(null);
   const [stopToDelete, setStopToDelete] = useState<string | null>(null);
   const [formData, setFormData] = useState<StopFormData>(EMPTY_FORM);
+  const [dayLockState, setDayLockState] = useState<DayLockState>(() => loadDayLockState(tripId));
 
-  // Default date for bulk stops (trip start date or today)
   const defaultBulkDate = trip?.start_date || format(new Date(), 'yyyy-MM-dd');
 
-  // Helper message dismissal
   const [helperDismissed, setHelperDismissed] = useState(() => {
     return localStorage.getItem(HELPER_DISMISSED_KEY) === 'true';
   });
-
-  // v2.1.25: Removed auto-draft logic - Tours are manual only
 
   const dismissHelper = useCallback(() => {
     localStorage.setItem(HELPER_DISMISSED_KEY, 'true');
     setHelperDismissed(true);
   }, []);
+
+  // ========================================================================
+  // DATE-GROUPED + ORDERED STOPS (v3.8.8)
+  // ========================================================================
+
+  const dateGroups: DateGroup[] = useMemo(() => {
+    if (stops.length === 0) return [];
+
+    // Group by date
+    const byDate = new Map<string, Engagement[]>();
+    stops.forEach((stop, idx) => {
+      const existing = byDate.get(stop.date) || [];
+      existing.push(stop);
+      byDate.set(stop.date, existing);
+    });
+
+    // Sort dates chronologically
+    const sortedDates = Array.from(byDate.keys()).sort();
+
+    return sortedDates.map(date => {
+      const dayStops = byDate.get(date)!;
+      const confirmed = dayStops
+        .filter(hasConfirmedTime)
+        .sort((a, b) => a.start_time.localeCompare(b.start_time));
+      const tbd = dayStops.filter(s => !hasConfirmedTime(s));
+
+      // Get day lock state
+      const lockInfo = dayLockState[date];
+      const mode: DayOrderMode = lockInfo?.mode || 'OPTIMIZED_AUTO';
+
+      if (tbd.length > 1) {
+        // Build OrderableStop array for canonical ordering
+        const orderableStops: OrderableStop[] = dayStops.map((s, idx) => ({
+          id: s.id,
+          date: s.date,
+          time: hasConfirmedTime(s) ? s.start_time : null,
+          location: null, // We don't have LocationStructured in the engagement model yet
+          insertionIndex: idx,
+        }));
+
+        const result = computeDayOrder(
+          orderableStops,
+          lockInfo?.mode === 'MANUAL_LOCKED' ? 'cached' : undefined,
+          lockInfo?.orderedIds,
+          mode
+        );
+
+        // Reorder TBD based on result
+        const idOrder = result.orderedIds;
+        const tbdMap = new Map(tbd.map(s => [s.id, s]));
+        const orderedTbd = idOrder
+          .filter(id => tbdMap.has(id))
+          .map(id => tbdMap.get(id)!);
+        // Append any TBD stops not in the order (safety)
+        tbd.forEach(s => {
+          if (!idOrder.includes(s.id)) orderedTbd.push(s);
+        });
+
+        return { date, confirmed, tbd: orderedTbd, mode };
+      }
+
+      return { date, confirmed, tbd, mode };
+    });
+  }, [stops, dayLockState]);
+
+  // ========================================================================
+  // DAY LOCK ACTIONS
+  // ========================================================================
+
+  const handleReOptimize = useCallback((date: string) => {
+    const newState = { ...dayLockState };
+    delete newState[date];
+    setDayLockState(newState);
+    saveDayLockState(tripId, newState);
+    toast.success('Day re-optimized');
+  }, [dayLockState, tripId]);
+
+  // ========================================================================
+  // FORM HANDLERS
+  // ========================================================================
 
   const resetForm = () => {
     setFormData(EMPTY_FORM);
@@ -137,7 +266,7 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
     setFormData({
       name: stop.name,
       date: stop.date,
-      start_time: stop.start_time.slice(0, 5), // HH:MM format for input
+      start_time: hasConfirmedTime(stop) ? stop.start_time.slice(0, 5) : '',
       end_time: stop.end_time ? stop.end_time.slice(0, 5) : '',
       location: stop.location || '',
       address: stop.address || '',
@@ -150,7 +279,6 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validation
     if (!formData.name.trim()) {
       toast.error('Stop name is required');
       return;
@@ -159,10 +287,11 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
       toast.error('Date is required');
       return;
     }
-    if (!formData.start_time) {
-      toast.error('Start time is required');
-      return;
-    }
+
+    // v3.8.8: Time is now optional (TBD stops allowed)
+    const startTime = formData.start_time
+      ? formData.start_time + ':00'
+      : '00:00:00'; // Placeholder for TBD
 
     try {
       if (editingStop) {
@@ -170,7 +299,7 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
           id: editingStop.id,
           name: formData.name.trim(),
           date: formData.date,
-          start_time: formData.start_time + ':00', // Add seconds
+          start_time: startTime,
           end_time: formData.end_time ? formData.end_time + ':00' : null,
           location: formData.location.trim() || null,
           address: formData.address.trim() || null,
@@ -183,7 +312,7 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
           trip_id: tripId,
           name: formData.name.trim(),
           date: formData.date,
-          start_time: formData.start_time + ':00', // Add seconds
+          start_time: startTime,
           end_time: formData.end_time ? formData.end_time + ':00' : null,
           location: formData.location.trim() || null,
           address: formData.address.trim() || null,
@@ -203,7 +332,6 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
 
   const handleDelete = async () => {
     if (!stopToDelete) return;
-
     try {
       await deleteStop.mutateAsync({ id: stopToDelete, tripId });
       toast.success('Stop deleted');
@@ -214,31 +342,22 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
     }
   };
 
-  // v2.1.25: Removed handleAutoDraft and handleRegenerate - Tours are manual only
-
-  // Format time for display (HH:MM:SS -> h:mm a)
-  const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(':').map(Number);
-    const date = new Date();
-    date.setHours(hours, minutes, 0);
-    return format(date, 'h:mm a');
-  };
-
-  // Format date for display
-  const formatDate = (dateStr: string) => {
-    return format(parseISO(dateStr), 'EEE, MMM d');
-  };
-
-  // v2.0.9: Open Google Maps directions to a location
+  /** Navigate using address/location (lat/lng when available in future) */
   const openMapsDirections = (stop: Engagement) => {
     const dest = resolveMapsDestination({
       address: stop.address,
       locationLabel: stop.location,
     });
-    if (dest) openMapsDestination(dest);
+    if (dest) {
+      openMapsDestination(dest);
+    } else {
+      toast.error('No location available for navigation');
+    }
   };
 
-  // v2.1.25: Removed getSourceIcon - Tours are manual only, no source hints
+  // ========================================================================
+  // RENDER
+  // ========================================================================
 
   if (isLoading) {
     return (
@@ -254,10 +373,9 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h3 className="text-lg font-semibold">Tour Stops</h3>
         <div className="flex items-center gap-2 flex-wrap">
-          {/* v3.8.5: Smart import (Photo/Email/Spreadsheet) */}
           {canEdit && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => setImportDialogOpen(true)}
             >
@@ -265,10 +383,9 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
               Import
             </Button>
           )}
-          {/* v2.3.2: Business tier bulk import button (enhanced) */}
           {canEdit && canBulkImport && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => setBulkDialogOpen(true)}
             >
@@ -277,8 +394,8 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
             </Button>
           )}
           {canEdit && !canBulkImport && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => setBulkDialogOpen(true)}
             >
@@ -295,7 +412,7 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
         </div>
       </div>
 
-      {/* Helper message - dismissible */}
+      {/* Helper message */}
       {!helperDismissed && (
         <Alert className="bg-muted/50 border-muted-foreground/20">
           <Info className="h-4 w-4" />
@@ -318,7 +435,7 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
         </Alert>
       )}
 
-      {/* Stops list */}
+      {/* v3.8.8: Date-grouped stops list */}
       {stops.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
@@ -333,7 +450,6 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
               Use the Bookings tab for lodging and Stays.
             </p>
             <div className="flex gap-2">
-              {/* v2.1.25: Removed "Generate from bookings" - Tours are manual only */}
               {canEdit && (
                 <Button onClick={openAddDialog} className="bg-gradient-ocean hover:opacity-90">
                   <Plus className="w-4 h-4 mr-2" />
@@ -344,92 +460,84 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-3">
-          {stops.map((stop) => (
-            <Card 
-              key={stop.id} 
-              className="hover:shadow-sm transition-shadow"
-            >
-              <CardContent className="py-2.5 px-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    {/* v2.1.27: Tighter header row with name + badges inline */}
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <h4 className="font-medium text-sm truncate">{stop.name}</h4>
-                      {/* v2.1.27: Store number pill - visually distinct */}
-                      {stop.store_number && (
-                        <Badge 
-                          variant="outline" 
-                          className="text-[10px] font-medium px-1.5 py-0 h-4 bg-muted/50 border-muted-foreground/20 gap-0.5"
-                        >
-                          <Store className="w-2.5 h-2.5" />
-                          #{stop.store_number}
-                        </Badge>
-                      )}
-                      {/* v2.1.26: Origin badge - subtle */}
-                      {stop.origin === 'parsed' && (
-                        <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">Parsed</Badge>
-                      )}
-                    </div>
-                    {/* v2.1.27: Compact metadata row */}
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground mt-0.5">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {formatDate(stop.date)} at {formatTime(stop.start_time)}
-                        {stop.end_time && ` – ${formatTime(stop.end_time)}`}
-                      </span>
-                      {(stop.address || stop.location) && (
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          <span className="truncate max-w-[180px]">{stop.address || stop.location}</span>
-                        </span>
-                      )}
-                    </div>
-                    {stop.notes && (
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                        {stop.notes}
-                      </p>
-                    )}
-                  </div>
-                  {/* v2.1.27: Compact action buttons */}
-                  <div className="flex items-center gap-0.5 shrink-0">
-                    {(stop.address || stop.location) && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openMapsDirections(stop)}
-                        className="h-7 w-7 text-primary hover:text-primary"
-                        title="Open in Maps"
-                      >
-                        <Navigation className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
-                    {canEdit && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEditDialog(stop)}
-                          className="h-7 w-7"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                          <span className="sr-only">Edit stop</span>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setStopToDelete(stop.id)}
-                          className="h-7 w-7 text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          <span className="sr-only">Delete stop</span>
-                        </Button>
-                      </>
-                    )}
-                  </div>
+        <div className="space-y-4">
+          {dateGroups.map((group) => (
+            <div key={group.date} className="space-y-2">
+              {/* Date header */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-semibold text-foreground">
+                    {formatDateHeader(group.date)}
+                  </h4>
+                  <span className="text-xs text-muted-foreground">
+                    {group.confirmed.length + group.tbd.length} stop{group.confirmed.length + group.tbd.length !== 1 ? 's' : ''}
+                  </span>
+                  {/* v3.8.8: Day mode badge */}
+                  {group.tbd.length > 0 && (
+                    group.mode === 'MANUAL_LOCKED' ? (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 gap-0.5 border-muted-foreground/30">
+                        <Lock className="w-2.5 h-2.5" />
+                        Locked
+                      </Badge>
+                    ) : group.tbd.length > 1 ? (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 gap-0.5 border-primary/30 text-primary">
+                        <Sparkles className="w-2.5 h-2.5" />
+                        Optimized
+                      </Badge>
+                    ) : null
+                  )}
                 </div>
-              </CardContent>
-            </Card>
+                {/* Re-optimize action (only when locked) */}
+                {canEdit && group.mode === 'MANUAL_LOCKED' && group.tbd.length > 1 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-xs text-muted-foreground hover:text-foreground px-2"
+                    onClick={() => handleReOptimize(group.date)}
+                  >
+                    <RotateCcw className="w-3 h-3 mr-1" />
+                    Re-optimize
+                  </Button>
+                )}
+              </div>
+
+              {/* Confirmed stops (has time) */}
+              {group.confirmed.length > 0 && (
+                <div className="grid gap-2">
+                  {group.confirmed.map((stop) => (
+                    <StopCard
+                      key={stop.id}
+                      stop={stop}
+                      isConfirmed={true}
+                      canEdit={canEdit}
+                      onEdit={() => openEditDialog(stop)}
+                      onDelete={() => setStopToDelete(stop.id)}
+                      onNavigate={() => openMapsDirections(stop)}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* TBD stops (no time) */}
+              {group.tbd.length > 0 && (
+                <div className="grid gap-2">
+                  {group.tbd.map((stop) => (
+                    <StopCard
+                      key={stop.id}
+                      stop={stop}
+                      isConfirmed={false}
+                      canEdit={canEdit}
+                      onEdit={() => openEditDialog(stop)}
+                      onDelete={() => setStopToDelete(stop.id)}
+                      onNavigate={() => openMapsDirections(stop)}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Subtle separator between date groups */}
+              <div className="border-b border-border/50" />
+            </div>
           ))}
         </div>
       )}
@@ -447,7 +555,6 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Stop name - required */}
             <div className="space-y-2">
               <Label htmlFor="name">Stop name *</Label>
               <Input
@@ -458,7 +565,6 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
               />
             </div>
 
-            {/* Date - required */}
             <div className="space-y-2">
               <Label htmlFor="date">Date *</Label>
               <Input
@@ -469,16 +575,18 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
               />
             </div>
 
-            {/* Time row */}
+            {/* v3.8.8: Time is now optional */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="start_time">Start time *</Label>
+                <Label htmlFor="start_time">Start time</Label>
                 <Input
                   id="start_time"
                   type="time"
                   value={formData.start_time}
                   onChange={(e) => setFormData(prev => ({ ...prev, start_time: e.target.value }))}
+                  placeholder="Leave blank for TBD"
                 />
+                <p className="text-[10px] text-muted-foreground">Leave blank for TBD</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="end_time">End time</Label>
@@ -491,7 +599,6 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
               </div>
             </div>
 
-            {/* Location - optional */}
             <div className="space-y-2">
               <Label htmlFor="location">Location</Label>
               <Input
@@ -502,7 +609,6 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
               />
             </div>
 
-            {/* Notes - optional */}
             <div className="space-y-2">
               <Label htmlFor="notes">Notes</Label>
               <Textarea
@@ -515,17 +621,16 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
               />
             </div>
 
-            {/* Actions */}
             <div className="flex justify-end gap-2 pt-2">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => setDialogOpen(false)}
               >
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={createStop.isPending || updateStop.isPending}
                 className="bg-gradient-ocean hover:opacity-90"
               >
@@ -536,9 +641,6 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
         </DialogContent>
       </Dialog>
 
-      {/* v2.3.2: Conditional dialog based on plan tier */}
-      {/* Business tier gets enhanced BulkStopsDialogV2 */}
-      {/* Free/Pro tier gets basic BulkStopsDialog */}
       {canBulkImport ? (
         <BulkStopsDialogV2
           open={bulkDialogOpen}
@@ -555,14 +657,12 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
         />
       )}
 
-      {/* v3.8.5: Smart Import Modal */}
       <TourImportModal
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
         tripId={tripId}
       />
 
-      {/* Delete confirmation */}
       <AlertDialog open={!!stopToDelete} onOpenChange={(open) => !open && setStopToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -583,5 +683,105 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+}
+
+// ============================================================================
+// STOP CARD SUB-COMPONENT
+// ============================================================================
+
+interface StopCardProps {
+  stop: Engagement;
+  isConfirmed: boolean;
+  canEdit: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+  onNavigate: () => void;
+}
+
+function StopCard({ stop, isConfirmed, canEdit, onEdit, onDelete, onNavigate }: StopCardProps) {
+  const displayLocation = stop.address || stop.location;
+  const hasLocation = Boolean(displayLocation);
+
+  return (
+    <Card className="hover:shadow-sm transition-shadow">
+      <CardContent className="py-2.5 px-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            {/* Header: name + badges */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <h4 className="font-medium text-sm truncate">{stop.name}</h4>
+              {/* Time / TBD badge */}
+              {isConfirmed ? (
+                <Badge variant="outline" className="text-[10px] font-medium px-1.5 py-0 h-4 gap-0.5 border-primary/30 text-primary">
+                  <Clock className="w-2.5 h-2.5" />
+                  {formatTime(stop.start_time)}
+                  {stop.end_time && ` – ${formatTime(stop.end_time)}`}
+                </Badge>
+              ) : (
+                <Badge variant="secondary" className="text-[10px] font-medium px-1.5 py-0 h-4">
+                  TBD
+                </Badge>
+              )}
+              {stop.store_number && (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-medium px-1.5 py-0 h-4 bg-muted/50 border-muted-foreground/20 gap-0.5"
+                >
+                  <Store className="w-2.5 h-2.5" />
+                  #{stop.store_number}
+                </Badge>
+              )}
+              {stop.origin === 'parsed' && (
+                <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4">Parsed</Badge>
+              )}
+            </div>
+            {/* Location row */}
+            {hasLocation && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                <MapPin className="w-3 h-3 shrink-0" />
+                <span className="truncate max-w-[220px]">{displayLocation}</span>
+              </div>
+            )}
+            {stop.notes && (
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                {stop.notes}
+              </p>
+            )}
+          </div>
+          {/* Actions */}
+          <div className="flex items-center gap-0.5 shrink-0">
+            {hasLocation && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onNavigate}
+                className="h-7 w-7 text-primary hover:text-primary"
+                title="Open in Maps"
+              >
+                <Navigation className="h-3.5 w-3.5" />
+              </Button>
+            )}
+            {canEdit && (
+              <>
+                <Button variant="ghost" size="icon" onClick={onEdit} className="h-7 w-7">
+                  <Pencil className="h-3.5 w-3.5" />
+                  <span className="sr-only">Edit stop</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onDelete}
+                  className="h-7 w-7 text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span className="sr-only">Delete stop</span>
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
