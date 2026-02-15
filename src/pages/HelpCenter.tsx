@@ -131,12 +131,12 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         question: 'What permission options are available?',
         answer:
-          'When you invite a companion, you choose their access level. The options are: Read Only (can view the trip but not add anything), Can Add Expenses (can log expenses on the trip), and Can Add Stay Bookings (can add hotel or accommodation bookings to the trip).',
+          'When you invite a companion, you choose their access level. The options are: Read Only (can view the trip but not add anything), Can Add Expenses (can log expenses on the trip), and Can Add Lodging (can add hotel or accommodation bookings to the trip).',
       },
       {
         question: 'Can I combine permissions?',
         answer:
-          'You can enable both "Can Add Expenses" and "Can Add Stay Bookings" together. However, Read Only cannot be combined with any adding permission. If someone has Read Only access, they can only view the trip.',
+          'You can enable both "Can Add Expenses" and "Can Add Lodging" together. However, Read Only cannot be combined with any adding permission. If someone has Read Only access, they can only view the trip.',
       },
       {
         question: 'Can companions delete items from the trip?',
@@ -151,7 +151,7 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         question: 'What do the permission labels mean?',
         answer:
-          'Each companion in the Members section has labels showing their current permissions. "Read Only" means they can view but not add. "Expenses" means they can add expenses. "Stay" means they can add stay bookings. These labels update automatically when permissions change.',
+          'Each companion in the Members section has labels showing their current permissions. "Read Only" means they can view but not add. "Expenses" means they can add expenses. "Lodging" means they can add lodging bookings. These labels update automatically when permissions change.',
       },
     ],
   },

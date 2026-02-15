@@ -129,7 +129,7 @@ export function StopSourceHint({ source, className }: StopSourceHintProps) {
       break;
     case 'stay':
       icon = <Building2 className="w-3 h-3" />;
-      label = 'From stay';
+      label = 'From lodging';
       break;
     case 'rental':
       icon = <Car className="w-3 h-3" />;

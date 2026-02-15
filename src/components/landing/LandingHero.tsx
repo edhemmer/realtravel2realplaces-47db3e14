@@ -23,7 +23,7 @@ export default function LandingHero() {
 
         {/* Subheadline */}
         <p className="landing-hero-subtext">
-          Real Travel 2 Real Places keeps all your travel details in one place — flights, stays, stops, expenses, and reminders — so nothing gets missed and you stop managing travel by memory.
+          Real Travel 2 Real Places keeps all your travel details in one place — flights, lodging, stops, expenses, and reminders — so nothing gets missed and you stop managing travel by memory.
         </p>
 
         {/* Support copy - the problem */}

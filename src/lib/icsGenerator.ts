@@ -132,7 +132,7 @@ export function generateTripICS(options: GenerateICSOptions): string {
         break;
         
       case 'stay':
-        title = `🏨 ${booking.stay_type || 'Stay'}: ${booking.property_name || booking.vendor_name}`;
+        title = `🏨 ${booking.stay_type || 'Lodging'}: ${booking.property_name || booking.vendor_name}`;
         description = [
           booking.confirmation_number && `Confirmation: ${booking.confirmation_number}`,
           booking.address && `Address: ${booking.address}`,

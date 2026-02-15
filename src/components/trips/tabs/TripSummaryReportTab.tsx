@@ -80,7 +80,7 @@ const CATEGORY_CONFIG = {
 // Booking type display config
 const BOOKING_TYPE_CONFIG = {
   flight: { label: 'Flights', icon: Plane },
-  stay: { label: 'Stays', icon: Hotel },
+  stay: { label: 'Lodging', icon: Hotel },
   car_rental: { label: 'Car Rentals', icon: Car },
   activity: { label: 'Activities', icon: Ticket },
   transport: { label: 'Transport', icon: Train },

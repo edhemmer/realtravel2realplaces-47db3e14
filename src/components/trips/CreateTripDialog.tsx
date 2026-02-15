@@ -468,7 +468,7 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
   const getBookingTypeLabel = (type: BookingType) => {
     switch (type) {
       case 'flight': return '✈️ Flight';
-      case 'stay': return '🏨 Stay';
+      case 'stay': return '🏨 Lodging';
       case 'car_rental': return '🚗 Car Rental';
       case 'activity': return '🎯 Activity';
       default: return type;
@@ -711,7 +711,7 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
                 Drive Trip
               </h2>
               <p className="text-sm text-muted-foreground">
-                We'll use this to create your trip frame. You can still add stays, stops, and expenses later — or drop in confirmations if you already booked a hotel.
+                We'll use this to create your trip frame. You can still add lodging, stops, and expenses later — or drop in confirmations if you already booked a hotel.
               </p>
             </div>
 

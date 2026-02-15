@@ -931,7 +931,7 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
           <h3 className="text-lg font-semibold">Bookings</h3>
           <p className="text-sm text-muted-foreground">
             {bookings.length === 0 
-              ? 'Add flights, stays, transport, car rentals & activities' 
+              ? 'Add flights, lodging, transport, car rentals & activities' 
               : `${bookings.length} booking${bookings.length !== 1 ? 's' : ''}`}
           </p>
         </div>
@@ -997,7 +997,7 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                         {booking.booking_type === 'transport' ? (
                           <span className="capitalize">{((booking as any).transport_mode || 'transport').replace('_', ' ')}</span>
                         ) : (
-                          <span className="capitalize">{booking.booking_type.replace('_', ' ')}</span>
+                          <span className="capitalize">{booking.booking_type === 'stay' ? 'lodging' : booking.booking_type.replace('_', ' ')}</span>
                         )}
                       </CardDescription>
                     </div>
@@ -1241,7 +1241,7 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
             </div>
             <h4 className="text-lg font-medium mb-1">No bookings yet</h4>
             <p className="text-muted-foreground text-sm text-center max-w-sm mb-4">
-              Add your flights, stays, trains, buses, car rentals, and activities
+              Add your flights, lodging, trains, buses, car rentals, and activities
             </p>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => photoInputRef.current?.click()} disabled={isPhotoParsing}>
@@ -1389,7 +1389,7 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="flight">✈️ Flight</SelectItem>
-                  <SelectItem value="stay">🏨 Stay</SelectItem>
+                  <SelectItem value="stay">🏨 Lodging</SelectItem>
                   <SelectItem value="car_rental">🚗 Car Rental</SelectItem>
                   <SelectItem value="transport">🚆 Transport</SelectItem>
                   <SelectItem value="activity">🎉 Activity</SelectItem>

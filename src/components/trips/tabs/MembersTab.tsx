@@ -43,9 +43,9 @@ function getStatusBadge(status: string) {
 
 /** v2.2.8: Map stored permission flags to human-readable label */
 function getPermissionLabel(member: { read_only: boolean; can_expenses: boolean; can_stay: boolean }): string {
-  if (member.can_expenses && member.can_stay) return 'Can Add Expenses + Stay';
+  if (member.can_expenses && member.can_stay) return 'Can Add Expenses + Lodging';
   if (member.can_expenses) return 'Can Add Expenses';
-  if (member.can_stay) return 'Can Add Stay';
+  if (member.can_stay) return 'Can Add Lodging';
   return 'Read Only';
 }
 
@@ -308,7 +308,7 @@ export function MembersTab({ tripId }: MembersTabProps) {
                 </div>
                 
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="perm-stay" className="text-sm cursor-pointer">Can add stays</Label>
+                  <Label htmlFor="perm-stay" className="text-sm cursor-pointer">Can add lodging</Label>
                   <Switch
                     id="perm-stay"
                     checked={permissions.can_stay}
