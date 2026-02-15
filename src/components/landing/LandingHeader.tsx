@@ -11,10 +11,10 @@ export default function LandingHeader() {
           </Link>
 
           {/* Right-side actions */}
-          <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
+          <div className="flex items-center gap-4 sm:gap-5 flex-shrink-0">
             <Link 
               to="/auth" 
-              className="text-sm text-[hsl(var(--landing-text-muted))] hover:text-white transition-colors"
+              className="text-sm font-medium text-[hsl(var(--landing-text)/.85)] hover:text-white transition-colors"
             >
               Log in
             </Link>
