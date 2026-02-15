@@ -18,8 +18,8 @@ export default function LandingHero() {
               A real-time travel command center that shows what's next, when to leave, and where to go — without digging through emails.
             </p>
 
-            {/* CTAs */}
-            <div className="flex flex-col sm:flex-row gap-4 mt-8">
+            {/* CTAs — inline on all viewports */}
+            <div className="flex items-center gap-3 sm:gap-4 mt-6 sm:mt-8">
               <Link
                 to="/auth?tab=signup"
                 className="landing-btn-primary-hero"
@@ -35,7 +35,7 @@ export default function LandingHero() {
             </div>
 
             <p className="landing-trust-line">
-              No credit card required · Free plan available forever
+              No credit card · Free forever
             </p>
           </div>
 
