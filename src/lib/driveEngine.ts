@@ -14,6 +14,7 @@ import type { Trip, Booking, Parking } from '@/types/database';
 import type { DeviceCoords } from './deviceLocation';
 import type { WeatherCondition } from './canonicalWeather';
 import { getParkingWindowMs } from './canonicalParkingHighlight';
+import { timeToMinutes } from './timeOnly';
 
 // ============================================================================
 // TYPES (strict, exported for consumers)
@@ -139,30 +140,28 @@ function resolveParkingExpiringSignals(
     // Is parking currently active?
     if (nowNorm < window.startNorm || nowNorm >= window.endNorm) continue;
 
-    // Calculate minutes until expiry using string extraction
-    const nowH = parseInt(nowNorm.substring(11, 13));
-    const nowM = parseInt(nowNorm.substring(14, 16));
-    const endH = parseInt(window.endNorm.substring(11, 13));
-    const endM = parseInt(window.endNorm.substring(14, 16));
+    // Calculate minutes until expiry using canonical timeToMinutes
+    const nowTimeStr = nowNorm.substring(11, 16);
+    const endTimeStr = window.endNorm.substring(11, 16);
+    const nowMins = timeToMinutes(nowTimeStr);
+    const endMins = timeToMinutes(endTimeStr);
 
     // Only compare within same day (parking window already validated)
     const nowDate = nowNorm.substring(0, 10);
     const endDate = window.endNorm.substring(0, 10);
 
-    let minutesUntilExpiry: number;
-    if (nowDate === endDate) {
-      minutesUntilExpiry = (endH * 60 + endM) - (nowH * 60 + nowM);
-    } else if (endDate > nowDate) {
-      // Expires on a future day — not "soon"
-      continue;
-    } else {
+    if (nowMins == null || endMins == null) continue;
+    if (nowDate !== endDate) {
+      if (endDate > nowDate) continue; // Expires on a future day — not "soon"
       continue;
     }
+
+    const minutesUntilExpiry = endMins - nowMins;
 
     if (minutesUntilExpiry <= 0 || minutesUntilExpiry > 60) continue;
 
     const severity: DriveSignalSeverity = minutesUntilExpiry <= 15 ? 'critical' : 'warning';
-    const endTimeStr = window.endNorm.substring(11, 16);
+    const displayEndTimeStr = window.endNorm.substring(11, 16);
 
     signals.push({
       id: `drive-parking-expiring-${parking.id}`,
@@ -176,7 +175,7 @@ function resolveParkingExpiringSignals(
       actionTarget: { tab: 'parking', recordId: parking.id },
       related: { parkingId: parking.id },
       effectiveDate: todayDate,
-      effectiveTime: formatTime12h(endTimeStr),
+      effectiveTime: formatTime12h(displayEndTimeStr),
     });
   }
 
