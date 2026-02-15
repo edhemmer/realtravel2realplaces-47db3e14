@@ -19,7 +19,6 @@ import {
   extractTimeHHMM as policyExtractTimeHHMM,
 } from '@/lib/canonicalTimePolicy';
 import { TripEvent } from '@/types/tripEvent';
-import { startOfDay, endOfDay } from 'date-fns';
 import {
   calculateTripCostSummary, 
   TripCostSummary,
@@ -193,18 +192,12 @@ export function calculateCanonicalDateRange(
   trip: Trip,
   bookings: Booking[]
 ): CanonicalDateRange {
-  // v2.2.5: Use string-based date extraction to avoid browser timezone shifts.
-  // Parse trip dates at noon to avoid DST edge cases for Date objects.
-  const manualStart = parseDateAtNoon(trip.start_date);
-  const manualEnd = parseDateAtNoon(trip.end_date);
-  
-  // Start with manual dates as baseline
-  let effectiveStart = startOfDay(manualStart);
-  let effectiveEnd = endOfDay(manualEnd);
+  // v3.11.7: Pure string-based date range — no startOfDay/endOfDay/Date objects
+  let effectiveStartStr = trip.start_date;
+  let effectiveEndStr = trip.end_date;
   const hasFlights = bookings.some(b => b.booking_type === 'flight');
   
   // Collect ALL booking date strings (every type contributes to the outer bounds)
-  // v2.2.5: Extract date portion directly from stored strings — no Date() timezone shifting.
   if (bookings.length > 0) {
     const allDateStrings: string[] = [];
     
@@ -223,18 +216,15 @@ export function calculateCanonicalDateRange(
       const minStr = allDateStrings[0];
       const maxStr = allDateStrings[allDateStrings.length - 1];
       
-      const minBooking = startOfDay(parseDateAtNoon(minStr));
-      const maxBooking = endOfDay(parseDateAtNoon(maxStr));
-      
-      // Only extend outward, never shrink
-      if (minBooking < effectiveStart) effectiveStart = minBooking;
-      if (maxBooking > effectiveEnd) effectiveEnd = maxBooking;
+      // Only extend outward, never shrink (string comparison)
+      if (minStr < effectiveStartStr) effectiveStartStr = minStr;
+      if (maxStr > effectiveEndStr) effectiveEndStr = maxStr;
     }
   }
   
   return {
-    startDate: effectiveStart,
-    endDate: effectiveEnd,
+    startDate: parseDateAtNoon(effectiveStartStr),
+    endDate: parseDateAtNoon(effectiveEndStr),
     isFlightAnchored: hasFlights,
     startDateStr: trip.start_date,
     endDateStr: trip.end_date,
