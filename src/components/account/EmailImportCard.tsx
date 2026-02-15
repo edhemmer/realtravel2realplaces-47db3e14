@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAccess } from '@/hooks/useAccess';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Inbox, Copy, Check, RefreshCw } from 'lucide-react';
+import { Inbox, Copy, Check, RefreshCw, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -20,6 +21,7 @@ import {
 
 export function EmailImportCard() {
   const { user } = useAuth();
+  const { isPro, isLoading: accessLoading } = useAccess();
   const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
 
@@ -40,7 +42,7 @@ export function EmailImportCard() {
       }
       return data;
     },
-    enabled: !!user,
+    enabled: !!user && isPro,
     staleTime: 60000,
   });
 
@@ -104,13 +106,25 @@ export function EmailImportCard() {
         <CardTitle className="flex items-center gap-2 text-lg">
           <Inbox className="w-5 h-5 text-primary" />
           Email Import
+          {!isPro && !accessLoading && (
+            <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+              <Lock className="w-3 h-3" />
+              Pro
+            </span>
+          )}
         </CardTitle>
         <CardDescription>
-          Forward booking confirmations to your unique address below to import them into Real Travel 2 Real Places.
+          {isPro
+            ? 'Forward booking confirmations to your unique address below to import them automatically.'
+            : 'Upgrade to Pro to forward booking confirmations via email and import them automatically.'}
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
+        {!isPro ? (
+          <p className="text-sm text-muted-foreground">
+            Email import is available on Pro and Business plans. Coming soon.
+          </p>
+        ) : isLoading ? (
           <div className="animate-pulse h-12 bg-muted rounded-lg" />
         ) : address ? (
           <div className="space-y-4">
