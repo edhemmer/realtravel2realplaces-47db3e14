@@ -14,6 +14,8 @@ import { useBookings } from './useBookings';
 import { useParking } from './useParking';
 import { useForegroundResume } from './useForegroundResume';
 import { getCachedDeviceLocation } from '@/lib/deviceLocation';
+import { getTodayDateOnly } from '@/lib/canonicalTimePolicy';
+import { getLocalNowString } from '@/lib/canonicalNextStop';
 import type { Trip } from '@/types/database';
 
 interface UseDriveEngineOptions {
@@ -48,6 +50,8 @@ export function useDriveEngine({ tripId, trip, weatherContext }: UseDriveEngineO
       canonicalTimelineEvents: timelineEvents,
       deviceLocationCoords: getCachedDeviceLocation(),
       weatherContext,
+      todayDateOnly: getTodayDateOnly(),
+      nowLocal: getLocalNowString(),
     };
 
     return computeDriveSignals(input);
