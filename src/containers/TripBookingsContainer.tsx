@@ -18,6 +18,7 @@ import { Trip } from '@/types/database';
 import { useBookings } from '@/hooks/useBookings';
 import { TripSectionLoading, TripSectionError } from '@/components/trips/TripSectionStates';
 import { BookingsTab } from '@/components/trips/tabs/BookingsTab';
+import { useFlightAirportRepair } from '@/hooks/useFlightAirportRepair';
 
 interface TripBookingsContainerProps {
   tripId: string;
@@ -42,7 +43,10 @@ export function TripBookingsContainer({
   onHighlightConsumed 
 }: TripBookingsContainerProps) {
   // Canonical data fetching
-  const { isLoading, error } = useBookings(tripId);
+  const { data: bookings = [], isLoading, error } = useBookings(tripId);
+  
+  // v3.13.2: Safe repair of corrupted airport codes on active trips
+  useFlightAirportRepair(tripId, trip?.trip_state ?? 'active', bookings);
   
   if (isLoading) {
     return <TripSectionLoading message="Loading bookings..." />;

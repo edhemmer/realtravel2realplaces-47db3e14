@@ -292,6 +292,19 @@ Return structured data via the tool call. Use null for fields you cannot determi
     parsed.start_datetime = normalizeDatetime(parsed.start_datetime);
     parsed.end_datetime = normalizeDatetime(parsed.end_datetime);
 
+    // v3.13.2: Sanitize airport codes — only valid 3-letter IATA codes allowed
+    const IATA_RE = /^[A-Z]{3}$/i;
+    if (parsed.departure_airport_code && !IATA_RE.test(parsed.departure_airport_code.trim())) {
+      parsed.departure_airport_code = null;
+    } else if (parsed.departure_airport_code) {
+      parsed.departure_airport_code = parsed.departure_airport_code.trim().toUpperCase();
+    }
+    if (parsed.arrival_airport_code && !IATA_RE.test(parsed.arrival_airport_code.trim())) {
+      parsed.arrival_airport_code = null;
+    } else if (parsed.arrival_airport_code) {
+      parsed.arrival_airport_code = parsed.arrival_airport_code.trim().toUpperCase();
+    }
+
     // Build draft booking array (always return as array for consistency)
     const draftBooking = {
       booking_type: parsed.booking_type || 'flight',

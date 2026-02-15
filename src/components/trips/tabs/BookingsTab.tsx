@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { resolveMapsDestination, openMapsDestination } from '@/lib/mapsDestination';
+import { buildFlightDisplayLine } from '@/lib/flightDisplayUtils';
 import { GasLocatorPill } from '@/components/trips/GasLocatorPill';
 // v3.11.2: Removed date-fns parseISO/format — using canonical time policy
 import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER, extractDateForDisplay } from '@/lib/datetimeIntegrity';
@@ -897,6 +898,42 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
   };
 
   const openInMaps = (booking: Booking) => {
+    // v3.13.2: For flights, use validated IATA codes for navigation
+    if (booking.booking_type === 'flight') {
+      const depCode = booking.departure_airport_code?.trim().toUpperCase();
+      const arrCode = booking.arrival_airport_code?.trim().toUpperCase();
+      const validDep = depCode && /^[A-Z]{3}$/.test(depCode) ? depCode : null;
+      const validArr = arrCode && /^[A-Z]{3}$/.test(arrCode) ? arrCode : null;
+      
+      if (validDep) {
+        openMapsDestination(resolveMapsDestination({ locationLabel: `${validDep} Airport` })!);
+        return;
+      }
+      if (validArr) {
+        openMapsDestination(resolveMapsDestination({ locationLabel: `${validArr} Airport` })!);
+        return;
+      }
+      // Fallback: airport name fields
+      const depName = (booking as any).departure_airport_name;
+      const arrName = (booking as any).arrival_airport_name;
+      if (depName) {
+        openMapsDestination(resolveMapsDestination({ locationLabel: depName })!);
+        return;
+      }
+      if (arrName) {
+        openMapsDestination(resolveMapsDestination({ locationLabel: arrName })!);
+        return;
+      }
+      // Final fallback: trip city
+      if (trip) {
+        const fallback = resolveMapsDestination({
+          locationLabel: `Airport near ${trip.destination_city}${trip.destination_state ? ', ' + trip.destination_state : ''}`,
+        });
+        if (fallback) openMapsDestination(fallback);
+      }
+      return;
+    }
+
     const dest = resolveMapsDestination({
       address: booking.address,
       propertyName: booking.booking_type === 'stay' ? (booking.property_name || undefined) : undefined,
@@ -993,8 +1030,16 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                          booking.booking_type === 'transport' ? ((booking as any).operator || booking.vendor_name) :
                          booking.vendor_name}
                       </CardTitle>
-                      <CardDescription className="text-xs">
-                        {booking.booking_type === 'transport' ? (
+                      <CardDescription className="text-xs truncate max-w-[280px]">
+                        {booking.booking_type === 'flight' ? (
+                          <span>{buildFlightDisplayLine({
+                            departureAirportCode: booking.departure_airport_code,
+                            arrivalAirportCode: booking.arrival_airport_code,
+                            confirmationNumber: booking.confirmation_number,
+                            startDatetime: booking.start_datetime,
+                            endDatetime: booking.end_datetime,
+                          })}</span>
+                        ) : booking.booking_type === 'transport' ? (
                           <span className="capitalize">{((booking as any).transport_mode || 'transport').replace('_', ' ')}</span>
                         ) : (
                           <span className="capitalize">{booking.booking_type === 'stay' ? 'lodging' : booking.booking_type.replace('_', ' ')}</span>
@@ -1212,7 +1257,8 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                 )}
 
                 <div className="flex gap-2 pt-2">
-                  {(booking.address || booking.property_name || booking.pickup_location) && (
+                {/* v3.13.2: Show Maps for flights (with IATA) or other types with address */}
+                {(booking.booking_type === 'flight' || booking.address || booking.property_name || booking.pickup_location) && (
                     <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openInMaps(booking)}>
                       <MapPin className="w-3 h-3 mr-1" />
                       Maps

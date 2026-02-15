@@ -15,6 +15,7 @@ import { DatetimeFormatPreference } from '@/lib/displayFormats';
 import { formatLocalTimeDirect, formatLocalDateDirect } from '@/lib/canonicalTimeNormalizer';
 import { UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
 import { resolveMapsFromTimelineEvent, openMapsDestination } from '@/lib/mapsDestination';
+import { buildFlightDisplayLine } from '@/lib/flightDisplayUtils';
 import { 
   Plane, Building2, Car, CircleParking, Compass, Ticket, 
   TrainFront, Bus, TramFront, Ship, PartyPopper, Navigation
@@ -54,46 +55,25 @@ const getEventIcon = (type: string, transportMode?: string) => {
 };
 
 /**
- * v2.2.10: Build combined flight subtitle using direct digit extraction.
- * Pattern: EJMB2X • DEN → COS • Dep 6:00 AM • Arr 7:39 AM
- * Extracts time digits directly from stored strings — no Date() timezone shifting.
+ * v3.13.2: Build combined flight subtitle using canonical display format.
+ * Pattern: DEN → COS • Conf EJMB2X • Dep 6:00 AM • Arr 7:39 AM
+ * Uses buildFlightDisplayLine for consistency across all surfaces.
  */
 function buildFlightSubtitle(
   event: CanonicalTimelineEvent,
   datetimeFormat: DatetimeFormatPreference
 ): string {
-  const parts: string[] = [];
   const use24h = datetimeFormat === 'DD/MM/YYYY 24h';
-  
-  // Confirmation number
-  if (event.confirmationNumber) {
-    parts.push(event.confirmationNumber);
-  }
-  
-  // Airport route (only if both exist)
-  if (event.departureAirportCode && event.arrivalAirportCode) {
-    parts.push(`${event.departureAirportCode} → ${event.arrivalAirportCode}`);
-  } else if (event.departureAirportCode) {
-    parts.push(`From ${event.departureAirportCode}`);
-  } else if (event.arrivalAirportCode) {
-    parts.push(`To ${event.arrivalAirportCode}`);
-  }
-  
-  // v2.2.10: Departure time — extract digits directly, no Date() shifting
-  if (event.hasDepartureTime && event.departureLocalTime) {
-    const depTime = formatLocalTimeDirect(event.departureLocalTime, use24h)
-      || UNKNOWN_TIME_PLACEHOLDER;
-    parts.push(`Dep ${depTime}`);
-  }
-  
-  // v2.2.10: Arrival time — extract digits directly
-  if (event.hasArrivalTime && event.arrivalLocalTime) {
-    const arrTime = formatLocalTimeDirect(event.arrivalLocalTime, use24h)
-      || UNKNOWN_TIME_PLACEHOLDER;
-    parts.push(`Arr ${arrTime}`);
-  }
-  
-  return parts.join(' • ');
+  return buildFlightDisplayLine({
+    departureAirportCode: event.departureAirportCode,
+    arrivalAirportCode: event.arrivalAirportCode,
+    confirmationNumber: event.confirmationNumber,
+    departureLocalTime: event.departureLocalTime,
+    arrivalLocalTime: event.arrivalLocalTime,
+    hasDepartureTime: event.hasDepartureTime,
+    hasArrivalTime: event.hasArrivalTime,
+    use24h,
+  });
 }
 
 export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimelineProps) {

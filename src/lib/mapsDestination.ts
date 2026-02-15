@@ -180,11 +180,26 @@ export function resolveMapsFromTimelineEvent(event: {
   arrivalAirportCode?: string;
   bookingType?: string;
 }): MapsDestination | null {
-  // For flights, use departure airport as the primary location
-  if (event.bookingType === 'flight' && event.departureAirportCode) {
-    return resolveMapsDestination({
-      locationLabel: `${event.departureAirportCode} Airport`,
-    });
+  // v3.13.2: For flights, validate IATA code before using as navigation target
+  if (event.bookingType === 'flight') {
+    const code = event.departureAirportCode?.trim().toUpperCase();
+    if (code && /^[A-Z]{3}$/.test(code)) {
+      return resolveMapsDestination({
+        locationLabel: `${code} Airport`,
+      });
+    }
+    // Fallback: try arrival airport
+    const arrCode = event.arrivalAirportCode?.trim().toUpperCase();
+    if (arrCode && /^[A-Z]{3}$/.test(arrCode)) {
+      return resolveMapsDestination({
+        locationLabel: `${arrCode} Airport`,
+      });
+    }
+    // Final fallback: use address or title if available
+    if (event.address) {
+      return resolveMapsDestination({ address: event.address });
+    }
+    return null;
   }
 
   return resolveMapsDestination({
@@ -203,13 +218,19 @@ export function resolveMapsFromNextStop(event: {
   type?: string;
   displayName?: string;
 }): MapsDestination | null {
-  // For flights, airport code is in locationLabel
+  // v3.13.2: For flights, validate IATA code before using as navigation target
   if (event.type === 'flight' || event.type === 'flight_departure') {
-    return resolveMapsDestination({
-      locationLabel: event.locationLabel
-        ? `${event.locationLabel} Airport`
-        : undefined,
-    });
+    const code = event.locationLabel?.trim().toUpperCase();
+    if (code && /^[A-Z]{3}$/.test(code)) {
+      return resolveMapsDestination({
+        locationLabel: `${code} Airport`,
+      });
+    }
+    // Fallback: use address if available
+    if (event.address) {
+      return resolveMapsDestination({ address: event.address });
+    }
+    return null;
   }
 
   return resolveMapsDestination({
