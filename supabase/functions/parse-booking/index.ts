@@ -385,6 +385,19 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
         // Clean up "null" strings to actual null values
         cleanNullStrings(parsed);
         
+        // v3.13.2: Sanitize airport codes — only valid 3-letter IATA codes allowed
+        const IATA_RE = /^[A-Z]{3}$/i;
+        if (parsed.departure_airport_code && !IATA_RE.test(parsed.departure_airport_code.trim())) {
+          parsed.departure_airport_code = null;
+        } else if (parsed.departure_airport_code) {
+          parsed.departure_airport_code = parsed.departure_airport_code.trim().toUpperCase();
+        }
+        if (parsed.arrival_airport_code && !IATA_RE.test(parsed.arrival_airport_code.trim())) {
+          parsed.arrival_airport_code = null;
+        } else if (parsed.arrival_airport_code) {
+          parsed.arrival_airport_code = parsed.arrival_airport_code.trim().toUpperCase();
+        }
+        
         // v2.6.3: Apply optimized datetime normalization
         // Uses pre-compiled regex and short-circuit evaluations
         parsed.start_datetime = normalizeDatetime(parsed.start_datetime);

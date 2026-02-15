@@ -300,7 +300,7 @@ export function buildCanonicalTimeline(
           bookingType: 'flight',
           eventType: 'flight',
           title: booking.airline || booking.vendor_name,
-          subtitle: booking.confirmation_number || '',
+          subtitle: '', // v3.13.2: Flight subtitle built by buildFlightDisplayLine, not from raw fields
           datetime: startDate,
           hasExplicitTime: hasExplicitTime(booking.start_datetime),
           address: booking.address,
