@@ -30,6 +30,7 @@ import { hasExplicitTime } from './datetimeIntegrity';
 import { getAirportTimeZone } from './airportTimezones';
 import { WeatherSnapshot } from './canonicalWeather';
 import { resolveBookingTimezone, resolveDestinationTimezone, convertUtcToLocalString } from './canonicalTimeNormalizer';
+import { preserveTimeString } from './canonicalTimePreservation';
 
 // ============================================================================
 // TYPES
@@ -322,12 +323,12 @@ export function buildCanonicalTimeline(
           hasArrivalTime: booking.end_datetime ? hasExplicitTime(booking.end_datetime) : false,
           confirmationNumber: booking.confirmation_number || undefined,
           // v2.2.4: Timezone-aware local time fields
-          departureLocalTime: booking.start_datetime,
+          departureLocalTime: preserveTimeString(booking.start_datetime) || undefined,
           departureTimeZone: depTz,
-          arrivalLocalTime: booking.end_datetime || undefined,
+          arrivalLocalTime: preserveTimeString(booking.end_datetime) || undefined,
           arrivalTimeZone: arrTz,
-          // v2.2.10: Canonical local time (departure for sort/display)
-          eventLocalDateTime: booking.start_datetime,
+          // v3.11.3: Preserve time string as-is — no conversion
+          eventLocalDateTime: preserveTimeString(booking.start_datetime) || undefined,
           eventTimeZone: depTz || null,
         });
         break;
@@ -347,8 +348,8 @@ export function buildCanonicalTimeline(
           hasExplicitTime: hasExplicitTime(booking.start_datetime),
           address: booking.address,
           linkUrl: booking.link_url,
-          // v3.8.7: Convert UTC to destination-local for correct display
-          eventLocalDateTime: convertUtcToLocalString(booking.start_datetime, destTz),
+          // v3.11.3: Preserve time string — no Date conversion
+          eventLocalDateTime: preserveTimeString(convertUtcToLocalString(booking.start_datetime, destTz)) || undefined,
           eventTimeZone: destTz,
         });
         // Check-out
@@ -365,8 +366,8 @@ export function buildCanonicalTimeline(
             hasExplicitTime: hasExplicitTime(booking.end_datetime),
             address: booking.address,
             linkUrl: booking.link_url,
-            // v3.8.7: Convert UTC to destination-local
-            eventLocalDateTime: convertUtcToLocalString(booking.end_datetime, destTz),
+            // v3.11.3: Preserve time string — no Date conversion
+            eventLocalDateTime: preserveTimeString(convertUtcToLocalString(booking.end_datetime, destTz)) || undefined,
             eventTimeZone: destTz,
           });
         }
@@ -386,8 +387,8 @@ export function buildCanonicalTimeline(
           hasExplicitTime: hasExplicitTime(booking.start_datetime),
           address: booking.pickup_location || booking.address,
           linkUrl: booking.link_url,
-          // v3.8.7: Convert UTC to destination-local
-          eventLocalDateTime: convertUtcToLocalString(booking.start_datetime, destTz),
+          // v3.11.3: Preserve time string — no Date conversion
+          eventLocalDateTime: preserveTimeString(convertUtcToLocalString(booking.start_datetime, destTz)) || undefined,
           eventTimeZone: destTz,
         });
         // Drop-off
@@ -404,8 +405,8 @@ export function buildCanonicalTimeline(
             hasExplicitTime: hasExplicitTime(booking.end_datetime),
             address: booking.return_location || booking.pickup_location || booking.address,
             linkUrl: booking.link_url,
-            // v3.8.7: Convert UTC to destination-local
-            eventLocalDateTime: convertUtcToLocalString(booking.end_datetime, destTz),
+            // v3.11.3: Preserve time string — no Date conversion
+            eventLocalDateTime: preserveTimeString(convertUtcToLocalString(booking.end_datetime, destTz)) || undefined,
             eventTimeZone: destTz,
           });
         }
@@ -426,8 +427,8 @@ export function buildCanonicalTimeline(
           address: booking.address,
           linkUrl: booking.link_url,
           transportMode: booking.transport_mode,
-          // v3.8.7: Convert UTC to destination-local
-          eventLocalDateTime: convertUtcToLocalString(booking.start_datetime, destTz),
+          // v3.11.3: Preserve time string — no Date conversion
+          eventLocalDateTime: preserveTimeString(convertUtcToLocalString(booking.start_datetime, destTz)) || undefined,
           eventTimeZone: destTz,
         });
         // Transport arrival
@@ -445,8 +446,8 @@ export function buildCanonicalTimeline(
             address: booking.address,
             linkUrl: booking.link_url,
             transportMode: booking.transport_mode,
-            // v3.8.7: Convert UTC to destination-local
-            eventLocalDateTime: convertUtcToLocalString(booking.end_datetime, destTz),
+            // v3.11.3: Preserve time string — no Date conversion
+            eventLocalDateTime: preserveTimeString(convertUtcToLocalString(booking.end_datetime, destTz)) || undefined,
             eventTimeZone: destTz,
           });
         }
@@ -469,8 +470,8 @@ export function buildCanonicalTimeline(
           ticketRequired: booking.ticket_required || booking.advance_recommended || false,
           ticketsPurchased: booking.tickets_purchased || false,
           activitySource: booking.activity_source || undefined,
-          // v3.8.7: Convert UTC to destination-local
-          eventLocalDateTime: convertUtcToLocalString(booking.start_datetime, destTz),
+          // v3.11.3: Preserve time string — no Date conversion
+          eventLocalDateTime: preserveTimeString(convertUtcToLocalString(booking.start_datetime, destTz)) || undefined,
           eventTimeZone: destTz,
         });
         // Activity end (if specified)
@@ -487,8 +488,8 @@ export function buildCanonicalTimeline(
             hasExplicitTime: hasExplicitTime(booking.end_datetime),
             address: booking.address,
             linkUrl: booking.link_url || booking.booking_url,
-            // v3.8.7: Convert UTC to destination-local
-            eventLocalDateTime: convertUtcToLocalString(booking.end_datetime, destTz),
+            // v3.11.3: Preserve time string — no Date conversion
+            eventLocalDateTime: preserveTimeString(convertUtcToLocalString(booking.end_datetime, destTz)) || undefined,
             eventTimeZone: destTz,
           });
         }
@@ -521,8 +522,8 @@ export function buildCanonicalTimeline(
       datetime: startDate,
       hasExplicitTime: hasExplicitTime(startLocalStr),
       address: parking.address,
-      // v3.9.7: Use local wall-time directly — no conversion needed
-      eventLocalDateTime: startLocalStr,
+      // v3.11.3: Preserve time string as-is
+      eventLocalDateTime: preserveTimeString(startLocalStr) || undefined,
       eventTimeZone: parking.end_timezone || destTz,
     });
     
@@ -539,8 +540,8 @@ export function buildCanonicalTimeline(
         datetime: endDate,
         hasExplicitTime: hasExplicitTime(endLocalStr),
         address: parking.address,
-        // v3.9.7: Use local wall-time directly — no conversion needed
-        eventLocalDateTime: endLocalStr,
+        // v3.11.3: Preserve time string as-is
+        eventLocalDateTime: preserveTimeString(endLocalStr) || undefined,
         eventTimeZone: parking.end_timezone || destTz,
       });
     }
@@ -567,8 +568,8 @@ export function buildCanonicalTimeline(
         datetime: evtDate,
         hasExplicitTime: hasExplicitTime(evt.event_datetime),
         address: evt.location_summary || undefined,
-        // v3.8.7: Convert UTC to destination-local
-        eventLocalDateTime: convertUtcToLocalString(evt.event_datetime, destTz),
+        // v3.11.3: Preserve time string — no Date conversion
+        eventLocalDateTime: preserveTimeString(convertUtcToLocalString(evt.event_datetime, destTz)) || undefined,
         eventTimeZone: destTz,
       });
     });
