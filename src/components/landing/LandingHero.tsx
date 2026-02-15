@@ -1,17 +1,9 @@
 import { Link } from 'react-router-dom';
-import logoImg from '@/assets/logo-white.png';
 
 export default function LandingHero() {
   return (
     <section className="landing-hero-section">
       <div className="max-w-4xl mx-auto text-center">
-        {/* Brand logo — primary brand moment */}
-        <img
-          src={logoImg}
-          alt="Real Travel 2 Real Places — real-time travel command center"
-          className="landing-hero-logo mx-auto mb-8"
-        />
-
         {/* H1 - Single instance */}
         <h1 className="landing-hero-headline">
           Know exactly where to be
@@ -19,10 +11,9 @@ export default function LandingHero() {
           <span className="landing-hero-headline-accent">and when.</span>
         </h1>
 
-        {/* Subheadline */}
+        {/* Subheadline — tightened */}
         <p className="landing-hero-subtext">
-          Real Travel 2 Real Places is your real-time travel command center.
-          It shows what's next, when to leave, and where to go — without digging through emails or switching apps.
+          A real-time travel command center that shows what's next, when to leave, and where to go — without digging through emails.
         </p>
 
         {/* CTAs */}
@@ -43,7 +34,7 @@ export default function LandingHero() {
 
         {/* Trust line */}
         <p className="landing-trust-line">
-          No credit card required · Your data stays yours
+          No credit card required · Free plan available forever
         </p>
       </div>
     </section>

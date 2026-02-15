@@ -92,26 +92,31 @@
 }
 
 /* ===========================================
-   HERO LOGO — Primary brand moment
+   WORDMARK — Clean typographic brand
    =========================================== */
-.landing-hero-logo {
-  width: 260px;
-  height: auto;
-  object-fit: contain;
-  background: transparent;
-  pointer-events: none;
-  user-select: none;
+.landing-wordmark {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: hsl(var(--landing-text));
+  text-decoration: none;
+  white-space: nowrap;
+  transition: opacity 0.2s ease;
 }
 
-@media (min-width: 768px) {
-  .landing-hero-logo {
-    width: 280px;
+.landing-wordmark:hover {
+  opacity: 0.85;
+}
+
+@media (min-width: 640px) {
+  .landing-wordmark {
+    font-size: 1.0625rem;
   }
 }
 
-@media (max-width: 639px) {
-  .landing-hero-logo {
-    width: 200px;
+@media (max-width: 374px) {
+  .landing-wordmark {
+    font-size: 0.8125rem;
   }
 }
 

@@ -16,10 +16,10 @@ export default function LandingPage() {
   return (
     <>
       <Helmet>
-        <title>Real Travel 2 Real Places — Travel Management App</title>
+        <title>Real Travel 2 Real Places — Travel Command Center</title>
         <meta
           name="description"
-          content="Know exactly where to be and when. Real Travel 2 Real Places is your real-time travel command center for flights, stays, expenses, and logistics."
+          content="Know exactly where to be and when. Real Travel 2 Real Places is a real-time travel command center for frequent travelers."
         />
       </Helmet>
 
