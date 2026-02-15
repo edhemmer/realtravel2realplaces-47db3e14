@@ -1,42 +1,44 @@
-import { Mail, Receipt, Users, RefreshCw, FileSpreadsheet } from 'lucide-react';
+import { Plane, Hotel, Car, Clock, CloudRain } from 'lucide-react';
 
-const painPoints = [
+const stressors = [
   {
-    icon: Mail,
-    text: 'Confirmations scattered across email, texts, and screenshots',
+    icon: Plane,
+    text: 'Flight times shift — and you find out late',
   },
   {
-    icon: Receipt,
-    text: 'Expenses tracked "somewhere else"',
+    icon: Hotel,
+    text: 'Check-in details buried in a confirmation email',
   },
   {
-    icon: Users,
-    text: 'Group trips where everyone asks the same questions',
+    icon: Car,
+    text: 'Rental car pickup instructions scattered across apps',
   },
   {
-    icon: RefreshCw,
-    text: 'Changes that force you to re-check everything',
+    icon: Clock,
+    text: 'Leave-by timing that requires guesswork',
   },
   {
-    icon: FileSpreadsheet,
-    text: 'Spreadsheets that start strong and fall apart mid-trip',
+    icon: CloudRain,
+    text: 'Weather and traffic changes you didn\u0027t plan for',
   },
 ];
 
 export default function LandingProblem() {
   return (
-    <section className="landing-problem-section">
+    <section id="how-it-works" className="landing-problem-section">
       <div className="max-w-4xl mx-auto">
-        {/* Section Header */}
         <div className="text-center mb-10">
           <h2 className="landing-section-headline">
-            Travel becomes work after you book it.
+            Travel shouldn't require constant checking.
           </h2>
+          <p className="landing-section-subtext mt-3">
+            Between flights, stays, rental cars, traffic, timing, and weather — travel execution is stressful.
+            The friction isn't in the planning. It's in the doing.
+          </p>
         </div>
 
-        {/* Pain points */}
         <div className="landing-pain-list">
-          {painPoints.map((point) => (
+          {stressors.map((point) => (
             <div key={point.text} className="landing-pain-item">
               <div className="landing-pain-icon">
                 <point.icon className="w-5 h-5" />
@@ -46,9 +48,8 @@ export default function LandingProblem() {
           ))}
         </div>
 
-        {/* Transition */}
         <p className="landing-problem-transition">
-          Real Travel 2 Real Places exists to remove all of that.
+          Real Travel 2 Real Places removes that friction — automatically.
         </p>
       </div>
     </section>

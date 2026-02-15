@@ -6,47 +6,39 @@ export default function LandingHero() {
     <section className="landing-hero-section">
       <div className="max-w-4xl mx-auto text-center">
         {/* Brand logo — primary brand moment */}
-        
+        <img
+          src={logoImg}
+          alt="Real Travel 2 Real Places — real-time travel command center"
+          className="landing-hero-logo mx-auto mb-8"
+        />
 
-
-
-
-
-
-
-        {/* H1 - Primary headline */}
+        {/* H1 - Single instance */}
         <h1 className="landing-hero-headline">
-          We don't plan your trip.
+          Know exactly where to be
           <br />
-          <span className="landing-hero-headline-accent">We manage everything after it's booked.</span>
+          <span className="landing-hero-headline-accent">and when.</span>
         </h1>
 
         {/* Subheadline */}
         <p className="landing-hero-subtext">
-          Real Travel 2 Real Places keeps all your travel details in one place — flights, lodging, stops, expenses, and reminders — so nothing gets missed and you stop managing travel by memory.
-        </p>
-
-        {/* Support copy - the problem */}
-        <p className="landing-hero-support">
-          Most people end up tracking trips with emails, screenshots, spreadsheets, and notes.
-          <br className="hidden sm:block" />
-          That breaks the moment plans change. We replace that with one reliable system.
+          Real Travel 2 Real Places is your real-time travel command center.
+          It shows what's next, when to leave, and where to go — without digging through emails or switching apps.
         </p>
 
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
           <Link
             to="/auth?tab=signup"
-            className="landing-btn-primary-hero">
-
-            Get started free
+            className="landing-btn-primary-hero"
+          >
+            Start Free
           </Link>
-          <Link
-            to="/auth"
-            className="landing-btn-secondary-hero">
-
-            Log in
-          </Link>
+          <a
+            href="#how-it-works"
+            className="landing-btn-secondary-hero"
+          >
+            See How It Works
+          </a>
         </div>
 
         {/* Trust line */}
@@ -54,6 +46,6 @@ export default function LandingHero() {
           No credit card required · Your data stays yours
         </p>
       </div>
-    </section>);
-
+    </section>
+  );
 }
