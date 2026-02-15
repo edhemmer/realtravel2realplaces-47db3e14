@@ -2,11 +2,11 @@ import { Check } from 'lucide-react';
 
 const outcomes = [
   'Instant "Next Up" clarity — always know what\'s coming',
-  'Leave-by timing based on live traffic conditions',
-  'Navigation-ready addresses for every stop',
-  'Smart reminders for check-ins, departures, and parking',
-  'Location-aware suggestions when plans shift',
-  'Fewer missed details, less stress on the road',
+  'Leave-by timing based on your schedule and estimated travel duration',
+  'Navigation-ready addresses for your stops and destinations',
+  'Configurable reminders for check-ins, departures, and parking',
+  'Discover nearby restaurants and attractions with Explore',
+  'Less scrambling, more confidence on the road',
 ];
 
 export default function LandingAudience() {

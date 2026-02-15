@@ -4,11 +4,11 @@ import { ChevronDown } from 'lucide-react';
 const faqs = [
   {
     question: 'What is the best travel management app?',
-    answer: 'The best travel management app keeps all your trip details — flights, stays, expenses, and stops — in one place without requiring manual entry. Real Travel 2 Real Places does exactly that, acting as a real-time command center for every trip.',
+    answer: 'The best travel management app keeps all your trip details — flights, stays, expenses, and stops — in one place with minimal manual entry. Real Travel 2 Real Places does exactly that, acting as a real-time command center for your trips.',
   },
   {
     question: 'How do frequent travelers stay organized?',
-    answer: 'Frequent travelers need a system that handles overlapping trips, layered itineraries, and rapid changes. Real Travel 2 Real Places surfaces what\'s next, tracks expenses per trip, and sends smart reminders so nothing gets missed.',
+    answer: 'Frequent travelers need a system that handles multiple trips, layered itineraries, and rapid changes. Real Travel 2 Real Places surfaces what\'s next, tracks expenses per trip, and sends configurable reminders to help you stay on track.',
   },
   {
     question: 'Is there an app that tells you what\'s next on your trip?',
@@ -16,11 +16,11 @@ const faqs = [
   },
   {
     question: 'Can I import travel confirmations automatically?',
-    answer: 'Absolutely. You can forward confirmation emails, upload screenshots, or paste booking details. The system extracts dates, times, and locations and organizes them into your trip timeline automatically.',
+    answer: 'Yes. You can forward confirmation emails, upload screenshots, or paste booking details. The system extracts dates, times, and locations and organizes them into your trip timeline. You can review and adjust any parsed details.',
   },
   {
     question: 'Is Real Travel 2 Real Places free to use?',
-    answer: 'Yes. The free plan includes up to 5 lifetime trips with full functionality — flights, stays, stops, expenses, packing lists, and reminders. Pro and Business tiers unlock unlimited trips and advanced features for frequent travelers.',
+    answer: 'Yes. The free plan includes up to 5 lifetime trips with core features — flights, stays, expenses, packing lists, and reminders. Pro and Business tiers unlock unlimited trips, Explore, and advanced insights for frequent travelers.',
   },
   {
     question: 'How is this different from a travel planning app?',

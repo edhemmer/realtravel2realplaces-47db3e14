@@ -4,17 +4,17 @@ const methods = [
   {
     icon: Mail,
     title: 'Forward confirmations',
-    description: 'Send booking emails directly — flights, hotels, and rentals get parsed and organized automatically.',
+    description: 'Send booking emails directly — flights, hotels, and rentals are parsed and organized into your trip.',
   },
   {
     icon: Camera,
     title: 'Upload screenshots',
-    description: 'Snap a photo of a confirmation or receipt. The system reads it and files it to the right trip.',
+    description: 'Snap a photo of a confirmation or receipt. Key details are extracted and added to your trip.',
   },
   {
     icon: ClipboardPaste,
     title: 'Paste email details',
-    description: 'Copy and paste any booking text. Dates, times, and locations get extracted instantly.',
+    description: 'Copy and paste booking text. Dates, times, and locations are extracted and ready to review.',
   },
   {
     icon: Smartphone,
@@ -32,7 +32,7 @@ export default function LandingWhyBetter() {
             Automatic by default.
           </h2>
           <p className="landing-section-subtext mt-3">
-            No manual data entry required. Get your travel details in — your way — and the system takes it from there.
+            Minimal manual entry. Get your travel details in — your way — and the system handles the rest.
           </p>
         </div>
 

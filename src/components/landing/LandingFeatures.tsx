@@ -9,17 +9,17 @@ const pillars = [
   {
     icon: Clock,
     title: 'When to leave',
-    description: 'Leave-by timing that accounts for real conditions so you arrive on time, every time.',
+    description: 'Leave-by timing based on your schedule and estimated travel duration so you stay ahead.',
   },
   {
     icon: MapPin,
     title: 'Where to go',
-    description: 'Navigation-ready addresses and directions for every stop, hotel, and terminal.',
+    description: 'Navigation-ready addresses and directions for your stops, hotels, and terminals.',
   },
   {
     icon: Bell,
     title: 'What needs attention',
-    description: 'Smart reminders for check-ins, departures, parking, and anything you can\'t afford to miss.',
+    description: 'Configurable reminders for check-ins, departures, parking, and key deadlines.',
   },
 ];
 
