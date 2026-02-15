@@ -240,6 +240,36 @@ export type Database = {
           },
         ]
       }
+      email_ingestion_addresses: {
+        Row: {
+          created_at: string
+          id: string
+          ingestion_address: string
+          ingestion_hash: string
+          is_active: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ingestion_address: string
+          ingestion_hash: string
+          is_active?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ingestion_address?: string
+          ingestion_hash?: string
+          is_active?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       engagements: {
         Row: {
           address: string | null
@@ -577,6 +607,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pending_imports: {
+        Row: {
+          confidence: number
+          content_hash: string | null
+          created_at: string
+          error_code: string | null
+          id: string
+          parsed_data: Json
+          parsed_type: string
+          provider_message_id: string | null
+          sender: string | null
+          status: string
+          subject: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          confidence?: number
+          content_hash?: string | null
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          parsed_data?: Json
+          parsed_type: string
+          provider_message_id?: string | null
+          sender?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          confidence?: number
+          content_hash?: string | null
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          parsed_data?: Json
+          parsed_type?: string
+          provider_message_id?: string | null
+          sender?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
