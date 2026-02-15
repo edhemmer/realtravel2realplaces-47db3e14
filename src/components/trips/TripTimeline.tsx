@@ -189,7 +189,7 @@ export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimel
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
                           <p className={`text-[13px] leading-tight truncate ${isFirstUpcoming ? 'font-semibold' : 'font-medium'}`}>{event.title}</p>
-                          <p className="text-[11px] text-muted-foreground/80 truncate mt-px">{subtitle}</p>
+                          <p className="text-[11px] text-muted-foreground/80 mt-px whitespace-normal break-words line-clamp-2 md:truncate">{subtitle}</p>
                           {/* Activity-specific badges */}
                           {event.bookingType === 'activity' && (
                             <div className="flex flex-wrap gap-1 mt-0.5">

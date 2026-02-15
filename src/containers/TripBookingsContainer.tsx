@@ -45,8 +45,8 @@ export function TripBookingsContainer({
   // Canonical data fetching
   const { data: bookings = [], isLoading, error } = useBookings(tripId);
   
-  // v3.13.2: Safe repair of corrupted airport codes on active trips
-  useFlightAirportRepair(tripId, trip?.trip_state ?? 'active', bookings);
+  // v3.13.5: Safe repair of corrupted airport codes on active/upcoming trips
+  useFlightAirportRepair(tripId, trip?.end_date, bookings);
   
   if (isLoading) {
     return <TripSectionLoading message="Loading bookings..." />;

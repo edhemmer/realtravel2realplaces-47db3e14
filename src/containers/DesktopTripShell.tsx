@@ -140,8 +140,8 @@ export function DesktopTripShell({ tripId, trip, children }: DesktopTripShellPro
 
   const isLoading = bookingsLoading || expensesLoading || parkingLoading;
 
-  // v3.13.2: Safe repair of corrupted airport codes on active trips
-  useFlightAirportRepair(tripId, trip.trip_state, bookings);
+  // v3.13.5: Safe repair of corrupted airport codes on active/upcoming trips
+  useFlightAirportRepair(tripId, trip.end_date, bookings);
 
   // v2.6.12: Stable context value — only recomputes when underlying data changes
   const shellState = useMemo<DesktopTripShellState>(() => ({

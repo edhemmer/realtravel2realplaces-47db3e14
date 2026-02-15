@@ -1030,7 +1030,7 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                          booking.booking_type === 'transport' ? ((booking as any).operator || booking.vendor_name) :
                          booking.vendor_name}
                       </CardTitle>
-                      <CardDescription className="text-xs truncate max-w-[280px]">
+                      <CardDescription className="text-xs whitespace-normal break-words line-clamp-2 max-w-[280px] md:max-w-none">
                         {booking.booking_type === 'flight' ? (
                           <span>{buildFlightDisplayLine({
                             departureAirportCode: booking.departure_airport_code,
