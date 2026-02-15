@@ -152,7 +152,7 @@ export function resolveExploreOrigin(
       searchState: undefined,
       isArrived: false,
       targetStay: null,
-      noOriginMessage: 'Add a stay to explore near your destination.',
+      noOriginMessage: 'Add lodging to explore near your destination.',
     };
   }
 
@@ -175,12 +175,12 @@ export function resolveExploreOrigin(
   }
 
   // Not arrived OR arrived but device denied → STAY
-  const stayLabel = targetStay.property_name || targetStay.vendor_name || 'My stay';
+  const stayLabel = targetStay.property_name || targetStay.vendor_name || 'My lodging';
   const staySearchCity = targetStay.address || targetStay.property_name || targetStay.vendor_name;
 
   return {
     mode: 'STAY',
-    label: `Your stay (${stayLabel})`,
+    label: `Your lodging (${stayLabel})`,
     lat: undefined,
     lng: undefined,
     searchCity: staySearchCity || undefined,

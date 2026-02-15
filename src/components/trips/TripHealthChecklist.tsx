@@ -72,7 +72,7 @@ function analyzeTrip(
   // ===== STAY CHECKS =====
   const stays = bookings.filter(b => b.booking_type === 'stay');
   stays.forEach(stay => {
-    const stayLabel = stay.property_name || stay.vendor_name || 'Unnamed stay';
+    const stayLabel = stay.property_name || stay.vendor_name || 'Unnamed lodging';
 
     // Check: missing check-in time
     if (!hasExplicitTime(stay.start_datetime)) {
@@ -80,8 +80,8 @@ function analyzeTrip(
         id: `stay-checkin-${stay.id}`,
         severity: 'info',
         icon: <Building2 className="w-4 h-4" />,
-        message: `Stay at "${stayLabel}" is missing check-in time.`,
-        fixLabel: 'Edit stay',
+        message: `Lodging at "${stayLabel}" is missing check-in time.`,
+        fixLabel: 'Edit lodging',
         target: { tab: 'bookings', recordId: stay.id },
       });
     }
@@ -92,8 +92,8 @@ function analyzeTrip(
         id: `stay-checkout-${stay.id}`,
         severity: 'info',
         icon: <Building2 className="w-4 h-4" />,
-        message: `Stay at "${stayLabel}" is missing check-out time.`,
-        fixLabel: 'Edit stay',
+        message: `Lodging at "${stayLabel}" is missing check-out time.`,
+        fixLabel: 'Edit lodging',
         target: { tab: 'bookings', recordId: stay.id },
       });
     }
@@ -104,7 +104,7 @@ function analyzeTrip(
         id: `stay-address-${stay.id}`,
         severity: 'info',
         icon: <Building2 className="w-4 h-4" />,
-        message: `Stay at "${stayLabel}" has no address on file.`,
+        message: `Lodging at "${stayLabel}" has no address on file.`,
         fixLabel: 'Add address',
         target: { tab: 'bookings', recordId: stay.id },
       });

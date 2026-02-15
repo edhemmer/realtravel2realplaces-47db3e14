@@ -18,7 +18,7 @@ export default function LandingPage() {
         <title>Real Travel 2 Real Places — Manage Real Trips, Not Plans</title>
         <meta
           name="description"
-          content="Manage real travel with Real Travel 2 Real Places. Track flights, stays, expenses, packing, and on-the-road travel in one calm, reliable system."
+          content="Manage real travel with Real Travel 2 Real Places. Track flights, lodging, expenses, packing, and on-the-road travel in one calm, reliable system."
         />
       </Helmet>
 
