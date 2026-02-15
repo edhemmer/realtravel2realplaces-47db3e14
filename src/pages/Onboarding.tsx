@@ -125,16 +125,26 @@ export default function Onboarding() {
   return (
     <Layout>
       <div className="max-w-lg mx-auto px-4 pt-8 pb-12 space-y-8">
-        {/* Progress bar */}
-        <div className="space-y-2">
-          <Progress value={progress} className="h-1.5" />
-          <p className="text-xs text-muted-foreground text-center">
-            {currentStep + 1} of {STEPS.length}
-          </p>
+        {/* Minimal dot progress — Superhuman/Linear pattern */}
+        <div className="flex items-center justify-center gap-2">
+          {STEPS.map((_, i) => (
+            <div
+              key={i}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i === currentStep
+                  ? 'w-6 bg-primary'
+                  : i < currentStep
+                  ? 'w-1.5 bg-primary/40'
+                  : 'w-1.5 bg-muted'
+              }`}
+            />
+          ))}
         </div>
 
-        {/* Step content */}
-        {renderStep()}
+        {/* Step content with fade transition */}
+        <div key={currentStep} className="animate-fade-in">
+          {renderStep()}
+        </div>
       </div>
     </Layout>
   );
@@ -144,24 +154,26 @@ export default function Onboarding() {
 
 function ValueStep({ onContinue }: { onContinue: () => void }) {
   return (
-    <div className="text-center space-y-8">
-      <div className="w-16 h-16 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center">
-        <Zap className="w-8 h-8 text-primary" />
+    <div className="text-center space-y-10 pt-4">
+      <div className="w-14 h-14 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center">
+        <Zap className="w-7 h-7 text-primary" />
       </div>
 
-      <div className="space-y-4">
-        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-          Know exactly where to be and when.
+      <div className="space-y-3">
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight leading-tight">
+          Know exactly where to be
+          <br />
+          and when.
         </h2>
-        <p className="text-muted-foreground text-base leading-relaxed max-w-sm mx-auto">
-          Real Travel 2 Real Places keeps your trip running in real time — so you never scramble during travel.
+        <p className="text-muted-foreground text-[0.9375rem] leading-relaxed max-w-xs mx-auto">
+          Real Travel 2 Real Places runs your trip in real time — so you never scramble or second-guess what&#39;s next.
         </p>
       </div>
 
       <Button
         onClick={onContinue}
         size="lg"
-        className="w-full max-w-xs mx-auto bg-gradient-ocean hover:opacity-90 transition-opacity h-12 rounded-xl font-semibold"
+        className="w-full max-w-xs mx-auto bg-gradient-ocean hover:opacity-90 transition-opacity h-12 rounded-xl font-semibold shadow-sm"
       >
         Start My First Trip
         <ArrowRight className="w-4 h-4 ml-2" />
@@ -174,51 +186,50 @@ function ValueStep({ onContinue }: { onContinue: () => void }) {
 
 function FirstTripStep({ onAddTrip, onSkip, isSaving }: { onAddTrip: () => void; onSkip: () => void; isSaving: boolean }) {
   return (
-    <div className="text-center space-y-8">
-      <div className="w-16 h-16 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center">
-        <Plane className="w-8 h-8 text-primary" />
+    <div className="text-center space-y-8 pt-4">
+      <div className="w-14 h-14 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center">
+        <Plane className="w-7 h-7 text-primary" />
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
           Add your upcoming trip.
         </h2>
+        <p className="text-muted-foreground text-sm max-w-xs mx-auto">
+          Add it once. We keep it running while you travel.
+        </p>
       </div>
 
-      {/* Input methods */}
-      <div className="grid grid-cols-3 gap-3 max-w-sm mx-auto">
-        <div className="p-3 rounded-xl bg-muted/40 text-center space-y-1.5">
+      {/* Input method chips — Notion-style option tiles */}
+      <div className="grid grid-cols-3 gap-2.5 max-w-sm mx-auto">
+        <div className="p-3 rounded-xl border border-border/40 bg-card text-center space-y-1.5 shadow-sm">
           <Mail className="w-5 h-5 mx-auto text-primary" />
-          <p className="text-xs font-medium">Forward confirmation</p>
+          <p className="text-[0.6875rem] font-medium leading-tight">Forward confirmation</p>
         </div>
-        <div className="p-3 rounded-xl bg-muted/40 text-center space-y-1.5">
+        <div className="p-3 rounded-xl border border-border/40 bg-card text-center space-y-1.5 shadow-sm">
           <Camera className="w-5 h-5 mx-auto text-primary" />
-          <p className="text-xs font-medium">Upload screenshot</p>
+          <p className="text-[0.6875rem] font-medium leading-tight">Upload screenshot</p>
         </div>
-        <div className="p-3 rounded-xl bg-muted/40 text-center space-y-1.5">
+        <div className="p-3 rounded-xl border border-border/40 bg-card text-center space-y-1.5 shadow-sm">
           <PenLine className="w-5 h-5 mx-auto text-primary" />
-          <p className="text-xs font-medium">Enter manually</p>
+          <p className="text-[0.6875rem] font-medium leading-tight">Enter manually</p>
         </div>
       </div>
 
-      <p className="text-muted-foreground text-sm max-w-xs mx-auto">
-        Add your trip once. We handle the rest while you travel.
-      </p>
-
-      <div className="space-y-4 max-w-xs mx-auto">
+      <div className="space-y-3 max-w-xs mx-auto">
         <Button
           onClick={onAddTrip}
           disabled={isSaving}
           size="lg"
-          className="w-full bg-gradient-ocean hover:opacity-90 transition-opacity h-12 rounded-xl font-semibold"
+          className="w-full bg-gradient-ocean hover:opacity-90 transition-opacity h-12 rounded-xl font-semibold shadow-sm"
         >
-          <Plane className="w-4 h-4 mr-2" />
           Add Trip
+          <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
         <button
           onClick={onSkip}
           disabled={isSaving}
-          className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+          className="block mx-auto text-[0.6875rem] text-muted-foreground/50 hover:text-muted-foreground transition-colors pt-1"
         >
           I&#39;ll add one later
         </button>
@@ -231,46 +242,53 @@ function FirstTripStep({ onAddTrip, onSkip, isSaving }: { onAddTrip: () => void;
 
 function PreviewStep({ onContinue }: { onContinue: () => void }) {
   const previewItems = [
-    { icon: Clock, label: "What's next", detail: 'Your upcoming flight, check-in, or stop' },
-    { icon: Navigation, label: 'When to leave', detail: 'Leave-by timing based on live conditions' },
-    { icon: MapPin, label: 'Where to go', detail: 'Navigation-ready addresses for every stop' },
-    { icon: Bell, label: 'What needs attention', detail: 'Reminders for things you can\'t miss' },
+    { icon: Clock, label: "What's next", detail: 'Upcoming flight, check-in, or stop' },
+    { icon: Navigation, label: 'When to leave', detail: 'Traffic-aware departure timing' },
+    { icon: MapPin, label: 'Where to go', detail: 'Navigation-ready addresses' },
+    { icon: Bell, label: 'What needs attention', detail: 'Smart reminders for what matters' },
   ];
 
   return (
-    <div className="space-y-8">
-      <div className="text-center space-y-2">
+    <div className="space-y-8 pt-4">
+      <div className="text-center space-y-3">
         <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-          What happens next.
+          Here&#39;s what you&#39;ll see on every trip.
         </h2>
       </div>
 
-      {/* Mock NOW screen */}
-      <div className="rounded-xl border bg-card p-4 space-y-3 shadow-sm">
-        <div className="flex items-center gap-2 pb-2 border-b">
+      {/* Mock NOW screen — compact, premium card */}
+      <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
+        <div className="flex items-center gap-2 px-4 py-2.5 border-b bg-muted/20">
           <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-          <span className="text-xs font-semibold text-primary uppercase tracking-wider">Now</span>
+          <span className="text-[0.6875rem] font-semibold text-primary uppercase tracking-wider">Now</span>
         </div>
-        {previewItems.map((item) => (
-          <div key={item.label} className="flex items-start gap-3 p-3 rounded-lg bg-muted/30">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <item.icon className="w-4 h-4 text-primary" />
+        <div className="p-3 space-y-2">
+          {previewItems.map((item) => (
+            <div key={item.label} className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/20">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <item.icon className="w-4 h-4 text-primary" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold leading-tight">{item.label}</p>
+                <p className="text-[0.6875rem] text-muted-foreground">{item.detail}</p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold">{item.label}</p>
-              <p className="text-xs text-muted-foreground">{item.detail}</p>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
+
+      {/* Habit framing — Superhuman pattern */}
+      <p className="text-center text-xs text-muted-foreground/70 italic">
+        Open Real Travel 2 Real Places before you leave — and stay ahead.
+      </p>
 
       <div className="text-center">
         <Button
           onClick={onContinue}
           size="lg"
-          className="w-full max-w-xs mx-auto bg-gradient-ocean hover:opacity-90 transition-opacity h-12 rounded-xl font-semibold"
+          className="w-full max-w-xs mx-auto bg-gradient-ocean hover:opacity-90 transition-opacity h-12 rounded-xl font-semibold shadow-sm"
         >
-          See My Trip Dashboard
+          See My Dashboard
           <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
       </div>
@@ -278,21 +296,24 @@ function PreviewStep({ onContinue }: { onContinue: () => void }) {
   );
 }
 
-// ========== STEP 4: MOMENTUM CLOSE ==========
+// ========== STEP 4: RETENTION ANCHOR ==========
 
 function ConfidenceStep({ onFinish, isSaving }: { onFinish: () => void; isSaving: boolean }) {
   return (
-    <div className="text-center space-y-8">
-      <div className="w-16 h-16 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center">
-        <Shield className="w-8 h-8 text-primary" />
+    <div className="text-center space-y-10 pt-4">
+      <div className="w-14 h-14 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center">
+        <Shield className="w-7 h-7 text-primary" />
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-          Travel without uncertainty.
+          Built for frequent travelers.
         </h2>
-        <p className="text-muted-foreground text-base leading-relaxed max-w-sm mx-auto">
-          Real Travel 2 Real Places reduces missed timing, navigation mistakes, and last-minute stress — especially when you travel often.
+        <p className="text-muted-foreground text-[0.9375rem] leading-relaxed max-w-xs mx-auto">
+          The more you travel, the more clarity matters.
+        </p>
+        <p className="text-muted-foreground text-sm leading-relaxed max-w-xs mx-auto">
+          Real Travel 2 Real Places reduces missed timing, navigation mistakes, and last-minute stress — trip after trip.
         </p>
       </div>
 
@@ -300,7 +321,7 @@ function ConfidenceStep({ onFinish, isSaving }: { onFinish: () => void; isSaving
         onClick={onFinish}
         disabled={isSaving}
         size="lg"
-        className="w-full max-w-xs mx-auto bg-gradient-ocean hover:opacity-90 transition-opacity h-12 rounded-xl font-semibold"
+        className="w-full max-w-xs mx-auto bg-gradient-ocean hover:opacity-90 transition-opacity h-12 rounded-xl font-semibold shadow-sm"
       >
         Go to My Dashboard
         <ArrowRight className="w-4 h-4 ml-2" />
