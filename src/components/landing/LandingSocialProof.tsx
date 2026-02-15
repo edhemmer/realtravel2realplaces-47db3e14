@@ -1,9 +1,9 @@
 import { Star, Quote } from 'lucide-react';
 
 const stats = [
-  { value: '2,400+', label: 'Trips managed' },
-  { value: '98%', label: 'On-time departures' },
-  { value: '4.9', label: 'User rating', icon: true },
+  { value: 'Free', label: 'To get started' },
+  { value: '3', label: 'Trips on free plan' },
+  { value: '∞', label: 'Trips on Pro' },
   { value: '$0', label: 'Setup cost' },
 ];
 
@@ -12,19 +12,16 @@ const testimonials = [
     quote: "I stopped missing check-in times. Everything I need is right there — no more digging through emails at the airport.",
     name: 'Sarah M.',
     role: 'Business Traveler',
-    trips: '47 trips',
   },
   {
     quote: "We drove 6 states in 10 days. Every gas stop, every hotel check-in, every expense — tracked without a spreadsheet.",
     name: 'Jake & Emily R.',
     role: 'Road Trip Family',
-    trips: '12 trips',
   },
   {
-    quote: "TripIt never showed me when to leave. This app tells me exactly when to walk out the door. That's the difference.",
+    quote: "Most apps help you plan. This one actually tells me when to walk out the door. That's the difference.",
     name: 'Carlos D.',
     role: 'Frequent Flyer',
-    trips: '83 trips',
   },
 ];
 
@@ -37,7 +34,6 @@ export default function LandingSocialProof() {
           {stats.map((stat) => (
             <div key={stat.label} className="landing-stat-item">
               <div className="landing-stat-value">
-                {stat.icon && <Star className="w-4 h-4 text-[hsl(35_100%_60%)] inline mr-1" />}
                 {stat.value}
               </div>
               <div className="landing-stat-label">{stat.label}</div>
@@ -48,10 +44,10 @@ export default function LandingSocialProof() {
         {/* Testimonials */}
         <div className="text-center mb-10 mt-16">
           <h2 className="landing-section-headline">
-            Trusted by travelers who don't wing it.
+            What travelers are saying.
           </h2>
           <p className="landing-section-subtext mt-3">
-            Real people. Real trips. Real clarity.
+            Early feedback from real users.
           </p>
         </div>
 
@@ -66,7 +62,7 @@ export default function LandingSocialProof() {
                 </div>
                 <div>
                   <p className="landing-testimonial-name">{t.name}</p>
-                  <p className="landing-testimonial-role">{t.role} · {t.trips}</p>
+                  <p className="landing-testimonial-role">{t.role}</p>
                 </div>
               </div>
             </div>
