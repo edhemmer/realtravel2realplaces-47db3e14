@@ -223,20 +223,46 @@ function resolveWeatherRouteRiskSignals(
 }
 
 /**
- * TOLL_ACK_REQUIRED / TOLL_REMINDER_TODAY: Emitted based on bookings with
- * toll-relevant transport segments. Currently, toll data is not stored in the
- * schema, so these signals are structurally defined but will only fire when
- * toll data becomes available in existing fields.
+ * TOLL_ACK_REQUIRED / TOLL_REMINDER_TODAY: Emitted when an active car rental
+ * overlaps today, indicating potential toll road exposure. Severity is 'info'
+ * since we cannot yet confirm actual toll presence (no route metadata).
  *
- * Placeholder resolver — returns empty until toll data exists in bookings.
+ * When route.hasTolls becomes available, this resolver will escalate to 'warning'.
+ * Grouping by family 'TOLL' ensures only one toll signal per rental survives.
  */
 function resolveTollSignals(
-  _bookings: Booking[],
-  _todayDate: string,
+  bookings: Booking[],
+  todayDate: string,
 ): DriveSignal[] {
-  // Toll data is not yet stored in the booking schema.
-  // When toll fields are added, this resolver will produce signals.
-  return [];
+  const signals: DriveSignal[] = [];
+
+  for (const b of bookings) {
+    if (b.booking_type !== 'car_rental') continue;
+
+    const startDate = b.start_datetime.substring(0, 10);
+    const endDate = b.end_datetime?.substring(0, 10);
+    const isActiveToday =
+      startDate <= todayDate && (endDate ? endDate >= todayDate : startDate === todayDate);
+
+    if (!isActiveToday) continue;
+
+    const rentalLabel = b.rental_company ?? b.vendor_name ?? 'Rental';
+
+    signals.push({
+      id: `drive-toll-rental-${b.id}`,
+      type: 'TOLL_REMINDER_TODAY',
+      severity: 'info',
+      title: 'Toll roads possible',
+      message: `${rentalLabel} rental is active today. Review your toll plan to avoid surprise charges.`,
+      actionLabel: 'Review Rental',
+      actionTarget: { tab: 'bookings', recordId: b.id },
+      related: { bookingId: b.id },
+      effectiveDate: todayDate,
+      effectiveTime: null,
+    });
+  }
+
+  return signals;
 }
 
 /**
