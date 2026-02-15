@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { TravelPreferencesCard } from '@/components/account/TravelPreferencesCard';
 import { UpgradePlanDialog } from '@/components/account/UpgradePlanDialog';
 import { NotificationPreferencesCard } from '@/components/account/NotificationPreferencesCard';
+import { EmailImportCard } from '@/components/account/EmailImportCard';
 import { PlanPill } from '@/components/PlanPill';
 import { resetOnboarding } from './Onboarding';
 
@@ -204,6 +205,9 @@ export default function Account() {
         {!isLoading && (
           <NotificationPreferencesCard />
         )}
+
+        {/* Email Import */}
+        <EmailImportCard />
 
         {/* Help / Getting Started Section */}
         <Card>
