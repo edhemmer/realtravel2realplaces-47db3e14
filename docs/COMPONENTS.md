@@ -353,8 +353,11 @@ Business stops/work locations (Business tier).
 - Auto-draft from bookings via canonical events (v2.1.6)
 - "Regenerate from bookings" action
 - Manual stop creation
-- Bulk import via BulkStopsDialog
+- Import via itinerary parsing (text/email/spreadsheet)
 - Source hints (v2.1.3): "From flight", "From stay", "Imported from text"
+- Compressed date headers with inline stop count and optimization status (v3.8.11)
+- Increased card density for execution-first layout (v3.8.11)
+- Consistent icon colors: Navigate (blue), Edit (neutral), Delete (red) (v3.8.11)
 
 **Architectural Note (v2.1.6):**
 TourTab does NOT import booking types/hooks directly. It uses `generateTourDraftFromCanonicalEvents()` to create independent stop records.
