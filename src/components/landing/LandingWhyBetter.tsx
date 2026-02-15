@@ -1,38 +1,54 @@
-import { Check } from 'lucide-react';
+import { Mail, Camera, ClipboardPaste, Smartphone } from 'lucide-react';
 
-const benefits = [
-  'No manual or semi-automated spreadsheets',
-  'No rebuilding trips every time something changes',
-  'No guessing which app has the right info',
-  'More reliable than notes, docs, or travel planners',
-  'Saves real time before, during, and after travel',
+const methods = [
+  {
+    icon: Mail,
+    title: 'Forward confirmations',
+    description: 'Send booking emails directly — flights, hotels, and rentals get parsed and organized automatically.',
+  },
+  {
+    icon: Camera,
+    title: 'Upload screenshots',
+    description: 'Snap a photo of a confirmation or receipt. The system reads it and files it to the right trip.',
+  },
+  {
+    icon: ClipboardPaste,
+    title: 'Paste email details',
+    description: 'Copy and paste any booking text. Dates, times, and locations get extracted instantly.',
+  },
+  {
+    icon: Smartphone,
+    title: 'Add or adjust from any device',
+    description: 'Works on desktop and mobile. Update stops, add expenses, or check your timeline from anywhere.',
+  },
 ];
 
 export default function LandingWhyBetter() {
   return (
     <section className="landing-whybetter-section">
-      <div className="max-w-3xl mx-auto">
-        {/* Section Header */}
+      <div className="max-w-4xl mx-auto">
         <div className="text-center mb-10">
           <h2 className="landing-section-headline">
-            Why people replace spreadsheets and other apps with this
+            Automatic by default.
           </h2>
+          <p className="landing-section-subtext mt-3">
+            No manual data entry required. Get your travel details in — your way — and the system takes it from there.
+          </p>
         </div>
 
-        {/* Benefits list */}
-        <ul className="landing-benefits-list">
-          {benefits.map((benefit) => (
-            <li key={benefit} className="landing-benefit-item">
-              <Check className="w-5 h-5 text-[hsl(var(--landing-accent))] flex-shrink-0" />
-              <span>{benefit}</span>
-            </li>
+        <div className="grid sm:grid-cols-2 gap-4">
+          {methods.map((method) => (
+            <div key={method.title} className="landing-feature-card">
+              <div className="landing-feature-icon">
+                <method.icon className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="landing-feature-title">{method.title}</h3>
+                <p className="landing-feature-description">{method.description}</p>
+              </div>
+            </div>
           ))}
-        </ul>
-
-        {/* Closer */}
-        <p className="landing-whybetter-closer">
-          You get your time back. That's the point.
-        </p>
+        </div>
       </div>
     </section>
   );

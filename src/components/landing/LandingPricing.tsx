@@ -4,17 +4,27 @@ export default function LandingPricing() {
   return (
     <section className="landing-pricing-section">
       <div className="max-w-3xl mx-auto text-center">
-        {/* Headline */}
         <h2 className="landing-section-headline">
-          Start free. Stop managing travel the hard way.
+          Travel without uncertainty.
         </h2>
+        <p className="landing-section-subtext mt-4">
+          Confidence comes from knowing — not guessing.
+          Real Travel 2 Real Places gives you clarity before, during, and after every trip.
+        </p>
 
-        {/* Primary CTA */}
-        <div className="mt-8">
+        <p className="mt-8 text-lg font-semibold text-[hsl(var(--landing-text))]">
+          Stay ahead of your trip.
+        </p>
+
+        <div className="mt-6">
           <Link to="/auth?tab=signup" className="landing-btn-primary-hero">
-            Get started free
+            Start Free
           </Link>
         </div>
+
+        <p className="landing-trust-line">
+          No credit card required · Free forever on the starter plan
+        </p>
       </div>
     </section>
   );

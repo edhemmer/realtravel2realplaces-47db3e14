@@ -5,8 +5,9 @@ import LandingProblem from '@/components/landing/LandingProblem';
 import LandingFeatures from '@/components/landing/LandingFeatures';
 import LandingWhyBetter from '@/components/landing/LandingWhyBetter';
 import LandingAudience from '@/components/landing/LandingAudience';
-import LandingProof from '@/components/landing/LandingProof';
+import LandingTravelers from '@/components/landing/LandingTravelers';
 import LandingPlanTiers from '@/components/landing/LandingPlanTiers';
+import LandingFAQ from '@/components/landing/LandingFAQ';
 import LandingPricing from '@/components/landing/LandingPricing';
 import LandingFooter from '@/components/landing/LandingFooter';
 import '@/styles/landing.css';
@@ -15,10 +16,10 @@ export default function LandingPage() {
   return (
     <>
       <Helmet>
-        <title>Real Travel 2 Real Places — Manage Real Trips, Not Plans</title>
+        <title>Real Travel 2 Real Places — Travel Management App</title>
         <meta
           name="description"
-          content="Manage real travel with Real Travel 2 Real Places. Track flights, lodging, expenses, packing, and on-the-road travel in one calm, reliable system."
+          content="Know exactly where to be and when. Real Travel 2 Real Places is your real-time travel command center for flights, stays, expenses, and logistics."
         />
       </Helmet>
 
@@ -33,8 +34,9 @@ export default function LandingPage() {
           <LandingFeatures />
           <LandingWhyBetter />
           <LandingAudience />
-          <LandingProof />
+          <LandingTravelers />
           <LandingPlanTiers />
+          <LandingFAQ />
           <LandingPricing />
         </main>
         <LandingFooter />

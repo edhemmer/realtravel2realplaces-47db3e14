@@ -1,54 +1,51 @@
-import { FileCheck, Link2, Route, DollarSign, Bell } from 'lucide-react';
+import { Zap, Clock, MapPin, Bell } from 'lucide-react';
 
-const features = [
+const pillars = [
   {
-    icon: FileCheck,
-    title: 'Trips created from real confirmations',
-    description: 'Drop in airline, hotel, or rental confirmations. We organize them — you don\'t rebuild trips by hand.',
+    icon: Zap,
+    title: 'What\'s next',
+    description: 'Your upcoming flight, check-in, or stop — surfaced instantly without searching.',
   },
   {
-    icon: Link2,
-    title: 'Everything stays attached to the trip',
-    description: 'Flights, stays, stops, expenses, packing, reminders — nothing floats off into another app.',
+    icon: Clock,
+    title: 'When to leave',
+    description: 'Leave-by timing that accounts for real conditions so you arrive on time, every time.',
   },
   {
-    icon: Route,
-    title: 'Built for real movement, not perfect plans',
-    description: 'Trips change. Stops move. Times shift. The system holds together when that happens.',
-  },
-  {
-    icon: DollarSign,
-    title: 'Expenses that make sense later',
-    description: 'Costs stay tied to the trip so you know what it actually cost — not what you think it did.',
+    icon: MapPin,
+    title: 'Where to go',
+    description: 'Navigation-ready addresses and directions for every stop, hotel, and terminal.',
   },
   {
     icon: Bell,
-    title: 'Reminders that matter',
-    description: 'Check-ins, departures, next stops — not noise.',
+    title: 'What needs attention',
+    description: 'Smart reminders for check-ins, departures, parking, and anything you can\'t afford to miss.',
   },
 ];
 
 export default function LandingFeatures() {
   return (
-    <section id="features" className="landing-features-section">
+    <section className="landing-features-section">
       <div className="max-w-5xl mx-auto">
-        {/* Section Header */}
         <div className="text-center mb-10">
           <h2 className="landing-section-headline">
-            What Real Travel 2 Real Places does for you
+            Stop organizing. Start executing.
           </h2>
+          <p className="landing-section-subtext mt-3">
+            Real Travel 2 Real Places is an execution layer — not a scrapbook or itinerary organizer.
+            It tells you exactly what matters right now.
+          </p>
         </div>
 
-        {/* Feature Cards */}
         <div className="landing-features-grid">
-          {features.map((feature) => (
-            <div key={feature.title} className="landing-feature-card">
+          {pillars.map((pillar) => (
+            <div key={pillar.title} className="landing-feature-card">
               <div className="landing-feature-icon">
-                <feature.icon className="w-5 h-5" />
+                <pillar.icon className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="landing-feature-title">{feature.title}</h3>
-                <p className="landing-feature-description">{feature.description}</p>
+                <h3 className="landing-feature-title">{pillar.title}</h3>
+                <p className="landing-feature-description">{pillar.description}</p>
               </div>
             </div>
           ))}

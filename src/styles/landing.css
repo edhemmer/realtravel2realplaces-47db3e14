@@ -646,6 +646,68 @@
 }
 
 /* ===========================================
+   FAQ SECTION
+   =========================================== */
+.landing-faq-section {
+  position: relative;
+  z-index: 1;
+  padding: 4rem 1.5rem;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    hsl(var(--landing-bg-secondary) / 0.3) 50%,
+    transparent 100%
+  );
+}
+
+@media (min-width: 768px) {
+  .landing-faq-section {
+    padding: 5rem 2rem;
+  }
+}
+
+.landing-faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.landing-faq-item {
+  background: hsl(var(--landing-surface) / 0.4);
+  border: 1px solid hsl(var(--landing-border) / 0.3);
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.landing-faq-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 1rem;
+  font-weight: 600;
+  color: hsl(var(--landing-text));
+  transition: background 0.15s ease;
+}
+
+.landing-faq-trigger:hover {
+  background: hsl(var(--landing-surface) / 0.3);
+}
+
+.landing-faq-answer {
+  padding: 0 1.25rem 1rem;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: hsl(var(--landing-text-muted));
+}
+
+/* ===========================================
    PRICING/CTA SECTION — Final CTA
    =========================================== */
 .landing-pricing-section {
