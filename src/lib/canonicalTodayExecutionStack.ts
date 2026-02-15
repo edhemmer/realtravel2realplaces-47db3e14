@@ -31,6 +31,7 @@ import {
   type CriticalActionType,
 } from './canonicalTodayCriticalActions';
 import { getLocalNowString } from './canonicalNextStop';
+import { TIME_NOT_PROVIDED } from './canonicalTimePreservation';
 
 // ============================================================================
 // TYPES
@@ -97,8 +98,12 @@ function extractTime(dt: string | undefined): string | null {
   return null;
 }
 
+/**
+ * v3.11.3: Format HH:MM to 12h display, or "Time not provided" if null.
+ * Uses displayPreservedTime for missing times — never guesses.
+ */
 function formatTime12h(time: string | null): string {
-  if (!time) return '--:--';
+  if (!time) return TIME_NOT_PROVIDED;
   const h = parseInt(time.substring(0, 2));
   const m = time.substring(3, 5);
   const ampm = h >= 12 ? 'PM' : 'AM';
