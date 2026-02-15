@@ -113,7 +113,7 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
               <Building2 className="w-8 h-8 text-amber-600 dark:text-amber-400" />
             </div>
           </div>
-          <h3 className="text-lg font-semibold mb-2">Add a stay to explore nearby</h3>
+          <h3 className="text-lg font-semibold mb-2">Add lodging to explore nearby</h3>
           <p className="text-muted-foreground max-w-md mx-auto">
             {origin.noOriginMessage}
           </p>
@@ -155,7 +155,7 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
         {/* Pre-arrival hint */}
         {origin.mode === 'STAY' && !origin.isArrived && (
           <p className="text-xs text-muted-foreground/70 leading-relaxed">
-            Showing ideas near your stay. This updates when you arrive.
+            Showing ideas near your lodging. This updates when you arrive.
           </p>
         )}
       </div>

@@ -36,7 +36,7 @@ export default function MockTripCard() {
           <div className="flex items-center gap-2 mb-1">
             <Home className="w-3.5 h-3.5 text-[hsl(var(--landing-accent))]" />
             <span className="text-xs font-medium text-[hsl(var(--landing-accent))]">
-              Stay
+              Lodging
             </span>
           </div>
           <p className="text-sm font-medium text-white mb-0.5">
@@ -56,7 +56,7 @@ export default function MockTripCard() {
         </div>
         <div className="mock-chip">
           <CheckCircle2 className="w-3 h-3" />
-          Stay confirmed
+          Lodging confirmed
         </div>
         <div className="mock-chip">
           <Luggage className="w-3 h-3" />

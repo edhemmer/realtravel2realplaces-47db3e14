@@ -250,7 +250,7 @@ function WelcomeStep() {
         </div>
         <div className="text-center p-4 rounded-lg bg-muted/50">
           <Hotel className="w-6 h-6 mx-auto mb-2 text-primary" />
-          <p className="text-sm font-medium">Stays</p>
+          <p className="text-sm font-medium">Lodging</p>
         </div>
         <div className="text-center p-4 rounded-lg bg-muted/50">
           <Receipt className="w-6 h-6 mx-auto mb-2 text-primary" />
@@ -338,7 +338,7 @@ function AddDetailsStep() {
 
         <div className="p-4 rounded-lg border bg-card space-y-2">
           <Hotel className="w-6 h-6 text-primary" />
-          <h4 className="font-medium">Stays</h4>
+          <h4 className="font-medium">Lodging</h4>
           <p className="text-sm text-muted-foreground">
             Track hotels, Airbnb, or other accommodations with check-in details.
           </p>

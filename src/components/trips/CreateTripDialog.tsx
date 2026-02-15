@@ -594,7 +594,7 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
             <div className="space-y-1">
               <h2 className="text-xl font-bold">Drop your confirmations. We'll build the trip.</h2>
               <p className="text-sm text-muted-foreground">
-                Drag in your airline (and optional stay/rental) confirmations. <span className="italic">Real Travel 2 Real Places</span> will read them and create the trip automatically.
+                Drag in your airline (and optional lodging/rental) confirmations. <span className="italic">Real Travel 2 Real Places</span> will read them and create the trip automatically.
               </p>
             </div>
 
