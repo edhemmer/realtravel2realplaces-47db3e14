@@ -23,6 +23,8 @@ import { getVendorUrl } from '@/lib/vendorUrls';
 import { BookingType, StayType } from '@/types/database';
 import { getSuggestedTripDates } from '@/hooks/useTripDateSync';
 import { resolveTripFrame, validateConfirmationAlignment, isFrameResolved, type TripFrameMode } from '@/lib/tripFrameResolver';
+import { LocationInput } from '@/components/LocationInput';
+import { LocationStructured, isLocationComplete, locationLabel } from '@/lib/location/types';
 
 // ============================================================================
 // TYPES & HELPERS
@@ -122,6 +124,9 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
   // Drive flow extra state
   const [driveDestination, setDriveDestination] = useState('');
   const [driveOrigin, setDriveOrigin] = useState('');
+  // v3.8.4: Structured location state for Drive flow
+  const [driveOriginLocation, setDriveOriginLocation] = useState<LocationStructured | null>(null);
+  const [driveDestLocation, setDriveDestLocation] = useState<LocationStructured | null>(null);
 
   const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<TripFormData>({
     resolver: zodResolver(tripSchema),
@@ -164,6 +169,8 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
     setShowPasteInput(false);
     setDriveDestination('');
     setDriveOrigin('');
+    setDriveOriginLocation(null);
+    setDriveDestLocation(null);
   }, [reset]);
 
   useEffect(() => {
@@ -412,9 +419,16 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
     }
   };
 
-  /** Quick-create for Drive flow — uses TripFrameResolver */
+  /** Quick-create for Drive flow — uses TripFrameResolver + structured locations */
   const handleDriveCreate = async () => {
-    if (!driveDestination.trim() || !startDate || !endDate) return;
+    // v3.8.4: Require structured destination location
+    const destName = driveDestLocation ? driveDestLocation.cityName : driveDestination.trim();
+    if (!destName || !startDate || !endDate) return;
+
+    if (driveDestLocation && !isLocationComplete(driveDestLocation)) {
+      toast.error('Please select a destination city from the suggestions.');
+      return;
+    }
 
     // v2.2.7: Validate frame through resolver before creation
     const frame = resolveTripFrame('drive', [], {
@@ -429,13 +443,17 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
 
     try {
       const trip = await createTrip.mutateAsync({
-        name: `Trip to ${driveDestination}`,
-        destination_city: driveDestination,
-        destination_country: '',
+        name: `Trip to ${destName}`,
+        destination_city: destName,
+        destination_state: driveDestLocation?.regionCode || '',
+        destination_country: driveDestLocation?.countryCode || 'US',
         trip_type: 'personal',
         transportation_mode: 'drive',
         destination_type: 'unspecified',
-        origin_address: driveOrigin || undefined,
+        origin_address: driveOriginLocation 
+          ? driveOriginLocation.formatted 
+          : (driveOrigin || undefined),
+        destination_address: driveDestLocation?.formatted || undefined,
         start_date: frame.startDate,
         end_date: frame.endDate,
       } as any);
@@ -716,24 +734,28 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
             </div>
 
             <div className="space-y-3">
-              <div className="space-y-2">
-                <Label>Where are you headed?</Label>
-                <Input
-                  value={driveDestination}
-                  onChange={(e) => setDriveDestination(e.target.value)}
-                  placeholder="City or destination"
-                  autoFocus
-                />
-              </div>
+              {/* v3.8.4: Structured destination with LocationInput */}
+              <LocationInput
+                label="Where are you headed?"
+                value={driveDestLocation}
+                onChange={(loc) => {
+                  setDriveDestLocation(loc);
+                  setDriveDestination(loc?.cityName || '');
+                }}
+                required
+                placeholder="Search city..."
+              />
 
-              <div className="space-y-2">
-                <Label>Starting from (optional)</Label>
-                <Input
-                  value={driveOrigin}
-                  onChange={(e) => setDriveOrigin(e.target.value)}
-                  placeholder="Your starting location"
-                />
-              </div>
+              {/* v3.8.4: Structured origin with LocationInput */}
+              <LocationInput
+                label="Starting from (optional)"
+                value={driveOriginLocation}
+                onChange={(loc) => {
+                  setDriveOriginLocation(loc);
+                  setDriveOrigin(loc?.cityName || '');
+                }}
+                placeholder="Search city..."
+              />
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
@@ -802,7 +824,7 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
               <Button
                 onClick={handleDriveCreate}
                 className="flex-1 bg-gradient-ocean hover:opacity-90"
-                disabled={createTrip.isPending || !driveDestination.trim() || !startDate || !endDate}
+                disabled={createTrip.isPending || (!driveDestLocation && !driveDestination.trim()) || !startDate || !endDate}
               >
                 {createTrip.isPending ? 'Creating...' : 'Create Trip'}
               </Button>
