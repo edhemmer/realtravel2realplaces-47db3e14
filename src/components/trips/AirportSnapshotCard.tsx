@@ -34,7 +34,7 @@ function getPrimaryAirports(bookings: Booking[]): {
 } {
   const flights = bookings
     .filter(b => b.booking_type === 'flight')
-    .sort((a, b) => new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime());
+    .sort((a, b) => (a.start_datetime < b.start_datetime ? -1 : a.start_datetime > b.start_datetime ? 1 : 0));
 
   if (flights.length === 0) {
     return { departure: null, arrival: null };

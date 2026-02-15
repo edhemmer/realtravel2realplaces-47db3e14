@@ -86,16 +86,15 @@ describe('Parsing Performance - Output Consistency', () => {
       expect(parseDatetimeForDisplay(undefined)).toBeNull();
     });
 
-    it('parses date-only strings to local midnight', () => {
+    it('returns date-only strings as-is', () => {
       const result = parseDatetimeForDisplay('2026-01-15');
-      expect(result).toBeInstanceOf(Date);
-      expect(result?.getDate()).toBe(15);
-      expect(result?.getMonth()).toBe(0); // January
+      expect(result).toBe('2026-01-15');
     });
 
-    it('parses full datetime strings', () => {
+    it('normalizes full datetime strings', () => {
       const result = parseDatetimeForDisplay('2026-01-15T10:30:00');
-      expect(result).toBeInstanceOf(Date);
+      expect(typeof result).toBe('string');
+      expect(result).toContain('2026-01-15');
     });
   });
 
@@ -145,7 +144,7 @@ describe('Parsing Performance - Edge Cases', () => {
     it('handles leap year dates', () => {
       expect(isDateOnly('2024-02-29')).toBe(true);
       const result = parseDatetimeForDisplay('2024-02-29');
-      expect(result?.getDate()).toBe(29);
+      expect(result).toBe('2024-02-29');
     });
 
     it('handles year boundaries', () => {
@@ -207,9 +206,10 @@ describe('Parsing Performance - Regression Prevention', () => {
     const dateOnly = '2026-01-15';
     const parsed = parseDatetimeForDisplay(dateOnly);
     
-    // The date should be January 15th, not shifted by timezone
-    expect(parsed?.getDate()).toBe(15);
-    expect(parsed?.getMonth()).toBe(0); // January
-    expect(parsed?.getFullYear()).toBe(2026);
+    // v3.11.2: parseDatetimeForDisplay returns string now, not Date
+    expect(parsed).toBe('2026-01-15');
+    expect(parsed?.substring(5, 7)).toBe('01'); // January
+    expect(parsed?.substring(8, 10)).toBe('15'); // 15th
+    expect(parsed?.substring(0, 4)).toBe('2026');
   });
 });

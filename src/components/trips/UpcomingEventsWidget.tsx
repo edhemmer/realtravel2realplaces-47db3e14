@@ -4,10 +4,9 @@ import { useParking } from '@/hooks/useParking';
 import { useAccess } from '@/hooks/useAccess';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { TripEventType } from '@/types/tripEvent';
-import { parseISO, isAfter } from 'date-fns';
 import { Plane, Building2, Car, CircleParking, Clock, ChevronRight } from 'lucide-react';
 import { formatEventDatetime, DatetimeFormatPreference } from '@/lib/displayFormats';
-import { parseDatetimeForDisplay } from '@/lib/datetimeIntegrity';
+import { getNowLocalDateTime, compareLocalDateTime } from '@/lib/canonicalTimePolicy';
 import type { DrillThroughTarget } from '@/pages/TripDetail';
 
 interface UpcomingEventsWidgetProps {
@@ -109,15 +108,13 @@ export function UpcomingEventsWidget({ tripId, onDrillThrough }: UpcomingEventsW
     return null;
   }
 
-  // Filter to upcoming events only (event_datetime > now)
-  // Only include events with valid, non-null datetime
-  // v2.2.0: Use safe datetime parsing
-  const now = new Date();
+  // v3.11.2: Filter to upcoming events using canonical string comparison — no Date()
+  const nowStr = getNowLocalDateTime().replace(' ', 'T');
   const upcomingEvents = events
     .filter(event => {
       if (!event.event_datetime) return false;
-      const eventDate = parseDatetimeForDisplay(event.event_datetime);
-      return eventDate && isAfter(eventDate, now);
+      const eventNorm = event.event_datetime.substring(0, 16).replace(' ', 'T');
+      return compareLocalDateTime(eventNorm, nowStr) > 0;
     })
     .slice(0, 5); // Max 5 events per spec
 

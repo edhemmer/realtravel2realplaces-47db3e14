@@ -337,9 +337,10 @@ export function normalizeFlightBookingCosts(bookings: Booking[]): NormalizedAirf
         
         // Sort by start_datetime to find canonical (earliest) booking
         const sortedBookings = [...groupBookings].sort((a, b) => {
-          const aTime = a.start_datetime ? new Date(a.start_datetime).getTime() : Infinity;
-          const bTime = b.start_datetime ? new Date(b.start_datetime).getTime() : Infinity;
-          return aTime - bTime;
+          // v3.11.2: String comparison — no new Date()
+          const aTime = a.start_datetime || '';
+          const bTime = b.start_datetime || '';
+          return aTime < bTime ? -1 : aTime > bTime ? 1 : 0;
         });
         
         const canonicalBooking = sortedBookings[0];

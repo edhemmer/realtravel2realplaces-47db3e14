@@ -16,8 +16,9 @@
 
 import type { DateOnly, LocalDateTime, TimeHHMM, TripDisplayStatus } from './canonicalTimeTypes';
 
-// Re-export types for convenience
+// Re-export types and constructors for convenience
 export type { DateOnly, LocalDateTime, TimeHHMM, TripDisplayStatus };
+export { asDateOnly, asLocalDateTime } from './canonicalTimeTypes';
 export type { TimeZoneId } from './canonicalTimeTypes';
 
 // ============================================================================

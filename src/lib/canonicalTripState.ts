@@ -13,6 +13,11 @@
  */
 
 import { Trip, Booking, Expense, Parking } from '@/types/database';
+import {
+  getTodayDateOnly as policyGetTodayDateOnly,
+  getNowLocalDateTime as policyGetNowLocalDateTime,
+  extractTimeHHMM as policyExtractTimeHHMM,
+} from '@/lib/canonicalTimePolicy';
 import { TripEvent } from '@/types/tripEvent';
 import { startOfDay, endOfDay } from 'date-fns';
 import {
@@ -605,11 +610,10 @@ function getEventEndTime(event: CanonicalTimelineEvent): string {
  * Within non-today days: simple ascending by time.
  */
 function sortTimelineExecutionOrder(events: CanonicalTimelineEvent[]): CanonicalTimelineEvent[] {
-  // v3.11.1: Use string-based today detection — no new Date() for time logic
-  const now = new Date();
-  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  const nowTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-  // NOTE: new Date() used ONLY for device clock reading (same as getLocalNowString pattern)
+  // v3.11.2: Use canonical policy helpers — no new Date()
+  const todayStr = policyGetTodayDateOnly();
+  const nowDt = policyGetNowLocalDateTime();
+  const nowTime = policyExtractTimeHHMM(nowDt) || '00:00';
   return events.sort((a, b) => {
     const aStr = a.eventLocalDateTime || '';
     const bStr = b.eventLocalDateTime || '';
