@@ -22,7 +22,7 @@ import { CreateTripDialog } from '@/components/trips/CreateTripDialog';
 import { TripLifecycleBadges, getTripCardLifecycleStyles } from '@/components/trips/TripLifecycleBadges';
 import { useAccess } from '@/hooks/useAccess';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-
+import { PendingImportsSection } from '@/components/imports/PendingImportsSection';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -195,6 +195,9 @@ export default function Dashboard() {
             New Trip
           </Button>
         </div>
+
+        {/* Pending Email Imports */}
+        <PendingImportsSection />
 
         {/* My Trips */}
         {trips && trips.length > 0 && <div className="space-y-4">
