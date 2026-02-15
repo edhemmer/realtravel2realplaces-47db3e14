@@ -27,6 +27,9 @@ import {
   Zap,
   Navigation,
   Shield,
+  Mail,
+  Camera,
+  PenLine,
 } from 'lucide-react';
 import { 
   useOnboardingStatus,
@@ -148,10 +151,10 @@ function ValueStep({ onContinue }: { onContinue: () => void }) {
 
       <div className="space-y-4">
         <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-          Travel without guessing.
+          Know exactly where to be and when.
         </h2>
         <p className="text-muted-foreground text-base leading-relaxed max-w-sm mx-auto">
-          Real Travel 2 Real Places shows exactly where to be and when — so you never scramble during a trip.
+          Real Travel 2 Real Places keeps your trip running in real time — so you never scramble during travel.
         </p>
       </div>
 
@@ -160,7 +163,7 @@ function ValueStep({ onContinue }: { onContinue: () => void }) {
         size="lg"
         className="w-full max-w-xs mx-auto bg-gradient-ocean hover:opacity-90 transition-opacity h-12 rounded-xl font-semibold"
       >
-        Continue
+        Start My First Trip
         <ArrowRight className="w-4 h-4 ml-2" />
       </Button>
     </div>
@@ -178,15 +181,31 @@ function FirstTripStep({ onAddTrip, onSkip, isSaving }: { onAddTrip: () => void;
 
       <div className="space-y-4">
         <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-          Let&#39;s add your first trip.
+          Add your upcoming trip.
         </h2>
-        <p className="text-muted-foreground text-base leading-relaxed max-w-sm mx-auto">
-          Forward a confirmation, upload a screenshot, or enter details manually.
-          You can do this from any device — at your desk or in the airport.
-        </p>
       </div>
 
-      <div className="space-y-3 max-w-xs mx-auto">
+      {/* Input methods */}
+      <div className="grid grid-cols-3 gap-3 max-w-sm mx-auto">
+        <div className="p-3 rounded-xl bg-muted/40 text-center space-y-1.5">
+          <Mail className="w-5 h-5 mx-auto text-primary" />
+          <p className="text-xs font-medium">Forward confirmation</p>
+        </div>
+        <div className="p-3 rounded-xl bg-muted/40 text-center space-y-1.5">
+          <Camera className="w-5 h-5 mx-auto text-primary" />
+          <p className="text-xs font-medium">Upload screenshot</p>
+        </div>
+        <div className="p-3 rounded-xl bg-muted/40 text-center space-y-1.5">
+          <PenLine className="w-5 h-5 mx-auto text-primary" />
+          <p className="text-xs font-medium">Enter manually</p>
+        </div>
+      </div>
+
+      <p className="text-muted-foreground text-sm max-w-xs mx-auto">
+        Add your trip once. We handle the rest while you travel.
+      </p>
+
+      <div className="space-y-4 max-w-xs mx-auto">
         <Button
           onClick={onAddTrip}
           disabled={isSaving}
@@ -199,7 +218,7 @@ function FirstTripStep({ onAddTrip, onSkip, isSaving }: { onAddTrip: () => void;
         <button
           onClick={onSkip}
           disabled={isSaving}
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
         >
           I&#39;ll add one later
         </button>
@@ -208,7 +227,7 @@ function FirstTripStep({ onAddTrip, onSkip, isSaving }: { onAddTrip: () => void;
   );
 }
 
-// ========== STEP 3: EXECUTION PREVIEW ==========
+// ========== STEP 3: WHAT HAPPENS NEXT ==========
 
 function PreviewStep({ onContinue }: { onContinue: () => void }) {
   const previewItems = [
@@ -220,13 +239,13 @@ function PreviewStep({ onContinue }: { onContinue: () => void }) {
 
   return (
     <div className="space-y-8">
-      <div className="text-center space-y-4">
+      <div className="text-center space-y-2">
         <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-          Here&#39;s what you&#39;ll see on your trip.
+          What happens next.
         </h2>
       </div>
 
-      {/* Mock NOW screen preview */}
+      {/* Mock NOW screen */}
       <div className="rounded-xl border bg-card p-4 space-y-3 shadow-sm">
         <div className="flex items-center gap-2 pb-2 border-b">
           <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
@@ -251,7 +270,7 @@ function PreviewStep({ onContinue }: { onContinue: () => void }) {
           size="lg"
           className="w-full max-w-xs mx-auto bg-gradient-ocean hover:opacity-90 transition-opacity h-12 rounded-xl font-semibold"
         >
-          Got it
+          See My Trip Dashboard
           <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
       </div>
@@ -259,7 +278,7 @@ function PreviewStep({ onContinue }: { onContinue: () => void }) {
   );
 }
 
-// ========== STEP 4: CONFIDENCE ==========
+// ========== STEP 4: MOMENTUM CLOSE ==========
 
 function ConfidenceStep({ onFinish, isSaving }: { onFinish: () => void; isSaving: boolean }) {
   return (
@@ -270,10 +289,10 @@ function ConfidenceStep({ onFinish, isSaving }: { onFinish: () => void; isSaving
 
       <div className="space-y-4">
         <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-          Stay ahead in real time.
+          Travel without uncertainty.
         </h2>
         <p className="text-muted-foreground text-base leading-relaxed max-w-sm mx-auto">
-          Real Travel 2 Real Places factors traffic, timing, and your location to help prevent missed steps and last-minute stress.
+          Real Travel 2 Real Places reduces missed timing, navigation mistakes, and last-minute stress — especially when you travel often.
         </p>
       </div>
 
@@ -283,7 +302,7 @@ function ConfidenceStep({ onFinish, isSaving }: { onFinish: () => void; isSaving
         size="lg"
         className="w-full max-w-xs mx-auto bg-gradient-ocean hover:opacity-90 transition-opacity h-12 rounded-xl font-semibold"
       >
-        Take Me to My Trip
+        Go to My Dashboard
         <ArrowRight className="w-4 h-4 ml-2" />
       </Button>
     </div>
