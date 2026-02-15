@@ -6,9 +6,8 @@ export default function LandingHeader() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="h-14 sm:h-16 lg:h-20 flex items-center justify-between gap-4">
           {/* Brand wordmark */}
-          <Link to="/" className="landing-wordmark" aria-label="Real Travel 2 Real Places">
-            <span className="hidden sm:inline">Real Travel 2 Real Places</span>
-            <span className="sm:hidden">RT2RP</span>
+          <Link to="/" className="landing-wordmark text-[0.85rem] sm:text-base lg:text-lg" aria-label="Real Travel 2 Real Places">
+            Real Travel 2 Real Places
           </Link>
 
           {/* Right-side actions */}
