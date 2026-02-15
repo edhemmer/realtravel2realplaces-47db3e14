@@ -1,4 +1,4 @@
-# Real Travel 2 Real Places - Architecture Guide
+# Real Travel 2 Real Places — Architecture Guide
 
 This document provides an overview of the application architecture for developers.
 
@@ -10,8 +10,12 @@ This document provides an overview of the application architecture for developer
 2. [Project Structure](#project-structure)
 3. [Data Flow](#data-flow)
 4. [Key Patterns](#key-patterns)
-5. [Subscription Model](#subscription-model)
-6. [Database Schema](#database-schema)
+5. [Canonical State Architecture](#canonical-state-architecture)
+6. [Security](#security)
+7. [Subscription Model](#subscription-model)
+8. [Database Schema](#database-schema)
+9. [Container Architecture](#container-architecture)
+10. [Performance](#performance)
 
 ---
 
@@ -21,12 +25,11 @@ This document provides an overview of the application architecture for developer
 |-------|------------|
 | Frontend | React 18 + TypeScript |
 | Styling | Tailwind CSS + shadcn/ui |
-| State Management | TanStack Query (React Query) |
+| State Management | TanStack Query (React Query v5) |
 | Routing | React Router v6 |
-| Backend | Supabase (Lovable Cloud) |
-| Database | PostgreSQL via Supabase |
-| Edge Functions | Deno (Supabase Edge Functions) |
+| Backend | Lovable Cloud (PostgreSQL + Edge Functions) |
 | AI Services | Lovable AI (Gemini models) |
+| Auth | Email/password with session management |
 
 ---
 
@@ -36,513 +39,318 @@ This document provides an overview of the application architecture for developer
 src/
 ├── components/           # React components
 │   ├── ui/              # shadcn/ui base components
-│   ├── cards/           # Patch 2.2.3: Shared presentational cards
-│   │   ├── BookingCard.tsx   # Booking entity card
-│   │   ├── TourStopCard.tsx  # Tour stop card
-│   │   ├── ExpenseCard.tsx   # Expense card
-│   │   └── index.ts
-│   ├── layout/          # Patch 2.2.3: Layout components
-│   │   ├── MobileBottomNav.tsx   # Mobile navigation
-│   │   ├── TripDetailLayout.tsx  # Trip page wrapper
-│   │   └── index.ts
+│   ├── cards/           # Shared presentational cards
+│   ├── layout/          # Layout components (MobileBottomNav, TripDetailLayout)
+│   ├── landing/         # Landing page sections
 │   ├── trips/           # Trip-related components
 │   │   ├── tabs/        # Tab content components
-│   │   └── ...
-│   └── account/         # Account/settings components
-├── containers/          # Patch 2.2.2: Container components
-│   ├── index.ts         # Public API
+│   │   ├── explore/     # Explore engine components
+│   │   └── now/         # NOW Command Center components
+│   ├── access/          # Plan gating components
+│   ├── account/         # Account/settings components
+│   ├── notifications/   # Notification bell & preferences
+│   └── support/         # Support ticket dialog
+├── containers/          # Container components (data wiring)
+│   ├── DesktopTripShell.tsx  # Canonical desktop trip context provider
+│   ├── NowCommandCenter.tsx  # NOW tab execution engine
 │   ├── TripSummaryContainer.tsx
 │   ├── TripBookingsContainer.tsx
 │   ├── TripTourContainer.tsx
 │   ├── TripExpensesContainer.tsx
-│   └── TripAlertsContainer.tsx
+│   ├── TripAlertsContainer.tsx
+│   └── MobileNavigationRouter.tsx
 ├── contexts/            # React contexts (AuthContext)
-├── hooks/               # Custom React hooks
-│   ├── useTrips.ts      # Trip CRUD operations
-│   ├── useBookings.ts   # Booking management
-│   ├── useExpenses.ts   # Expense tracking
-│   ├── useSubscription.ts # Pro/Free tier logic
+├── hooks/               # 50+ custom React hooks
+│   ├── useTrips.ts, useBookings.ts, useExpenses.ts
+│   ├── useCanonicalTripState.ts  # Canonical trip state computation
+│   ├── useAccess.ts              # Single plan gating resolver
+│   ├── useTravelAlerts.ts        # Intelligence surface
 │   └── ...
-├── lib/                 # Utility functions
-│   ├── datetimeIntegrity.ts  # Strict datetime handling
-│   ├── expenseCalculations.ts # Cost summary logic
+├── lib/                 # Utility functions & canonical helpers
+│   ├── canonicalTripState.ts     # Trip state aggregation
+│   ├── canonicalTimePolicy.ts    # No-Math time policy
+│   ├── canonicalTimePreservation.ts
+│   ├── canonicalNextStop.ts
+│   ├── canonicalTodayExecutionStack.ts
+│   ├── canonicalTodayCriticalActions.ts
+│   ├── expenseCalculations.ts
+│   ├── drive/dayOrder.ts         # Tour stop ordering engine
+│   ├── tours/import/             # Smart import pipeline
 │   └── ...
 ├── pages/               # Route page components
 ├── types/               # TypeScript type definitions
-├── integrations/        # External service integrations
-│   └── supabase/        # Auto-generated Supabase client
-└── main.tsx             # Application entry point
+├── integrations/        # Auto-generated backend client
+│   └── supabase/        # client.ts, types.ts (read-only)
+└── main.tsx
 
 supabase/
-├── functions/           # Edge functions
-│   ├── parse-booking/   # AI booking parser
+├── functions/           # 10+ Edge Functions
+│   ├── _shared/         # Shared utilities (CORS, auth, AI client)
+│   ├── parse-booking/   # AI booking confirmation parser
 │   ├── parse-itinerary/ # AI itinerary parser
-│   ├── parse-receipt-image/ # OCR receipt parser
+│   ├── parse-booking-image/ # Photo confirmation parser
+│   ├── parse-receipt-image/ # Receipt OCR parser
 │   ├── generate-packing-list/ # AI packing suggestions
-│   └── send-companion-summary/ # Email notifications
+│   ├── generate-notifications/ # Notification generator
+│   ├── normalize-airfare-costs/ # Cost normalization
+│   ├── send-companion-summary/ # Email notifications
+│   ├── trip-lifecycle-enforcement/ # Cron-authenticated lifecycle manager
+│   ├── places-search/   # Explore engine API
+│   ├── admin-get-support-tickets/
+│   └── admin-update-ticket-status/
 ├── migrations/          # Database migrations (read-only)
 └── config.toml          # Supabase configuration (read-only)
 
 docs/
 ├── ARCHITECTURE.md      # This file
-├── DEVELOPER_GUIDE.md   # Development workflow
+├── DEVELOPER_GUIDE.md   # Development workflow & coding standards
+├── COMPONENTS.md        # Component documentation
 ├── AI_PROMPTS.md        # AI system prompts reference
-└── COMPONENTS.md        # Component documentation
+├── PRODUCT_OVERVIEW.md  # Product positioning & market overview
+└── FEATURE_INVENTORY.md # Complete feature inventory by tier
 ```
 
-### Mobile-First Architecture (Patch 2.2.3, refined v2.6.x)
+---
 
-The app follows a mobile-first responsive design:
+## Mobile-First Architecture
 
 | Viewport | Navigation | Layout |
 |----------|------------|--------|
-| < 768px (mobile) | Fixed bottom nav with labeled icons | Full-width content with bottom padding |
-| ≥ 768px (desktop) | Horizontal tab bar | Standard container layout |
+| < 768px (mobile) | Fixed bottom nav with labeled icons | Full-width with safe-area padding |
+| ≥ 768px (desktop) | Horizontal tab bar | Standard container with DesktopTripShell |
 
 Key mobile features:
-- Safe area handling for iOS home indicator (`pb-safe`)
+- Safe area handling for iOS home indicator
 - Touch-optimized targets (min 56×44px)
-- "More" dropdown for secondary tabs (v2.6.9: card-surface-aligned)
-- Bottom nav visible across all trip sections
-- Surface styling aligned with card system (v2.6.10): `bg-card`, `border-border/60`, `shadow-lg`
-- Consistent active/inactive tab styling with `font-semibold`/`font-medium` weight shift
-- Section mode title in primary color, spacing-driven hierarchy with no divider (v2.6.25–v2.6.27)
-- ExecutionZone: execution-first Command Center at top of NOW tab (v2.6.28)
-- Global action button standardization: Explore=primary/blue, Add Expense=success/green (v2.6.30–v2.6.33)
+- "More" dropdown for secondary tabs
+- Surface styling aligned with card system: `bg-card`, `border-border/60`, `shadow-lg`
+- Section mode title in primary color
+- ExecutionZone: execution-first Command Center at top of NOW tab
 
 ---
 
 ## Data Flow
 
 ### Query Pattern (Read)
-
 ```
-Component → useQuery hook → Supabase client → PostgreSQL
-                ↓
-         TanStack Query cache
-                ↓
-         Component re-render
+Component → useQuery hook → Supabase client → PostgreSQL (RLS) → TanStack Query cache → Render
 ```
 
 ### Mutation Pattern (Write)
-
 ```
-User action → useMutation hook → Supabase client → PostgreSQL
-                    ↓
-            Optimistic update (optional)
-                    ↓
-            Query invalidation
-                    ↓
-            Automatic refetch
+User action → useMutation hook → Supabase client → PostgreSQL → Query invalidation → Refetch
 ```
 
 ### AI Parsing Flow
-
 ```
-User uploads document
-        ↓
-Frontend sends to Edge Function
-        ↓
-Edge Function calls Lovable AI
-        ↓
-AI returns structured JSON
-        ↓
-Frontend creates records via hooks
-        ↓
-Database updated + cache invalidated
+User uploads/pastes → Frontend → Edge Function → Lovable AI (Gemini) → Structured JSON → Hook creates records → Cache invalidated
 ```
 
 ---
 
 ## Key Patterns
 
-### 1. Custom Hooks for Data Access
+### 1. Canonical Helper Architecture
+All domain logic lives in canonical helpers — one concept, one module:
 
-All database operations go through custom hooks in `src/hooks/`. This provides:
-- Consistent caching via TanStack Query
-- Automatic refetching and invalidation
-- Type-safe return values
-- Loading/error state handling
+| Module | Responsibility |
+|--------|---------------|
+| `canonicalTripState.ts` | Trip boundaries, timeline, cost summaries |
+| `canonicalTimePolicy.ts` | No-Math time primitives (DateOnly, LocalDateTime) |
+| `canonicalNextStop.ts` | Next stop resolution |
+| `canonicalTodayExecutionStack.ts` | TODAY deterministic execution sequence |
+| `canonicalTodayCriticalActions.ts` | Critical action items |
+| `canonicalParkingHighlight.ts` | Active parking detection |
+| `expenseCalculations.ts` | Cost aggregation |
+| `drive/dayOrder.ts` | Tour stop ordering (greedy nearest-neighbor) |
 
-**Example:**
-```typescript
-// ✅ Correct - use the hook
-const { data: bookings, isLoading } = useBookings(tripId);
+### 2. No-Math Time Policy
+All datetime operations use string-based primitives:
+- `DateOnly` (YYYY-MM-DD) — branded constructors via `asDateOnly()`
+- `LocalDateTime` (YYYY-MM-DDTHH:mm) — via `asLocalDateTime()`
+- Comparisons use lexicographical string logic or `timeToMinutes()` integer arithmetic
+- ESLint bans `new Date()`, `Date.parse()`, and `date-fns` parsing outside canonical modules
 
-// ❌ Wrong - direct Supabase calls in components
-const { data } = await supabase.from('bookings').select('*');
+### 3. Container Pattern
+```
+Route → Container → Presentational View
+         │
+         └── Calls canonical helpers only
 ```
 
-### 2. Drill-Through Navigation
+### 4. DesktopTripShell (Desktop Context Provider)
+- Single owner of trip context, costs, alerts for all desktop tabs
+- Computes canonical state ONCE via useMemo
+- React Query deduplicates raw data fetches by queryKey
+- Stable context value prevents rerender cascades
 
-Components can trigger navigation to specific records:
-
+### 5. Drill-Through Navigation
+Components trigger navigation to specific records:
 ```typescript
-// Define target type
-type DrillThroughTarget = {
-  tab: 'bookings' | 'parking' | 'expenses';
-  recordId?: string;
-} | null;
-
-// Pass handler through props
-<SummaryTab onDrillThrough={handleDrillThrough} />
-
-// Navigate and highlight
-const handleDrillThrough = (target: DrillThroughTarget) => {
-  if (target) {
-    setActiveTab(target.tab);
-    setHighlightedRecord(target.recordId);
-  }
-};
+<SummaryTab onDrillThrough={(target) => { setActiveTab(target.tab); setHighlightedRecord(target.recordId); }} />
 ```
 
-### 3. Datetime Integrity
+---
 
-**Never guess or infer times.** Use `src/lib/datetimeIntegrity.ts`:
+## Canonical State Architecture
 
-```typescript
-import { hasExplicitTime, getTimeDisplay } from '@/lib/datetimeIntegrity';
-
-// Check if time is real (not midnight default)
-if (hasExplicitTime(booking.start_datetime)) {
-  // Safe to show time
-}
-
-// Display with fallback
-const timeStr = getTimeDisplay(datetime, 'Time not specified');
+### Trip State Lifecycle
+```
+ACTIVE → LOCKED (Free users, end_date past) → Data retained, read-only
+ACTIVE → CLOSED (Pro users, manual) → DELETED (45 days after end_date)
 ```
 
-### 4. Pro vs Free Gating
-
-Use subscription hooks for feature gating:
-
-```typescript
-import { useIsPro } from '@/hooks/useSubscription';
-
-function MyComponent() {
-  const isPro = useIsPro();
-  
-  if (!isPro) {
-    return null; // Or show upgrade prompt
-  }
-  
-  return <ProOnlyFeature />;
-}
+### TODAY Execution Stack
+Deterministic sequence for the NOW tab:
 ```
+CHECKOUT → GET_GAS → RETURN_RENTAL → DRIVE_SMART → DRIVE_SMART_AIRPORT → FLIGHT → [remaining timeline events]
+```
+
+### Tour/Booking Separation
+- **Bookings** = monetary/logistical items (flights, lodging, rentals)
+- **Tour Stops** = manual work locations (non-monetary)
+- Combined ONLY in timeline and summary views via `getCanonicalTripState()`
+- Never cross-imported directly
 
 ---
 
 ## Security
 
-### Session Management
-
-**Idle Logout (v2.1.39):**
-
-Users are automatically logged out after 2 hours of inactivity for security.
-
-```typescript
-// src/hooks/useIdleLogout.ts
-const IDLE_TIMEOUT_MS = 120 * 60 * 1000; // 2 hours
-
-// Tracked activity events:
-// - click, keydown, touchstart, mousemove, scroll
-// - Route navigation changes
-```
-
-**Behavior:**
-1. Timer resets on any user activity
-2. After 2 hours idle, user is logged out
-3. Redirect to `/auth?reason=idle`
-4. Auth page shows: "You were logged out after 2 hours of inactivity for security."
-
 ### Row-Level Security (RLS)
-
-All tables use RLS policies. Common patterns:
-
-```sql
--- User owns the trip
-CREATE POLICY "Users can view their own trips" 
-ON public.trips FOR SELECT 
-USING (auth.uid() = user_id);
-
--- User has access via ownership or sharing
-CREATE POLICY "Users can view bookings for accessible trips" 
-ON public.bookings FOR SELECT 
-USING (user_has_trip_access(trip_id));
-```
+All 18+ tables use RLS policies:
+- Anonymous access blocked on all data tables
+- Ownership-based: `auth.uid() = user_id`
+- Access-based: `user_has_trip_access(trip_id)` (ownership + sharing + membership)
+- Write-guard: `user_can_write_trip(trip_id)` (owner + active state)
+- Guest-granular: `guest_can_add_expenses()`, `guest_can_add_stays()`
 
 ### PII Protection
+Sensitive data (emails, phone, TSA/FF numbers, confirmation codes) masked via security-definer RPC functions for non-owners:
+- `get_bookings_safe()`, `get_companions_safe()`, `get_trip_shares_safe()`
 
-Sensitive data (emails, phone, TSA/FF numbers) is masked via secure RPC functions for non-owners.
+### Session Management
+- Idle logout after 2 hours (configurable)
+- Tracked events: click, keydown, touchstart, mousemove, scroll, route changes
+- Redirect to `/auth?reason=idle`
+
+### Background Jobs
+- `trip-lifecycle-enforcement`: CRON_SECRET_KEY authenticated
+- `generate-notifications`: CRON_SECRET_KEY authenticated
+
+### Admin (RBAC)
+- `app_role` enum + `user_roles` table
+- Security-definer `has_role()` function prevents RLS recursion
+- Admin status decoupled from feature access
 
 ---
 
 ## Subscription Model
 
-### Tiers
+| Tier | Trip Limit | Key Features |
+|------|------------|-------------|
+| Free | 5 lifetime | Full trip management, expenses, packing, sharing |
+| Pro | Unlimited | Timeline events, health checklist, explore, reports, alerts |
+| Business | Unlimited | All Pro + tour stops, business reporting |
 
-| Tier | Trip Limit | Features |
-|------|------------|----------|
-| Free | 5 lifetime | Core trip management |
-| Pro | Unlimited | TripEvents, Health Checklist, Upcoming Events, Trip Reports, Companion Invites |
-| Business | Unlimited | All Pro features + Tour Stops, Business Reporting |
-
-### Key Principles
-
-1. **Free tier is fully functional** - Users can manage real trips
-2. **Pro adds intelligence** - Time-based events, proactive warnings
-3. **Business adds team tools** - Tour stops, advanced reporting
-4. **No silent limits** - Clear messaging when limits apply
-5. **Single source of truth** - `subscription_tier` in profiles table determines access
+### Gating Philosophy
+- **Success Enablers** (all users): Dashboard, bookings, expenses, packing, explore
+- **Intelligence Layers** (Pro+): Timeline, alerts, health checklist, reports
+- **Team Tools** (Business): Tour stops, business expense reporting
 
 ### Implementation
-
 ```typescript
-// src/hooks/useAccess.ts
-// Access is determined solely by the subscription_tier database field.
-// No hardcoded overrides. Admin status is decoupled from feature access.
-```
-
----
-
-## Tour / Bookings Separation (v2.1.6)
-
-### Architectural Principle
-
-**Bookings and Tour must never mingle directly.** They only appear together in Timeline, Summary, and Reports through the canonical trip state.
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        Canonical Trip State                                  │
-│                    (getCanonicalTripState)                                   │
-│                                                                              │
-│  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐                  │
-│  │   Bookings   │    │   Parking    │    │   Expenses   │                  │
-│  │   (flights,  │    │              │    │              │                  │
-│  │    stays,    │    │              │    │              │                  │
-│  │   rentals)   │    │              │    │              │                  │
-│  └──────┬───────┘    └──────┬───────┘    └──────┬───────┘                  │
-│         │                   │                   │                           │
-│         └───────────────────┴───────────────────┘                           │
-│                             │                                                │
-│                             ▼                                                │
-│                 CanonicalTimelineEvent[]                                     │
-│                             │                                                │
-│         ┌───────────────────┼───────────────────┐                           │
-│         ▼                   ▼                   ▼                           │
-│  ┌─────────────┐    ┌─────────────────┐   ┌─────────────┐                  │
-│  │  Summary    │    │  Tour (Stops)   │   │   Reports   │                  │
-│  │  Timeline   │    │  via canonical  │   │             │                  │
-│  └─────────────┘    │  events only    │   └─────────────┘                  │
-│                     └─────────────────┘                                     │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-### Enforcement Rules
-
-1. **Tour does not depend directly on Bookings models**
-   - Tour components do NOT import booking types/hooks
-   - Tour auto-draft uses `generateTourDraftFromCanonicalEvents()`
-   - Once Tour stops are created, they are independent records
-
-2. **Bookings do not depend on Tour**
-   - Bookings code does NOT import Tour types/hooks/components
-   - Bookings may trigger Tour auto-draft via canonical state, not directly
-
-3. **Shared views use canonical trip state**
-   - Summary timeline: `getCanonicalTripState()`
-   - Trip Report: Canonical aggregator
-   - No cross-module hacks
-
-### Tour Draft Generation
-
-```typescript
-import { generateTourDraftFromCanonicalEvents } from '@/lib/canonicalTripState';
-
-// Tour auto-draft from canonical events
-const { timelineEvents } = getCanonicalTripState(trip, bookings, expenses, parking);
-const draftStops = generateTourDraftFromCanonicalEvents(timelineEvents);
-```
-
----
-
-## Parsing Confidence Hints (v2.1.3)
-
-### Shared Hint Components
-
-Located in `src/components/trips/ParseHint.tsx`:
-
-| Component | Purpose |
-|-----------|---------|
-| `ParseOriginHint` | Shows origin: "From email", "From pasted text", "From receipt" |
-| `StopSourceHint` | Tour-specific: "From flight", "From stay", "Imported from text" |
-| `EstimatedHint` | Appends "(estimated)" to inferred times/amounts |
-
-### Context-Specific Rules
-
-| Tab | Hints About |
-|-----|-------------|
-| Bookings | Money + source (email, pasted text) |
-| Expenses | Money + source (receipt, email) |
-| Tour | Source only (bookings vs bulk/email), no cost |
-
-### Usage
-
-```typescript
-import { ParseOriginHint, EstimatedHint, StopSourceHint } from '@/components/trips/ParseHint';
-
-// Bookings/Expenses - cost context
-<ParseOriginHint origin="receipt" />
-<EstimatedHint isEstimated={!hasExplicitAmount}>{amount}</EstimatedHint>
-
-// Tour - source context
-<StopSourceHint source="flight" />
-<StopSourceHint source="bulk_email" />
+// src/hooks/useAccess.ts — single source of truth for plan gating
+const { isPro, canAccessBusinessFeatures } = useAccess();
 ```
 
 ---
 
 ## Database Schema
 
-### Core Tables
+### Core Tables (18+)
 
 | Table | Purpose |
 |-------|---------|
-| `trips` | Trip metadata (dates, destination, type) |
-| `bookings` | Flights, stays, rentals, transport, activities |
-| `expenses` | Individual expense records |
-| `parking` | Parking entries with location/time |
-| `companions` | Travel companions with contact info |
-| `packing_items` | Packing list items per trip |
-| `profiles` | User preferences and subscription |
-| `trip_events` | Pro-only time-based events |
-| `trip_shares` | Trip sharing permissions |
-| `engagements` | Business stops/work locations (Tour) |
+| `trips` | Trip metadata (dates, destination, type, state) |
+| `bookings` | Flights, lodging, rentals, transport, activities |
+| `expenses` | Per-trip expense records with categories |
+| `parking` | Parking entries with expiration tracking |
+| `companions` | Travel companions with PII |
+| `packing_items` | Packing list items |
+| `profiles` | User preferences, subscription tier |
+| `trip_events` | Pro canonical timeline events |
+| `trip_members` | Trip membership (owner/guest) with permissions |
+| `trip_invites` | Email-based invitations with expiring tokens |
+| `trip_shares` | Legacy trip sharing |
+| `trip_notes` | Free-text notes per trip |
+| `engagements` | Business tour stops |
+| `trip_engagements` | Timeline-synced engagements |
+| `notifications` | In-app notification records |
+| `notification_preferences` | User notification settings |
+| `stop_reminders` | Stop reminder scheduling |
+| `ticket_reminders` | Ticket purchase reminders |
+| `booking_companions` | Booking↔Companion linking |
+| `support_tickets` | User support requests |
+| `upgrade_intents` | Upgrade intent tracking |
+| `user_roles` | RBAC admin roles |
 
-### Booking Types
-
-| Type | Description |
-|------|-------------|
-| `flight` | Air travel with airline, passenger, TSA info |
-| `stay` | Hotels, Airbnb, VRBO with check-in/out |
-| `car_rental` | Rental vehicles with pickup/return locations |
-| `transport` | Ground transport: train, bus, metro, ferry (v2.1.37) |
-| `activity` | Tours, attractions, events |
-
-### Transport Modes (v2.1.37)
-
-```typescript
-type TransportModeType = 'train' | 'bus' | 'metro' | 'ferry' | 'other';
-
-// Transport-specific fields:
-// - transport_mode: TransportModeType
-// - from_location: string
-// - to_location: string  
-// - operator: string (e.g., "Eurostar", "SNCB")
-```
-
-### Row-Level Security (RLS)
-
-All tables use RLS policies. Common patterns:
-
-```sql
--- User owns the trip
-CREATE POLICY "Users can view their own trips" 
-ON public.trips FOR SELECT 
-USING (auth.uid() = user_id);
-
--- User has access via ownership or sharing
-CREATE POLICY "Users can view bookings for accessible trips" 
-ON public.bookings FOR SELECT 
-USING (user_has_trip_access(trip_id));
-```
-
-### Helper Functions
-
-| Function | Purpose |
-|----------|---------|
-| `user_owns_trip(trip_id)` | Check if current user owns trip |
-| `user_has_trip_access(trip_id)` | Check ownership or share access |
-| `user_is_pro(user_id)` | Check Pro subscription |
-| `trip_owner_is_pro(trip_id)` | Check if trip owner is Pro |
+### 30+ Security-Definer Functions
+Including: `user_owns_trip`, `user_has_trip_access`, `user_is_pro`, `trip_owner_is_pro`, `has_role`, `is_admin`, `get_bookings_safe`, `get_companions_safe`, `run_trip_lifecycle_enforcement`, `accept_trip_invite`, `create_trip_invite`, `update_member_permissions`, and more.
 
 ---
 
-## Performance Considerations (v2.1.28)
-
-### React Render Optimization
-
-| Component | Optimization | Impact |
-|-----------|--------------|--------|
-| `TripCard` (Dashboard) | `React.memo()` | Prevents re-render on sibling updates |
-| Navigation handlers | `useCallback()` | Stable references prevent child re-renders |
-| Canonical trip state | `useMemo()` | Caches timeline/cost calculations |
-| Cost summaries | `useMemo()` | Avoids recalculating on every render |
-
-### Data Fetching Rules
-
-1. **Single fetch per screen**: Trip data is fetched once by the parent page, not by each tab
-2. **Canonical hooks**: All components use `useCanonicalTripState` for trip state, `useAccess` for plan gating
-3. **Query caching**: TanStack Query caches results with configurable staleTime (30s for subscription)
-
-### Critical Invariants
-
-| Invariant | Enforcement |
-|-----------|-------------|
-| Bookings = money, Tours = stops | Tours have no cost fields; `calculateTripCostSummary` ignores them |
-| Single source of truth for plan | `useAccess()` is the only plan resolver |
-| Dates never shift by timezone | `parseISO(date + 'T00:00:00')` pattern |
-| Missing data stays blank | No guessing; `hasExplicitTime()` guards time display |
-
----
-
-## Container Architecture (v2.2.2)
-
-### Bug-Fix-at-Source Pattern
-
-Patch 2.2.2 introduces container components that wire routes to canonical helpers:
-
-```
-Route → Container → Presentational View
-         │
-         └── Calls canonical helpers only:
-             - useAccess() for plan gating
-             - useCanonicalTripState() for costs/timeline
-             - useTripWeather() for weather data
-             - useEngagements() for tour stops
-```
+## Container Architecture
 
 ### Container Responsibilities
 
-| Container | Canonical Helpers Used |
-|-----------|----------------------|
-| `TripSummaryContainer` | `useCanonicalTripState`, `useTripWeather`, `useTravelAlerts` |
-| `TripBookingsContainer` | `useBookings`, `normalizeFlightBookingCosts` |
-| `TripTourContainer` | `useEngagements`, `buildMapsUrl` |
-| `TripExpensesContainer` | `useExpenses`, `calculateTripCostSummary` |
-| `TripAlertsContainer` | `useTravelAlerts`, `useTripWeather` |
+| Container | Canonical Helpers |
+|-----------|------------------|
+| `DesktopTripShell` | `useCanonicalTripState`, `useTravelAlerts`, `useAccess` |
+| `TripSummaryContainer` | `useCanonicalTripState`, `useTravelAlerts` |
+| `TripBookingsContainer` | `useBookings`, `useFlightAirportRepair` |
+| `TripTourContainer` | `useEngagements` |
+| `TripExpensesContainer` | `useExpenses` |
+| `TripAlertsContainer` | `useTravelAlerts` |
+| `NowCommandCenter` | `useCanonicalTripState`, execution stack |
 
 ### Standardized States
-
-All containers use consistent loading/error/empty patterns:
-
 | State | Component |
 |-------|-----------|
 | Loading | `TripSectionLoading` |
-| Error | `TripSectionError` (calm message + optional retry) |
-| Empty | Section-specific (`EmptyBookingsState`, `EmptyTourState`, etc.) |
+| Error | `TripSectionError` |
+| Empty | Section-specific empty states |
 
-### Benefits
+---
 
-1. **Single fix point**: Bug in cost calculation? Fix in `lib/expenseCalculations.ts` and all tabs update
-2. **Consistent UX**: Same loading/error/empty patterns across all sections
-3. **Testable**: Containers isolate data wiring from UI rendering
-4. **Documentation**: Each container documents which canonical helpers it uses
+## Performance
+
+### React Render Optimization
+| Technique | Usage |
+|-----------|-------|
+| `React.memo()` | TripCard, memoized containers |
+| `useCallback()` | Navigation, delete, form handlers |
+| `useMemo()` | Canonical state, cost summaries, alert computation |
+
+### Data Fetching Rules
+1. Trip data fetched once per screen, shared via DesktopTripShell context
+2. React Query deduplicates by queryKey
+3. Subscription staleTime: 30s
+4. Single canonical computation, not per-tab
+
+### Critical Invariants
+| Invariant | Enforcement |
+|-----------|-------------|
+| Bookings = money, Tours = stops | Tours have no cost fields |
+| Single source of truth for plan | `useAccess()` only |
+| Dates never shift by timezone | String-based No-Math policy |
+| Missing data stays blank | `hasExplicitTime()` guards |
 
 ---
 
 ## Next Steps
 
-- [DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md) - Development workflow
-- [COMPONENTS.md](./COMPONENTS.md) - Component documentation
-- [AI_PROMPTS.md](./AI_PROMPTS.md) - AI system prompts
+- [DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md) — Development workflow
+- [COMPONENTS.md](./COMPONENTS.md) — Component documentation
+- [PRODUCT_OVERVIEW.md](./PRODUCT_OVERVIEW.md) — Product positioning
+- [FEATURE_INVENTORY.md](./FEATURE_INVENTORY.md) — Complete feature list
+- [AI_PROMPTS.md](./AI_PROMPTS.md) — AI system prompts

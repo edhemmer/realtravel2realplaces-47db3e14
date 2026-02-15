@@ -1,16 +1,28 @@
 # Real Travel 2 Real Places
 
-A personal travel "trip command center" for organizing all aspects of your trips in one unified interface.
+**We don't plan your trip. We manage everything after it's booked.**
 
-## Overview
+Real Travel 2 Real Places is a personal travel command center that replaces spreadsheets and scattered notes with a single, calm, reliable system for managing flights, lodging, expenses, and on-the-road logistics.
 
-Real Travel 2 Real Places helps travelers:
-- 📋 **Organize bookings** - Flights, hotels, car rentals, activities
-- 💰 **Track expenses** - Receipt scanning, categorization, cost summaries
-- 👥 **Manage companions** - Contact info, TSA details, flight assignments
-- 📦 **Build packing lists** - AI-generated suggestions based on trip context
-- 🅿️ **Track parking** - Location, expiration, costs
-- 🔗 **Share trips** - Invite others with view or edit permissions
+Built by [InLight AI, LLC](https://inlightai.com).
+
+---
+
+## What It Does
+
+| Capability | Description |
+|-----------|-------------|
+| **Booking Management** | Flights, lodging, car rentals, transport, and activities — with AI-powered confirmation parsing |
+| **Expense Tracking** | Per-trip expense log with receipt OCR, category breakdowns, and cost summaries |
+| **Packing Lists** | AI-generated packing suggestions based on trip context |
+| **Companion Management** | Traveler details, TSA info, and per-person cost splitting |
+| **Parking Tracker** | Location, level/space, expiration alerts, and cost tracking |
+| **Trip Sharing** | Invite others with granular permissions (view-only, expenses, lodging) |
+| **Explore Engine** | Discover nearby attractions based on lodging or device location |
+| **Tour Stops** | Business-tier stop management with smart auto-ordering |
+| **Trip Reports** | PDF/CSV export of trip summaries for reimbursement |
+
+---
 
 ## Technology Stack
 
@@ -18,65 +30,75 @@ Real Travel 2 Real Places helps travelers:
 |-------|------------|
 | Frontend | React 18 + TypeScript |
 | Styling | Tailwind CSS + shadcn/ui |
-| State | TanStack Query |
+| State Management | TanStack Query (React Query v5) |
 | Routing | React Router v6 |
-| Backend | Lovable Cloud (Supabase) |
-| AI | Lovable AI (Gemini models) |
+| Backend | Lovable Cloud (PostgreSQL + Edge Functions) |
+| AI Services | Lovable AI (Gemini models) |
+| Auth | Email/password with session management |
+| Security | Row-Level Security (RLS) on all tables, PII masking for non-owners |
+
+---
+
+## Architecture Highlights
+
+- **Canonical Helpers**: Single source of truth for trip state, costs, and timeline events
+- **Container Pattern**: Route → Container → Presentational View with standardized states
+- **No-Math Time Policy**: All datetime operations use string-based primitives — no timezone drift
+- **Desktop Shell**: Centralized context provider eliminates redundant data fetches across tabs
+- **Mobile-First**: Bottom nav, safe areas, touch-optimized targets, platform-specific routing
+- **250+ Unit Tests**: Commercial-grade test coverage across core business logic
+
+---
+
+## Subscription Tiers
+
+| Tier | Trips | Key Features |
+|------|-------|-------------|
+| **Free** | 5 lifetime | Full booking/expense management, packing, sharing, calendar export |
+| **Pro** | Unlimited | Timeline events, health checklist, parking alerts, explore engine, trip reports |
+| **Business** | Unlimited | Tour stops, business expense reporting, stop-level expense assignment |
+
+---
 
 ## Project Structure
 
 ```
 src/
-├── components/       # React components
-│   ├── ui/          # shadcn/ui base components
-│   └── trips/       # Trip-related components
-├── hooks/           # Custom React hooks
-├── lib/             # Utility functions
-├── pages/           # Route page components
-└── types/           # TypeScript definitions
+├── components/       # React components (ui/, trips/, cards/, layout/)
+├── containers/       # Data-wiring containers (canonical hook consumers)
+├── contexts/         # React contexts (AuthContext)
+├── hooks/            # Custom React hooks (50+ domain hooks)
+├── lib/              # Utility functions & canonical helpers
+├── pages/            # Route page components
+├── types/            # TypeScript type definitions
+└── integrations/     # Auto-generated backend client
 
 supabase/
-├── functions/       # Edge functions (AI parsing)
-└── migrations/      # Database migrations
+├── functions/        # 10+ Edge Functions (AI parsing, notifications, lifecycle)
+└── migrations/       # Database migrations
 
 docs/
-├── ARCHITECTURE.md  # System architecture
-├── DEVELOPER_GUIDE.md # Coding standards
-├── COMPONENTS.md    # Component reference
-└── AI_PROMPTS.md    # AI system prompts
+├── ARCHITECTURE.md   # System architecture & data flow
+├── DEVELOPER_GUIDE.md # Coding standards & workflow
+├── COMPONENTS.md     # Component reference
+├── AI_PROMPTS.md     # AI system prompt reference
+├── PRODUCT_OVERVIEW.md # Product overview & positioning
+└── FEATURE_INVENTORY.md # Complete feature inventory by tier
 ```
 
-## Features
-
-### Free Tier
-- Up to 5 trips (lifetime)
-- Full booking management
-- Expense tracking with receipt OCR
-- Packing list generation
-- Trip sharing
-- Calendar export (.ics)
-
-### Pro Tier
-- Unlimited trips
-- TripEvents system (time-based events)
-- Upcoming Events display
-- Trip Health Checklist
-- Proactive warnings
+---
 
 ## Documentation
 
-- **[Architecture Guide](docs/ARCHITECTURE.md)** - System design and data flow
-- **[Developer Guide](docs/DEVELOPER_GUIDE.md)** - Coding standards and workflow
-- **[Component Reference](docs/COMPONENTS.md)** - Component documentation
-- **[AI Prompts](docs/AI_PROMPTS.md)** - AI system prompt reference
+- **[Architecture Guide](docs/ARCHITECTURE.md)** — System design, data flow, and architectural principles
+- **[Developer Guide](docs/DEVELOPER_GUIDE.md)** — Coding standards and development workflow
+- **[Component Reference](docs/COMPONENTS.md)** — Component documentation
+- **[Product Overview](docs/PRODUCT_OVERVIEW.md)** — Product positioning, market, and differentiation
+- **[Feature Inventory](docs/FEATURE_INVENTORY.md)** — Complete feature list organized by tier
+
+---
 
 ## Development
-
-### Prerequisites
-- Node.js 18+ or Bun
-- Lovable account
-
-### Local Development
 
 ```bash
 # Install dependencies
@@ -89,47 +111,35 @@ bun run dev
 bun run test
 ```
 
-### Key Files (Auto-generated - Do Not Edit)
+### Auto-Generated Files (Do Not Edit)
 - `src/integrations/supabase/client.ts`
 - `src/integrations/supabase/types.ts`
 - `supabase/config.toml`
 - `.env`
 
+---
+
 ## Deployment
 
-1. Open [Lovable](https://lovable.dev/projects/314579f7-aa3c-49b7-b178-8640b495f1f7)
-2. Click **Share → Publish**
-3. Click **Update** to deploy frontend changes
+- **Frontend**: Published via Lovable (click Publish → Update)
+- **Backend**: Edge functions and migrations deploy automatically
+- **Production URL**: [realtravel2realplaces.lovable.app](https://realtravel2realplaces.lovable.app)
 
-Backend changes (edge functions, migrations) deploy automatically.
+---
 
-## URLs
+## Security
 
-- **Preview**: https://id-preview--314579f7-aa3c-49b7-b178-8640b495f1f7.lovable.app
-- **Production**: https://realtravel2realplaces.lovable.app
+- Row-Level Security (RLS) on all 18+ tables
+- PII masking for non-owners via security-definer functions
+- Session idle timeout (2 hours)
+- CRON-secret-authenticated background jobs
+- Secure receipt storage with 1-hour signed URLs
+- RBAC admin system via separate `user_roles` table
 
-## Version History
-
-| Version | Description |
-|---------|-------------|
-| v2.1.28 | Performance hardening, regression tests, production docs |
-| v2.1.27 | Tour list visual refinement |
-| v2.1.26 | Bulk Tour parsing, stop reminders |
-| v2.1.2 | Past trips visual de-emphasis |
-| v2.1.1 | Pro Upcoming Events strip |
-| v2.1.0 | Pro Trip Health Checklist |
-| v2.0.x | TripEvents system, datetime integrity |
-| v1.x.x | Core features, AI parsing, expense tracking |
-
-## Performance Notes (v2.1.28)
-
-- **React.memo**: TripCard components prevent unnecessary re-renders
-- **Stable callbacks**: Navigation and delete handlers use useCallback
-- **Memoized state**: Canonical trip state and cost summaries cached with useMemo
-- **Single data source**: All plan gating via useAccess, costs via calculateTripCostSummary
+---
 
 ## License
 
-Proprietary - All rights reserved.
+Proprietary — All rights reserved.
 
-© InLight AI, LLC
+© 2024–2026 InLight AI, LLC
