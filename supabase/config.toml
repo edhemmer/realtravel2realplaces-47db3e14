@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.places-search]
 verify_jwt = false
+
+[functions.inbound-email]
+verify_jwt = false
