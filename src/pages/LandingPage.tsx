@@ -1,11 +1,9 @@
 import { Helmet } from 'react-helmet-async';
 import LandingHeader from '@/components/landing/LandingHeader';
 import LandingHero from '@/components/landing/LandingHero';
-import LandingProblem from '@/components/landing/LandingProblem';
-import LandingFeatures from '@/components/landing/LandingFeatures';
-import LandingWhyBetter from '@/components/landing/LandingWhyBetter';
-import LandingAudience from '@/components/landing/LandingAudience';
-import LandingTravelers from '@/components/landing/LandingTravelers';
+import LandingProblemSolution from '@/components/landing/LandingProblemSolution';
+import LandingHowItWorks from '@/components/landing/LandingHowItWorks';
+import LandingWhoItsFor from '@/components/landing/LandingWhoItsFor';
 import LandingPlanTiers from '@/components/landing/LandingPlanTiers';
 import LandingFAQ from '@/components/landing/LandingFAQ';
 import LandingPricing from '@/components/landing/LandingPricing';
@@ -30,11 +28,9 @@ export default function LandingPage() {
         <LandingHeader />
         <main>
           <LandingHero />
-          <LandingProblem />
-          <LandingFeatures />
-          <LandingWhyBetter />
-          <LandingAudience />
-          <LandingTravelers />
+          <LandingProblemSolution />
+          <LandingHowItWorks />
+          <LandingWhoItsFor />
           <LandingPlanTiers />
           <LandingFAQ />
           <LandingPricing />
