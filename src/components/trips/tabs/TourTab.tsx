@@ -22,6 +22,7 @@
  */
 
 import { useState, useCallback } from 'react';
+import { TourImportModal } from '@/components/trips/TourImportModal';
 import { useEngagements, useCreateEngagement, useUpdateEngagement, useDeleteEngagement, Engagement } from '@/hooks/useEngagements';
 import { useUpsertStopReminder, useDeleteStopReminder } from '@/hooks/useStopReminders';
 import { Card, CardContent } from '@/components/ui/card';
@@ -42,7 +43,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, MapPin, Clock, Trash2, Pencil, X, Info, ListPlus, Navigation, Store, Bell } from 'lucide-react';
+import { Plus, MapPin, Clock, Trash2, Pencil, X, Info, ListPlus, Navigation, Store, Bell, Import } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { useTripPermission } from '@/pages/TripDetail';
@@ -101,6 +102,7 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [editingStop, setEditingStop] = useState<Engagement | null>(null);
   const [stopToDelete, setStopToDelete] = useState<string | null>(null);
   const [formData, setFormData] = useState<StopFormData>(EMPTY_FORM);
@@ -252,8 +254,18 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h3 className="text-lg font-semibold">Tour Stops</h3>
         <div className="flex items-center gap-2 flex-wrap">
+          {/* v3.8.5: Smart import (Photo/Email/Spreadsheet) */}
+          {canEdit && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setImportDialogOpen(true)}
+            >
+              <Import className="w-4 h-4 mr-2" />
+              Import
+            </Button>
+          )}
           {/* v2.3.2: Business tier bulk import button (enhanced) */}
-          {/* v2.0.9: Basic bulk import for all edit users */}
           {canEdit && canBulkImport && (
             <Button 
               variant="outline" 
@@ -542,6 +554,13 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
           defaultDate={defaultBulkDate}
         />
       )}
+
+      {/* v3.8.5: Smart Import Modal */}
+      <TourImportModal
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        tripId={tripId}
+      />
 
       {/* Delete confirmation */}
       <AlertDialog open={!!stopToDelete} onOpenChange={(open) => !open && setStopToDelete(null)}>
