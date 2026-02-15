@@ -1,6 +1,4 @@
 import { Link } from 'react-router-dom';
-import logoImg from '@/assets/logo.png';
-import logoWhiteImg from '@/assets/logo-white.png';
 import { useAuth } from '@/contexts/AuthContext';
 import { PlanPill } from '@/components/PlanPill';
 
@@ -17,16 +15,18 @@ export function BrandHeader({ variant = 'app', children }: BrandHeaderProps) {
 
   return (
     <div className="flex items-center justify-between w-full">
-      {/* Brand cluster: logo + pill */}
+      {/* Brand cluster: wordmark + pill */}
       <Link
         to="/"
         className="flex items-center gap-2 sm:gap-3 flex-nowrap hover:opacity-80 transition-opacity"
       >
-        <img
-          src={isLanding ? logoWhiteImg : logoImg}
-          alt="Real Travel 2 Real Places"
-          className={`${isLanding ? 'rt2rp-header-logo--landing' : 'rt2rp-header-logo'} flex-shrink-0`}
-        />
+        <span className={`font-bold tracking-tight flex-shrink-0 ${
+          isLanding
+            ? 'text-white text-sm sm:text-base'
+            : 'text-foreground text-sm sm:text-base'
+        }`}>
+          Real Travel 2 Real Places
+        </span>
         {!isLanding && user && <PlanPill showTripLimit className="flex-shrink-0" />}
       </Link>
 
