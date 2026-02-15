@@ -38,13 +38,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, MapPin, Clock, Trash2, Pencil, X, Info, ListPlus, Navigation, Store, Bell, Import, RotateCcw, Lock, Sparkles } from 'lucide-react';
+import { Plus, MapPin, Clock, Trash2, Pencil, Navigation, Store, Import, RotateCcw, Lock, Sparkles } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { useTripPermission } from '@/pages/TripDetail';
-import { BulkStopsDialog } from '@/components/trips/BulkStopsDialog';
-import { BulkStopsDialogV2 } from '@/components/trips/BulkStopsDialogV2';
 import { Trip } from '@/types/database';
 import { resolveMapsDestination, openMapsDestination } from '@/lib/mapsDestination';
 import { computeDayOrder, DayOrderMode, OrderableStop } from '@/lib/drive/dayOrder';
@@ -81,7 +78,7 @@ const EMPTY_FORM: StopFormData = {
   notes: '',
 };
 
-const HELPER_DISMISSED_KEY = 'rt2rp_stops_helper_dismissed';
+
 
 /** localStorage key for day lock state per trip */
 function dayLockStorageKey(tripId: string): string {
@@ -153,23 +150,11 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
   const deleteStop = useDeleteEngagement();
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [editingStop, setEditingStop] = useState<Engagement | null>(null);
   const [stopToDelete, setStopToDelete] = useState<string | null>(null);
   const [formData, setFormData] = useState<StopFormData>(EMPTY_FORM);
   const [dayLockState, setDayLockState] = useState<DayLockState>(() => loadDayLockState(tripId));
-
-  const defaultBulkDate = trip?.start_date || format(new Date(), 'yyyy-MM-dd');
-
-  const [helperDismissed, setHelperDismissed] = useState(() => {
-    return localStorage.getItem(HELPER_DISMISSED_KEY) === 'true';
-  });
-
-  const dismissHelper = useCallback(() => {
-    localStorage.setItem(HELPER_DISMISSED_KEY, 'true');
-    setHelperDismissed(true);
-  }, []);
 
   // ========================================================================
   // DATE-GROUPED + ORDERED STOPS (v3.8.8)
@@ -368,9 +353,9 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-3">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
         <h3 className="text-lg font-semibold">Tour Stops</h3>
         <div className="flex items-center gap-2 flex-wrap">
           {canEdit && (
@@ -383,26 +368,6 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
               Import
             </Button>
           )}
-          {canEdit && canBulkImport && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setBulkDialogOpen(true)}
-            >
-              <ListPlus className="w-4 h-4 mr-2" />
-              Bulk Import
-            </Button>
-          )}
-          {canEdit && !canBulkImport && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setBulkDialogOpen(true)}
-            >
-              <ListPlus className="w-4 h-4 mr-2" />
-              Bulk Add
-            </Button>
-          )}
           {canEdit && (
             <Button onClick={openAddDialog} className="bg-gradient-ocean hover:opacity-90">
               <Plus className="w-4 h-4 mr-2" />
@@ -411,29 +376,6 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
           )}
         </div>
       </div>
-
-      {/* Helper message */}
-      {!helperDismissed && (
-        <Alert className="bg-muted/50 border-muted-foreground/20">
-          <Info className="h-4 w-4" />
-          <AlertDescription className="flex items-start justify-between gap-4">
-            <div className="text-sm">
-              <strong>Stops</strong> are places you go to do work.
-              <br />
-              Use <strong>Lodging</strong> for hotels and accommodations.
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 shrink-0"
-              onClick={dismissHelper}
-            >
-              <X className="h-4 w-4" />
-              <span className="sr-only">Dismiss</span>
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
 
       {/* v3.8.8: Date-grouped stops list */}
       {stops.length === 0 ? (
@@ -460,10 +402,10 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {dateGroups.map((group) => (
-            <div key={group.date} className="space-y-2">
-              {/* Date header */}
+            <div key={group.date} className="space-y-1.5">
+              {/* Date header — compact single-line */}
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <h4 className="text-sm font-semibold text-foreground">
@@ -471,21 +413,14 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
                   </h4>
                   <span className="text-xs text-muted-foreground">
                     {group.confirmed.length + group.tbd.length} stop{group.confirmed.length + group.tbd.length !== 1 ? 's' : ''}
+                    {group.tbd.length > 0 && (
+                      group.mode === 'MANUAL_LOCKED'
+                        ? <> · <Lock className="w-2.5 h-2.5 inline-block align-text-top" /> Locked</>
+                        : group.tbd.length > 1
+                          ? <> · <Sparkles className="w-2.5 h-2.5 inline-block align-text-top text-primary" /> Optimized</>
+                          : null
+                    )}
                   </span>
-                  {/* v3.8.8: Day mode badge */}
-                  {group.tbd.length > 0 && (
-                    group.mode === 'MANUAL_LOCKED' ? (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 gap-0.5 border-muted-foreground/30">
-                        <Lock className="w-2.5 h-2.5" />
-                        Locked
-                      </Badge>
-                    ) : group.tbd.length > 1 ? (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 gap-0.5 border-primary/30 text-primary">
-                        <Sparkles className="w-2.5 h-2.5" />
-                        Optimized
-                      </Badge>
-                    ) : null
-                  )}
                 </div>
                 {/* Re-optimize action (only when locked) */}
                 {canEdit && group.mode === 'MANUAL_LOCKED' && group.tbd.length > 1 && (
@@ -641,22 +576,6 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
         </DialogContent>
       </Dialog>
 
-      {canBulkImport ? (
-        <BulkStopsDialogV2
-          open={bulkDialogOpen}
-          onOpenChange={setBulkDialogOpen}
-          tripId={tripId}
-          defaultDate={defaultBulkDate}
-        />
-      ) : (
-        <BulkStopsDialog
-          open={bulkDialogOpen}
-          onOpenChange={setBulkDialogOpen}
-          tripId={tripId}
-          defaultDate={defaultBulkDate}
-        />
-      )}
-
       <TourImportModal
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
@@ -705,7 +624,7 @@ function StopCard({ stop, isConfirmed, canEdit, onEdit, onDelete, onNavigate }: 
 
   return (
     <Card className="hover:shadow-sm transition-shadow">
-      <CardContent className="py-2.5 px-3">
+      <CardContent className="py-2 px-3">
         <div className="flex items-center justify-between gap-3">
           <div className="flex-1 min-w-0">
             {/* Header: name + badges */}
@@ -764,7 +683,7 @@ function StopCard({ stop, isConfirmed, canEdit, onEdit, onDelete, onNavigate }: 
             )}
             {canEdit && (
               <>
-                <Button variant="ghost" size="icon" onClick={onEdit} className="h-7 w-7">
+                <Button variant="ghost" size="icon" onClick={onEdit} className="h-7 w-7 text-muted-foreground hover:text-foreground">
                   <Pencil className="h-3.5 w-3.5" />
                   <span className="sr-only">Edit stop</span>
                 </Button>
