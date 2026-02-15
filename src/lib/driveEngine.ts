@@ -13,6 +13,7 @@ import type { CanonicalTimelineEvent } from './canonicalTripState';
 import type { Trip, Booking, Parking } from '@/types/database';
 import type { DeviceCoords } from './deviceLocation';
 import type { WeatherCondition } from './canonicalWeather';
+import type { DriveRouteMeta } from '@/types/drive';
 import { getParkingWindowMs } from './canonicalParkingHighlight';
 import { timeToMinutes } from './timeOnly';
 
@@ -74,6 +75,8 @@ export interface DriveEngineInput {
   todayDateOnly: string;
   /** Override for testing — YYYY-MM-DD HH:MM format */
   nowLocal?: string;
+  /** Optional route metadata — not yet consumed by resolvers */
+  routeMeta?: DriveRouteMeta;
 }
 
 // ============================================================================

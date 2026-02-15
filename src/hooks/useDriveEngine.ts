@@ -17,12 +17,15 @@ import { getCachedDeviceLocation } from '@/lib/deviceLocation';
 import { getTodayDateOnly } from '@/lib/canonicalTimePolicy';
 import { getLocalNowString } from '@/lib/canonicalNextStop';
 import type { Trip } from '@/types/database';
+import type { DriveRouteMeta } from '@/types/drive';
 
 interface UseDriveEngineOptions {
   tripId: string;
   trip: Trip;
   /** Optional weather context — only pass if already fetched */
   weatherContext?: DriveEngineWeatherContext;
+  /** Optional route metadata — only pass if already resolved */
+  routeMeta?: DriveRouteMeta;
 }
 
 interface UseDriveEngineResult {
