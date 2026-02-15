@@ -165,6 +165,21 @@ Deno.serve(async (req: Request) => {
     `inbound-email: created pending_import ${inserted.id} for user ${userId}`,
   );
 
+  // ── 7. Trigger async processing (fire-and-forget) ──────────────
+  try {
+    const funcUrl = `${SUPABASE_URL}/functions/v1/process-pending-import`;
+    fetch(funcUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-internal-secret": SERVICE_ROLE_KEY,
+      },
+      body: JSON.stringify({ import_id: inserted.id }),
+    }).catch((e) => console.error("inbound-email: async trigger failed", e));
+  } catch (e) {
+    console.error("inbound-email: async trigger error", e);
+  }
+
   return new Response(
     JSON.stringify({ status: "accepted", id: inserted.id }),
     { status: 200, headers: { "Content-Type": "application/json" } },

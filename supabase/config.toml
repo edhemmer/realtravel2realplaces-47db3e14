@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.inbound-email]
 verify_jwt = false
+
+[functions.process-pending-import]
+verify_jwt = false
