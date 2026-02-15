@@ -156,7 +156,7 @@ export function buildFlightMapsQuery(opts: {
 // ============================================================================
 
 const IATA_ROUTE_PATTERN = /([A-Z]{3})\s*(?:→|->|-|to)\s*([A-Z]{3})/i;
-const CONFIRMATION_LIKE_PATTERN = /^[A-Z0-9]{5,}$/i;
+const IATA_FROM_TO_PATTERN = /\bFrom:\s*([A-Z]{3})\b[\s\S]{0,80}\bTo:\s*([A-Z]{3})\b/i;
 
 /**
  * Detect if a booking has corrupted airport codes (e.g., confirmation number
@@ -169,26 +169,19 @@ export function detectCorruptedAirportCodes(booking: {
 }): boolean {
   const depCode = booking.departure_airport_code;
   const arrCode = booking.arrival_airport_code;
-  const confNum = booking.confirmation_number;
 
-  // Check departure
-  if (depCode && !validateIATA(depCode)) {
-    if (confNum && depCode.toLowerCase() === confNum.toLowerCase()) return true;
-    if (confNum && CONFIRMATION_LIKE_PATTERN.test(depCode) && depCode.length >= 5) return true;
-  }
-
-  // Check arrival
-  if (arrCode && !validateIATA(arrCode)) {
-    if (confNum && arrCode.toLowerCase() === confNum.toLowerCase()) return true;
-    if (confNum && CONFIRMATION_LIKE_PATTERN.test(arrCode) && arrCode.length >= 5) return true;
-  }
+  // Any missing or invalid code counts as needing backfill
+  if (!validateIATA(depCode) || !validateIATA(arrCode)) return true;
 
   return false;
 }
 
 /**
- * Attempt high-confidence recovery of IATA codes from text fields on a booking.
- * Returns { origin, destination } if two valid codes found, or null if not recoverable.
+ * v3.13.5: Attempt high-confidence recovery of IATA codes from text fields.
+ * Uses two strict passes:
+ *   PASS 1: "DEN → COS" style route patterns
+ *   PASS 2: "From: DEN ... To: COS" style patterns
+ * Returns { origin, destination } if a single unambiguous pair found, or null.
  */
 export function recoverAirportCodes(booking: {
   notes?: string | null;
@@ -197,7 +190,6 @@ export function recoverAirportCodes(booking: {
   to_location?: string | null;
   location_summary?: string | null;
 }): { origin: string; destination: string } | null {
-  // Search across text fields for a pattern like "DEN → COS"
   const searchFields = [
     booking.location_summary,
     booking.notes,
@@ -206,14 +198,25 @@ export function recoverAirportCodes(booking: {
     booking.vendor_name,
   ].filter(Boolean).join(' ');
 
-  const match = searchFields.match(IATA_ROUTE_PATTERN);
-  if (!match) return null;
+  // PASS 1: Route arrow pattern (e.g., "DEN → COS")
+  const match1 = searchFields.match(IATA_ROUTE_PATTERN);
+  if (match1) {
+    const origin = match1[1].toUpperCase();
+    const destination = match1[2].toUpperCase();
+    if (validateIATA(origin) && validateIATA(destination)) {
+      return { origin, destination };
+    }
+  }
 
-  const origin = match[1].toUpperCase();
-  const destination = match[2].toUpperCase();
+  // PASS 2: From/To pattern (e.g., "From: DEN ... To: COS")
+  const match2 = searchFields.match(IATA_FROM_TO_PATTERN);
+  if (match2) {
+    const origin = match2[1].toUpperCase();
+    const destination = match2[2].toUpperCase();
+    if (validateIATA(origin) && validateIATA(destination)) {
+      return { origin, destination };
+    }
+  }
 
-  // Validate both are proper IATA codes
-  if (!validateIATA(origin) || !validateIATA(destination)) return null;
-
-  return { origin, destination };
+  return null;
 }
