@@ -420,7 +420,7 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
             <div className="text-sm">
               <strong>Stops</strong> are places you go to do work.
               <br />
-              Use <strong>Stays</strong> for hotels and lodging.
+              Use <strong>Lodging</strong> for hotels and accommodations.
             </div>
             <Button
               variant="ghost"
@@ -447,7 +447,7 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
               Stops are work locations and scheduled meetings during your trip.
             </p>
             <p className="text-xs text-muted-foreground mb-4">
-              Use the Bookings tab for lodging and Stays.
+              Use the Lodging section under Bookings.
             </p>
             <div className="flex gap-2">
               {canEdit && (

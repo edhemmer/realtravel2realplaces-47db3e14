@@ -168,7 +168,7 @@ export function EmptyTourState({ className, onAction, actionLabel = "Add Stop", 
           Stops are work locations and scheduled meetings during your trip.
         </p>
         <p className="text-xs text-muted-foreground mb-4">
-          Use the Bookings tab for lodging and Stays.
+          Use the Lodging section under Bookings.
         </p>
         {canEdit && onAction && (
           <Button onClick={onAction} className="bg-gradient-ocean hover:opacity-90">

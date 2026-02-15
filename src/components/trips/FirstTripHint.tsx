@@ -41,7 +41,7 @@ export function FirstTripHint({ bookingsCount, onDismiss, className = '' }: Firs
     <div className={`flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10 ${className}`}>
       <Lightbulb className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
       <p className="text-sm text-muted-foreground flex-1">
-        <span className="font-medium text-foreground">Next:</span> add your stay, expenses, or explore things to do nearby.
+        <span className="font-medium text-foreground">Next:</span> add your lodging, expenses, or explore things to do nearby.
       </p>
       <button
         onClick={handleDismiss}
