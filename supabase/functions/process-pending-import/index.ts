@@ -1,10 +1,13 @@
 /**
- * process-pending-import — Async worker that parses inbound email body
+ * v4.2.0: process-pending-import — Async worker that parses inbound email body
+ *
+ * Uses the canonical parse contract for universal classification
+ * and required field enforcement across ALL entity types.
  *
  * 1. Read pending_import by ID (service role)
  * 2. Extract clean plain-text body, strip quoted threads
- * 3. Send to AI extraction (reusing parse-booking prompt logic)
- * 4. Validate extracted fields against original body
+ * 3. Send to AI extraction
+ * 4. Apply canonical classification + required field enforcement
  * 5. Update pending_import with structured data + status
  * 6. PURGE raw email content from the record (non-negotiable)
  */
@@ -15,7 +18,14 @@ import {
   normalizeDatetime,
   normalizeReceiptDate,
   cleanNullStrings,
+  hasServiceDates,
 } from "../_shared/datetime-utils.ts";
+import {
+  classifyDocument,
+  enforceRequiredFields,
+  type DocClassification,
+  ENTITY_TYPE_LABELS,
+} from "../_shared/parse-contract.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -23,17 +33,14 @@ const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { "Content-Type": "application/json" },
+      status: 405, headers: { "Content-Type": "application/json" },
     });
   }
 
-  // This is an internal function — validate with service role secret
   const authHeader = req.headers.get("x-internal-secret");
   if (authHeader !== SERVICE_ROLE_KEY) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
+      status: 401, headers: { "Content-Type": "application/json" },
     });
   }
 
@@ -43,15 +50,13 @@ Deno.serve(async (req: Request) => {
     importId = body.import_id;
   } catch {
     return new Response(JSON.stringify({ error: "Invalid body" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
+      status: 400, headers: { "Content-Type": "application/json" },
     });
   }
 
   if (!importId) {
     return new Response(JSON.stringify({ error: "Missing import_id" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
+      status: 400, headers: { "Content-Type": "application/json" },
     });
   }
 
@@ -67,19 +72,14 @@ Deno.serve(async (req: Request) => {
   if (fetchErr || !pending) {
     console.error("process-pending-import: not found", importId, fetchErr?.message);
     return new Response(JSON.stringify({ error: "Import not found" }), {
-      status: 404,
-      headers: { "Content-Type": "application/json" },
+      status: 404, headers: { "Content-Type": "application/json" },
     });
   }
 
   if (pending.status !== "pending") {
-    return new Response(JSON.stringify({ status: "already_processed" }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return jsonOk({ status: "already_processed" });
   }
 
-  // Mark as processing
   await supabase
     .from("pending_imports")
     .update({ status: "processing" })
@@ -88,8 +88,6 @@ Deno.serve(async (req: Request) => {
   const parsedData = pending.parsed_data as Record<string, unknown>;
   const textBody = (parsedData.text_body as string) || "";
   const htmlBody = (parsedData.html_body as string) || "";
-
-  // Prefer plain text, fall back to stripped HTML
   const rawContent = textBody || stripHtml(htmlBody);
 
   if (!rawContent.trim()) {
@@ -114,7 +112,8 @@ Deno.serve(async (req: Request) => {
           parameters: {
             type: "object",
             properties: {
-              booking_type: { type: "string", enum: ["flight", "stay", "car_rental", "activity", "parking", "other"] },
+              is_receipt_only: { type: "boolean", description: "True if receipt without service dates" },
+              booking_type: { type: "string", enum: ["flight", "stay", "car_rental", "activity", "parking", "transport", "other"] },
               vendor_name: { type: "string" },
               start_datetime: { type: "string" },
               end_datetime: { type: "string" },
@@ -133,6 +132,7 @@ Deno.serve(async (req: Request) => {
               arrival_airport_code: { type: "string" },
               location_summary: { type: "string" },
               notes: { type: "string" },
+              receipt_date: { type: "string", description: "Payment date YYYY-MM-DD for receipts" },
             },
             required: ["vendor_name"],
           },
@@ -163,36 +163,24 @@ Deno.serve(async (req: Request) => {
   }
   extracted.start_datetime = normalizeDatetime(extracted.start_datetime as string | null);
   extracted.end_datetime = normalizeDatetime(extracted.end_datetime as string | null);
+  if (extracted.receipt_date) {
+    extracted.receipt_date = normalizeReceiptDate(extracted.receipt_date as string | null);
+  }
 
-  // ── 4b. Flight classification & required field enforcement ────
-  if (extracted.booking_type === 'flight') {
-    // Check if this is a receipt (no departure/arrival info)
-    const hasDep = !!extracted.departure_airport_code;
-    const hasArr = !!extracted.arrival_airport_code;
-    const hasStart = !!extracted.start_datetime;
-    const hasEnd = !!extracted.end_datetime;
+  // ── 4b. CANONICAL CLASSIFICATION ──────────────────────────────
+  const entityType = (extracted.booking_type as string) || 'other';
+  const hasDates = hasServiceDates(extracted);
+  const docClass: DocClassification = classifyDocument(extracted, hasDates);
+  
+  extracted._doc_classification = docClass;
 
-    if (!hasDep && !hasArr && !hasStart && !hasEnd) {
-      // Flight receipt — no itinerary data at all
-      extracted._email_classification = 'FLIGHT_RECEIPT';
-      extracted._is_receipt_only = true;
-    } else {
-      extracted._email_classification = 'FLIGHT_CONFIRMATION';
-      // Enforce required fields
-      const missingFields: string[] = [];
-      if (!hasDep) missingFields.push('departure_airport_code');
-      if (!hasArr) missingFields.push('arrival_airport_code');
-      if (!hasStart) missingFields.push('departure_datetime');
-      if (!hasEnd) missingFields.push('arrival_datetime');
-
-      if (missingFields.length > 0) {
-        extracted._parse_issues = [{
-          issueType: 'MISSING_REQUIRED_FIELDS',
-          missingFields,
-          emailType: 'FLIGHT_CONFIRMATION',
-          actionHint: 'Some flight details could not be extracted. Open the email and re-upload or forward the original confirmation.',
-        }];
-      }
+  if (docClass === 'RECEIPT') {
+    extracted._is_receipt_only = true;
+  } else if (docClass === 'CONFIRMATION' || docClass === 'UNKNOWN') {
+    // Enforce required fields
+    const issue = enforceRequiredFields(extracted, entityType);
+    if (issue) {
+      extracted._parse_issues = [issue];
     }
   }
 
@@ -201,25 +189,23 @@ Deno.serve(async (req: Request) => {
 
   // Compute confidence
   let confidence = 0.8;
-  if (validationResult.hardFails.length > 0) {
-    confidence = 0.3;
-  } else if (validationResult.softIssues.length > 0) {
-    confidence = 0.6;
-  }
-  // Lower confidence further if flight has missing required fields
+  if (validationResult.hardFails.length > 0) confidence = 0.3;
+  else if (validationResult.softIssues.length > 0) confidence = 0.6;
+
+  // Lower confidence for issues
   if (extracted._parse_issues && (extracted._parse_issues as unknown[]).length > 0) {
     confidence = Math.min(confidence, 0.4);
   }
-  // Receipt-only flights get low confidence
   if (extracted._is_receipt_only) {
     confidence = Math.min(confidence, 0.5);
   }
 
-  const status = (validationResult.hardFails.length > 0 || extracted._is_receipt_only || (extracted._parse_issues && (extracted._parse_issues as unknown[]).length > 0))
-    ? "needs_review"
-    : "ready_for_review";
+  const status = (
+    validationResult.hardFails.length > 0 ||
+    extracted._is_receipt_only ||
+    (extracted._parse_issues && (extracted._parse_issues as unknown[]).length > 0)
+  ) ? "needs_review" : "ready_for_review";
 
-  // Build a human-readable summary for the card
   const summary = buildSummary(extracted);
 
   // ── 6. Purge raw content and update with structured data ───────
@@ -232,8 +218,8 @@ Deno.serve(async (req: Request) => {
     _summary: summary,
   }, confidence, extracted.vendor_name as string || null);
 
-  console.log(`process-pending-import: ${importId} → ${status} (confidence: ${confidence})`);
-  return jsonOk({ status, confidence, import_id: importId });
+  console.log(`process-pending-import: ${importId} → ${status} (confidence: ${confidence}, classification: ${docClass})`);
+  return jsonOk({ status, confidence, import_id: importId, doc_classification: docClass });
 });
 
 // ═════════════════════════════════════════════════════════════════
@@ -242,8 +228,7 @@ Deno.serve(async (req: Request) => {
 
 function jsonOk(data: Record<string, unknown>) {
   return new Response(JSON.stringify(data), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
+    status: 200, headers: { "Content-Type": "application/json" },
   });
 }
 
@@ -259,7 +244,6 @@ async function purgeAndSetStatus(
   const update: Record<string, unknown> = {
     status,
     error_code: errorCode,
-    // PURGE: Replace raw content with structured-only data (no text_body/html_body)
     parsed_data: structuredData ?? {},
     updated_at: new Date().toISOString(),
   };
@@ -288,11 +272,10 @@ function stripQuotedThreads(text: string): string {
   const lines = text.split("\n");
   const result: string[] = [];
   for (const line of lines) {
-    // Stop at common reply markers
     if (/^[-]+\s*Original Message\s*[-]+/i.test(line)) break;
     if (/^On .+ wrote:$/i.test(line)) break;
     if (/^From:/i.test(line) && result.length > 5) break;
-    if (/^>{2,}/.test(line)) continue; // skip deeply quoted
+    if (/^>{2,}/.test(line)) continue;
     result.push(line);
   }
   return result.join("\n").trim();
@@ -301,12 +284,16 @@ function stripQuotedThreads(text: string): string {
 function buildSystemPrompt(): string {
   return `You are a travel booking confirmation parser for inbound emails. Extract structured booking details.
 
+FIRST determine if this is a CONFIRMATION (has service dates), a RECEIPT (payment only), or a CHANGE/CANCELLATION.
+Set is_receipt_only accordingly.
+
 BOOKING TYPE CLASSIFICATION:
 - flight: Airline tickets, boarding passes, flight confirmations
 - stay: Hotels, Airbnb, VRBO, vacation rentals
 - car_rental: Rental cars
 - parking: Parking services
 - activity: Tours, excursions, permits, event tickets
+- transport: Train, bus, ferry tickets
 - other: Anything that doesn't fit above
 
 DATETIME RULES:
@@ -335,7 +322,6 @@ function validateAgainstSource(
   const softIssues: string[] = [];
   const bodyUpper = body.toUpperCase();
 
-  // Hard: Airport codes must appear in body
   if (extracted.departure_airport_code) {
     if (!bodyUpper.includes(String(extracted.departure_airport_code))) {
       hardFails.push(`departure_airport_code "${extracted.departure_airport_code}" not found in email body`);
@@ -347,7 +333,6 @@ function validateAgainstSource(
     }
   }
 
-  // Hard: Confirmation number must appear in body
   if (extracted.confirmation_number) {
     const conf = String(extracted.confirmation_number).toUpperCase();
     if (!bodyUpper.includes(conf)) {
@@ -355,20 +340,16 @@ function validateAgainstSource(
     }
   }
 
-  // Hard: Key dates must appear (normalized check)
   for (const field of ["start_datetime", "end_datetime"]) {
     const val = extracted[field] as string | null;
     if (!val) continue;
-    const dateOnly = val.substring(0, 10); // YYYY-MM-DD
-    // Check various formats
-    const found = body.includes(dateOnly) ||
-      bodyContainsDateVariants(body, dateOnly);
+    const dateOnly = val.substring(0, 10);
+    const found = body.includes(dateOnly) || bodyContainsDateVariants(body, dateOnly);
     if (!found) {
       hardFails.push(`${field} date "${dateOnly}" not found in email body`);
     }
   }
 
-  // Hard: Lodging name must appear
   if (extracted.property_name) {
     const prop = String(extracted.property_name).toUpperCase();
     if (!bodyUpper.includes(prop)) {
@@ -376,7 +357,6 @@ function validateAgainstSource(
     }
   }
 
-  // Soft: Missing optional fields
   if (!extracted.total_cost) softIssues.push("missing_cost");
   if (!extracted.confirmation_number) softIssues.push("missing_confirmation");
   if (!extracted.address && !extracted.location_summary) softIssues.push("missing_location");
@@ -385,7 +365,6 @@ function validateAgainstSource(
 }
 
 function bodyContainsDateVariants(body: string, isoDate: string): boolean {
-  // isoDate = "2026-03-07"
   const parts = isoDate.split("-");
   if (parts.length !== 3) return false;
   const [y, m, d] = parts;
@@ -397,13 +376,12 @@ function bodyContainsDateVariants(body: string, isoDate: string): boolean {
   const dayNum = parseInt(d, 10);
   const monthName = months[monthNum] || "";
 
-  // Check: "March 7", "Mar 7", "03/07/2026", "3/7/2026"
   const variants = [
     `${monthName} ${dayNum}`,
     `${monthName.substring(0, 3)} ${dayNum}`,
     `${m}/${d}/${y}`,
     `${monthNum}/${dayNum}/${y}`,
-    `${d}/${m}/${y}`, // DD/MM/YYYY
+    `${d}/${m}/${y}`,
   ];
 
   const bodyUpper = body.toUpperCase();
@@ -417,6 +395,7 @@ function buildSummary(extracted: Record<string, unknown>): string {
   const arr = extracted.arrival_airport_code as string || "";
   const start = extracted.start_datetime as string || "";
   const dateStr = start ? start.substring(0, 10) : "";
+  const docClass = extracted._doc_classification as string || "";
 
   const typeLabel: Record<string, string> = {
     flight: "a flight",
@@ -424,14 +403,18 @@ function buildSummary(extracted: Record<string, unknown>): string {
     car_rental: "a car rental",
     parking: "parking",
     activity: "an activity",
+    transport: "ground transport",
     other: "a booking",
   };
 
+  // Prefix with classification for receipts
+  if (docClass === 'RECEIPT') {
+    return `Receipt: ${vendor || typeLabel[type] || 'payment'}${dateStr ? ` on ${formatDateShort(dateStr)}` : ''}`;
+  }
+
   let summary = `We found ${typeLabel[type] || "a booking"}`;
   if (dateStr) {
-    const d = new Date(dateStr + "T00:00:00");
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    summary += ` on ${monthNames[d.getMonth()]} ${d.getDate()}`;
+    summary += ` on ${formatDateShort(dateStr)}`;
   }
   if (dep && arr) {
     summary += ` — ${dep} → ${arr}`;
@@ -439,4 +422,10 @@ function buildSummary(extracted: Record<string, unknown>): string {
     summary += ` with ${vendor}`;
   }
   return summary;
+}
+
+function formatDateShort(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${monthNames[d.getMonth()]} ${d.getDate()}`;
 }

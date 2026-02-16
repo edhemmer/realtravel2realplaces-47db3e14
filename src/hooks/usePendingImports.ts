@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { isReceiptClassification, getEntityLabel } from '@/lib/parseContract';
 
 export interface PendingImport {
   id: string;
@@ -80,12 +81,18 @@ export function useFileImportToTrip() {
       tripId: string;
       parsedData: Record<string, unknown>;
     }) => {
-      const isReceiptOnly = parsedData._is_receipt_only === true || parsedData._email_classification === 'FLIGHT_RECEIPT';
+      const isReceipt = isReceiptClassification(parsedData);
       
-      if (isReceiptOnly) {
-        // v4.1.0: Receipt items → create expense, not a booking
-        const category = parsedData.booking_type === 'flight' ? 'transport' : 'other';
-        const expenseDate = (parsedData.start_datetime as string)?.substring(0, 10) || new Date().toISOString().split('T')[0];
+      if (isReceipt) {
+        // v4.2.0: Receipt items → create expense, not a booking (all entity types)
+        const entityType = (parsedData.booking_type as string) || 'other';
+        const categoryMap: Record<string, string> = {
+          flight: 'transport', car_rental: 'transport', transport: 'transport',
+          parking: 'parking', activity: 'activity',
+        };
+        const category = categoryMap[entityType] || 'other';
+        const expenseDate = (parsedData.receipt_date as string) || (parsedData.start_datetime as string)?.substring(0, 10) || new Date().toISOString().split('T')[0];
+        const entityLabel = getEntityLabel(entityType);
         
         const { error: expenseError } = await supabase
           .from('expenses')
@@ -93,9 +100,9 @@ export function useFileImportToTrip() {
             trip_id: tripId,
             date: expenseDate,
             category,
-            description: `${parsedData.vendor_name || 'Receipt'} (receipt)`,
+            description: `${parsedData.vendor_name || entityLabel} (receipt)`,
             amount: (parsedData.total_cost as number) || 0,
-            notes: 'Created from email receipt import. Not an itinerary — no timeline entry.',
+            notes: `Created from ${entityLabel.toLowerCase()} receipt import. Not an itinerary — no timeline entry.`,
           });
         
         if (expenseError) throw expenseError;

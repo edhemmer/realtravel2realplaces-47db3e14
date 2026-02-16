@@ -1,8 +1,8 @@
 /**
- * v3.10.14: Parse Booking Image Edge Function
+ * v4.2.0: Parse Booking Image Edge Function
  * 
- * Accepts a base64 image of a flight/stay/car rental confirmation,
- * uses AI vision to extract booking details, and returns draft data.
+ * Uses canonical parse contract for universal classification
+ * and required field enforcement across ALL entity types.
  * 
  * CRITICAL: This endpoint NEVER writes to the database.
  * It returns draft bookings for client-side review before save.
@@ -13,10 +13,15 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { 
   normalizeDatetime, 
-  normalizeReceiptDate, 
   cleanNullStrings,
   hasServiceDates 
 } from "../_shared/datetime-utils.ts";
+import {
+  classifyDocument,
+  enforceRequiredFields,
+  type DocClassification,
+  ENTITY_TYPE_LABELS,
+} from "../_shared/parse-contract.ts";
 
 serve(async (req) => {
   const corsResponse = handleCors(req);
@@ -27,13 +32,8 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ 
-        success: false, data: null,
-        message: "Please sign in to use this feature.",
-        error: 'NOT_AUTHENTICATED'
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+        success: false, data: null, message: "Please sign in to use this feature.", error: 'NOT_AUTHENTICATED'
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
@@ -47,16 +47,10 @@ serve(async (req) => {
     
     if (authError || !user) {
       return new Response(JSON.stringify({ 
-        success: false, data: null,
-        message: "Your session has expired. Please sign in again.",
-        error: 'SESSION_EXPIRED'
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+        success: false, data: null, message: "Your session has expired. Please sign in again.", error: 'SESSION_EXPIRED'
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Parse request body
     let tripId: string;
     let imageBase64: string;
     let typeHint: string;
@@ -68,54 +62,32 @@ serve(async (req) => {
       typeHint = body.typeHint || 'auto';
     } catch {
       return new Response(JSON.stringify({ 
-        success: false, data: null,
-        message: "Invalid request format.",
-        error: 'INVALID_REQUEST'
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+        success: false, data: null, message: "Invalid request format.", error: 'INVALID_REQUEST'
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     if (!tripId || !imageBase64) {
       return new Response(JSON.stringify({ 
-        success: false, data: null,
-        message: "Missing required fields (tripId, imageBase64).",
-        error: 'MISSING_FIELDS'
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+        success: false, data: null, message: "Missing required fields (tripId, imageBase64).", error: 'MISSING_FIELDS'
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Validate trip access (user must have access to this trip)
     const { data: hasAccess } = await supabaseClient
       .rpc('user_has_trip_access', { trip_id: tripId });
 
     if (!hasAccess) {
       return new Response(JSON.stringify({ 
-        success: false, data: null,
-        message: "You don't have access to this trip.",
-        error: 'PERMISSION_DENIED'
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+        success: false, data: null, message: "You don't have access to this trip.", error: 'PERMISSION_DENIED'
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       return new Response(JSON.stringify({ 
-        success: false, data: null,
-        message: "AI parsing is temporarily unavailable.",
-        error: 'AI_UNAVAILABLE'
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+        success: false, data: null, message: "AI parsing is temporarily unavailable.", error: 'AI_UNAVAILABLE'
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Build the booking extraction prompt (reuses parse-booking logic)
     const typeHintInstruction = typeHint === 'flight' 
       ? 'This image is likely a FLIGHT confirmation.' 
       : typeHint === 'stay' 
@@ -130,8 +102,9 @@ ${typeHintInstruction}
 CRITICAL RULES:
 1. If the image is blurry, unreadable, or not a booking confirmation, respond with: readable=false
 2. Extract ONLY data that is clearly visible — never guess or fabricate.
-3. For dates/times, ONLY extract explicitly stated values. If time is missing, omit it.
+3. For dates/times, ONLY extract explicitly stated values.
 4. For multi-leg flights: create ONE booking record with total cost for all legs.
+5. Determine if this is a CONFIRMATION (has service dates) or a RECEIPT (payment only).
 
 BOOKING TYPE CLASSIFICATION:
 - flight: Airline tickets, boarding passes, flight confirmations
@@ -139,9 +112,10 @@ BOOKING TYPE CLASSIFICATION:
 - car_rental: Rental cars
 - activity: Tours, excursions, permits, event tickets
 - transport: Train, bus, ferry tickets
+- parking: Parking reservations
 
-For flights extract: airline, passenger_name, departure_airport_code (IATA), arrival_airport_code (IATA), confirmation_number
-For stays extract: property_name, stay_type (hotel/airbnb/vrbo/other), confirmation_number
+For flights extract: airline, passenger_name, departure_airport_code (IATA), arrival_airport_code (IATA)
+For stays extract: property_name, stay_type (hotel/airbnb/vrbo/other)
 For car rentals extract: rental_company, pickup_location, return_location
 
 Return structured data via the tool call. Use null for fields you cannot determine.`;
@@ -175,12 +149,13 @@ Return structured data via the tool call. Use null for fields you cannot determi
                 parameters: {
                   type: "object",
                   properties: {
-                    readable: { type: "boolean", description: "Whether the image is readable and contains booking info" },
-                    reason: { type: "string", description: "If not readable, why" },
-                    booking_type: { type: "string", enum: ["flight", "stay", "car_rental", "activity", "transport"] },
+                    readable: { type: "boolean" },
+                    reason: { type: "string" },
+                    is_receipt_only: { type: "boolean", description: "True if receipt without service dates" },
+                    booking_type: { type: "string", enum: ["flight", "stay", "car_rental", "activity", "transport", "parking"] },
                     vendor_name: { type: "string" },
-                    start_datetime: { type: "string", description: "ISO 8601 or YYYY-MM-DD. For flights: departure time. For stays: check-in." },
-                    end_datetime: { type: "string", description: "ISO 8601 or YYYY-MM-DD. For flights: arrival. For stays: check-out." },
+                    start_datetime: { type: "string" },
+                    end_datetime: { type: "string" },
                     confirmation_number: { type: "string" },
                     total_cost: { type: "number" },
                     address: { type: "string" },
@@ -192,10 +167,10 @@ Return structured data via the tool call. Use null for fields you cannot determi
                     pickup_location: { type: "string" },
                     return_location: { type: "string" },
                     notes: { type: "string" },
-                    departure_airport_code: { type: "string", description: "3-letter IATA code" },
-                    arrival_airport_code: { type: "string", description: "3-letter IATA code" },
+                    departure_airport_code: { type: "string" },
+                    arrival_airport_code: { type: "string" },
                     location_summary: { type: "string" },
-                    confidence: { type: "number", description: "0-100 confidence score" },
+                    confidence: { type: "number" },
                   },
                   required: ["readable"],
                 },
@@ -208,30 +183,20 @@ Return structured data via the tool call. Use null for fields you cannot determi
     } catch (fetchError) {
       console.error("AI gateway fetch error:", fetchError);
       return new Response(JSON.stringify({ 
-        success: false, data: null,
-        message: "Unable to connect to AI service. Please try again.",
-        error: 'AI_FETCH_ERROR'
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+        success: false, data: null, message: "Unable to connect to AI service. Please try again.", error: 'AI_FETCH_ERROR'
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
-      
       let userMessage = "We couldn't parse this image. Please enter details manually.";
       if (response.status === 429) userMessage = "AI service is busy. Please wait and try again.";
       else if (response.status === 402) userMessage = "AI parsing limit reached. Please enter details manually.";
       
       return new Response(JSON.stringify({ 
-        success: false, data: null, message: userMessage,
-        error: 'AI_ERROR'
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+        success: false, data: null, message: userMessage, error: 'AI_ERROR'
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     let aiResponse;
@@ -239,26 +204,16 @@ Return structured data via the tool call. Use null for fields you cannot determi
       aiResponse = await response.json();
     } catch {
       return new Response(JSON.stringify({ 
-        success: false, data: null,
-        message: "Invalid AI response. Please enter details manually.",
-        error: 'AI_PARSE_ERROR'
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+        success: false, data: null, message: "Invalid AI response. Please enter details manually.", error: 'AI_PARSE_ERROR'
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
     
     if (!toolCall?.function?.arguments) {
       return new Response(JSON.stringify({ 
-        success: false, data: null,
-        message: "AI couldn't extract details from this image.",
-        error: 'NO_DATA'
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+        success: false, data: null, message: "AI couldn't extract details from this image.", error: 'NO_DATA'
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     let parsed;
@@ -266,25 +221,16 @@ Return structured data via the tool call. Use null for fields you cannot determi
       parsed = JSON.parse(toolCall.function.arguments);
     } catch {
       return new Response(JSON.stringify({ 
-        success: false, data: null,
-        message: "AI returned incomplete data.",
-        error: 'PARSE_FAILED'
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+        success: false, data: null, message: "AI returned incomplete data.", error: 'PARSE_FAILED'
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Not readable
     if (!parsed.readable) {
       return new Response(JSON.stringify({ 
         success: false, data: null,
         message: parsed.reason || "Unable to read the image. Please take a clearer photo.",
         error: 'NOT_READABLE'
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Clean up parsed data
@@ -292,7 +238,7 @@ Return structured data via the tool call. Use null for fields you cannot determi
     parsed.start_datetime = normalizeDatetime(parsed.start_datetime);
     parsed.end_datetime = normalizeDatetime(parsed.end_datetime);
 
-    // v3.13.2: Sanitize airport codes — only valid 3-letter IATA codes allowed
+    // Sanitize airport codes
     const IATA_RE = /^[A-Z]{3}$/i;
     if (parsed.departure_airport_code && !IATA_RE.test(parsed.departure_airport_code.trim())) {
       parsed.departure_airport_code = null;
@@ -305,9 +251,15 @@ Return structured data via the tool call. Use null for fields you cannot determi
       parsed.arrival_airport_code = parsed.arrival_airport_code.trim().toUpperCase();
     }
 
-    // Build draft booking array (always return as array for consistency)
+    // ── v4.2.0: CANONICAL CLASSIFICATION ────────────────────────
+    const entityType = parsed.booking_type || 'other';
+    const hasDates = hasServiceDates(parsed);
+    const docClass: DocClassification = classifyDocument(parsed, hasDates);
+    
+    parsed._doc_classification = docClass;
+
     const draftBooking = {
-      booking_type: parsed.booking_type || 'flight',
+      booking_type: entityType,
       vendor_name: parsed.vendor_name || '',
       start_datetime: parsed.start_datetime || null,
       end_datetime: parsed.end_datetime || null,
@@ -330,6 +282,30 @@ Return structured data via the tool call. Use null for fields you cannot determi
     const confidence = parsed.confidence ?? 75;
     const warnings: string[] = [];
 
+    // Receipt handling
+    if (docClass === 'RECEIPT') {
+      const entityLabel = ENTITY_TYPE_LABELS[entityType] || 'Booking';
+      warnings.push(`This appears to be a ${entityLabel.toLowerCase()} receipt, not a confirmation`);
+      
+      return new Response(JSON.stringify({ 
+        success: true, 
+        data: {
+          draftBookings: [draftBooking],
+          confidence,
+          warnings,
+          doc_classification: 'RECEIPT',
+          is_receipt_only: true,
+        },
+        message: `Parsed ${entityLabel.toLowerCase()} receipt from ${draftBooking.vendor_name || 'image'}.`
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // Required field enforcement
+    const issue = enforceRequiredFields(parsed, entityType);
+    if (issue) {
+      warnings.push(issue.actionHint);
+    }
+
     if (!draftBooking.vendor_name) warnings.push('Vendor name not detected');
     if (!draftBooking.start_datetime) warnings.push('Service dates not detected');
     if (!draftBooking.total_cost) warnings.push('Cost not detected');
@@ -341,22 +317,18 @@ Return structured data via the tool call. Use null for fields you cannot determi
         draftBookings: [draftBooking],
         confidence,
         warnings,
+        doc_classification: docClass,
+        is_receipt_only: false,
+        has_issues: !!issue,
+        missing_fields: issue?.missingFields || [],
       },
       message: `Parsed ${draftBooking.booking_type} confirmation${draftBooking.vendor_name ? ` from ${draftBooking.vendor_name}` : ''}.`
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (error) {
     console.error("Parse booking image error:", error);
     return new Response(JSON.stringify({ 
-      success: false, data: null,
-      message: "An unexpected error occurred. Please enter details manually.",
-      error: 'INTERNAL_ERROR'
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+      success: false, data: null, message: "An unexpected error occurred. Please enter details manually.", error: 'INTERNAL_ERROR'
+    }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
