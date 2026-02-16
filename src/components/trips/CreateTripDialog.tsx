@@ -295,8 +295,9 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
+    setParseError('');
 
-    // Check for file drops first (.eml, .msg, .txt)
+    // Check for file drops first (.eml, .msg, .txt, or any readable file)
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
       const file = files[0];
@@ -314,7 +315,8 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
         return;
       }
 
-      if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+      // Read any text-like file
+      if (file.type === 'text/plain' || file.type === 'text/html' || file.name.endsWith('.txt')) {
         const reader = new FileReader();
         reader.onload = async (event) => {
           const text = event.target?.result as string;
@@ -323,15 +325,39 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
         reader.readAsText(file);
         return;
       }
-    }
 
-    // Fallback: plain text drag data
-    const text = e.dataTransfer.getData('text/plain');
-    if (!text) {
-      setParseError('No text content found. Please drag and drop text from your confirmation email or document.');
+      // For unsupported file types (PDF, images, etc.), show helpful message
+      toast.info('File type not supported for drag-and-drop. Please open it, copy the text, and use "Paste Confirmation Text" instead.');
       return;
     }
-    await parseItineraryText(text);
+
+    // Try plain text first, then HTML as fallback (browser drags often have HTML but no plain text)
+    const text = e.dataTransfer.getData('text/plain');
+    if (text) {
+      await parseItineraryText(text);
+      return;
+    }
+
+    const html = e.dataTransfer.getData('text/html');
+    if (html) {
+      // Strip HTML tags to extract text content
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+      const extracted = tempDiv.textContent || tempDiv.innerText || '';
+      if (extracted.trim()) {
+        await parseItineraryText(extracted.trim());
+        return;
+      }
+    }
+
+    // Try text/uri-list as last resort
+    const uri = e.dataTransfer.getData('text/uri-list');
+    if (uri) {
+      toast.info('Links cannot be parsed directly. Please open the confirmation, copy the text, and use "Paste Confirmation Text".');
+      return;
+    }
+
+    setParseError('No text content found. Please open your confirmation email, select the text, and drag it here — or use "Paste Confirmation Text" below.');
   }, [parseItineraryText]);
 
   const handlePasteAndScan = useCallback(async () => {
