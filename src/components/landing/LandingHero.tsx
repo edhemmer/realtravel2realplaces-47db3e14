@@ -22,20 +22,20 @@ export default function LandingHero() {
             <div className="flex items-center gap-3 sm:gap-4 mt-6 sm:mt-8">
               <Link
                 to="/auth?tab=signup"
-                className="landing-btn-primary-hero"
-              >
+                className="landing-btn-primary-hero">
+
                 Start Free
               </Link>
               <a
                 href="#how-it-works"
-                className="landing-btn-secondary-hero"
-              >
+                className="landing-btn-secondary-hero">
+
                 See How It Works
               </a>
             </div>
 
             <p className="landing-trust-line">
-              No credit card · Free forever
+              No credit card
             </p>
           </div>
 
@@ -47,6 +47,6 @@ export default function LandingHero() {
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>);
+
 }
