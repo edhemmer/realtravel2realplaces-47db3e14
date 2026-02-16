@@ -27,7 +27,6 @@ import {
   Zap,
   Navigation,
   Shield,
-  Mail,
   Camera,
   PenLine,
 } from 'lucide-react';
@@ -201,18 +200,14 @@ function FirstTripStep({ onAddTrip, onSkip, isSaving }: { onAddTrip: () => void;
       </div>
 
       {/* Input method chips — Notion-style option tiles */}
-      <div className="grid grid-cols-3 gap-2.5 max-w-sm mx-auto">
-        <div className="p-3 rounded-xl border border-border/40 bg-card text-center space-y-1.5 shadow-sm">
-          <Mail className="w-5 h-5 mx-auto text-primary" />
-          <p className="text-[0.6875rem] font-medium leading-tight">Forward confirmation</p>
-        </div>
-        <div className="p-3 rounded-xl border border-border/40 bg-card text-center space-y-1.5 shadow-sm">
+      <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto">
+        <div className="p-4 rounded-xl border border-border/40 bg-card text-center space-y-2 shadow-sm">
           <Camera className="w-5 h-5 mx-auto text-primary" />
-          <p className="text-[0.6875rem] font-medium leading-tight">Upload screenshot</p>
+          <p className="text-xs font-medium leading-tight">Upload screenshot</p>
         </div>
-        <div className="p-3 rounded-xl border border-border/40 bg-card text-center space-y-1.5 shadow-sm">
+        <div className="p-4 rounded-xl border border-border/40 bg-card text-center space-y-2 shadow-sm">
           <PenLine className="w-5 h-5 mx-auto text-primary" />
-          <p className="text-[0.6875rem] font-medium leading-tight">Enter manually</p>
+          <p className="text-xs font-medium leading-tight">Enter manually</p>
         </div>
       </div>
 

@@ -74,7 +74,7 @@ const HELP_SECTIONS: HelpSection[] = [
             <div className="space-y-2 mt-4">
               <p className="font-medium text-foreground">How it works:</p>
               <ol className="list-decimal list-inside space-y-1.5">
-                <li>Add your Trip — paste a confirmation, upload a screenshot, or enter details manually.</li>
+                <li>Add your Trip — upload a screenshot or enter details manually.</li>
                 <li>Your Timeline is built automatically from your bookings, lodging, and stops.</li>
                 <li>Use NOW to execute your Trip in real time — see what's next, when to leave, and where to go.</li>
               </ol>
@@ -138,7 +138,6 @@ const HELP_SECTIONS: HelpSection[] = [
             <div className="mt-3 space-y-2">
               <p className="font-medium text-foreground">Adding bookings to your Trip:</p>
               <ul className="list-disc list-inside space-y-1">
-                <li><strong>Paste a confirmation email</strong> — the app extracts flight, lodging, and rental details automatically.</li>
                 <li><strong>Upload a screenshot</strong> — confirmation images are parsed for key details.</li>
                 <li><strong>Enter details manually</strong> — add any booking type by filling in the form.</li>
               </ul>
@@ -170,7 +169,7 @@ const HELP_SECTIONS: HelpSection[] = [
           <div className="space-y-2">
             <ol className="list-decimal list-inside space-y-1.5">
               <li>Open your Trip and go to the <strong>Bookings</strong> section.</li>
-              <li>Choose your input method: paste a confirmation email, upload a screenshot, or enter details manually.</li>
+              <li>Choose your input method: upload a screenshot or enter details manually.</li>
               <li>Review the parsed or entered details and save.</li>
             </ol>
             <p className="text-xs text-muted-foreground mt-2">
