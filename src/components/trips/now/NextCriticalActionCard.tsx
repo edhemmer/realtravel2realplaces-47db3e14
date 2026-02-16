@@ -1,8 +1,9 @@
 /**
- * v3.1.0: NextCriticalActionCard
+ * v4.0.0: NextCriticalActionCard
  *
  * Shows the earliest upcoming event with countdown + single primary action.
- * If no upcoming events → "Trip Complete" state.
+ * "Trip Complete" only shown when canonical lifecycle = COMPLETED.
+ * For UPCOMING/PRE_TRIP trips with no events, shows appropriate planning state.
  * Uses canonical next stop engine — no Date() logic.
  */
 
@@ -10,9 +11,10 @@ import { useNextStop, type NextStopEvent } from '@/hooks/useNextStop';
 import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Navigation, Clock, CheckCircle2 } from 'lucide-react';
+import { Navigation, Clock, CheckCircle2, CalendarClock, Sparkles } from 'lucide-react';
 import { resolveMapsFromNextStop, openMapsDestination } from '@/lib/mapsDestination';
 import { getLocalNowString } from '@/lib/canonicalNextStop';
+import { resolveCanonicalLifecycle } from '@/lib/canonicalTimePolicy';
 import { useMemo } from 'react';
 
 interface NextCriticalActionCardProps {
@@ -70,19 +72,67 @@ export function NextCriticalActionCard({ tripId, trip }: NextCriticalActionCardP
   const { state } = useCanonicalTripState(tripId, trip);
   const { nextStop } = useNextStop(state);
 
+  const lifecycle = useMemo(
+    () => resolveCanonicalLifecycle(trip.start_date, trip.end_date),
+    [trip.start_date, trip.end_date]
+  );
+
   const countdown = useMemo(() => {
     if (!nextStop) return null;
     return computeCountdown(nextStop);
   }, [nextStop]);
 
-  // Trip Complete state
+  // No next stop — choose message based on canonical lifecycle
   if (!nextStop) {
+    // Only show "Trip Complete" for COMPLETED lifecycle
+    if (lifecycle.phase === 'COMPLETED') {
+      return (
+        <Card className="border-border/30 bg-muted/20 shadow-none">
+          <CardContent className="py-4 flex flex-col items-center gap-2">
+            <CheckCircle2 className="w-8 h-8 text-success" />
+            <p className="text-sm font-semibold text-foreground">Trip Complete</p>
+            <p className="text-xs text-muted-foreground">No more upcoming events.</p>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    // UPCOMING or PRE_TRIP with no events — show planning state
+    if (lifecycle.phase === 'UPCOMING') {
+      return (
+        <Card className="border-border/30 bg-muted/20 shadow-none">
+          <CardContent className="py-4 flex flex-col items-center gap-2">
+            <CalendarClock className="w-8 h-8 text-blue-500" />
+            <p className="text-sm font-semibold text-foreground">Trip starts in {lifecycle.daysUntilStart} days</p>
+            <p className="text-xs text-muted-foreground">Add bookings to build your timeline.</p>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    if (lifecycle.substate === 'PRE_TRIP') {
+      return (
+        <Card className="border-border/30 bg-muted/20 shadow-none">
+          <CardContent className="py-4 flex flex-col items-center gap-2">
+            <Sparkles className="w-8 h-8 text-primary" />
+            <p className="text-sm font-semibold text-foreground">
+              {lifecycle.daysUntilStart > 0
+                ? `Trip starts in ${lifecycle.daysUntilStart} days`
+                : 'Trip starts today'}
+            </p>
+            <p className="text-xs text-muted-foreground">Add bookings to see your next event.</p>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    // IN_TRIP with no remaining events
     return (
       <Card className="border-border/30 bg-muted/20 shadow-none">
         <CardContent className="py-4 flex flex-col items-center gap-2">
           <CheckCircle2 className="w-8 h-8 text-success" />
-          <p className="text-sm font-semibold text-foreground">Trip Complete</p>
-          <p className="text-xs text-muted-foreground">No more upcoming events.</p>
+          <p className="text-sm font-semibold text-foreground">All caught up</p>
+          <p className="text-xs text-muted-foreground">No more events scheduled.</p>
         </CardContent>
       </Card>
     );
