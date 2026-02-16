@@ -17,6 +17,7 @@ import {
   CanonicalDateRange,
   CanonicalTimelineEvent,
   CanonicalCostSummary,
+  resolveTripDateRange,
 } from '@/lib/canonicalTripState';
 import { 
   WeatherSnapshot, 
@@ -43,7 +44,7 @@ export type {
 };
 
 // Re-export weather helpers
-export { getWeatherForEvent, deriveWeatherPills };
+export { getWeatherForEvent, deriveWeatherPills, resolveTripDateRange };
 
 interface UseCanonicalTripStateResult {
   /** Complete canonical trip state */
