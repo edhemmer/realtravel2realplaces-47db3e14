@@ -80,38 +80,60 @@ export function useFileImportToTrip() {
       tripId: string;
       parsedData: Record<string, unknown>;
     }) => {
-      const bookingType = parsedData.booking_type as string || 'activity';
-      const validTypes = ['flight', 'stay', 'car_rental', 'activity', 'transport'];
-      const finalType = validTypes.includes(bookingType) ? bookingType : 'activity';
+      const isReceiptOnly = parsedData._is_receipt_only === true || parsedData._email_classification === 'FLIGHT_RECEIPT';
+      
+      if (isReceiptOnly) {
+        // v4.1.0: Receipt items → create expense, not a booking
+        const category = parsedData.booking_type === 'flight' ? 'transport' : 'other';
+        const expenseDate = (parsedData.start_datetime as string)?.substring(0, 10) || new Date().toISOString().split('T')[0];
+        
+        const { error: expenseError } = await supabase
+          .from('expenses')
+          .insert({
+            trip_id: tripId,
+            date: expenseDate,
+            category,
+            description: `${parsedData.vendor_name || 'Receipt'} (receipt)`,
+            amount: (parsedData.total_cost as number) || 0,
+            notes: 'Created from email receipt import. Not an itinerary — no timeline entry.',
+          });
+        
+        if (expenseError) throw expenseError;
+      } else {
+        // Standard booking creation
+        const bookingType = parsedData.booking_type as string || 'activity';
+        const validTypes = ['flight', 'stay', 'car_rental', 'activity', 'transport'];
+        const finalType = validTypes.includes(bookingType) ? bookingType : 'activity';
 
-      // Build booking record from parsed data
-      const booking: Record<string, unknown> = {
-        trip_id: tripId,
-        booking_type: finalType,
-        vendor_name: parsedData.vendor_name || 'Imported Booking',
-        start_datetime: parsedData.start_datetime || new Date().toISOString(),
-        end_datetime: parsedData.end_datetime || null,
-        confirmation_number: parsedData.confirmation_number || null,
-        total_cost: parsedData.total_cost || null,
-        address: parsedData.address || null,
-        airline: parsedData.airline || null,
-        passenger_name: parsedData.passenger_name || null,
-        property_name: parsedData.property_name || null,
-        stay_type: parsedData.stay_type || null,
-        rental_company: parsedData.rental_company || null,
-        pickup_location: parsedData.pickup_location || null,
-        return_location: parsedData.return_location || null,
-        departure_airport_code: parsedData.departure_airport_code || null,
-        arrival_airport_code: parsedData.arrival_airport_code || null,
-        location_summary: parsedData.location_summary || null,
-        notes: parsedData.notes || null,
-      };
+        // Build booking record from parsed data
+        const booking: Record<string, unknown> = {
+          trip_id: tripId,
+          booking_type: finalType,
+          vendor_name: parsedData.vendor_name || 'Imported Booking',
+          start_datetime: parsedData.start_datetime || new Date().toISOString(),
+          end_datetime: parsedData.end_datetime || null,
+          confirmation_number: parsedData.confirmation_number || null,
+          total_cost: parsedData.total_cost || null,
+          address: parsedData.address || null,
+          airline: parsedData.airline || null,
+          passenger_name: parsedData.passenger_name || null,
+          property_name: parsedData.property_name || null,
+          stay_type: parsedData.stay_type || null,
+          rental_company: parsedData.rental_company || null,
+          pickup_location: parsedData.pickup_location || null,
+          return_location: parsedData.return_location || null,
+          departure_airport_code: parsedData.departure_airport_code || null,
+          arrival_airport_code: parsedData.arrival_airport_code || null,
+          location_summary: parsedData.location_summary || null,
+          notes: parsedData.notes || null,
+        };
 
-      const { error: bookingError } = await supabase
-        .from('bookings')
-        .insert(booking as any);
+        const { error: bookingError } = await supabase
+          .from('bookings')
+          .insert(booking as any);
 
-      if (bookingError) throw bookingError;
+        if (bookingError) throw bookingError;
+      }
 
       // Mark import as filed
       const { error: updateError } = await supabase
@@ -124,11 +146,12 @@ export function useFileImportToTrip() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-imports'] });
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
-      toast.success('Booking added to trip!');
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      toast.success('Import added to trip!');
     },
     onError: (err: Error) => {
       console.error('File import error:', err);
-      toast.error('Failed to add booking. Please try again.');
+      toast.error('Failed to add import. Please try again.');
     },
   });
 }

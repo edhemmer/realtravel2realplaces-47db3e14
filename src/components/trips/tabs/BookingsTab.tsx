@@ -332,12 +332,17 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
         
         // Check if this is a receipt-only upload (no service dates)
         if (data.is_receipt_only === true) {
+          // v4.1.0: Distinguish flight receipts from generic receipts
+          const isFlightReceipt = parsed._email_classification === 'FLIGHT_RECEIPT';
+          
           // Create expense instead of booking
           const expenseCreated = await createExpenseFromReceipt(parsed);
           
           if (expenseCreated) {
-            toast.info('Receipt processed successfully!', {
-              description: `This was treated as a receipt only. $${parsed.total_cost?.toFixed(2) || '0.00'} expense created for ${parsed.vendor_name || 'Unknown vendor'}. No booking was added to your timeline. To add dates and timeline entries, please upload the full booking confirmation.`,
+            toast.info(isFlightReceipt ? 'Flight receipt processed' : 'Receipt processed successfully!', {
+              description: isFlightReceipt
+                ? `This is a payment receipt, not a flight itinerary. $${parsed.total_cost?.toFixed(2) || '0.00'} expense created for ${parsed.vendor_name || 'Unknown airline'}. No flight was added to your timeline. To add flight details, upload the full booking confirmation with itinerary.`
+                : `This was treated as a receipt only. $${parsed.total_cost?.toFixed(2) || '0.00'} expense created for ${parsed.vendor_name || 'Unknown vendor'}. No booking was added to your timeline. To add dates and timeline entries, please upload the full booking confirmation.`,
               duration: 8000,
             });
           } else {
@@ -365,6 +370,24 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
         
         // Validate dates before applying
         const dateValidation = validateBookingDates(parsed.start_datetime, parsed.end_datetime);
+        
+        // v4.1.0: Surface missing required fields for flight confirmations
+        if (data.has_issues && data.missing_fields) {
+          const missingLabels = (data.missing_fields as string[]).map((f: string) => {
+            switch (f) {
+              case 'departure_airport_code': return 'departure airport';
+              case 'arrival_airport_code': return 'arrival airport';
+              case 'departure_datetime': return 'departure time';
+              case 'arrival_datetime': return 'arrival time';
+              default: return f.replace(/_/g, ' ');
+            }
+          });
+          toast.warning('Flight details incomplete', {
+            description: `Missing: ${missingLabels.join(', ')}. Please complete these fields below before saving.`,
+            duration: 10000,
+          });
+          setTimeIsEstimated(true);
+        }
         
         // v2.2.12: Run ConfirmationTimeValidator on all booking-derived events
         if (shouldValidateBookingType(parsed.booking_type) && dateValidation.valid && dateValidation.startDt) {
@@ -457,10 +480,19 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
         // v2.1.3: Check if time was estimated (defaulted or inferred)
         const hasExplicitTimeInfo = parsed.start_datetime && /T\d{2}:\d{2}/.test(parsed.start_datetime);
         setTimeIsEstimated(!hasExplicitTimeInfo);
-        toast.success(data.message || 'Booking parsed! Review and save.', {
-          description: 'You can edit times, names, or locations after import.',
-          duration: 5000,
-        });
+        
+        // v4.1.0: Adjust success message based on issues
+        if (data.has_issues) {
+          toast.warning(data.message || 'Flight parsed with missing fields. Please complete before saving.', {
+            description: 'Review the highlighted fields below.',
+            duration: 6000,
+          });
+        } else {
+          toast.success(data.message || 'Booking parsed! Review and save.', {
+            description: 'You can edit times, names, or locations after import.',
+            duration: 5000,
+          });
+        }
       } else {
         // v2.1.30: Show clearer failure message with edit CTA
         toast.warning("We couldn't fully read this confirmation.", {
