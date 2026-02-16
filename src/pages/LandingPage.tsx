@@ -1,14 +1,13 @@
 import { Helmet } from 'react-helmet-async';
 import LandingHeader from '@/components/landing/LandingHeader';
 import LandingHero from '@/components/landing/LandingHero';
-import LandingSocialProof from '@/components/landing/LandingSocialProof';
-import LandingProblemSolution from '@/components/landing/LandingProblemSolution';
-import LandingHowItWorks from '@/components/landing/LandingHowItWorks';
-import LandingComparison from '@/components/landing/LandingComparison';
+import LandingPain from '@/components/landing/LandingPain';
+import LandingSolution from '@/components/landing/LandingSolution';
+import LandingWhyDuringTrip from '@/components/landing/LandingWhyDuringTrip';
+import LandingMovingParts from '@/components/landing/LandingMovingParts';
 import LandingWhoItsFor from '@/components/landing/LandingWhoItsFor';
-import LandingPlanTiers from '@/components/landing/LandingPlanTiers';
 import LandingFAQ from '@/components/landing/LandingFAQ';
-import LandingPricing from '@/components/landing/LandingPricing';
+import LandingFinalCTA from '@/components/landing/LandingFinalCTA';
 import LandingFooter from '@/components/landing/LandingFooter';
 import '@/styles/landing.css';
 
@@ -16,25 +15,25 @@ export default function LandingPage() {
   return (
     <>
       <Helmet>
-        <title>Real Travel 2 Real Places — Know Exactly Where to Be and When</title>
+        <title>Real Travel 2 Real Places | Organize and Manage Your Travel Plans</title>
         <meta
           name="description"
-          content="The real-time travel command center for frequent travelers. Track flights, stays, expenses, and logistics — all in one place. Free to start."
+          content="Organize flights, lodging, drives, packing, and expenses in one structured timeline. A better way to manage the chaos of travel."
         />
-        <meta name="keywords" content="travel management app, trip organizer, itinerary tracker, expense tracking, travel command center, TripIt alternative" />
+        <meta name="keywords" content="travel planning app, trip organizer app, travel itinerary organizer, trip management app, organize travel plans, travel timeline app, travel dashboard" />
         <link rel="canonical" href="https://realtravel2realplaces.lovable.app" />
 
         {/* Open Graph */}
-        <meta property="og:title" content="Real Travel 2 Real Places — Travel Command Center" />
-        <meta property="og:description" content="Know exactly where to be and when. Track flights, stays, expenses, and logistics in real-time." />
+        <meta property="og:title" content="Real Travel 2 Real Places | Organize and Manage Your Travel Plans" />
+        <meta property="og:description" content="Organize flights, lodging, drives, packing, and expenses in one structured timeline. A better way to manage the chaos of travel." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://realtravel2realplaces.lovable.app" />
         <meta property="og:site_name" content="Real Travel 2 Real Places" />
 
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Real Travel 2 Real Places — Travel Command Center" />
-        <meta name="twitter:description" content="Know exactly where to be and when. The real-time travel command center." />
+        <meta name="twitter:title" content="Real Travel 2 Real Places | Organize and Manage Your Travel Plans" />
+        <meta name="twitter:description" content="Organize flights, lodging, drives, packing, and expenses in one structured timeline. A better way to manage the chaos of travel." />
       </Helmet>
 
       <div className="landing-page">
@@ -44,14 +43,13 @@ export default function LandingPage() {
         <LandingHeader />
         <main>
           <LandingHero />
-          <LandingSocialProof />
-          <LandingProblemSolution />
-          <LandingHowItWorks />
-          <LandingComparison />
+          <LandingPain />
+          <LandingSolution />
+          <LandingWhyDuringTrip />
+          <LandingMovingParts />
           <LandingWhoItsFor />
-          <LandingPlanTiers />
           <LandingFAQ />
-          <LandingPricing />
+          <LandingFinalCTA />
         </main>
         <LandingFooter />
       </div>
