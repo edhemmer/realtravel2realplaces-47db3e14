@@ -11,7 +11,7 @@ export default function LandingHero() {
             <h1 className="landing-hero-headline">
               A better way to manage
               <br />
-              <span className="text-[hsl(var(--landing-accent))]">the Travel ch.</span>
+              <span className="text-[hsl(var(--landing-accent))]">the Travel chaos.</span>
             </h1>
 
             <p className="landing-hero-subtext">
