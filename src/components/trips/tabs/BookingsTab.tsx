@@ -1367,6 +1367,11 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
           {/* Parsing Zone - Only show for new bookings (mirrors Create Trip) */}
           {!editingBooking && (
             <div className="space-y-3">
+              {/* v3.9.7: Confirmation-only guidance */}
+              <p className="text-xs text-muted-foreground">
+                Upload confirmation emails only. Do not upload receipts, invoices, or credit card statements.
+              </p>
+
               {/* Drop Zone - Desktop optimized */}
               <div
                 ref={dropZoneRef}
