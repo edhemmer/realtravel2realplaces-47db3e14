@@ -18,6 +18,8 @@ import {
   normalizeBatchDatetimes,
   extractDatePortion,
   cleanNullStrings,
+  extractRawTimeToken,
+  tryDeriveIsoTime,
 } from "../_shared/datetime-utils.ts";
 import {
   classifyDocument,
@@ -273,6 +275,14 @@ IMPORTANT: Each flight leg MUST be a separate booking in the array.`;
         
         // Batch normalize booking datetimes
         if (Array.isArray(parsed.bookings)) {
+          // v4.4.0: Extract raw time tokens BEFORE batch normalization
+          for (const booking of parsed.bookings) {
+            booking.rawStartTimeText = extractRawTimeToken(booking.start_datetime) || null;
+            booking.rawEndTimeText = extractRawTimeToken(booking.end_datetime) || null;
+            booking.rawStartDateText = booking.start_datetime ? String(booking.start_datetime).substring(0, 10) : null;
+            booking.rawEndDateText = booking.end_datetime ? String(booking.end_datetime).substring(0, 10) : null;
+          }
+          
           parsed.bookings = normalizeBatchDatetimes(
             parsed.bookings,
             ['start_datetime', 'end_datetime']
@@ -309,14 +319,49 @@ IMPORTANT: Each flight leg MUST be a separate booking in the array.`;
             
             booking._doc_classification = docClass;
             
+            // v4.4.0: Try to recover machine time from raw tokens after normalization
+            const bookingIssues: ParseIssue[] = [];
+            if (booking.rawStartTimeText && booking.start_datetime && !String(booking.start_datetime).includes('T')) {
+              const derived = tryDeriveIsoTime(booking.rawStartTimeText as string);
+              if (derived) {
+                booking.start_datetime = `${booking.start_datetime}T${derived}:00`;
+              } else {
+                bookingIssues.push({
+                  issueType: 'TIME_DERIVATION_FAILED',
+                  entityType,
+                  missingFields: [],
+                  actionHint: `Could not parse time "${booking.rawStartTimeText}". The raw time is preserved for display.`,
+                  rawValue: booking.rawStartTimeText as string,
+                  fieldPath: 'start_datetime',
+                });
+              }
+            }
+            if (booking.rawEndTimeText && booking.end_datetime && !String(booking.end_datetime).includes('T')) {
+              const derived = tryDeriveIsoTime(booking.rawEndTimeText as string);
+              if (derived) {
+                booking.end_datetime = `${booking.end_datetime}T${derived}:00`;
+              } else {
+                bookingIssues.push({
+                  issueType: 'TIME_DERIVATION_FAILED',
+                  entityType,
+                  missingFields: [],
+                  actionHint: `Could not parse time "${booking.rawEndTimeText}". The raw time is preserved for display.`,
+                  rawValue: booking.rawEndTimeText as string,
+                  fieldPath: 'end_datetime',
+                });
+              }
+            }
+            
             if (docClass === 'RECEIPT') {
               booking._is_receipt_only = true;
               receipts.push(booking);
             } else {
               const issue = enforceRequiredFields(booking, entityType);
-              if (issue) {
-                booking._parse_issues = [issue];
-                parseIssues.push(issue);
+              const allIssues = [...bookingIssues];
+              if (issue) allIssues.push(issue);
+              if (allIssues.length > 0) {
+                booking._parse_issues = allIssues;
+                parseIssues.push(...allIssues);
               }
               validBookings.push(booking);
             }

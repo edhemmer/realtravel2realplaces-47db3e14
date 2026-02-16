@@ -26,6 +26,12 @@
    receipt_date: string | null;
    address: string | null;
    
+   // Raw time preservation (v4.4.0) — verbatim tokens from source
+   rawStartTimeText: string | null;
+   rawEndTimeText: string | null;
+   rawStartDateText: string | null;
+   rawEndDateText: string | null;
+   
    // Flight-specific
    airline: string | null;
    passenger_name: string | null;
@@ -100,6 +106,12 @@
    confirmation_number: string | null;
    total_cost: number | null;
    address: string | null;
+   
+   // Raw time preservation (v4.4.0)
+   rawStartTimeText: string | null;
+   rawEndTimeText: string | null;
+   rawStartDateText: string | null;
+   rawEndDateText: string | null;
    airline: string | null;
    passenger_name: string | null;
    property_name: string | null;

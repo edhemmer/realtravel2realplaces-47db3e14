@@ -23,8 +23,10 @@
  *   isAfterNow('10:00', 'bad') => false
  */
 
-// 24h pattern: HH:MM (strict 2-digit hour)
+// 24h pattern: HH:MM (strict 2-digit hour) or HH.MM or HHhMM
 const RE_24H = /^(\d{1,2}):(\d{2})$/;
+const RE_24H_DOT = /^(\d{1,2})\.(\d{2})$/;
+const RE_24H_H = /^(\d{1,2})[hH](\d{2})$/;
 
 // 12h pattern: H:MM AM/PM
 const RE_12H = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i;
@@ -34,7 +36,7 @@ const RE_12H = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i;
  */
 export function isTimeOnlyString(timeStr: unknown): timeStr is string {
   if (typeof timeStr !== 'string' || timeStr.length === 0) return false;
-  return RE_24H.test(timeStr) || RE_12H.test(timeStr);
+  return RE_24H.test(timeStr) || RE_24H_DOT.test(timeStr) || RE_24H_H.test(timeStr) || RE_12H.test(timeStr);
 }
 
 /**
@@ -61,11 +63,29 @@ export function timeToMinutes(timeStr: string): number | null {
     return h * 60 + m;
   }
 
-  // Try 24h
+  // Try 24h colon
   const match24 = RE_24H.exec(timeStr);
   if (match24) {
     const h = parseInt(match24[1], 10);
     const m = parseInt(match24[2], 10);
+    if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+    return h * 60 + m;
+  }
+
+  // Try 24h dot (e.g., "23.10")
+  const matchDot = RE_24H_DOT.exec(timeStr);
+  if (matchDot) {
+    const h = parseInt(matchDot[1], 10);
+    const m = parseInt(matchDot[2], 10);
+    if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+    return h * 60 + m;
+  }
+
+  // Try 24h h-separator (e.g., "23h10")
+  const matchH = RE_24H_H.exec(timeStr);
+  if (matchH) {
+    const h = parseInt(matchH[1], 10);
+    const m = parseInt(matchH[2], 10);
     if (h < 0 || h > 23 || m < 0 || m > 59) return null;
     return h * 60 + m;
   }

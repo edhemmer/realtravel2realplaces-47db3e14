@@ -20,7 +20,9 @@ import {
   normalizeDatetime, 
   normalizeReceiptDate, 
   cleanNullStrings,
-  hasServiceDates 
+  hasServiceDates,
+  extractRawTimeToken,
+  tryDeriveIsoTime,
 } from "../_shared/datetime-utils.ts";
 import {
   classifyDocument,
@@ -324,11 +326,52 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
           parsed.arrival_airport_code = parsed.arrival_airport_code.trim().toUpperCase();
         }
         
-        // Normalize datetimes
+        // v4.4.0: Extract raw time tokens BEFORE normalization
+        parsed.rawStartTimeText = extractRawTimeToken(parsed.start_datetime) || null;
+        parsed.rawEndTimeText = extractRawTimeToken(parsed.end_datetime) || null;
+        parsed.rawStartDateText = parsed.start_datetime ? String(parsed.start_datetime).substring(0, 10) : null;
+        parsed.rawEndDateText = parsed.end_datetime ? String(parsed.end_datetime).substring(0, 10) : null;
+        
+        // Normalize datetimes (never throws)
         parsed.start_datetime = normalizeDatetime(parsed.start_datetime);
         parsed.end_datetime = normalizeDatetime(parsed.end_datetime);
         parsed.receipt_date = normalizeReceiptDate(parsed.receipt_date);
         
+        // v4.4.0: If raw time token exists but normalization lost time, try derive
+        const parseIssues: ParseIssue[] = [];
+        if (parsed.rawStartTimeText && parsed.start_datetime && !parsed.start_datetime.includes('T')) {
+          const derived = tryDeriveIsoTime(parsed.rawStartTimeText);
+          if (derived) {
+            parsed.start_datetime = `${parsed.start_datetime}T${derived}:00`;
+          } else {
+            parseIssues.push({
+              issueType: 'TIME_DERIVATION_FAILED',
+              entityType: parsed.booking_type || 'other',
+              missingFields: [],
+              actionHint: `Could not parse time "${parsed.rawStartTimeText}". The raw time is preserved for display.`,
+              rawValue: parsed.rawStartTimeText,
+              fieldPath: 'start_datetime',
+            });
+          }
+        }
+        if (parsed.rawEndTimeText && parsed.end_datetime && !parsed.end_datetime.includes('T')) {
+          const derived = tryDeriveIsoTime(parsed.rawEndTimeText);
+          if (derived) {
+            parsed.end_datetime = `${parsed.end_datetime}T${derived}:00`;
+          } else {
+            parseIssues.push({
+              issueType: 'TIME_DERIVATION_FAILED',
+              entityType: parsed.booking_type || 'other',
+              missingFields: [],
+              actionHint: `Could not parse time "${parsed.rawEndTimeText}". The raw time is preserved for display.`,
+              rawValue: parsed.rawEndTimeText,
+              fieldPath: 'end_datetime',
+            });
+          }
+        }
+        if (parseIssues.length > 0) {
+          parsed._parse_issues = [...(parsed._parse_issues || []), ...parseIssues];
+        }
         // ── v4.2.0: CANONICAL CLASSIFICATION ────────────────────────
         const entityType = parsed.booking_type as string || 'other';
         const hasDates = hasServiceDates(parsed);
