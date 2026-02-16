@@ -11,7 +11,7 @@ export default function LandingHero() {
             <h1 className="landing-hero-headline">
               Know exactly where to be
               <br />
-              <span className="landing-hero-headline-accent">and when.</span>
+              <span className="landing-hero-headline-accent">when.</span>
             </h1>
 
             <p className="landing-hero-subtext">
