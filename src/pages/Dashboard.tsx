@@ -9,10 +9,11 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTrips, useDeleteTrip } from '@/hooks/useTrips';
 import { useSharedTrips, SharedTrip } from '@/hooks/useSharedTrips';
+import { useRemoveTripMembership } from '@/hooks/useTripMembers';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, MapPin, Calendar, Plane, Trash2, Users, ChevronRight, DollarSign, Compass, Radio } from 'lucide-react';
+import { Plus, MapPin, Calendar, Plane, Trash2, Users, ChevronRight, DollarSign, Compass, Radio, UserMinus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatTripDateRange } from '@/lib/displayFormats';
 import { getTodayDateOnly } from '@/lib/canonicalTimePolicy';
@@ -39,9 +40,11 @@ export default function Dashboard() {
     isLoading: sharedLoading
   } = useSharedTrips();
   const deleteTrip = useDeleteTrip();
+  const removeMembership = useRemoveTripMembership();
   const { isPro } = useAccess();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [tripToDelete, setTripToDelete] = useState<string | null>(null);
+  const [tripToRemove, setTripToRemove] = useState<string | null>(null);
 
   // v2.3.10: Auto-open create trip dialog if routed from WelcomeChoice
   useEffect(() => {
@@ -58,6 +61,14 @@ export default function Dashboard() {
       setTripToDelete(null);
     }
   }, [tripToDelete, deleteTrip]);
+
+  const handleRemoveMembership = useCallback(() => {
+    if (tripToRemove) {
+      removeMembership.mutate({ tripId: tripToRemove });
+      setTripToRemove(null);
+    }
+  }, [tripToRemove, removeMembership]);
+  
   
   const handleNavigate = useCallback((id: string) => {
     navigate(`/trip/${id}`);
@@ -65,6 +76,10 @@ export default function Dashboard() {
   
   const handleRequestDelete = useCallback((id: string) => {
     setTripToDelete(id);
+  }, []);
+
+  const handleRequestRemove = useCallback((id: string) => {
+    setTripToRemove(id);
   }, []);
 
   // v3.9.3: Canonical active trip resolver — consumption only
@@ -205,6 +220,7 @@ export default function Dashboard() {
                     isPro={isPro}
                     onDelete={handleRequestDelete}
                     onNavigate={handleNavigate}
+                    onRemove={handleRequestRemove}
                   />
                 </FadeInItem>
               ))}
@@ -261,6 +277,24 @@ export default function Dashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* v3.9.8: Remove shared trip membership confirm */}
+      <AlertDialog open={!!tripToRemove} onOpenChange={() => setTripToRemove(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove from My Trips</AlertDialogTitle>
+            <AlertDialogDescription>
+              Remove this shared trip from your account? You can be re-invited later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRemoveMembership}>
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 }
@@ -275,6 +309,7 @@ const TripCard = React.memo(function TripCard({
   isActive = false,
   onDelete,
   onNavigate,
+  onRemove,
 }: {
   trip: Trip | SharedTrip;
   isShared?: boolean;
@@ -282,6 +317,7 @@ const TripCard = React.memo(function TripCard({
   isActive?: boolean;
   onDelete: (id: string) => void;
   onNavigate: (id: string) => void;
+  onRemove?: (id: string) => void;
 }) {
   const { cardClassName, isLocked } = getTripCardLifecycleStyles(trip as Trip, isPro);
   const tripState = (trip as Trip).trip_state || 'active';
@@ -297,6 +333,11 @@ const TripCard = React.memo(function TripCard({
     e.stopPropagation();
     onDelete(trip.id);
   }, [onDelete, trip.id]);
+
+  const handleRemoveClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onRemove?.(trip.id);
+  }, [onRemove, trip.id]);
 
   const pastTripStyles = isPastTrip ? 'opacity-60' : '';
   const activeBorder = isActive ? 'border-success/50 ring-1 ring-success/20' : '';
@@ -357,6 +398,16 @@ const TripCard = React.memo(function TripCard({
               className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
             >
               <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
+          {isShared && onRemove && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleRemoveClick} 
+              className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+            >
+              <UserMinus className="w-4 h-4" />
             </Button>
           )}
         </div>
