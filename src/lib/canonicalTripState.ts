@@ -180,54 +180,88 @@ export interface CanonicalTripState {
 // ============================================================================
 
 /**
- * Calculate canonical date range for a trip
- * 
- * v2.2.2 RULES (extend-only, never shrink):
- * 1. Start with the trip's manual dates as the baseline
- * 2. Collect ALL booking dates (flights, stays, rentals, activities, transport)
- * 3. Extend the range outward if any booking falls outside the manual dates
- * 4. Never shrink below the manual trip dates
+ * v3.10.0: Calculate canonical date range for a trip.
+ *
+ * RULES — Explicit Confirmation Dates Only:
+ * 1. Collect explicit dates from ALL confirmation entities:
+ *    flights, lodging, rentals, transport, parking, engagements/tours.
+ * 2. If confirmation dates exist:
+ *    startDate = earliest explicit date, endDate = latest explicit date.
+ *    Anchor (trip manual dates) may EXTEND the range outward but NEVER
+ *    shrink or replace it.
+ * 3. If ZERO confirmation dates exist → use anchor as fallback.
+ *
+ * Hard rules:
+ * - No math based on times
+ * - No timezone conversions
+ * - No inferred next-day logic
+ * - If an entity only has one explicit date, it participates normally
+ * - If arrival date not explicitly provided, do not derive one
  */
 export function calculateCanonicalDateRange(
   trip: Trip,
-  bookings: Booking[]
+  bookings: Booking[],
+  parkingList?: Parking[],
+  engagementEvents?: TripEvent[]
 ): CanonicalDateRange {
-  // v3.11.7: Pure string-based date range — no startOfDay/endOfDay/Date objects
-  let effectiveStartStr = trip.start_date;
-  let effectiveEndStr = trip.end_date;
   const hasFlights = bookings.some(b => b.booking_type === 'flight');
-  
-  // Collect ALL booking date strings (every type contributes to the outer bounds)
-  if (bookings.length > 0) {
-    const allDateStrings: string[] = [];
-    
-    bookings.forEach(booking => {
-      const startDateStr = extractDateFromDatetime(booking.start_datetime);
-      if (startDateStr) allDateStrings.push(startDateStr);
-      
-      if (booking.end_datetime) {
-        const endDateStr = extractDateFromDatetime(booking.end_datetime);
-        if (endDateStr) allDateStrings.push(endDateStr);
+
+  // 1. Collect ALL explicit confirmation dates (string-only, no Date())
+  const confirmationDates: string[] = [];
+
+  bookings.forEach(booking => {
+    const s = extractDateFromDatetime(booking.start_datetime);
+    if (s) confirmationDates.push(s);
+    if (booking.end_datetime) {
+      const e = extractDateFromDatetime(booking.end_datetime);
+      if (e) confirmationDates.push(e);
+    }
+  });
+
+  if (parkingList) {
+    parkingList.forEach(p => {
+      const s = extractDateFromDatetime(p.start_local_datetime || p.start_datetime);
+      if (s) confirmationDates.push(s);
+      const endStr = p.end_local_datetime || p.end_datetime;
+      if (endStr) {
+        const e = extractDateFromDatetime(endStr);
+        if (e) confirmationDates.push(e);
       }
     });
-    
-    if (allDateStrings.length > 0) {
-      allDateStrings.sort(); // YYYY-MM-DD sorts lexicographically
-      const minStr = allDateStrings[0];
-      const maxStr = allDateStrings[allDateStrings.length - 1];
-      
-      // Only extend outward, never shrink (string comparison)
-      if (minStr < effectiveStartStr) effectiveStartStr = minStr;
-      if (maxStr > effectiveEndStr) effectiveEndStr = maxStr;
-    }
   }
-  
+
+  if (engagementEvents) {
+    engagementEvents.forEach(evt => {
+      const d = extractDateFromDatetime(evt.event_datetime);
+      if (d) confirmationDates.push(d);
+    });
+  }
+
+  // 2. Determine effective range
+  let effectiveStartStr: string;
+  let effectiveEndStr: string;
+
+  if (confirmationDates.length > 0) {
+    // Confirmation dates define the base range
+    confirmationDates.sort(); // YYYY-MM-DD lexicographic
+    effectiveStartStr = confirmationDates[0];
+    effectiveEndStr = confirmationDates[confirmationDates.length - 1];
+
+    // Anchor may extend only, never shrink or replace
+    if (trip.start_date < effectiveStartStr) effectiveStartStr = trip.start_date;
+    if (trip.end_date > effectiveEndStr) effectiveEndStr = trip.end_date;
+  } else {
+    // Zero confirmation dates → anchor fallback
+    effectiveStartStr = trip.start_date;
+    effectiveEndStr = trip.end_date;
+  }
+
   return {
     startDate: parseDateAtNoon(effectiveStartStr),
     endDate: parseDateAtNoon(effectiveEndStr),
     isFlightAnchored: hasFlights,
-    startDateStr: trip.start_date,
-    endDateStr: trip.end_date,
+    startDateStr: effectiveStartStr,
+    endDateStr: effectiveEndStr,
   };
 }
 
@@ -711,8 +745,8 @@ export function getCanonicalTripState(
   // v2.2.10: Resolve destination timezone for non-flight booking events
   const destTz = resolveDestinationTimezone(trip.destination_state, trip.destination_country);
   
-  // Calculate date range
-  const dateRange = calculateCanonicalDateRange(trip, bookings);
+  // v3.10.0: Pass parking + engagements so their explicit dates contribute to range
+  const dateRange = calculateCanonicalDateRange(trip, bookings, parkingList, engagementEvents);
   
   // Build timeline events (pass destination timezone for non-flight events)
   // v2.2.5: Include engagement events from canonical trip_events stream
@@ -854,6 +888,23 @@ export function validateEventVisibilityContract(
     engagementsRepresented,
     totalEvents: state.timelineEvents.length,
   };
+}
+
+// ============================================================================
+// CANONICAL ACCESSOR (v3.10.0)
+// ============================================================================
+
+/**
+ * v3.10.0: Canonical accessor for trip date range from a computed state.
+ *
+ * All screens that need the trip time frame MUST call this function (or read
+ * state.dateRange) rather than deriving dates from trip.start_date / trip.end_date.
+ *
+ * @param state - A previously computed CanonicalTripState
+ * @returns The confirmation-derived CanonicalDateRange
+ */
+export function resolveTripDateRange(state: CanonicalTripState): CanonicalDateRange {
+  return state.dateRange;
 }
 
 // ============================================================================
