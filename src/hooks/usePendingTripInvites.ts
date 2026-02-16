@@ -40,43 +40,19 @@ export function usePendingTripInvites() {
   return useQuery({
     queryKey: ['pending-trip-invites', user?.id],
     queryFn: async (): Promise<PendingTripInvite[]> => {
-      if (!user?.email) return [];
+      if (!user?.id) return [];
 
-      // Fetch pending invites for current user by email (RLS enforced)
-      const { data: invites, error } = await supabase
-        .from('trip_invites')
-        .select('*')
-        .eq('status', 'pending')
-        .gt('expires_at', new Date().toISOString())
-        .ilike('invitee_email', user.email)
-        .order('created_at', { ascending: false });
+      // Use SECURITY DEFINER RPC to get enriched invites (bypasses profile/trip RLS)
+      const { data, error } = await supabase.rpc('get_my_pending_invites');
 
       if (error) {
         console.error('Failed to fetch pending invites:', error);
         return [];
       }
 
-      if (!invites || invites.length === 0) return [];
+      if (!data || data.length === 0) return [];
 
-      // Enrich with trip names and inviter display names
-      const tripIds = [...new Set(invites.map(i => i.trip_id))];
-      const inviterIds = [...new Set(invites.map(i => i.inviter_user_id))];
-
-      const [tripsResult, profilesResult] = await Promise.all([
-        supabase.from('trips').select('id, name').in('id', tripIds),
-        supabase.from('profiles').select('user_id, display_name, first_name, last_name').in('user_id', inviterIds),
-      ]);
-
-      const tripMap = new Map<string, string>();
-      tripsResult.data?.forEach(t => tripMap.set(t.id, t.name));
-
-      const profileMap = new Map<string, string>();
-      profilesResult.data?.forEach(p => {
-        const name = p.display_name || [p.first_name, p.last_name].filter(Boolean).join(' ') || null;
-        if (name) profileMap.set(p.user_id, name);
-      });
-
-      return invites.map(inv => ({
+      return (data as any[]).map(inv => ({
         id: inv.id,
         trip_id: inv.trip_id,
         inviter_user_id: inv.inviter_user_id,
@@ -86,11 +62,11 @@ export function usePendingTripInvites() {
         can_stay: inv.can_stay,
         expires_at: inv.expires_at,
         created_at: inv.created_at,
-        trip_name: tripMap.get(inv.trip_id) || null,
-        inviter_display_name: profileMap.get(inv.inviter_user_id) || null,
+        trip_name: inv.trip_name || null,
+        inviter_display_name: inv.inviter_display_name || null,
       }));
     },
-    enabled: !!user?.email,
+    enabled: !!user?.id,
     refetchInterval: 60_000,
   });
 }
