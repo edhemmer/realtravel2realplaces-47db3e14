@@ -496,40 +496,52 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
     e.stopPropagation();
     setIsDragging(false);
 
-    // v2.1.2: Check for email files (.eml, .msg) first
+    const MAX_BATCH = 5;
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
-      const file = files[0];
-      
-      if (isEmailFile(file.name)) {
-        // Extract email body from .eml/.msg file
-        setIsParsing(true);
-        toast.info('Extracting email content...');
-        
-        const result = await extractEmailBody(file);
-        
-        if (!result.success) {
-          setIsParsing(false);
-          toast.warning(result.error || "This email format couldn't be read automatically. Please open it and copy/paste the confirmation text instead.");
-          return;
+      // Collect email files
+      const emailFiles: File[] = [];
+      let nonEmailFile: File | null = null;
+      for (let i = 0; i < files.length; i++) {
+        if (isEmailFile(files[i].name)) {
+          emailFiles.push(files[i]);
+        } else if (!nonEmailFile) {
+          nonEmailFile = files[i];
         }
-        
-        // Parse the extracted email body text with 'email' source
-        await parseBookingText(result.body, 'email');
+      }
+
+      // Multi-email batch processing
+      if (emailFiles.length > 0) {
+        let batch = emailFiles;
+        if (batch.length > MAX_BATCH) {
+          batch = batch.slice(0, MAX_BATCH);
+          toast.info('You can upload up to 5 emails at a time.', { duration: 4000 });
+        }
+
+        setIsParsing(true);
+        for (let i = 0; i < batch.length; i++) {
+          const result = await extractEmailBody(batch[i]);
+          if (result.success && result.body) {
+            await parseBookingText(result.body, 'email');
+          }
+        }
+        setIsParsing(false);
         return;
       }
-      
-      // For non-email files, try to read as text
-      if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-          const text = event.target?.result as string;
-          if (text) {
-            await parseBookingText(text, 'pasted_text');
-          }
-        };
-        reader.readAsText(file);
-        return;
+
+      // Single non-email file
+      if (nonEmailFile) {
+        if (nonEmailFile.type === 'text/plain' || nonEmailFile.name.endsWith('.txt')) {
+          const reader = new FileReader();
+          reader.onload = async (event) => {
+            const text = event.target?.result as string;
+            if (text) {
+              await parseBookingText(text, 'pasted_text');
+            }
+          };
+          reader.readAsText(nonEmailFile);
+          return;
+        }
       }
     }
 
@@ -971,6 +983,11 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
               ? 'Add flights, lodging, transport, car rentals & activities' 
               : `${bookings.length} booking${bookings.length !== 1 ? 's' : ''}`}
           </p>
+          {canEdit && (
+            <p className="text-xs text-muted-foreground/70 mt-0.5">
+              You can upload up to 5 emails per batch.
+            </p>
+          )}
         </div>
         {canEdit && (
           <div className="flex gap-2">
@@ -1344,7 +1361,10 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                       isDragging ? "text-primary" : "text-muted-foreground"
                     )} />
                     <p className="text-sm font-medium">
-                      {isDragging ? 'Drop to parse!' : 'Drag & drop confirmation'}
+                      {isDragging ? 'Drop to parse!' : 'Drop confirmation emails here or click to upload'}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Upload up to 5 email files (.eml) at once.
                     </p>
                   </div>
                 )}
@@ -1749,7 +1769,7 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
             >
               <Upload className="w-6 h-6 mx-auto text-muted-foreground mb-2" />
               <p className="text-sm text-muted-foreground">
-                Drag & drop confirmation email/PDF
+                Drop confirmation emails here (.eml)
               </p>
             </div>
 
