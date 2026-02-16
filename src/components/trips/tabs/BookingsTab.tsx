@@ -1564,22 +1564,13 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>TSA PreCheck #</Label>
-                    <Input
-                      value={formData.tsa_precheck_number}
-                      onChange={(e) => setFormData({ ...formData, tsa_precheck_number: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
+                <div className="space-y-2">
                     <Label>Frequent Flyer #</Label>
                     <Input
                       value={formData.frequent_flyer_number}
                       onChange={(e) => setFormData({ ...formData, frequent_flyer_number: e.target.value })}
                     />
                   </div>
-                </div>
               </>
             )}
 

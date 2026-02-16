@@ -1,14 +1,18 @@
 /**
- * v4.2.0: Parse Booking Edge Function
+ * v4.3.0: Parse Booking Edge Function
  * 
  * Uses the canonical parse contract for document classification,
  * required field enforcement, and receipt handling across ALL entity types.
  * 
+ * MULTI-LEG PRESERVATION (v4.3.0):
+ * - Each flight leg is extracted as a separate entity
+ * - Deduplication uses segment-level identity (dep+arr+datetime), NOT PNR alone
+ * - All legs persist independently in timeline
+ * 
  * COST INTEGRITY RULES (v2.1.19):
  * - Airline confirmations with a SINGLE total trip price (Frontier-style):
- *   Create ONE booking record with ONE total_cost for all legs combined.
+ *   Full fare assigned to first leg, null on subsequent legs.
  * - If a field (price, tax, fee) is missing: leave null, never guess or copy.
- * - total_cost = booking-level total, NOT sum of segment costs.
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
@@ -157,17 +161,19 @@ For RECEIPT ONLY documents (is_receipt_only: true), extract:
 - confirmation_number
 - address
 
-CRITICAL AIRFARE COST RULES (v2.1.9):
-- total_cost should contain the TOTAL airfare for the entire booking (all legs combined)
-- For multi-leg/round-trip flights: Report ONE single booking record with ONE total_cost
-- NEVER create separate booking records for each leg
-- NEVER multiply or duplicate the total based on number of passengers or legs
+CRITICAL AIRFARE COST RULES (v4.3.0):
+- For multi-leg/round-trip flights: Create SEPARATE booking records for EACH LEG
+- Each leg must have its own departure_airport_code, arrival_airport_code, start_datetime, end_datetime
+- total_cost: assign the FULL fare to the FIRST leg only, set other legs to null
+- The confirmation_number (PNR) may be the same across legs — that is expected
+- Example: DEN→LAX and LAX→DEN should be TWO separate booking records
+- NEVER collapse multiple legs into a single booking record
 
 CRITICAL FOR FLIGHTS WITH MULTIPLE LEGS (round trips, multi-city):
-- Create ONLY ONE booking record for the entire itinerary
-- start_datetime = DEPARTURE time of the FIRST/OUTBOUND flight
-- end_datetime = ARRIVAL time of the LAST/RETURN flight
-- Include leg details in notes
+- Create a SEPARATE booking record for EACH LEG
+- Each leg has its own departure and arrival airports, times
+- If only one total cost: assign to first leg, set null on subsequent legs
+- Include shared confirmation_number on all legs
 
 For flights also extract:
 - airline
