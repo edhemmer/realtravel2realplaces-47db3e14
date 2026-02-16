@@ -1388,6 +1388,22 @@ export type Database = {
           tsa_reviewed: boolean
         }[]
       }
+      get_my_pending_invites: {
+        Args: never
+        Returns: {
+          can_expenses: boolean
+          can_stay: boolean
+          created_at: string
+          expires_at: string
+          id: string
+          invitee_email: string
+          inviter_display_name: string
+          inviter_user_id: string
+          read_only: boolean
+          trip_id: string
+          trip_name: string
+        }[]
+      }
       get_trip_shares_safe: {
         Args: { p_trip_id: string }
         Returns: {
