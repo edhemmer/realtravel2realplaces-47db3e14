@@ -7,6 +7,7 @@ import { useCreateTrip } from '@/hooks/useTrips';
 import { useCreateBooking } from '@/hooks/useBookings';
 import { useCreateCompanion } from '@/hooks/useCompanions';
 import { supabase } from '@/integrations/supabase/client';
+import { isEmailFile, extractEmailBody } from '@/lib/emailBody';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -294,6 +295,37 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
+
+    // Check for file drops first (.eml, .msg, .txt)
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+
+      if (isEmailFile(file.name)) {
+        setIsParsing(true);
+        toast.info('Extracting email content...');
+        const result = await extractEmailBody(file);
+        if (!result.success) {
+          setIsParsing(false);
+          toast.warning(result.error || "This email format couldn't be read automatically. Please open it and copy/paste the confirmation text instead.");
+          return;
+        }
+        await parseItineraryText(result.body);
+        return;
+      }
+
+      if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          const text = event.target?.result as string;
+          if (text) await parseItineraryText(text);
+        };
+        reader.readAsText(file);
+        return;
+      }
+    }
+
+    // Fallback: plain text drag data
     const text = e.dataTransfer.getData('text/plain');
     if (!text) {
       setParseError('No text content found. Please drag and drop text from your confirmation email or document.');
