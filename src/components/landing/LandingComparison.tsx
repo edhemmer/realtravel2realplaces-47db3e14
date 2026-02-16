@@ -3,7 +3,7 @@ import { Check, X, Minus } from 'lucide-react';
 type FeatureStatus = 'yes' | 'no' | 'partial' | 'pro';
 
 const features: { name: string; us: FeatureStatus; tripit: FeatureStatus; wanderlog: FeatureStatus }[] = [
-  { name: 'Email forwarding import', us: 'yes', tripit: 'yes', wanderlog: 'no' },
+  
   { name: 'Real-time "What\'s Next"', us: 'yes', tripit: 'pro', wanderlog: 'no' },
   { name: 'Leave-by timing', us: 'yes', tripit: 'no', wanderlog: 'no' },
   { name: 'Built-in expense tracking', us: 'yes', tripit: 'no', wanderlog: 'no' },

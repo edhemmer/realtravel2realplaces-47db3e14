@@ -16,6 +16,7 @@ import { TravelPreferencesCard } from '@/components/account/TravelPreferencesCar
 import { UpgradePlanDialog } from '@/components/account/UpgradePlanDialog';
 import { NotificationPreferencesCard } from '@/components/account/NotificationPreferencesCard';
 import { EmailImportCard } from '@/components/account/EmailImportCard';
+import { EMAIL_FORWARDING_ENABLED } from '@/lib/featureFlags';
 import { PlanPill } from '@/components/PlanPill';
 import { resetOnboarding } from './Onboarding';
 
@@ -206,8 +207,8 @@ export default function Account() {
           <NotificationPreferencesCard />
         )}
 
-        {/* Email Import */}
-        <EmailImportCard />
+        {/* Email Import — hidden via feature flag */}
+        {EMAIL_FORWARDING_ENABLED && <EmailImportCard />}
 
         {/* Help / Getting Started Section */}
         <Card>
