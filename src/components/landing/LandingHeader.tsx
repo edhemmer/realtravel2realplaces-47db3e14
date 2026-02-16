@@ -1,13 +1,14 @@
 import { Link } from 'react-router-dom';
+import rt2rpLogo from '@/assets/rt2rp-logo.png';
 
 export default function LandingHeader() {
   return (
     <header className="landing-header">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="h-14 sm:h-16 lg:h-20 flex items-center justify-between gap-4">
-          {/* Brand wordmark */}
-          <Link to="/" className="landing-wordmark text-[0.85rem] sm:text-base lg:text-lg" aria-label="Real Travel 2 Real Places">
-            Real Travel 2 Real Places
+          {/* Brand logo */}
+          <Link to="/" className="flex-shrink-0 hover:opacity-85 transition-opacity" aria-label="Real Travel 2 Real Places">
+            <img src={rt2rpLogo} alt="Real Travel 2 Real Places" className="rt2rp-header-logo--landing" />
           </Link>
 
           {/* Right-side actions */}
