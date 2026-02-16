@@ -290,6 +290,11 @@ export function DropzoneIntake({ onTextExtracted, isParsing, onProcessingStart }
 
   return (
     <div className="space-y-3">
+      {/* v3.9.7: Confirmation-only guidance */}
+      <p className="text-xs text-muted-foreground px-1">
+        Upload confirmation emails only. Do not upload receipts, invoices, or credit card statements.
+      </p>
+
       {/* Dropzone */}
       <div
         {...getRootProps()}
