@@ -50,9 +50,11 @@ export function usePendingTripInvites() {
         return [];
       }
 
-      if (!data || data.length === 0) return [];
+      // Harden response shape: handle array or { data: [...] }
+      const rows = Array.isArray(data) ? data : (data as any)?.data ?? [];
+      if (!rows || rows.length === 0) return [];
 
-      return (data as any[]).map(inv => ({
+      return (rows as any[]).map(inv => ({
         id: inv.id,
         trip_id: inv.trip_id,
         inviter_user_id: inv.inviter_user_id,
@@ -68,6 +70,8 @@ export function usePendingTripInvites() {
     },
     enabled: !!user?.id,
     refetchInterval: 60_000,
+    staleTime: 0,
+    refetchOnMount: true,
   });
 }
 

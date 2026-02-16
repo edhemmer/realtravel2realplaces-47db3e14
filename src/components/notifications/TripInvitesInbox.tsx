@@ -92,32 +92,7 @@ function InviteItem({
   );
 }
 
-export function TripInvitesBadge() {
-  const count = usePendingInviteCount();
-  const [open, setOpen] = useState(false);
-
-  if (count === 0) return null;
-
-  return (
-    <>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="rounded-full relative"
-        onClick={() => setOpen(true)}
-        aria-label="Trip invites"
-      >
-        <MailOpen className="w-5 h-5 text-muted-foreground" />
-        <Badge className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] px-1 text-[10px] font-bold bg-primary text-primary-foreground border-2 border-card">
-          {count > 9 ? '9+' : count}
-        </Badge>
-      </Button>
-      <TripInvitesDialog open={open} onOpenChange={setOpen} />
-    </>
-  );
-}
-
-function TripInvitesDialog({
+export function TripInvitesDialog({
   open,
   onOpenChange,
 }: {

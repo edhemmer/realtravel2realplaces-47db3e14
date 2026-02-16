@@ -7,7 +7,7 @@
  */
 
 import { useState } from 'react';
-import { Bell, Check, X, Plane, Receipt, CircleParking, MapPin, Ticket, Hotel, Car } from 'lucide-react';
+import { Bell, Check, X, Plane, Receipt, CircleParking, MapPin, Ticket, Hotel, Car, MailOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -24,6 +24,8 @@ import {
   useDismissNotification,
   type Notification,
 } from '@/hooks/useNotifications';
+import { usePendingInviteCount } from '@/hooks/usePendingTripInvites';
+import { TripInvitesDialog } from '@/components/notifications/TripInvitesInbox';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
@@ -105,11 +107,14 @@ function NotificationItem({
 export function NotificationBell() {
   const { data: notifications = [] } = useNotifications();
   const unreadCount = useUnreadCount();
+  const inviteCount = usePendingInviteCount();
+  const totalBadge = unreadCount + inviteCount;
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllRead();
   const dismiss = useDismissNotification();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [invitesOpen, setInvitesOpen] = useState(false);
 
   const handleNavigate = (notification: Notification) => {
     if (notification.trip_id && notification.link_tab) {
@@ -119,18 +124,34 @@ export function NotificationBell() {
   };
 
   return (
+    <>
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="rounded-full relative">
+        <Button variant="ghost" size="icon" className="rounded-full relative overflow-visible">
           <Bell className="w-5 h-5 text-muted-foreground" />
-          {unreadCount > 0 && (
-            <Badge className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] px-1 text-[10px] font-bold bg-destructive text-destructive-foreground border-2 border-card">
-              {unreadCount > 9 ? '9+' : unreadCount}
+          {totalBadge > 0 && (
+            <Badge className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 text-[10px] font-bold bg-destructive text-destructive-foreground border-2 border-card z-50 pointer-events-none">
+              {totalBadge > 9 ? '9+' : totalBadge}
             </Badge>
           )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80 p-0" sideOffset={8}>
+        {inviteCount > 0 && (
+          <button
+            onClick={() => { setOpen(false); setInvitesOpen(true); }}
+            className="flex items-center gap-2 px-3 py-2.5 border-b border-border/50 w-full text-left hover:bg-primary/5 transition-colors"
+          >
+            <MailOpen className="w-4 h-4 text-primary shrink-0" />
+            <span className="text-sm font-medium text-primary flex-1">
+              {inviteCount} trip invite{inviteCount > 1 ? 's' : ''} pending
+            </span>
+            <Badge className="h-5 min-w-[20px] px-1.5 text-[10px] font-bold bg-primary text-primary-foreground">
+              {inviteCount}
+            </Badge>
+          </button>
+        )}
+
         <div className="flex items-center justify-between px-3 py-2.5 border-b border-border/50">
           <span className="text-sm font-semibold text-foreground">Notifications</span>
           {unreadCount > 0 && (
@@ -179,5 +200,8 @@ export function NotificationBell() {
         )}
       </DropdownMenuContent>
     </DropdownMenu>
+
+    <TripInvitesDialog open={invitesOpen} onOpenChange={setInvitesOpen} />
+    </>
   );
 }
