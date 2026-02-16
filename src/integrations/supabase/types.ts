@@ -1436,6 +1436,10 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_trip_guest: { Args: { p_trip_id: string }; Returns: boolean }
       is_trip_owner_member: { Args: { p_trip_id: string }; Returns: boolean }
+      remove_my_trip_membership: {
+        Args: { p_trip_id: string }
+        Returns: boolean
+      }
       revoke_trip_invite: { Args: { p_invite_id: string }; Returns: boolean }
       run_trip_lifecycle_enforcement: { Args: never; Returns: Json }
       trip_is_writable: { Args: { p_trip_id: string }; Returns: boolean }

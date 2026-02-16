@@ -209,3 +209,27 @@ export function useUpdateMemberPermissions() {
     },
   });
 }
+
+/**
+ * v3.9.8: Member self-removal from a shared trip
+ */
+export function useRemoveTripMembership() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ tripId }: { tripId: string }) => {
+      const { error } = await supabase.rpc('remove_my_trip_membership', {
+        p_trip_id: tripId,
+      });
+      if (error) throw error;
+      return { tripId };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shared-trips'] });
+      toast.success('Removed');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to remove trip');
+    },
+  });
+}
