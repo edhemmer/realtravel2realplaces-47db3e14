@@ -1,8 +1,8 @@
 /**
- * MembersTab — v2.2.3: Trip Members + Invite Companion UI
+ * MembersTab — v3.8.4: Trip Members + Invite Member UI
  * 
  * Shows trip_members list (Owner/Guest badges).
- * Owner-only: Invite Companion modal, Pending Invites with Revoke.
+ * Owner-only: Invite Member modal, Pending Invites with Revoke.
  * No Date() usage. No backend changes.
  */
 
@@ -156,8 +156,8 @@ export function MembersTab({ tripId }: MembersTabProps) {
         </div>
         {isOwner && (
           <Button onClick={() => setInviteDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90 min-h-[44px]">
-            <UserPlus className="w-4 h-4 mr-2" />
-            Invite Companion
+             <UserPlus className="w-4 h-4 mr-2" />
+            Invite Member
           </Button>
         )}
       </div>
@@ -213,7 +213,7 @@ export function MembersTab({ tripId }: MembersTabProps) {
 
           {guests.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-4">
-              No guests yet. {isOwner ? 'Invite a companion to get started.' : ''}
+              No guests yet. {isOwner ? 'Invite a member to get started.' : ''}
             </p>
           )}
         </CardContent>
@@ -263,9 +263,9 @@ export function MembersTab({ tripId }: MembersTabProps) {
       <Dialog open={inviteDialogOpen} onOpenChange={(open) => { if (!open) handleCloseInviteDialog(); else setInviteDialogOpen(true); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Invite Companion</DialogTitle>
+            <DialogTitle>Invite Member</DialogTitle>
             <DialogDescription>
-              Send a one-time invite link to add a guest to your trip.
+              Send a secure invite link to grant access to this trip.
             </DialogDescription>
           </DialogHeader>
 
@@ -337,7 +337,7 @@ export function MembersTab({ tripId }: MembersTabProps) {
                 <CheckCircle2 className="w-8 h-8 text-green-600 mx-auto mb-2" />
                 <p className="text-sm font-medium text-green-800">Invite created!</p>
                 <p className="text-xs text-green-600 mt-1">
-                  Copy the link below and share it with your companion. The link expires in 7 days.
+                  Copy the link below and share it. The link expires in 7 days.
                 </p>
               </div>
               <Button
