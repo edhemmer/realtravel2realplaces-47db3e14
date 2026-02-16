@@ -370,12 +370,20 @@ IMPORTANT: Each flight leg MUST be a separate booking in the array.`;
           // Replace bookings with classified results (valid + receipts, all preserved)
           parsed.bookings = [...validBookings, ...receipts];
           
-          // Add batch summary metadata
+          // v3.10.1: Per-type batch summary
+          const typeCounts: Record<string, number> = {};
+          for (const b of validBookings) {
+            if ((b._parse_issues as unknown[])?.length) continue;
+            const bt = (b.booking_type as string) || 'other';
+            typeCounts[bt] = (typeCounts[bt] || 0) + 1;
+          }
+          
           parsed._batch_summary = {
             valid_bookings: validBookings.filter(b => !(b._parse_issues as unknown[])?.length).length,
             receipts: receipts.length,
             needs_attention: parseIssues.length,
             total: parsed.bookings.length,
+            by_type: typeCounts,
           };
         }
         
@@ -408,16 +416,27 @@ IMPORTANT: Each flight leg MUST be a separate booking in the array.`;
         }
         
         const batchSummary = parsed._batch_summary || {};
+        const byType = (batchSummary.by_type || {}) as Record<string, number>;
         const summaryParts: string[] = [];
-        if (batchSummary.valid_bookings > 0) summaryParts.push(`${batchSummary.valid_bookings} booking(s)`);
-        if (batchSummary.receipts > 0) summaryParts.push(`${batchSummary.receipts} receipt(s)`);
-        if (batchSummary.needs_attention > 0) summaryParts.push(`${batchSummary.needs_attention} need(s) attention`);
+        
+        // v3.10.1: Per-type created counts
+        const typeLabels: Record<string, string> = {
+          flight: 'Flight', stay: 'Lodging', car_rental: 'Car Rental',
+          transport: 'Transport', parking: 'Parking', activity: 'Activity',
+        };
+        for (const [t, count] of Object.entries(byType)) {
+          const label = typeLabels[t] || t;
+          summaryParts.push(`${count} ${label}${count > 1 ? 's' : ''}`);
+        }
+        if (batchSummary.receipts > 0) summaryParts.push(`${batchSummary.receipts} Receipt(s)`);
+        if (batchSummary.needs_attention > 0) summaryParts.push(`${batchSummary.needs_attention} Need(s) Attention`);
         
         return new Response(JSON.stringify({ 
           success: true, 
           data: parsed,
+          batch_summary: batchSummary,
           message: summaryParts.length > 0
-            ? `Successfully parsed: ${summaryParts.join(', ')}.`
+            ? `Created: ${summaryParts.join(', ')}.`
             : `Successfully parsed ${parsed.bookings?.length || 0} booking(s).`,
         }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       } catch {
@@ -444,21 +463,20 @@ IMPORTANT: Each flight leg MUST be a separate booking in the array.`;
 // ============================================================================
 
 /**
- * v4.3.0: Deduplicate bookings using segment-level identity.
- * DO NOT dedupe by PNR alone — multi-leg flights share the same PNR.
+ * v3.10.1: Deterministic segment-level fingerprint dedupe.
+ * Each entity type uses a specific composite key — never confirmation number alone.
  * 
- * Priority order:
- * 1. Exact match on departure airport + arrival airport + departure datetime
- * 2. Same carrier + flight number + departure datetime + departure airport
- * 
- * Each unique leg persists independently.
+ * Flight:  carrier + flight_number + departure_date + departure_time_raw + departure_airport
+ * Lodging: property_name + check_in_date + check_out_date
+ * Rental:  company + pickup_date + pickup_location
+ * Other:   vendor + type + start_datetime
  */
 function deduplicateBookings(bookings: Record<string, unknown>[]): Record<string, unknown>[] {
   const seen = new Set<string>();
   const result: Record<string, unknown>[] = [];
   
   for (const booking of bookings) {
-    const segmentKey = buildSegmentKey(booking);
+    const segmentKey = buildSegmentFingerprint(booking);
     if (seen.has(segmentKey)) {
       console.log(`Deduplicate: skipping duplicate segment ${segmentKey}`);
       continue;
@@ -471,26 +489,36 @@ function deduplicateBookings(bookings: Record<string, unknown>[]): Record<string
 }
 
 /**
- * Build a unique segment key for deduplication.
- * Uses airport codes + datetime for flights, or vendor + datetime for others.
+ * v3.10.1: Build deterministic fingerprint per entity type.
+ * Never dedupes by confirmation number alone.
  */
-function buildSegmentKey(booking: Record<string, unknown>): string {
+function buildSegmentFingerprint(booking: Record<string, unknown>): string {
   const type = (booking.booking_type as string) || 'other';
   const startDt = (booking.start_datetime as string) || '';
+  const startDate = startDt.substring(0, 10);
+  const rawTime = (booking.rawStartTimeText as string) || '';
   
   if (type === 'flight') {
+    const carrier = (booking.airline as string) || (booking.vendor_name as string) || '';
     const dep = (booking.departure_airport_code as string) || '';
     const arr = (booking.arrival_airport_code as string) || '';
-    // Primary: dep + arr + departure datetime
-    if (dep && arr && startDt) {
-      return `flight::${dep}::${arr}::${startDt}`;
-    }
-    // Fallback: carrier + datetime
-    const carrier = (booking.airline as string) || (booking.vendor_name as string) || '';
-    return `flight::${carrier}::${startDt}`;
+    return `flight::${carrier}::${dep}::${arr}::${startDate}::${rawTime}`;
   }
   
-  // Non-flight: vendor + type + datetime
+  if (type === 'stay') {
+    const property = (booking.property_name as string) || (booking.vendor_name as string) || '';
+    const endDt = (booking.end_datetime as string) || '';
+    const endDate = endDt.substring(0, 10);
+    return `stay::${property}::${startDate}::${endDate}`;
+  }
+  
+  if (type === 'car_rental') {
+    const company = (booking.rental_company as string) || (booking.vendor_name as string) || '';
+    const pickup = (booking.pickup_location as string) || '';
+    return `car_rental::${company}::${startDate}::${pickup}`;
+  }
+  
+  // Default: vendor + type + start_datetime
   const vendor = (booking.vendor_name as string) || '';
   return `${type}::${vendor}::${startDt}`;
 }

@@ -33,9 +33,9 @@ export interface ParseIssue {
 // ============================================================================
 
 export const REQUIRED_FIELDS_BY_ENTITY: Record<string, string[]> = {
-  flight: ['departure_airport_code', 'arrival_airport_code', 'start_datetime', 'end_datetime'],
-  stay: ['start_datetime', 'end_datetime'],
-  car_rental: ['start_datetime'],
+  flight: ['departure_airport_code', 'arrival_airport_code', 'start_datetime'],
+  stay: ['start_datetime', 'end_datetime', 'property_name'],
+  car_rental: ['start_datetime', 'pickup_location', 'return_location'],
   transport: ['start_datetime'],
   parking: ['start_datetime'],
   activity: ['start_datetime'],

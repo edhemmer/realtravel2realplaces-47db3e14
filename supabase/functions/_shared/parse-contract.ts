@@ -34,14 +34,16 @@ export const REQUIRED_FIELDS_BY_ENTITY: Record<string, string[]> = {
     'departure_airport_code',
     'arrival_airport_code',
     'start_datetime',
-    'end_datetime',
   ],
   stay: [
     'start_datetime',
     'end_datetime',
+    'property_name',
   ],
   car_rental: [
     'start_datetime',
+    'return_location',
+    'pickup_location',
   ],
   transport: [
     'start_datetime',
@@ -168,6 +170,8 @@ export function enforceRequiredFields(
     end_datetime: 'end date/time',
     property_name: 'property name',
     rental_company: 'rental company',
+    pickup_location: 'pickup location',
+    return_location: 'return location',
   };
 
   const readableMissing = missing.map(f => fieldLabels[f] || f.replace(/_/g, ' '));
