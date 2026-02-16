@@ -2,8 +2,7 @@
  * Dashboard - My Trips listing page
  * 
  * v2.1.28: Performance hardening
- * - Memoized TripCard component to prevent re-renders on list updates
- * - Stable callback references for navigation and delete handlers
+ * v3.0.0: Premium polish — framer-motion transitions, skeleton loading, card elevation
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -23,6 +22,9 @@ import { TripLifecycleBadges, getTripCardLifecycleStyles } from '@/components/tr
 import { useAccess } from '@/hooks/useAccess';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { PendingImportsSection } from '@/components/imports/PendingImportsSection';
+import { PageTransition, StaggerContainer, FadeInItem } from '@/components/ui/page-transition';
+import { DashboardSkeleton } from '@/components/ui/premium-loading';
+import { motion } from 'framer-motion';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -45,14 +47,10 @@ export default function Dashboard() {
     const state = location.state as { openCreateTrip?: boolean } | null;
     if (state?.openCreateTrip) {
       setCreateDialogOpen(true);
-      // Clear the state so it doesn't re-trigger on refresh
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
 
-  // v2.3.x: Onboarding redirect removed — handled by centralized ProtectedRoute guard in App.tsx
-
-  // v2.1.28: Stable callback for delete confirmation
   const handleDeleteTrip = useCallback(() => {
     if (tripToDelete) {
       deleteTrip.mutate(tripToDelete);
@@ -60,7 +58,6 @@ export default function Dashboard() {
     }
   }, [tripToDelete, deleteTrip]);
   
-  // v2.1.28: Stable callbacks for TripCard
   const handleNavigate = useCallback((id: string) => {
     navigate(`/trip/${id}`);
   }, [navigate]);
@@ -68,129 +65,30 @@ export default function Dashboard() {
   const handleRequestDelete = useCallback((id: string) => {
     setTripToDelete(id);
   }, []);
-  // v2.3.x: Removed onboardingLoading from loading gate — handled by ProtectedRoute
+
   if (isLoading || sharedLoading) {
-    return <Layout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      </Layout>;
-  }
-  // v2.1.28: Memoized TripCard to prevent unnecessary re-renders
-  const TripCard = React.memo(function TripCard({
-    trip,
-    isShared = false,
-    index,
-    isPro,
-    onDelete,
-    onNavigate,
-  }: {
-    trip: Trip | SharedTrip;
-    isShared?: boolean;
-    index: number;
-    isPro: boolean;
-    onDelete: (id: string) => void;
-    onNavigate: (id: string) => void;
-  }) {
-    // v2.1.6: Get lifecycle-based styling
-    const { cardClassName, isLocked } = getTripCardLifecycleStyles(trip as Trip, isPro);
-    const tripState = (trip as Trip).trip_state || 'active';
-    
-    // v3.11.7: Strict YYYY-MM-DD string comparison — no Date objects, no timezone drift
-    const todayStr = getTodayDateOnly();
-    const isPastTrip = trip.end_date < todayStr;
-    
-    // v2.1.7: Hide delete for Free users
-    const canDelete = isPro && !isShared && tripState === 'active';
-
-    const handleCardClick = useCallback(() => {
-      onNavigate(trip.id);
-    }, [onNavigate, trip.id]);
-    
-    const handleDeleteClick = useCallback((e: React.MouseEvent) => {
-      e.stopPropagation();
-      onDelete(trip.id);
-    }, [onDelete, trip.id]);
-
-    // v2.0.2: Past trips get muted styling for visual hierarchy
-    const pastTripStyles = isPastTrip ? 'opacity-60 bg-muted/30' : '';
-
     return (
-      <Card 
-        key={trip.id} 
-        className={`group cursor-pointer hover:shadow-lg hover:scale-[1.02] transition-all duration-300 overflow-hidden animate-fade-in ${cardClassName} ${pastTripStyles}`}
-        style={{
-          animationDelay: `${index * 50}ms`
-        }}
-        onClick={handleCardClick}
-      >
-        <CardHeader className="pb-2">
-          <div className="flex items-start justify-between">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-lg truncate group-hover:text-primary transition-colors">
-                  {trip.name}
-                </CardTitle>
-                {/* v2.0.4: Flight indicator for trips with flights */}
-                {(trip as Trip).transportation_mode === 'flight' && (
-                  <Plane className={`w-3.5 h-3.5 shrink-0 ${isPastTrip ? 'text-muted-foreground/50' : 'text-primary/70'}`} />
-                )}
-              </div>
-              <CardDescription className="flex items-center gap-1 mt-1">
-                <MapPin className="w-3 h-3" />
-                {trip.destination_city}, {trip.destination_country}
-              </CardDescription>
-            </div>
-             {/* v2.1.7: Status-only badges (no plan pills) */}
-             <div className="flex items-center gap-2">
-               {isShared && (
-                 <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full bg-muted text-muted-foreground">
-                   <Users className="w-3 h-3" />
-                   Shared
-                 </span>
-               )}
-               <TripLifecycleBadges trip={trip as Trip} isPro={isPro} compact />
-             </div>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-2">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-            <Calendar className="w-4 h-4" />
-            <span>
-              {formatTripDateRange(trip.start_date, trip.end_date)}
-            </span>
-          </div>
-           <div className="flex items-center justify-between">
-             <div className="flex items-center gap-1 text-sm text-primary font-medium group-hover:gap-2 transition-all">
-               View Trip
-               <ChevronRight className="w-4 h-4" />
-             </div>
-             {/* v2.1.7: Only show delete for Pro users */}
-             {canDelete && (
-               <Button 
-                 variant="ghost" 
-                 size="sm" 
-                 onClick={handleDeleteClick} 
-                 className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
-               >
-                 <Trash2 className="w-4 h-4" />
-               </Button>
-             )}
-          </div>
-        </CardContent>
-      </Card>
+      <Layout>
+        <DashboardSkeleton />
+      </Layout>
     );
-  });
+  }
+
   const hasTrips = trips && trips.length > 0 || sharedTrips.length > 0;
-  return <Layout>
-      <div className="space-y-6 animate-fade-in">
-        {/* Header - Patch 2.6.1: Terminology consistency */}
+
+  return (
+    <Layout>
+      <PageTransition className="space-y-6">
+        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="font-bold text-4xl">My Trips</h1>
+            <h1 className="font-bold text-4xl tracking-tight">My Trips</h1>
             <p className="text-muted-foreground mt-1">Manage your travel in one place</p>
           </div>
-          <Button onClick={() => setCreateDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90 transition-opacity">
+          <Button 
+            onClick={() => setCreateDialogOpen(true)} 
+            className="bg-gradient-ocean hover:opacity-90 transition-opacity h-12 rounded-xl font-semibold shadow-sm"
+          >
             <Plus className="w-4 h-4 mr-2" />
             New Trip
           </Button>
@@ -200,62 +98,77 @@ export default function Dashboard() {
         <PendingImportsSection />
 
         {/* My Trips */}
-        {trips && trips.length > 0 && <div className="space-y-4">
-            <h2 className="text-lg font-semibold">
-        </h2>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {trips.map((trip: Trip, index: number) => (
-                <TripCard 
-                  key={trip.id} 
-                  trip={trip} 
-                  index={index}
-                  isPro={isPro}
-                  onDelete={handleRequestDelete}
-                  onNavigate={handleNavigate}
-                />
+        {trips && trips.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold" />
+            <StaggerContainer className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {trips.map((trip: Trip) => (
+                <FadeInItem key={trip.id}>
+                  <TripCard
+                    trip={trip}
+                    isPro={isPro}
+                    onDelete={handleRequestDelete}
+                    onNavigate={handleNavigate}
+                  />
+                </FadeInItem>
               ))}
-            </div>
-          </div>}
+            </StaggerContainer>
+          </div>
+        )}
 
         {/* Shared Trips */}
-        {sharedTrips.length > 0 && <div className="space-y-4">
+        {sharedTrips.length > 0 && (
+          <div className="space-y-4">
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Users className="w-5 h-5 text-primary" />
               Shared With Me
             </h2>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {sharedTrips.map((trip: SharedTrip, index: number) => (
-                <TripCard 
-                  key={trip.id} 
-                  trip={trip} 
-                  isShared 
-                  index={index}
-                  isPro={isPro}
-                  onDelete={handleRequestDelete}
-                  onNavigate={handleNavigate}
-                />
+            <StaggerContainer className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {sharedTrips.map((trip: SharedTrip) => (
+                <FadeInItem key={trip.id}>
+                  <TripCard
+                    trip={trip}
+                    isShared
+                    isPro={isPro}
+                    onDelete={handleRequestDelete}
+                    onNavigate={handleNavigate}
+                  />
+                </FadeInItem>
               ))}
-            </div>
-          </div>}
+            </StaggerContainer>
+          </div>
+        )}
 
-        {/* First-Trip Empty State - v2.1.29, Patch 2.6.1 improved copy */}
-        {!hasTrips && <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-16">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                <Plane className="w-8 h-8 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">No trips yet</h3>
-              <p className="text-muted-foreground text-center mb-6 max-w-md">
-                Your trips will appear here once created. Add your first trip to start 
-                tracking bookings, expenses, and travel details in one place.
-              </p>
-              <Button onClick={() => setCreateDialogOpen(true)} size="lg" className="bg-gradient-ocean hover:opacity-90">
-                <Plus className="w-4 h-4 mr-2" />
-                Create Your First Trip
-              </Button>
-            </CardContent>
-          </Card>}
-      </div>
+        {/* First-Trip Empty State */}
+        {!hasTrips && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number] }}
+          >
+            <Card className="border-dashed border-2">
+              <CardContent className="flex flex-col items-center justify-center py-16">
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+                  <Plane className="w-8 h-8 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">No trips yet</h3>
+                <p className="text-muted-foreground text-center mb-6 max-w-md">
+                  Your trips will appear here once created. Add your first trip to start
+                  tracking bookings, expenses, and travel details in one place.
+                </p>
+                <Button 
+                  onClick={() => setCreateDialogOpen(true)} 
+                  size="lg" 
+                  className="bg-gradient-ocean hover:opacity-90 h-12 rounded-xl font-semibold shadow-sm"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Your First Trip
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </PageTransition>
 
       <CreateTripDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
 
@@ -275,5 +188,97 @@ export default function Dashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Layout>;
+    </Layout>
+  );
 }
+
+/** 
+ * TripCard — Memoized card with premium hover elevation
+ */
+const TripCard = React.memo(function TripCard({
+  trip,
+  isShared = false,
+  isPro,
+  onDelete,
+  onNavigate,
+}: {
+  trip: Trip | SharedTrip;
+  isShared?: boolean;
+  isPro: boolean;
+  onDelete: (id: string) => void;
+  onNavigate: (id: string) => void;
+}) {
+  const { cardClassName, isLocked } = getTripCardLifecycleStyles(trip as Trip, isPro);
+  const tripState = (trip as Trip).trip_state || 'active';
+  const todayStr = getTodayDateOnly();
+  const isPastTrip = trip.end_date < todayStr;
+  const canDelete = isPro && !isShared && tripState === 'active';
+
+  const handleCardClick = useCallback(() => {
+    onNavigate(trip.id);
+  }, [onNavigate, trip.id]);
+  
+  const handleDeleteClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete(trip.id);
+  }, [onDelete, trip.id]);
+
+  const pastTripStyles = isPastTrip ? 'opacity-60' : '';
+
+  return (
+    <Card 
+      className={`group cursor-pointer transition-all duration-200 overflow-hidden border-border/50 hover:border-primary/20 hover:shadow-lg ${cardClassName} ${pastTripStyles}`}
+      onClick={handleCardClick}
+    >
+      <CardHeader className="pb-2">
+        <div className="flex items-start justify-between">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-lg truncate group-hover:text-primary transition-colors duration-200">
+                {trip.name}
+              </CardTitle>
+              {(trip as Trip).transportation_mode === 'flight' && (
+                <Plane className={`w-3.5 h-3.5 shrink-0 ${isPastTrip ? 'text-muted-foreground/50' : 'text-primary/70'}`} />
+              )}
+            </div>
+            <CardDescription className="flex items-center gap-1 mt-1">
+              <MapPin className="w-3 h-3" />
+              {trip.destination_city}, {trip.destination_country}
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            {isShared && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full bg-muted text-muted-foreground">
+                <Users className="w-3 h-3" />
+                Shared
+              </span>
+            )}
+            <TripLifecycleBadges trip={trip as Trip} isPro={isPro} compact />
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-2">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+          <Calendar className="w-4 h-4" />
+          <span>{formatTripDateRange(trip.start_date, trip.end_date)}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1 text-sm text-primary font-medium group-hover:gap-2 transition-all duration-200">
+            View Trip
+            <ChevronRight className="w-4 h-4" />
+          </div>
+          {canDelete && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleDeleteClick} 
+              className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+});

@@ -7,6 +7,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { BrandedPageLoader } from "@/components/ui/premium-loading";
 import LandingPage from "./pages/LandingPage";
 import Auth from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -42,11 +43,7 @@ function ProtectedRoute({ children, skipOnboardingGate }: { children: React.Reac
 
   // Show loading while checking auth OR profile status — prevents premature redirects
   if (authLoading || (user && (profileLoading || onboardingLoading))) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <BrandedPageLoader />;
   }
 
   // Redirect to login if not authenticated
