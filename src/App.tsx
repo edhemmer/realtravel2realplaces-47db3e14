@@ -16,6 +16,7 @@ import CompleteProfile from "./pages/CompleteProfile";
 import Dashboard from "./pages/Dashboard";
 import TripDetail from "./pages/TripDetail";
 import AcceptShare from "./pages/AcceptShare";
+import AcceptInvite from "./pages/AcceptInvite";
 import AdminPlans from "./pages/AdminPlans";
 import AdminSupportTickets from "./pages/AdminSupportTickets";
 import AdminUsers from "./pages/AdminUsers";
@@ -89,6 +90,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <TripDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/invite"
+        element={
+          <ProtectedRoute>
+            <AcceptInvite />
           </ProtectedRoute>
         }
       />
