@@ -71,14 +71,37 @@ export function extractAnchorTime(
     const period = match12[3].toUpperCase();
     if (period === 'PM' && hours !== 12) hours += 12;
     if (period === 'AM' && hours === 12) hours = 0;
-    return { hours, minutes };
+    if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
+      return { hours, minutes };
+    }
+    return null;
   }
 
-  // Try 24-hour format: "16:00", "06:00"
+  // Try 24-hour colon: "16:00", "06:00"
   const match24 = token.match(/(\d{1,2}):(\d{2})/);
   if (match24) {
     const hours = parseInt(match24[1], 10);
     const minutes = parseInt(match24[2], 10);
+    if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
+      return { hours, minutes };
+    }
+  }
+
+  // v4.4.0: Try 24-hour dot: "23.10"
+  const matchDot = token.match(/(\d{1,2})\.(\d{2})/);
+  if (matchDot) {
+    const hours = parseInt(matchDot[1], 10);
+    const minutes = parseInt(matchDot[2], 10);
+    if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
+      return { hours, minutes };
+    }
+  }
+
+  // v4.4.0: Try 24-hour h-separator: "23h10"
+  const matchH = token.match(/(\d{1,2})[hH](\d{2})/);
+  if (matchH) {
+    const hours = parseInt(matchH[1], 10);
+    const minutes = parseInt(matchH[2], 10);
     if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
       return { hours, minutes };
     }

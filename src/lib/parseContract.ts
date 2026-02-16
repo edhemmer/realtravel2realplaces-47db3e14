@@ -20,10 +20,12 @@ export type DocClassification =
 // ============================================================================
 
 export interface ParseIssue {
-  issueType: 'MISSING_REQUIRED_FIELDS' | 'LOW_CONFIDENCE' | 'VALIDATION_FAILED';
+  issueType: 'MISSING_REQUIRED_FIELDS' | 'LOW_CONFIDENCE' | 'VALIDATION_FAILED' | 'TIME_DERIVATION_FAILED';
   entityType: string;
   missingFields: string[];
   actionHint: string;
+  rawValue?: string;
+  fieldPath?: string;
 }
 
 // ============================================================================
