@@ -1,9 +1,8 @@
 /**
- * v4.0.0: NextCriticalActionCard
+ * v4.0.0 / v3.9.4: NextCriticalActionCard
  *
  * Shows the earliest upcoming event with countdown + single primary action.
- * "Trip Complete" only shown when canonical lifecycle = COMPLETED.
- * For UPCOMING/PRE_TRIP trips with no events, shows appropriate planning state.
+ * v3.9.4: Adds context labels, raw time microtext, and enforced button colors.
  * Uses canonical next stop engine — no Date() logic.
  */
 
@@ -11,7 +10,7 @@ import { useNextStop, type NextStopEvent } from '@/hooks/useNextStop';
 import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Navigation, Clock, CheckCircle2, CalendarClock, Sparkles } from 'lucide-react';
+import { Navigation, Clock, CheckCircle2, CalendarClock, Sparkles, AlertTriangle } from 'lucide-react';
 import { resolveMapsFromNextStop, openMapsDestination } from '@/lib/mapsDestination';
 import { getLocalNowString } from '@/lib/canonicalNextStop';
 import { resolveCanonicalLifecycle } from '@/lib/canonicalTimePolicy';
@@ -34,7 +33,6 @@ function formatDateShort(dateStr: string): string {
 
 /**
  * Compute a simple countdown string from now to the event.
- * Uses string comparison only for date, minimal Date() for time diff display.
  */
 function computeCountdown(event: NextStopEvent): string {
   const nowStr = getLocalNowString();
@@ -43,11 +41,9 @@ function computeCountdown(event: NextStopEvent): string {
   const eventTime = event.eventLocalTime;
 
   if (eventDate > nowDate) {
-    // Future date — show date
     return `${formatDateShort(eventDate)} at ${formatTime12h(eventTime)}`;
   }
 
-  // Same day — show relative time
   const nowTime = nowStr.substring(11, 16);
   const nowMins = parseInt(nowTime.substring(0, 2)) * 60 + parseInt(nowTime.substring(3, 5));
   const eventMins = parseInt(eventTime.substring(0, 2)) * 60 + parseInt(eventTime.substring(3, 5));
@@ -68,6 +64,90 @@ function formatTime12h(time: string): string {
   return `${h12}:${m} ${ampm}`;
 }
 
+/**
+ * v3.9.4: Derive context label from canonical event type.
+ * No new logic — just maps existing type strings to user-facing labels.
+ */
+function resolveContextLabel(eventType: string): string | null {
+  switch (eventType) {
+    case 'flight':
+    case 'flight_departure':
+      return 'DEPARTURE TODAY';
+    case 'hotel_checkin':
+      return 'LODGING CHECK-IN';
+    case 'hotel_checkout':
+      return 'LODGING CHECKOUT';
+    case 'rental_pickup':
+      return 'RENTAL PICKUP';
+    case 'rental_dropoff':
+    case 'rental_return':
+    case 'car_return':
+      return 'RENTAL RETURN';
+    case 'parking_end':
+    case 'parking_expiration':
+      return 'PARKING EXPIRING';
+    case 'activity_start':
+      return 'ARRIVING SOON';
+    case 'transport_departure':
+      return 'DRIVE START';
+    default:
+      return null;
+  }
+}
+
+/**
+ * v3.9.4: Derive raw time microtext from event type + raw time.
+ * Copies parsed time string verbatim — no conversion.
+ */
+function resolveTimeMicrotext(eventType: string, rawTime: string): string {
+  switch (eventType) {
+    case 'flight':
+    case 'flight_departure':
+      return `Departs ${rawTime}`;
+    case 'hotel_checkin':
+      return `Check-in ${rawTime}`;
+    case 'hotel_checkout':
+      return `Checkout ${rawTime}`;
+    case 'rental_pickup':
+      return `Pickup ${rawTime}`;
+    case 'rental_dropoff':
+    case 'rental_return':
+    case 'car_return':
+      return `Return ${rawTime}`;
+    case 'parking_end':
+    case 'parking_expiration':
+      return `Expires ${rawTime}`;
+    case 'activity_start':
+      return `Starts ${rawTime}`;
+    case 'transport_departure':
+      return `Departs ${rawTime}`;
+    default:
+      return rawTime;
+  }
+}
+
+/**
+ * v3.9.4: Resolve button variant and classes from event type.
+ * Blue = Navigate, Orange = Acknowledge (parking), consistent tokens.
+ */
+function resolveButtonStyle(eventType: string, hasLocation: boolean): { className: string; label: string } {
+  if (!hasLocation) {
+    return { className: 'w-full h-12 rounded-xl font-semibold shadow-sm mt-3', label: 'No location available' };
+  }
+  // Parking expiring → orange acknowledge
+  if (eventType === 'parking_end' || eventType === 'parking_expiration') {
+    return {
+      className: 'w-full h-12 rounded-xl font-semibold shadow-sm mt-3 bg-orange-500 hover:bg-orange-600 text-white active:scale-[0.98]',
+      label: 'Navigate',
+    };
+  }
+  // Default → blue navigate (primary token)
+  return {
+    className: 'w-full h-12 rounded-xl font-semibold shadow-sm mt-3 bg-primary hover:bg-primary/90 text-primary-foreground active:scale-[0.98]',
+    label: 'Navigate',
+  };
+}
+
 export function NextCriticalActionCard({ tripId, trip }: NextCriticalActionCardProps) {
   const { state } = useCanonicalTripState(tripId, trip);
   const { nextStop } = useNextStop(state);
@@ -84,7 +164,6 @@ export function NextCriticalActionCard({ tripId, trip }: NextCriticalActionCardP
 
   // No next stop — choose message based on canonical lifecycle
   if (!nextStop) {
-    // Only show "Trip Complete" for COMPLETED lifecycle
     if (lifecycle.phase === 'COMPLETED') {
       return (
         <Card className="border-border/30 bg-muted/20 shadow-none">
@@ -97,7 +176,6 @@ export function NextCriticalActionCard({ tripId, trip }: NextCriticalActionCardP
       );
     }
 
-    // UPCOMING or PRE_TRIP with no events — show planning state
     if (lifecycle.phase === 'UPCOMING') {
       return (
         <Card className="border-border/30 bg-muted/20 shadow-none">
@@ -126,7 +204,6 @@ export function NextCriticalActionCard({ tripId, trip }: NextCriticalActionCardP
       );
     }
 
-    // IN_TRIP with no remaining events
     return (
       <Card className="border-border/30 bg-muted/20 shadow-none">
         <CardContent className="py-4 flex flex-col items-center gap-2">
@@ -140,10 +217,21 @@ export function NextCriticalActionCard({ tripId, trip }: NextCriticalActionCardP
 
   const mapsDest = resolveMapsFromNextStop(nextStop);
   const hasLocation = !!mapsDest;
+  const contextLabel = resolveContextLabel(nextStop.type);
+  const timeMicrotext = nextStop.eventLocalTime
+    ? resolveTimeMicrotext(nextStop.type, nextStop.eventLocalTime)
+    : null;
+  const buttonStyle = resolveButtonStyle(nextStop.type, hasLocation);
 
   return (
     <Card className="border-primary/30 bg-gradient-to-br from-primary/8 to-background shadow-md">
       <CardContent className="py-5 px-4">
+        {/* v3.9.4: Context label */}
+        {contextLabel && (
+          <p className="text-[10px] font-bold uppercase tracking-widest text-primary/70 mb-1">
+            {contextLabel}
+          </p>
+        )}
         <div className="flex items-center gap-1.5 mb-1">
           <Clock className="w-3.5 h-3.5 text-primary" />
           <span className="text-xs font-semibold text-primary uppercase tracking-wider">
@@ -153,6 +241,12 @@ export function NextCriticalActionCard({ tripId, trip }: NextCriticalActionCardP
         <p className="text-base font-bold text-foreground truncate leading-snug">
           {nextStop.displayName}
         </p>
+        {/* v3.9.4: Raw time microtext — verbatim parsed time */}
+        {timeMicrotext && (
+          <p className="text-xs font-medium text-muted-foreground mt-0.5">
+            {timeMicrotext}
+          </p>
+        )}
         <p className="text-sm font-medium text-primary mt-0.5">
           {countdown}
         </p>
@@ -161,16 +255,17 @@ export function NextCriticalActionCard({ tripId, trip }: NextCriticalActionCardP
             {nextStop.locationLabel}
           </p>
         )}
+        {/* v3.9.4: Enforced button color consistency */}
         <Button
           variant={hasLocation ? 'default' : 'outline'}
           disabled={!hasLocation}
-          className="w-full h-12 rounded-xl font-semibold shadow-sm mt-3 press-scale"
+          className={buttonStyle.className}
           onClick={() => {
             if (mapsDest) openMapsDestination(mapsDest);
           }}
         >
           <Navigation className="w-4 h-4" />
-          {hasLocation ? 'Navigate' : 'No location available'}
+          {buttonStyle.label}
         </Button>
       </CardContent>
     </Card>
