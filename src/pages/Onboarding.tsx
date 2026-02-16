@@ -13,7 +13,7 @@
  * - Can be manually re-viewed via Account page (doesn't reset DB flag)
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -29,7 +29,12 @@ import {
   Shield,
   Camera,
   PenLine,
+  Mail,
 } from 'lucide-react';
+import { DropzoneIntake } from '@/components/trips/DropzoneIntake';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import { 
   useOnboardingStatus,
   useCompleteOnboarding, 
@@ -184,6 +189,44 @@ function ValueStep({ onContinue }: { onContinue: () => void }) {
 // ========== STEP 2: FIRST TRIP ==========
 
 function FirstTripStep({ onAddTrip, onSkip, isSaving }: { onAddTrip: () => void; onSkip: () => void; isSaving: boolean }) {
+  const [showDropzone, setShowDropzone] = useState(false);
+  const [isParsing, setIsParsing] = useState(false);
+  const [highlightDropzone, setHighlightDropzone] = useState(false);
+  const dropzoneRef = useRef<HTMLDivElement>(null);
+
+  const handleEmailCardClick = useCallback(() => {
+    setShowDropzone(true);
+    // After state update renders the dropzone, scroll and highlight
+    setTimeout(() => {
+      dropzoneRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlightDropzone(true);
+      setTimeout(() => setHighlightDropzone(false), 1200);
+    }, 100);
+  }, []);
+
+  const handleTextExtracted = useCallback(async (text: string) => {
+    if (!text.trim()) return;
+    setIsParsing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('parse-booking', {
+        body: { text, type: 'booking' },
+      });
+      if (error) {
+        toast.error('Connection error. Please try again.');
+        return;
+      }
+      if (data?.success) {
+        toast.success('Booking details captured! Add your trip to save them.');
+      } else {
+        toast.warning("Some details couldn't be read. You can review and edit after adding your trip.");
+      }
+    } catch {
+      toast.error('Something went wrong. You can add details manually.');
+    } finally {
+      setIsParsing(false);
+    }
+  }, []);
+
   return (
     <div className="text-center space-y-8 pt-4">
       <div className="w-14 h-14 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center">
@@ -200,16 +243,43 @@ function FirstTripStep({ onAddTrip, onSkip, isSaving }: { onAddTrip: () => void;
       </div>
 
       {/* Input method chips — Notion-style option tiles */}
-      <div className="grid grid-cols-2 gap-3 max-w-xs mx-auto">
-        <div className="p-4 rounded-xl border border-border/40 bg-card text-center space-y-2 shadow-sm">
+      <div className="grid grid-cols-3 gap-2.5 max-w-sm mx-auto">
+        <button
+          type="button"
+          onClick={handleEmailCardClick}
+          className={cn(
+            'p-3 rounded-xl border border-border/40 bg-card text-center space-y-1.5 shadow-sm transition-colors hover:border-primary/40',
+            showDropzone && 'border-primary/60 bg-primary/5'
+          )}
+        >
+          <Mail className="w-5 h-5 mx-auto text-primary" />
+          <p className="text-[0.6875rem] font-medium leading-tight">Upload email (.eml)</p>
+        </button>
+        <div className="p-3 rounded-xl border border-border/40 bg-card text-center space-y-1.5 shadow-sm">
           <Camera className="w-5 h-5 mx-auto text-primary" />
-          <p className="text-xs font-medium leading-tight">Upload screenshot</p>
+          <p className="text-[0.6875rem] font-medium leading-tight">Upload screenshot</p>
         </div>
-        <div className="p-4 rounded-xl border border-border/40 bg-card text-center space-y-2 shadow-sm">
+        <div className="p-3 rounded-xl border border-border/40 bg-card text-center space-y-1.5 shadow-sm">
           <PenLine className="w-5 h-5 mx-auto text-primary" />
-          <p className="text-xs font-medium leading-tight">Enter manually</p>
+          <p className="text-[0.6875rem] font-medium leading-tight">Enter manually</p>
         </div>
       </div>
+
+      {/* Email dropzone — revealed on card click */}
+      {showDropzone && (
+        <div
+          ref={dropzoneRef}
+          className={cn(
+            'max-w-sm mx-auto rounded-xl transition-all duration-500',
+            highlightDropzone && 'ring-2 ring-primary/50 ring-offset-2'
+          )}
+        >
+          <DropzoneIntake
+            onTextExtracted={handleTextExtracted}
+            isParsing={isParsing}
+          />
+        </div>
+      )}
 
       <div className="space-y-3 max-w-xs mx-auto">
         <Button
