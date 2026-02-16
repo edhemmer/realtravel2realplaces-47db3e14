@@ -406,6 +406,10 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
         
         // Check if this is a receipt-only document
         if (parsed.is_receipt_only === true) {
+          // v4.1.0: For flights flagged as receipt-only, classify explicitly
+          if (parsed.booking_type === 'flight') {
+            parsed._email_classification = 'FLIGHT_RECEIPT';
+          }
           return new Response(JSON.stringify({ 
             success: true, 
             data: parsed,
@@ -423,6 +427,9 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
           // No valid service dates - treat as receipt if has cost
           if (parsed.total_cost) {
             parsed.is_receipt_only = true;
+            if (parsed.booking_type === 'flight') {
+              parsed._email_classification = 'FLIGHT_RECEIPT';
+            }
             const message = parsed.booking_type === 'stay'
               ? "This appears to be a payment confirmation without check-in/check-out dates. An expense will be created. To add timeline entries, please upload the full booking confirmation."
               : "This appears to be a payment receipt without service dates. An expense will be created instead.";
@@ -432,6 +439,39 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
               data: parsed,
               is_receipt_only: true,
               message
+            }), {
+              status: 200,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
+        
+        // v4.1.0: Flight classification and required field enforcement
+        if (parsed.booking_type === 'flight') {
+          parsed._email_classification = 'FLIGHT_CONFIRMATION';
+          
+          // Enforce required fields for flight confirmations
+          const missingFields: string[] = [];
+          if (!parsed.departure_airport_code) missingFields.push('departure_airport_code');
+          if (!parsed.arrival_airport_code) missingFields.push('arrival_airport_code');
+          if (!parsed.start_datetime) missingFields.push('departure_datetime');
+          if (!parsed.end_datetime) missingFields.push('arrival_datetime');
+          
+          if (missingFields.length > 0) {
+            parsed._parse_issues = [{
+              issueType: 'MISSING_REQUIRED_FIELDS',
+              missingFields,
+              emailType: 'FLIGHT_CONFIRMATION',
+              actionHint: 'Some flight details could not be extracted. Please review and complete the missing fields, or re-upload the original confirmation email.',
+            }];
+            
+            return new Response(JSON.stringify({ 
+              success: true, 
+              data: parsed,
+              is_receipt_only: false,
+              has_issues: true,
+              missing_fields: missingFields,
+              message: `Flight confirmation parsed, but missing: ${missingFields.map(f => f.replace(/_/g, ' ')).join(', ')}. Please complete these fields manually.`
             }), {
               status: 200,
               headers: { ...corsHeaders, "Content-Type": "application/json" },

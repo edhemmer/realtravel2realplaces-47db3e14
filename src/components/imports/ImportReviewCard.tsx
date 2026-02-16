@@ -56,6 +56,9 @@ export function ImportReviewCard({
   const bookingType = (parsed.booking_type as string) || 'other';
   const needsReview = pending.status === 'needs_review';
   const validation = parsed._validation as { hard_fails?: string[]; soft_issues?: string[] } | undefined;
+  const isFlightReceipt = parsed._email_classification === 'FLIGHT_RECEIPT' || parsed._is_receipt_only === true;
+  const parseIssues = parsed._parse_issues as Array<{ issueType: string; missingFields?: string[]; actionHint?: string }> | undefined;
+  const hasMissingFields = parseIssues && parseIssues.length > 0;
 
   // Auto-select trip based on date overlap
   const startDate = (parsed.start_datetime as string)?.substring(0, 10);
@@ -70,30 +73,68 @@ export function ImportReviewCard({
     onAddToTrip(pending.id, effectiveTripId, parsed);
   };
 
+  // Determine badge label
+  const getBadgeLabel = () => {
+    if (isFlightReceipt) return 'Receipt';
+    if (hasMissingFields) return 'Needs Attention';
+    if (needsReview) return 'Needs Review';
+    return 'Ready';
+  };
+
+  const badgeVariant = isFlightReceipt ? 'outline' : (needsReview || hasMissingFields) ? 'outline' : 'secondary';
+  const badgeClass = isFlightReceipt 
+    ? 'border-blue-500/40 text-blue-600' 
+    : (needsReview || hasMissingFields) 
+    ? 'border-orange-500/40 text-orange-600' 
+    : '';
+
   return (
     <>
-      <Card className={`border ${needsReview ? 'border-orange-500/40 bg-orange-500/5' : 'border-primary/30 bg-primary/5'}`}>
+      <Card className={`border ${needsReview || hasMissingFields ? 'border-orange-500/40 bg-orange-500/5' : isFlightReceipt ? 'border-blue-500/40 bg-blue-500/5' : 'border-primary/30 bg-primary/5'}`}>
         <CardContent className="p-4 space-y-3">
           {/* Header row */}
           <div className="flex items-start gap-3">
-            <div className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${needsReview ? 'bg-orange-500/10 text-orange-600' : 'bg-primary/10 text-primary'}`}>
-              {needsReview ? <AlertCircle className="w-4 h-4" /> : TYPE_ICONS[bookingType] || TYPE_ICONS.other}
+            <div className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${needsReview || hasMissingFields ? 'bg-orange-500/10 text-orange-600' : isFlightReceipt ? 'bg-blue-500/10 text-blue-600' : 'bg-primary/10 text-primary'}`}>
+              {needsReview || hasMissingFields ? <AlertCircle className="w-4 h-4" /> : TYPE_ICONS[bookingType] || TYPE_ICONS.other}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground leading-snug">{summary}</p>
+              {isFlightReceipt && (
+                <p className="text-xs text-blue-600 mt-0.5">
+                  Receipt only — not an itinerary. No flight was added to your timeline.
+                </p>
+              )}
               {pending.subject && (
                 <p className="text-xs text-muted-foreground mt-0.5 truncate">
                   Subject: {pending.subject}
                 </p>
               )}
             </div>
-            <Badge variant={needsReview ? 'outline' : 'secondary'} className={`shrink-0 text-[10px] ${needsReview ? 'border-orange-500/40 text-orange-600' : ''}`}>
-              {needsReview ? 'Needs Review' : 'Ready'}
+            <Badge variant={badgeVariant as any} className={`shrink-0 text-[10px] ${badgeClass}`}>
+              {getBadgeLabel()}
             </Badge>
           </div>
 
           {/* Validation warnings */}
-          {needsReview && validation?.hard_fails && validation.hard_fails.length > 0 && (
+          {/* Missing required fields for flights */}
+          {hasMissingFields && parseIssues.map((issue, idx) => (
+            <div key={idx} className="text-xs text-orange-700 bg-orange-500/10 rounded-md px-3 py-2 space-y-1">
+              <p className="font-medium">
+                {issue.issueType === 'MISSING_REQUIRED_FIELDS' ? 'Missing flight details:' : 'Issue detected:'}
+              </p>
+              {issue.missingFields && issue.missingFields.map((f, i) => (
+                <p key={i} className="text-orange-600">
+                  • {f.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                </p>
+              ))}
+              {issue.actionHint && (
+                <p className="text-orange-600/80 mt-1">{issue.actionHint}</p>
+              )}
+            </div>
+          ))}
+
+          {/* Validation warnings */}
+          {needsReview && !hasMissingFields && validation?.hard_fails && validation.hard_fails.length > 0 && (
             <div className="text-xs text-destructive bg-destructive/10 rounded-md px-3 py-2 space-y-1">
               <p className="font-medium">Some details could not be verified:</p>
               {validation.hard_fails.slice(0, 2).map((f, i) => (

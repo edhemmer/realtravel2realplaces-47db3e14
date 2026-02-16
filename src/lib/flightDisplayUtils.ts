@@ -66,31 +66,44 @@ export function buildFlightDisplayLine(opts: {
 }): string {
   const parts: string[] = [];
 
-  // Airport route
+  // Airport route — only show if at least one code is valid
   const depCode = validateIATA(opts.departureAirportCode);
   const arrCode = validateIATA(opts.arrivalAirportCode);
-  parts.push(`${depCode || '—'} → ${arrCode || '—'}`);
+  
+  // v4.1.0: Prevent rendering "— → —" — only show route if at least one code exists
+  if (depCode || arrCode) {
+    parts.push(`${depCode || '—'} → ${arrCode || '—'}`);
+  }
 
   // Confirmation number (only if present)
   if (opts.confirmationNumber) {
     parts.push(`Conf ${opts.confirmationNumber}`);
   }
 
-  // Departure time
+  // Departure time — only show if there's actual time data
   const depTimeResolved = resolveTimeDisplay(
     opts.departureLocalTime ?? opts.startDatetime,
     opts.hasDepartureTime ?? (opts.startDatetime ? hasExplicitTime(opts.startDatetime) : false),
     opts.use24h,
   );
-  parts.push(`Dep ${depTimeResolved}`);
+  if (depTimeResolved !== UNKNOWN_TIME_PLACEHOLDER) {
+    parts.push(`Dep ${depTimeResolved}`);
+  }
 
-  // Arrival time
+  // Arrival time — only show if there's actual time data
   const arrTimeResolved = resolveTimeDisplay(
     opts.arrivalLocalTime ?? opts.endDatetime,
     opts.hasArrivalTime ?? (opts.endDatetime ? hasExplicitTime(opts.endDatetime) : false),
     opts.use24h,
   );
-  parts.push(`Arr ${arrTimeResolved}`);
+  if (arrTimeResolved !== UNKNOWN_TIME_PLACEHOLDER) {
+    parts.push(`Arr ${arrTimeResolved}`);
+  }
+
+  // If no parts at all, return a minimal fallback
+  if (parts.length === 0) {
+    return 'Flight details pending';
+  }
 
   return parts.join(' • ');
 }

@@ -164,6 +164,38 @@ Deno.serve(async (req: Request) => {
   extracted.start_datetime = normalizeDatetime(extracted.start_datetime as string | null);
   extracted.end_datetime = normalizeDatetime(extracted.end_datetime as string | null);
 
+  // ── 4b. Flight classification & required field enforcement ────
+  if (extracted.booking_type === 'flight') {
+    // Check if this is a receipt (no departure/arrival info)
+    const hasDep = !!extracted.departure_airport_code;
+    const hasArr = !!extracted.arrival_airport_code;
+    const hasStart = !!extracted.start_datetime;
+    const hasEnd = !!extracted.end_datetime;
+
+    if (!hasDep && !hasArr && !hasStart && !hasEnd) {
+      // Flight receipt — no itinerary data at all
+      extracted._email_classification = 'FLIGHT_RECEIPT';
+      extracted._is_receipt_only = true;
+    } else {
+      extracted._email_classification = 'FLIGHT_CONFIRMATION';
+      // Enforce required fields
+      const missingFields: string[] = [];
+      if (!hasDep) missingFields.push('departure_airport_code');
+      if (!hasArr) missingFields.push('arrival_airport_code');
+      if (!hasStart) missingFields.push('departure_datetime');
+      if (!hasEnd) missingFields.push('arrival_datetime');
+
+      if (missingFields.length > 0) {
+        extracted._parse_issues = [{
+          issueType: 'MISSING_REQUIRED_FIELDS',
+          missingFields,
+          emailType: 'FLIGHT_CONFIRMATION',
+          actionHint: 'Some flight details could not be extracted. Open the email and re-upload or forward the original confirmation.',
+        }];
+      }
+    }
+  }
+
   // ── 5. Validate extracted fields against raw body ──────────────
   const validationResult = validateAgainstSource(extracted, cleanBody);
 
@@ -174,8 +206,16 @@ Deno.serve(async (req: Request) => {
   } else if (validationResult.softIssues.length > 0) {
     confidence = 0.6;
   }
+  // Lower confidence further if flight has missing required fields
+  if (extracted._parse_issues && (extracted._parse_issues as unknown[]).length > 0) {
+    confidence = Math.min(confidence, 0.4);
+  }
+  // Receipt-only flights get low confidence
+  if (extracted._is_receipt_only) {
+    confidence = Math.min(confidence, 0.5);
+  }
 
-  const status = validationResult.hardFails.length > 0
+  const status = (validationResult.hardFails.length > 0 || extracted._is_receipt_only || (extracted._parse_issues && (extracted._parse_issues as unknown[]).length > 0))
     ? "needs_review"
     : "ready_for_review";
 
