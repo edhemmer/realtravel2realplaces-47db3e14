@@ -9,7 +9,7 @@
  * v3.10.9: Reads isExecutionMode from stack to show DEPARTURE MODE label.
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Trip, Booking } from '@/types/database';
 import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
 import { useBookings } from '@/hooks/useBookings';
@@ -29,6 +29,7 @@ import { getLocalNowString } from '@/lib/canonicalNextStop';
 import { getNowParkingHighlight } from '@/lib/canonicalParkingHighlight';
 import { buildCanonicalTodayExecutionStack } from '@/lib/canonicalTodayExecutionStack';
 import { useForegroundResume } from '@/hooks/useForegroundResume';
+import { QuickExpenseDialog } from '@/components/trips/QuickExpenseDialog';
 import type { TravelAlert } from '@/hooks/useTravelAlerts';
 import type { DriveSignal } from '@/lib/driveEngine';
 
@@ -56,6 +57,14 @@ function isRentalReturnDay(bookings: Booking[]): boolean {
   );
 }
 
+/**
+ * Check if trip is currently active (today within trip date range).
+ */
+function isTripActive(trip: Trip): boolean {
+  const today = getLocalNowString().substring(0, 10);
+  return today >= trip.start_date && today <= trip.end_date;
+}
+
 export function NowCommandCenter({
   tripId,
   trip,
@@ -78,12 +87,23 @@ export function NowCommandCenter({
   const { signals: driveSignals } = useDriveEngine({ tripId, trip });
 
   const [gasDialogOpen, setGasDialogOpen] = useState(false);
+  const [quickExpenseOpen, setQuickExpenseOpen] = useState(false);
   const [resumeTick, setResumeTick] = useState(0);
 
   // v3.7.1: Recompute on foreground resume
   useForegroundResume(() => setResumeTick((t) => t + 1));
 
   const showGas = useMemo(() => isRentalReturnDay(bookings), [bookings]);
+  const tripIsActive = useMemo(() => isTripActive(trip), [trip]);
+
+  // v3.9.6: When trip is active, open quick expense dialog in-place instead of navigating
+  const handleAddExpense = useCallback(() => {
+    if (tripIsActive) {
+      setQuickExpenseOpen(true);
+    } else {
+      onAddExpense();
+    }
+  }, [tripIsActive, onAddExpense]);
 
   // v3.10.7: Derive active stay address for DRIVE_SMART origin fallback
   const activeStayAddress = useMemo(() => {
@@ -165,7 +185,7 @@ export function NowCommandCenter({
       {/* 1. Quick Actions */}
       <div className="mb-1">
         <StickyQuickOpsStrip
-          onAddExpense={onAddExpense}
+          onAddExpense={handleAddExpense}
           onExplore={onExplore}
         />
       </div>
@@ -214,6 +234,13 @@ export function NowCommandCenter({
         tripId={tripId}
         open={gasDialogOpen}
         onOpenChange={setGasDialogOpen}
+      />
+
+      {/* v3.9.6: Quick Expense Dialog — in-place for active trips */}
+      <QuickExpenseDialog
+        tripId={tripId}
+        open={quickExpenseOpen}
+        onOpenChange={setQuickExpenseOpen}
       />
     </div>
   );
