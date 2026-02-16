@@ -108,26 +108,15 @@ export function CompanionDetailDialog({
             />
           </div>
 
-          {/* TSA & Frequent Flyer */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="tsa">TSA Known Traveler #</Label>
-              <Input
-                id="tsa"
-                value={formData.tsa_precheck_number}
-                onChange={(e) => setFormData({ ...formData, tsa_precheck_number: e.target.value })}
-                disabled={!canEdit}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="ff">Frequent Flyer #</Label>
-              <Input
-                id="ff"
-                value={formData.frequent_flyer_number}
-                onChange={(e) => setFormData({ ...formData, frequent_flyer_number: e.target.value })}
-                disabled={!canEdit}
-              />
-            </div>
+          {/* Frequent Flyer */}
+          <div className="space-y-2">
+            <Label htmlFor="ff">Frequent Flyer #</Label>
+            <Input
+              id="ff"
+              value={formData.frequent_flyer_number}
+              onChange={(e) => setFormData({ ...formData, frequent_flyer_number: e.target.value })}
+              disabled={!canEdit}
+            />
           </div>
 
           {/* Flight & Seat */}

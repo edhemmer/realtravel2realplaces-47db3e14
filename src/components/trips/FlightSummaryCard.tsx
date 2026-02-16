@@ -1,7 +1,7 @@
 import { Booking, Companion } from '@/types/database';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plane, Users, Clock, ExternalLink, MapPin, AlertTriangle } from 'lucide-react';
+import { Plane, Users, Clock, ExternalLink, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
 import { formatLocalTimeDirect, formatLocalDateDirect } from '@/lib/canonicalTimeNormalizer';
@@ -24,9 +24,7 @@ interface FlightSummaryCardProps {
 }
 
 export function FlightSummaryCard({ bookings, companions, bookingCompanions }: FlightSummaryCardProps) {
-  // v2.1.31: Airport info pills are Pro-only
   const { isPro } = useAccess();
-  // v2.2.5: Sort flights using string comparison on start_datetime — no Date() shifting
   const flights = bookings
     .filter((b) => b.booking_type === 'flight')
     .sort((a, b) => {
@@ -41,7 +39,6 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
     return null;
   }
 
-  // Helper to get companions for a specific flight
   const getCompanionsForFlight = (bookingId: string): Companion[] => {
     const linkedIds = bookingCompanions
       .filter(bc => bc.booking_id === bookingId)
@@ -49,32 +46,20 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
     return companions.filter(c => linkedIds.includes(c.id));
   };
 
-  // Check if a flight has missing TSA info
-  const hasMissingTsa = (flight: Booking): boolean => {
-    if (!flight.tsa_precheck_number) return true;
-    const flightCompanions = getCompanionsForFlight(flight.id);
-    return flightCompanions.some(c => !c.tsa_precheck_number);
-  };
-
-  // Total travelers = companions + 1 (the trip owner)
   const totalTravelers = companions.length + 1;
 
-  // Extract route from notes (flight numbers) if available
   const extractFlightInfo = (notes?: string): string | null => {
     if (!notes) return null;
     const match = notes.match(/(?:flight\s*#?\s*)?([A-Z]{2}\s*\d+)/i);
     return match ? match[1].replace(/\s+/g, '') : null;
   };
 
-  // Extract airport codes from flight booking — DB fields first, text fallback
   const getFlightAirportCodes = (flight: Booking): { origin?: string; destination?: string } => {
-    // Priority 1: Use validated IATA codes from DB fields
     const dbOrigin = validateIATA(flight.departure_airport_code);
     const dbDest = validateIATA(flight.arrival_airport_code);
     if (dbOrigin || dbDest) {
       return { origin: dbOrigin || undefined, destination: dbDest || undefined };
     }
-    // Priority 2: Fall back to text extraction from notes/vendor_name
     let codes = extractAirportCodes(flight.notes || '');
     if (codes.origin || codes.destination) return codes;
     codes = extractAirportCodes(flight.vendor_name || '');
@@ -106,7 +91,6 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
             const flightCompanions = getCompanionsForFlight(flight.id);
             const hasLinkedTravelers = flightCompanions.length > 0;
             const flightNumber = extractFlightInfo(flight.notes);
-            const missingTsa = hasMissingTsa(flight);
             const airportCodes = getFlightAirportCodes(flight);
             
             return (
@@ -114,12 +98,10 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                 key={flight.id}
                 className="relative p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors border border-transparent hover:border-primary/10"
               >
-                {/* Flight number indicator */}
                 <div className="absolute -left-1 top-4 w-1 h-8 rounded-full bg-primary/60" />
                 
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0 pl-2">
-                    {/* Airline & Flight Number Row */}
                     <div className="flex items-center gap-2 flex-wrap mb-1.5">
                       <span className="font-semibold text-base">
                         {flight.airline || flight.vendor_name}
@@ -134,22 +116,14 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                           Conf: {flight.confirmation_number}
                         </Badge>
                       )}
-                      {missingTsa && (
-                        <Badge variant="outline" className="text-xs border-amber-400 text-amber-600 dark:text-amber-400">
-                          <AlertTriangle className="w-3 h-3 mr-1" />
-                          TSA missing
-                        </Badge>
-                      )}
                     </div>
 
-                    {/* Route display — airport codes always visible */}
                     {(airportCodes.origin || airportCodes.destination) && (
                       <p className="text-sm font-medium text-foreground mb-1.5 pl-0">
                         {airportCodes.origin || '—'} → {airportCodes.destination || '—'}
                       </p>
                     )}
                     
-                    {/* Date/Time Row - v2.2.5: Uses direct digit extraction — no Date() timezone shifting */}
                     <div className="flex items-center gap-3 text-sm text-muted-foreground mb-1.5">
                       <span className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5" />
@@ -194,14 +168,12 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                       })()}
                     </div>
                     
-                    {/* Passenger Name — label removed, context obvious from flight card */}
                     {flight.passenger_name && (
                       <div className="text-xs text-muted-foreground mb-1">
                         {flight.passenger_name}
                       </div>
                     )}
                     
-                    {/* Airport Info Pills - Pro only */}
                     {isPro && (airportCodes.origin || airportCodes.destination) && (
                       <div className="flex flex-wrap gap-2 mt-2">
                         {airportCodes.origin && (
@@ -220,7 +192,6 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                     )}
                   </div>
                   
-                  {/* Action Button — Primary action for this card */}
                   {flight.link_url && (
                     <Button
                       size="sm"
@@ -239,7 +210,6 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                   )}
                 </div>
                 
-                {/* Per-flight travelers */}
                 {hasLinkedTravelers && (
                   <div className="mt-2 pt-2 border-t border-border/15 pl-2">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1.5">
@@ -250,13 +220,10 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                       {flightCompanions.map((companion) => (
                         <Badge 
                           key={companion.id} 
-                          variant={companion.tsa_precheck_number ? "secondary" : "outline"}
-                          className={`text-xs ${!companion.tsa_precheck_number ? 'border-amber-300 text-amber-700 dark:border-amber-600 dark:text-amber-400' : ''}`}
+                          variant="secondary"
+                          className="text-xs"
                         >
                           {companion.name}
-                          {!companion.tsa_precheck_number && (
-                            <AlertTriangle className="w-3 h-3 ml-1" />
-                          )}
                         </Badge>
                       ))}
                     </div>
@@ -267,7 +234,6 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
           })}
         </div>
 
-        {/* All travelers footer */}
         {companions.length > 0 && (
           <div className="mt-4 pt-4 border-t border-border/15">
             <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
@@ -280,7 +246,7 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                 <Badge 
                   key={companion.id} 
                   variant="outline" 
-                  className={`text-xs ${!companion.tsa_precheck_number ? 'border-amber-200 dark:border-amber-700' : ''}`}
+                  className="text-xs"
                 >
                   {companion.name}
                 </Badge>

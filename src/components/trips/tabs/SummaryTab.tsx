@@ -16,7 +16,6 @@ import { FlightSummaryCard } from '@/components/trips/FlightSummaryCard';
 import { DriveSummaryCard } from '@/components/trips/DriveSummaryCard';
 import { GasExpenseDialog } from '@/components/trips/GasExpenseDialog';
 import { ExpenseReminderBanner } from '@/components/trips/ExpenseReminderBanner';
-import { TsaWarningCard } from '@/components/trips/TsaWarningCard';
 import { CompanionDetailDialog } from '@/components/trips/CompanionDetailDialog';
 import { UpcomingEventsWidget } from '@/components/trips/UpcomingEventsWidget';
 import { TripHealthChecklist } from '@/components/trips/TripHealthChecklist';
@@ -211,18 +210,7 @@ export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onV
         />
       )}
 
-      {/* TSA/Companion Warnings - Enhanced component with companion checks */}
-      {transportationMode !== 'drive' && (
-        <TsaWarningCard 
-          bookings={bookings} 
-          companions={companions} 
-          bookingCompanions={bookingCompanions}
-          onCompanionClick={(companion) => {
-            setSelectedCompanion(companion);
-            setCompanionDialogOpen(true);
-          }}
-        />
-      )}
+      {/* TSA Warning Card removed — TSA indicators globally removed */}
 
       {/* Flight or Drive Summary based on transportation mode */}
       {transportationMode === 'drive' ? (
