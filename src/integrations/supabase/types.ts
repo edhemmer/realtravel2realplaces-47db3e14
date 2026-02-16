@@ -972,6 +972,8 @@ export type Database = {
           can_expenses: boolean
           can_stay: boolean
           created_at: string
+          declined_at: string | null
+          declined_by_user_id: string | null
           expires_at: string
           id: string
           invitee_email: string
@@ -987,6 +989,8 @@ export type Database = {
           can_expenses?: boolean
           can_stay?: boolean
           created_at?: string
+          declined_at?: string | null
+          declined_by_user_id?: string | null
           expires_at: string
           id?: string
           invitee_email: string
@@ -1002,6 +1006,8 @@ export type Database = {
           can_expenses?: boolean
           can_stay?: boolean
           created_at?: string
+          declined_at?: string | null
+          declined_by_user_id?: string | null
           expires_at?: string
           id?: string
           invitee_email?: string
@@ -1262,6 +1268,10 @@ export type Database = {
     }
     Functions: {
       accept_trip_invite: { Args: { p_token: string }; Returns: string }
+      accept_trip_invite_by_id: {
+        Args: { p_invite_id: string }
+        Returns: string
+      }
       admin_delete_user: { Args: { p_user_id: string }; Returns: Json }
       admin_get_all_users: {
         Args: never
@@ -1315,6 +1325,7 @@ export type Database = {
               invite_token: string
             }[]
           }
+      decline_trip_invite: { Args: { p_invite_id: string }; Returns: boolean }
       get_bookings_safe: {
         Args: { p_trip_id: string }
         Returns: {
@@ -1477,7 +1488,7 @@ export type Database = {
         | "alcohol"
         | "beverages"
         | "rental_car"
-      invite_status: "pending" | "accepted" | "expired" | "revoked"
+      invite_status: "pending" | "accepted" | "expired" | "revoked" | "declined"
       parking_billing: "hourly" | "daily" | "per_trip" | "other"
       parking_type: "airport" | "beach" | "city_garage" | "hotel" | "other"
       stay_type: "hotel" | "airbnb" | "vrbo" | "other"
@@ -1662,7 +1673,7 @@ export const Constants = {
         "beverages",
         "rental_car",
       ],
-      invite_status: ["pending", "accepted", "expired", "revoked"],
+      invite_status: ["pending", "accepted", "expired", "revoked", "declined"],
       parking_billing: ["hourly", "daily", "per_trip", "other"],
       parking_type: ["airport", "beach", "city_garage", "hotel", "other"],
       stay_type: ["hotel", "airbnb", "vrbo", "other"],

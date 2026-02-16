@@ -16,6 +16,7 @@ import {
 import { ContactSupportDialog } from '@/components/support/ContactSupportDialog';
 import { BrandHeader } from '@/components/BrandHeader';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { TripInvitesBadge } from '@/components/notifications/TripInvitesInbox';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -45,6 +46,7 @@ export function Layout({ children }: LayoutProps) {
 
           {user && (
             <div className="flex items-center gap-1">
+              <TripInvitesBadge />
               <NotificationBell />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
