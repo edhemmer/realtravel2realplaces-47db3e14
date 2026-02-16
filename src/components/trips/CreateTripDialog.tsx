@@ -297,67 +297,92 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
     setIsDragging(false);
     setParseError('');
 
-    // Check for file drops first (.eml, .msg, .txt, or any readable file)
-    const files = e.dataTransfer.files;
-    if (files && files.length > 0) {
-      const file = files[0];
+    // Diagnostic: log everything the browser received so we can debug
+    const dt = e.dataTransfer;
+    console.log('[DragDrop] types:', Array.from(dt.types));
+    console.log('[DragDrop] files:', dt.files.length, Array.from(dt.files).map(f => `${f.name} (${f.type})`));
+    for (const t of Array.from(dt.types)) {
+      if (t !== 'Files') {
+        console.log(`[DragDrop] data[${t}]:`, dt.getData(t)?.substring(0, 200));
+      }
+    }
 
-      if (isEmailFile(file.name)) {
+    // 1. Check for file drops (.eml, .msg, .txt, .html)
+    const files = dt.files;
+    if (files && files.length > 0) {
+      // Process all email files, or the first readable file
+      const emailFiles = Array.from(files).filter(f => isEmailFile(f.name));
+      if (emailFiles.length > 0) {
         setIsParsing(true);
-        toast.info('Extracting email content...');
-        const result = await extractEmailBody(file);
-        if (!result.success) {
-          setIsParsing(false);
-          toast.warning(result.error || "This email format couldn't be read automatically. Please open it and copy/paste the confirmation text instead.");
+        toast.info(`Extracting content from ${emailFiles.length} email file(s)...`);
+        const allBodies: string[] = [];
+        for (const file of emailFiles) {
+          const result = await extractEmailBody(file);
+          if (result.success && result.body) {
+            allBodies.push(result.body);
+          } else {
+            console.warn('[DragDrop] Failed to extract:', file.name, result.error);
+          }
+        }
+        if (allBodies.length > 0) {
+          await parseItineraryText(allBodies.join('\n\n---\n\n'));
           return;
         }
-        await parseItineraryText(result.body);
+        setIsParsing(false);
+        toast.warning("Couldn't read the email file(s). Please open them and copy/paste the text instead.");
         return;
       }
 
+      const file = files[0];
       // Read any text-like file
-      if (file.type === 'text/plain' || file.type === 'text/html' || file.name.endsWith('.txt')) {
+      if (file.type === 'text/plain' || file.type === 'text/html' || file.name.endsWith('.txt') || file.name.endsWith('.html')) {
         const reader = new FileReader();
         reader.onload = async (event) => {
-          const text = event.target?.result as string;
-          if (text) await parseItineraryText(text);
+          const rawText = event.target?.result as string;
+          if (!rawText) return;
+          // If HTML, strip tags
+          if (file.type === 'text/html' || file.name.endsWith('.html')) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = rawText;
+            const extracted = tempDiv.textContent || tempDiv.innerText || '';
+            if (extracted.trim()) await parseItineraryText(extracted.trim());
+          } else {
+            await parseItineraryText(rawText);
+          }
         };
         reader.readAsText(file);
         return;
       }
 
-      // For unsupported file types (PDF, images, etc.), show helpful message
-      toast.info('File type not supported for drag-and-drop. Please open it, copy the text, and use "Paste Confirmation Text" instead.');
+      // Unsupported file type
+      toast.info(`"${file.name}" can't be read directly. Please open it, copy the confirmation text, and use "Paste Confirmation Text".`);
       return;
     }
 
-    // Try plain text first, then HTML as fallback (browser drags often have HTML but no plain text)
-    const text = e.dataTransfer.getData('text/plain');
-    if (text) {
-      await parseItineraryText(text);
+    // 2. Try text data from the drag (e.g. dragging selected text from browser)
+    const text = dt.getData('text/plain');
+    if (text && text.trim()) {
+      await parseItineraryText(text.trim());
       return;
     }
 
-    const html = e.dataTransfer.getData('text/html');
+    const html = dt.getData('text/html');
     if (html) {
-      // Strip HTML tags to extract text content
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = html;
-      const extracted = tempDiv.textContent || tempDiv.innerText || '';
-      if (extracted.trim()) {
-        await parseItineraryText(extracted.trim());
+      const extracted = (tempDiv.textContent || tempDiv.innerText || '').trim();
+      if (extracted) {
+        await parseItineraryText(extracted);
         return;
       }
     }
 
-    // Try text/uri-list as last resort
-    const uri = e.dataTransfer.getData('text/uri-list');
-    if (uri) {
-      toast.info('Links cannot be parsed directly. Please open the confirmation, copy the text, and use "Paste Confirmation Text".');
-      return;
-    }
-
-    setParseError('No text content found. Please open your confirmation email, select the text, and drag it here — or use "Paste Confirmation Text" below.');
+    // 3. Nothing usable — guide user to paste instead
+    // This typically happens when dragging from email clients (Mail, Outlook)
+    // which don't expose content to browsers via drag-and-drop
+    setShowPasteInput(true);
+    setParseError('');
+    toast.info('Drag from email apps isn\'t supported by browsers. Please copy the confirmation text and paste it below.', { duration: 6000 });
   }, [parseItineraryText]);
 
   const handlePasteAndScan = useCallback(async () => {
@@ -687,8 +712,9 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
                     isDragging ? "text-primary" : "text-muted-foreground"
                   )} />
                   <p className="text-sm font-medium">
-                    {isDragging ? 'Drop to parse!' : 'Drop emails, PDFs, or screenshots here.'}
+                    {isDragging ? 'Drop to parse!' : 'Drop .eml files or selected text here.'}
                   </p>
+                  <p className="text-xs text-muted-foreground mt-1">Or use "Paste Confirmation Text" below</p>
                 </div>
               )}
             </div>
