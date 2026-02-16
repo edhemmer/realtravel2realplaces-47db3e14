@@ -3,28 +3,28 @@ import { ChevronDown } from 'lucide-react';
 
 const faqs = [
   {
-    question: 'What is the best travel management app?',
-    answer: 'The best travel management app keeps all your trip details — flights, stays, expenses, and stops — in one place with minimal manual entry. Real Travel 2 Real Places does exactly that, acting as a real-time command center for your trips.',
+    question: 'What kind of app is Real Travel 2 Real Places?',
+    answer: 'It\'s a trip organizer app — a structured travel dashboard where you can bring together flights, lodging, drives, packing, and expenses for each trip. Think of it as one place to manage the moving parts of travel.',
   },
   {
-    question: 'How do frequent travelers stay organized?',
-    answer: 'Frequent travelers need a system that handles multiple trips, layered itineraries, and rapid changes. Real Travel 2 Real Places surfaces what\'s next, tracks expenses per trip, and sends configurable reminders to help you stay on track.',
+    question: 'Is it free?',
+    answer: 'Yes. The free plan includes up to 5 lifetime trips with core features — flights, stays, expenses, packing lists, and reminders. Pro and Business tiers unlock unlimited trips, Explore, and advanced capabilities for frequent travelers.',
   },
   {
-    question: 'Is there an app that tells you what\'s next on your trip?',
-    answer: 'Yes. Real Travel 2 Real Places shows your next flight, check-in, stop, or departure — with leave-by timing and navigation-ready addresses — so you always know exactly where to be and when.',
+    question: 'How is this different from other travel planning apps?',
+    answer: 'Most travel apps focus on planning — finding deals, booking flights, researching destinations. Real Travel 2 Real Places focuses on what happens after you\'ve booked: organizing the details and making them easy to access while you\'re on the road.',
   },
   {
-    question: 'Can I import travel confirmations automatically?',
-    answer: 'Yes. You can forward confirmation emails, upload screenshots, or paste booking details. The system extracts dates, times, and locations and organizes them into your trip timeline. You can review and adjust any parsed details.',
+    question: 'Why would I keep it open during a trip?',
+    answer: 'Because your trip details are structured in one place. Need directions? Tap navigate. Need your hotel address? It\'s there. Want to log an expense before you forget? Takes seconds. It\'s designed to be useful while you\'re moving.',
   },
   {
-    question: 'Is Real Travel 2 Real Places free to use?',
-    answer: 'Yes. The free plan includes up to 5 lifetime trips with core features — flights, stays, expenses, packing lists, and reminders. Pro and Business tiers unlock unlimited trips, Explore, and advanced insights for frequent travelers.',
+    question: 'Can I track expenses?',
+    answer: 'Yes. You can log expenses by category and trip, see running totals, and track your share when splitting costs. It\'s built into the trip timeline so you can log as you go.',
   },
   {
-    question: 'How is this different from a travel planning app?',
-    answer: 'Most travel apps help you plan. Real Travel 2 Real Places helps you execute. It manages everything after your trip is booked — tracking logistics, timing, expenses, and changes in real time so you travel with confidence.',
+    question: 'Does it work for road trips?',
+    answer: 'Yes. You can organize stop-by-stop timelines, track gas expenses, and keep drive-day logistics accessible — all within the same trip view you\'d use for flights and lodging.',
   },
 ];
 

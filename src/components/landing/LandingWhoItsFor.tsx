@@ -1,26 +1,10 @@
-import { Briefcase, Route, Layers, Plane } from 'lucide-react';
+import { Route, Users, Repeat, Layers } from 'lucide-react';
 
 const personas = [
-  {
-    icon: Briefcase,
-    title: 'Business travelers',
-    description: 'Expense tracking, itinerary clarity, and instant access to every confirmation.',
-  },
-  {
-    icon: Route,
-    title: 'Multi-stop road trips',
-    description: 'Stop-by-stop timelines, gas tracking, and drive-day logistics in one view.',
-  },
-  {
-    icon: Layers,
-    title: 'Complex itineraries',
-    description: 'Flights, stays, rentals, and activities — all connected to one trip timeline.',
-  },
-  {
-    icon: Plane,
-    title: 'Frequent flyers',
-    description: 'TSA info, frequent flyer numbers, and departure reminders — always at hand.',
-  },
+  { icon: Route, title: 'Multi-stop travelers', description: 'Keep every leg of a complex itinerary organized in one timeline.' },
+  { icon: Users, title: 'Family travel', description: 'Share trip details and track expenses across the group.' },
+  { icon: Repeat, title: 'Repeat travelers', description: 'Manage trip after trip without starting from scratch.' },
+  { icon: Layers, title: 'People who prefer structure', description: 'If scattered notes and browser tabs stress you out — this is for you.' },
 ];
 
 export default function LandingWhoItsFor() {
@@ -32,7 +16,7 @@ export default function LandingWhoItsFor() {
             Built for people who actually travel.
           </h2>
           <p className="landing-section-subtext mt-3">
-            Whether you fly weekly or drive cross-country — one calm system replaces scattered notes.
+            Not everyone needs a travel dashboard. But if you do, this one is designed around how travel actually works.
           </p>
         </div>
 

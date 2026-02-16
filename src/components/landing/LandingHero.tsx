@@ -9,34 +9,30 @@ export default function LandingHero() {
           {/* Left — Messaging */}
           <div className="landing-hero-copy">
             <h1 className="landing-hero-headline">
-              Know exactly where to be
+              A better way to manage
               <br />
-              <span className="landing-hero-headline-accent">when.</span>
+              <span className="landing-hero-headline-accent">the chaos of travel.</span>
             </h1>
 
             <p className="landing-hero-subtext">
-              A real-time travel command center that shows what's next, when to leave, and where to go — without digging through emails.
+              Bring your flights, lodging, drives, packing, and expenses into one structured timeline — so you can open one screen and know what's next.
             </p>
 
-            {/* CTAs — inline on all viewports */}
+            {/* CTAs */}
             <div className="flex items-center gap-3 sm:gap-4 mt-6 sm:mt-8">
               <Link
                 to="/auth?tab=signup"
-                className="landing-btn-primary-hero">
-
-                Start Free
+                className="landing-btn-primary-hero"
+              >
+                Start a Trip
               </Link>
-              <a
-                href="#how-it-works"
-                className="landing-btn-secondary-hero">
-
-                See How It Works
-              </a>
+              <Link
+                to="/auth"
+                className="landing-btn-secondary-hero"
+              >
+                Log In
+              </Link>
             </div>
-
-            <p className="landing-trust-line">
-              No credit card
-            </p>
           </div>
 
           {/* Right — Product preview */}
@@ -47,6 +43,6 @@ export default function LandingHero() {
           </div>
         </div>
       </div>
-    </section>);
-
+    </section>
+  );
 }

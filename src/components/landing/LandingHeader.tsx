@@ -16,13 +16,13 @@ export default function LandingHeader() {
               to="/auth" 
               className="landing-login-link"
             >
-              Log in
+              Log In
             </Link>
             <Link 
               to="/auth?tab=signup" 
               className="landing-btn-header"
             >
-              Get started
+              Start a Trip
             </Link>
           </div>
         </div>
