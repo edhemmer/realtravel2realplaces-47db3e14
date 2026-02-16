@@ -96,14 +96,14 @@ export function useFileImportToTrip() {
         
         const { error: expenseError } = await supabase
           .from('expenses')
-          .insert({
+          .insert([{
             trip_id: tripId,
             date: expenseDate,
-            category,
+            category: category as 'meals' | 'transport' | 'activity' | 'shopping' | 'parking' | 'other',
             description: `${parsedData.vendor_name || entityLabel} (receipt)`,
             amount: (parsedData.total_cost as number) || 0,
             notes: `Created from ${entityLabel.toLowerCase()} receipt import. Not an itinerary — no timeline entry.`,
-          });
+          }]);
         
         if (expenseError) throw expenseError;
       } else {
