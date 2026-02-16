@@ -5,14 +5,14 @@
  * v3.0.0: Premium polish — framer-motion transitions, skeleton loading, card elevation
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTrips, useDeleteTrip } from '@/hooks/useTrips';
 import { useSharedTrips, SharedTrip } from '@/hooks/useSharedTrips';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, MapPin, Calendar, Plane, Trash2, Users, ChevronRight } from 'lucide-react';
+import { Plus, MapPin, Calendar, Plane, Trash2, Users, ChevronRight, DollarSign, Compass, Radio } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatTripDateRange } from '@/lib/displayFormats';
 import { getTodayDateOnly } from '@/lib/canonicalTimePolicy';
@@ -67,6 +67,22 @@ export default function Dashboard() {
     setTripToDelete(id);
   }, []);
 
+  // v3.9.3: Canonical active trip resolver — consumption only
+  const todayStr = useMemo(() => getTodayDateOnly(), []);
+  const activeTrip = useMemo(() => {
+    if (!trips || trips.length === 0) return null;
+    return trips
+      .filter((t: Trip) => todayStr >= t.start_date && todayStr <= t.end_date)
+      .sort((a: Trip, b: Trip) => a.start_date < b.start_date ? -1 : 1)[0] ?? null;
+  }, [trips, todayStr]);
+
+  // v3.9.3: Elevate active trip to index 0
+  const sortedTrips = useMemo(() => {
+    if (!trips || trips.length === 0) return [];
+    if (!activeTrip) return trips;
+    return [activeTrip, ...trips.filter((t: Trip) => t.id !== activeTrip.id)];
+  }, [trips, activeTrip]);
+
   if (isLoading || sharedLoading) {
     return (
       <Layout>
@@ -75,7 +91,7 @@ export default function Dashboard() {
     );
   }
 
-  const hasTrips = trips && trips.length > 0 || sharedTrips.length > 0;
+  const hasTrips = sortedTrips.length > 0 || sharedTrips.length > 0;
 
   return (
     <Layout>
@@ -95,19 +111,75 @@ export default function Dashboard() {
           </Button>
         </div>
 
+        {/* v3.9.3: Active Trip Execution Card */}
+        {activeTrip && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card className="border-primary/30 bg-primary/5">
+              <CardContent className="py-4 px-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <Radio className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-primary">Active Trip</p>
+                      <p className="font-semibold truncate">{activeTrip.name}</p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        {activeTrip.destination_city}, {activeTrip.destination_country}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      size="sm"
+                      className="bg-success hover:bg-success/90 text-white h-9 rounded-lg font-semibold shadow-sm active:scale-[0.98]"
+                      onClick={() => navigate(`/trip/${activeTrip.id}?tab=expenses`)}
+                    >
+                      <DollarSign className="w-3.5 h-3.5 mr-1" />
+                      Add Expense
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground h-9 rounded-lg font-semibold shadow-sm active:scale-[0.98]"
+                      onClick={() => navigate(`/trip/${activeTrip.id}?tab=explore`)}
+                    >
+                      <Compass className="w-3.5 h-3.5 mr-1" />
+                      Explore
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-9 rounded-lg font-semibold active:scale-[0.98]"
+                      onClick={() => navigate(`/trip/${activeTrip.id}?tab=now`)}
+                    >
+                      Open NOW
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
         {/* Pending Email Imports — hidden via feature flag */}
         {EMAIL_FORWARDING_ENABLED && <PendingImportsSection />}
 
         {/* My Trips */}
-        {trips && trips.length > 0 && (
+        {sortedTrips.length > 0 && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold" />
             <StaggerContainer className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {trips.map((trip: Trip) => (
+              {sortedTrips.map((trip: Trip) => (
                 <FadeInItem key={trip.id}>
                   <TripCard
                     trip={trip}
                     isPro={isPro}
+                    isActive={activeTrip?.id === trip.id}
                     onDelete={handleRequestDelete}
                     onNavigate={handleNavigate}
                   />
@@ -200,12 +272,14 @@ const TripCard = React.memo(function TripCard({
   trip,
   isShared = false,
   isPro,
+  isActive = false,
   onDelete,
   onNavigate,
 }: {
   trip: Trip | SharedTrip;
   isShared?: boolean;
   isPro: boolean;
+  isActive?: boolean;
   onDelete: (id: string) => void;
   onNavigate: (id: string) => void;
 }) {
@@ -225,10 +299,11 @@ const TripCard = React.memo(function TripCard({
   }, [onDelete, trip.id]);
 
   const pastTripStyles = isPastTrip ? 'opacity-60' : '';
+  const activeBorder = isActive ? 'border-success/50 ring-1 ring-success/20' : '';
 
   return (
     <Card 
-      className={`group cursor-pointer transition-all duration-200 overflow-hidden border-border/50 hover:border-primary/20 hover:shadow-lg ${cardClassName} ${pastTripStyles}`}
+      className={`group cursor-pointer transition-all duration-200 overflow-hidden border-border/50 hover:border-primary/20 hover:shadow-lg ${cardClassName} ${pastTripStyles} ${activeBorder}`}
       onClick={handleCardClick}
     >
       <CardHeader className="pb-2">
@@ -238,6 +313,12 @@ const TripCard = React.memo(function TripCard({
               <CardTitle className="text-lg truncate group-hover:text-primary transition-colors duration-200">
                 {trip.name}
               </CardTitle>
+              {isActive && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-teal-500/15 text-teal-600 dark:text-teal-400 shrink-0">
+                  <Radio className="w-2.5 h-2.5" />
+                  Live
+                </span>
+              )}
               {(trip as Trip).transportation_mode === 'flight' && (
                 <Plane className={`w-3.5 h-3.5 shrink-0 ${isPastTrip ? 'text-muted-foreground/50' : 'text-primary/70'}`} />
               )}
