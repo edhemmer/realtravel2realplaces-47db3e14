@@ -50,17 +50,23 @@ export default function Auth() {
   const clearMessages = () => {
     setError('');
     setSuccessMessage('');
+    setPassword('');
   };
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return; // Prevent double submission
 
     clearMessages();
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      setError('Email is required.');
+      return;
+    }
     setLoading(true);
     try {
       const {
         error
-      } = await signIn(email, password);
+      } = await signIn(normalizedEmail, password);
       if (error) {
         // User-friendly error messages
         if (error.message.includes('Invalid login credentials')) {
@@ -100,9 +106,14 @@ export default function Auth() {
       setError('Password must be at least 6 characters.');
       return;
     }
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
+      setError('Email is required.');
+      return;
+    }
     setLoading(true);
     try {
-      const { error } = await signUp({ email, password, firstName: firstName.trim(), lastName: lastName.trim() });
+      const { error } = await signUp({ email: normalizedEmail, password, firstName: firstName.trim(), lastName: lastName.trim() });
       if (error) {
         if (error.message.includes('already registered')) {
           setError('An account with this email already exists.');
