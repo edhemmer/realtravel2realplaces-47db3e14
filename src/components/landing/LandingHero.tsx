@@ -11,7 +11,7 @@ export default function LandingHero() {
             <h1 className="landing-hero-headline">
               A better way to manage
               <br />
-              <span className="text-[hsl(var(--landing-accent))]">the chaos of travel.</span>
+              <span className="text-[hsl(var(--landing-accent))]">the Travel ch.</span>
             </h1>
 
             <p className="landing-hero-subtext">
@@ -22,14 +22,14 @@ export default function LandingHero() {
             <div className="flex items-center gap-3 sm:gap-4 mt-6 sm:mt-8">
               <Link
                 to="/auth?tab=signup"
-                className="landing-btn-primary-hero"
-              >
+                className="landing-btn-primary-hero">
+
                 Start a Trip
               </Link>
               <Link
                 to="/auth"
-                className="landing-btn-secondary-hero"
-              >
+                className="landing-btn-secondary-hero">
+
                 Log In
               </Link>
             </div>
@@ -43,6 +43,6 @@ export default function LandingHero() {
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>);
+
 }
