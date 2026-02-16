@@ -383,3 +383,29 @@ export function rankAttractions(attractions: AttractionSuggestion[]): Attraction
     return rcB - rcA;
   });
 }
+
+/**
+ * Filter attractions by keyword query.
+ * Matches against name, shortDescription, category, and locationSummary.
+ * Case-insensitive, supports multiple space-separated terms (AND logic).
+ */
+export function filterByQuery(
+  attractions: AttractionSuggestion[],
+  query: string
+): AttractionSuggestion[] {
+  const trimmed = query.trim().toLowerCase();
+  if (!trimmed) return attractions;
+
+  const terms = trimmed.split(/\s+/).filter(t => t.length > 0);
+
+  return attractions.filter(a => {
+    const searchable = [
+      a.name,
+      a.shortDescription,
+      a.category,
+      a.locationSummary,
+    ].join(' ').toLowerCase();
+
+    return terms.every(term => searchable.includes(term));
+  });
+}
