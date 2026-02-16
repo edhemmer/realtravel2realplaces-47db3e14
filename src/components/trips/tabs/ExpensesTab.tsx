@@ -102,7 +102,9 @@ const SUB_CATEGORIES: Record<ExpenseCategory, { value: ExpenseSubCategory; label
 };
 
 export function ExpensesTab({ tripId, autoOpenAdd, onAutoOpenConsumed }: ExpensesTabProps) {
-  const { canEdit } = useTripPermission();
+  const { canEdit, canAddExpenses } = useTripPermission();
+  // v3.9.5: Use canAddExpenses for expense write gate (capability-scoped)
+  const canWriteExpenses = canAddExpenses || canEdit;
   const { data: expenses = [], isLoading } = useExpenses(tripId);
   const { data: bookings = [], isLoading: bookingsLoading } = useBookings(tripId);
   const { data: trip } = useTrip(tripId);
@@ -563,7 +565,7 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
         {/* Header v1.3.2 */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h3 className="text-lg font-semibold">Expenses</h3>
-          {canEdit && (
+          {canWriteExpenses && (
             <Button onClick={() => setDialogOpen(true)} className="h-12 rounded-xl text-sm font-semibold shadow-sm bg-success text-success-foreground hover:bg-success/90 active:bg-success/80 md:h-10 md:rounded-md md:shadow-none md:bg-primary md:text-primary-foreground md:hover:bg-primary/90">
               <Plus className="w-4 h-4 mr-2" />
               Add Expense
@@ -572,7 +574,7 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
         </div>
         
         {/* Quick-Add Buttons */}
-        {canEdit && (
+        {canWriteExpenses && (
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={() => setGasDialogOpen(true)}>
               <Fuel className="w-4 h-4 mr-1" />
@@ -811,7 +813,7 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
                     : `No expenses in this category yet. Add one or check other categories.`
                   }
                 </p>
-                {canEdit && (
+                {canWriteExpenses && (
                   <Button onClick={() => setDialogOpen(true)} className="h-12 rounded-xl text-sm font-semibold shadow-sm bg-success text-success-foreground hover:bg-success/90 active:bg-success/80 md:h-10 md:rounded-md md:shadow-none md:bg-primary md:text-primary-foreground md:hover:bg-primary/90">
                     <Plus className="w-4 h-4 mr-2" />
                     Add Expense

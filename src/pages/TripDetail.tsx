@@ -46,15 +46,24 @@ import { MobileAddExpenseCard } from '@/components/trips/MobileAddExpenseCard';
 import { TripDetailLayout, type TripTab } from '@/components/layout';
 import { createContext, useContext, useState, useCallback, useMemo } from 'react';
 
-// Context to share ownership info with child components
+// v3.9.5: Context to share capability-scoped permissions with child components
 interface TripPermissionContextType {
   isOwner: boolean;
   canEdit: boolean;
+  /** v3.9.5: Capability-scoped write flags */
+  canAddExpenses: boolean;
+  canAddLodging: boolean;
+  canEditTripMeta: boolean;
+  isReadOnlyOverall: boolean;
 }
 
 const TripPermissionContext = createContext<TripPermissionContextType>({
   isOwner: true,
   canEdit: true,
+  canAddExpenses: true,
+  canAddLodging: true,
+  canEditTripMeta: true,
+  isReadOnlyOverall: false,
 });
 
 export const useTripPermission = () => useContext(TripPermissionContext);
@@ -185,6 +194,10 @@ export default function TripDetail() {
 
   const isOwner = ownership?.isOwner ?? false;
   const canEdit = ownership?.canEdit ?? false;
+  const canAddExpenses = ownership?.canAddExpenses ?? false;
+  const canAddLodging = ownership?.canAddLodging ?? false;
+  const canEditTripMeta = ownership?.canEditTripMeta ?? false;
+  const isReadOnlyOverall = ownership?.isReadOnlyOverall ?? true;
 
   // v2.3.x: Shared header content for both mobile and desktop
   const renderTripHeader = () => (
@@ -271,11 +284,23 @@ export default function TripDetail() {
         </div>
       </div>
 
-      {/* Read-only banner */}
-      {!isOwner && !canEdit && (
+      {/* v3.9.5: Capability-scoped banner — only show when truly read-only */}
+      {!isOwner && isReadOnlyOverall && (
         <div className="flex items-center gap-2 p-3 bg-muted/50 border rounded-lg text-sm text-muted-foreground">
           <Eye className="w-4 h-4" />
           <span className="text-xs sm:text-sm">You're viewing this trip in read-only mode. Only the trip owner can make changes.</span>
+        </div>
+      )}
+      {/* v3.9.5: Scoped access banner — when guest has some but not all capabilities */}
+      {!isOwner && !isReadOnlyOverall && (
+        <div className="flex items-center gap-2 p-3 bg-primary/5 border border-primary/20 rounded-lg text-sm text-muted-foreground">
+          <Users className="w-4 h-4 text-primary" />
+          <span className="text-xs sm:text-sm">
+            Limited access: You can {[
+              canAddExpenses && 'add expenses',
+              canAddLodging && 'add lodging',
+            ].filter(Boolean).join(' and ')}.
+          </span>
         </div>
       )}
 
@@ -288,7 +313,7 @@ export default function TripDetail() {
   );
 
   return (
-    <TripPermissionContext.Provider value={{ isOwner, canEdit }}>
+    <TripPermissionContext.Provider value={{ isOwner, canEdit, canAddExpenses, canAddLodging, canEditTripMeta, isReadOnlyOverall }}>
       <Layout>
         {/* v2.3.x: Mobile uses MobileNavigationRouter, desktop uses existing Tabs */}
         {isMobile ? (
