@@ -70,13 +70,34 @@ export function useSharedTrips() {
   });
 }
 
+/**
+ * v3.9.5: Canonical trip capabilities — capability-scoped, not role-scoped.
+ * Returns granular write permissions derived from trip_members + trip_shares.
+ */
+export interface TripCapabilities {
+  isOwner: boolean;
+  /** Legacy compat — true if owner OR has any write capability */
+  canEdit: boolean;
+  /** Can modify trip metadata (name, dates, etc.) — owner only */
+  canEditTripMeta: boolean;
+  /** Can add expenses — owner OR guest with can_expenses flag */
+  canAddExpenses: boolean;
+  /** Can add lodging/stays — owner OR guest with can_stay flag */
+  canAddLodging: boolean;
+  /** True only when user has zero write capabilities */
+  isReadOnlyOverall: boolean;
+}
+
 export function useTripOwnership(tripId: string) {
   const { user } = useAuth();
 
   return useQuery({
     queryKey: ['trip-ownership', tripId, user?.id],
-    queryFn: async () => {
-      if (!user || !tripId) return { isOwner: false, canEdit: false };
+    queryFn: async (): Promise<TripCapabilities> => {
+      if (!user || !tripId) return {
+        isOwner: false, canEdit: false, canEditTripMeta: false,
+        canAddExpenses: false, canAddLodging: false, isReadOnlyOverall: true,
+      };
 
       // Check if user owns the trip
       const { data: trip, error: tripError } = await supabase
@@ -88,10 +109,38 @@ export function useTripOwnership(tripId: string) {
       if (tripError) throw tripError;
       
       if (trip?.user_id === user.id) {
-        return { isOwner: true, canEdit: true };
+        return {
+          isOwner: true, canEdit: true, canEditTripMeta: true,
+          canAddExpenses: true, canAddLodging: true, isReadOnlyOverall: false,
+        };
       }
 
-      // Check share permission
+      // Check trip_members for capability-scoped permissions
+      const { data: membership, error: memberError } = await supabase
+        .from('trip_members')
+        .select('read_only, can_expenses, can_stay')
+        .eq('trip_id', tripId)
+        .eq('user_id', user.id)
+        .eq('role', 'guest')
+        .maybeSingle();
+
+      if (memberError) throw memberError;
+
+      if (membership) {
+        const canAddExpenses = membership.can_expenses === true;
+        const canAddLodging = membership.can_stay === true;
+        const hasAnyWrite = canAddExpenses || canAddLodging;
+        return {
+          isOwner: false,
+          canEdit: hasAnyWrite,
+          canEditTripMeta: false,
+          canAddExpenses,
+          canAddLodging,
+          isReadOnlyOverall: !hasAnyWrite,
+        };
+      }
+
+      // Fallback: check legacy trip_shares
       const { data: share, error: shareError } = await supabase
         .from('trip_shares')
         .select('permission')
@@ -102,9 +151,14 @@ export function useTripOwnership(tripId: string) {
 
       if (shareError) throw shareError;
 
+      const isEditShare = share?.permission === 'edit';
       return {
         isOwner: false,
-        canEdit: share?.permission === 'edit',
+        canEdit: isEditShare,
+        canEditTripMeta: false,
+        canAddExpenses: isEditShare,
+        canAddLodging: isEditShare,
+        isReadOnlyOverall: !isEditShare,
       };
     },
     enabled: !!user && !!tripId,
