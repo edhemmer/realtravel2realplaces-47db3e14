@@ -12,6 +12,7 @@ import { Plane, MapPin, Info, Sparkles } from 'lucide-react';
 import { Booking } from '@/types/database';
 import { tripHasAirportSegments } from '@/lib/airportContext';
 import { getAirportByCode, Airport } from '@/lib/airportData';
+import { validateIATA } from '@/lib/flightDisplayUtils';
 import { useIsPro } from '@/hooks/useSubscription';
 
 interface AirportSnapshotCardProps {
@@ -54,24 +55,24 @@ function getPrimaryAirports(bookings: Booking[]): {
   let departure: AirportDisplay | null = null;
   let arrival: AirportDisplay | null = null;
 
-  // Extract departure from first flight
-  if (firstFlight.departure_airport_code) {
-    const code = firstFlight.departure_airport_code.toUpperCase();
-    const airport = getAirportByCode(code);
+  // Extract departure from first flight — validate IATA to prevent confirmation number bleed
+  const depCode = validateIATA(firstFlight.departure_airport_code);
+  if (depCode) {
+    const airport = getAirportByCode(depCode);
     departure = {
-      code,
-      label: airport?.city || firstFlight.departure_airport_name || code,
+      code: depCode,
+      label: airport?.city || firstFlight.departure_airport_name || depCode,
       airport: airport || undefined,
     };
   }
 
-  // Extract arrival from last flight
-  if (lastFlight.arrival_airport_code) {
-    const code = lastFlight.arrival_airport_code.toUpperCase();
-    const airport = getAirportByCode(code);
+  // Extract arrival from last flight — validate IATA to prevent confirmation number bleed
+  const arrCode = validateIATA(lastFlight.arrival_airport_code);
+  if (arrCode) {
+    const airport = getAirportByCode(arrCode);
     arrival = {
-      code,
-      label: airport?.city || lastFlight.arrival_airport_name || code,
+      code: arrCode,
+      label: airport?.city || lastFlight.arrival_airport_name || arrCode,
       airport: airport || undefined,
     };
   }
