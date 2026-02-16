@@ -8,7 +8,7 @@ const faqs = [
   },
   {
     question: 'Is it free?',
-    answer: 'Yes. The free plan includes up to 5 lifetime trips with core features — flights, stays, expenses, packing lists, and reminders. Pro and Business tiers unlock unlimited trips, Explore, and advanced capabilities for frequent travelers.',
+    answer: 'Yes. The free plan includes up to 5 lifetime trips with core features — flights, stays, expenses, packing lists, and reminders. Pro and Business tiers unlock unlimited trips and advanced capabilities for frequent travelers.',
   },
   {
     question: 'How is this different from other travel planning apps?',
