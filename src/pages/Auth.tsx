@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MapPin, Calendar, Eye, EyeOff, Loader2, AlertCircle, Mail, Lock } from 'lucide-react';
 import { User } from 'lucide-react';
-import logoImg from '@/assets/logo.png';
+import logoImg from '@/assets/rt2rp-logo.png';
 
 export default function Auth() {
   const [firstName, setFirstName] = useState('');
