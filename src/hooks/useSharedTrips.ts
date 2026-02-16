@@ -16,7 +16,10 @@ export function useSharedTrips() {
     queryFn: async () => {
       if (!user) return [];
 
-      // Get shares where the user has accepted
+      const tripIdSet = new Set<string>();
+      const permissionMap = new Map<string, 'view' | 'edit'>();
+
+      // 1) Legacy trip_shares (accepted)
       const { data: shares, error: sharesError } = await supabase
         .from('trip_shares')
         .select('trip_id, permission')
@@ -24,10 +27,31 @@ export function useSharedTrips() {
         .not('accepted_at', 'is', null);
 
       if (sharesError) throw sharesError;
-      if (!shares || shares.length === 0) return [];
+      (shares || []).forEach(s => {
+        tripIdSet.add(s.trip_id);
+        permissionMap.set(s.trip_id, (s.permission || 'view') as 'view' | 'edit');
+      });
 
-      // Get the trip details for each share
-      const tripIds = shares.map(s => s.trip_id);
+      // 2) trip_members where user is a guest (from invite acceptance)
+      const { data: memberships, error: membersError } = await supabase
+        .from('trip_members')
+        .select('trip_id, read_only, can_expenses, can_stay')
+        .eq('user_id', user.id)
+        .eq('role', 'guest');
+
+      if (membersError) throw membersError;
+      (memberships || []).forEach(m => {
+        tripIdSet.add(m.trip_id);
+        // If not already tracked via trip_shares, derive permission
+        if (!permissionMap.has(m.trip_id)) {
+          permissionMap.set(m.trip_id, m.read_only ? 'view' : 'edit');
+        }
+      });
+
+      if (tripIdSet.size === 0) return [];
+
+      // Fetch trip details
+      const tripIds = Array.from(tripIdSet);
       const { data: trips, error: tripsError } = await supabase
         .from('trips')
         .select('*')
@@ -36,15 +60,11 @@ export function useSharedTrips() {
 
       if (tripsError) throw tripsError;
 
-      // Combine trip data with share permission
-      return (trips || []).map(trip => {
-        const share = shares.find(s => s.trip_id === trip.id);
-        return {
-          ...trip,
-          isShared: true as const,
-          permission: (share?.permission || 'view') as 'view' | 'edit',
-        };
-      }) as SharedTrip[];
+      return (trips || []).map(trip => ({
+        ...trip,
+        isShared: true as const,
+        permission: permissionMap.get(trip.id) || 'view',
+      })) as SharedTrip[];
     },
     enabled: !!user,
   });
