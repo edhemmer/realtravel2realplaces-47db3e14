@@ -18,9 +18,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plane, Hotel, Car, MapPin, Ticket, Package, AlertCircle, Trash2, Plus, Pencil } from 'lucide-react';
+import { Plane, Hotel, Car, MapPin, Ticket, Package, AlertCircle, Trash2, Plus, Pencil, TrainFront, Receipt } from 'lucide-react';
 import type { PendingImport } from '@/hooks/usePendingImports';
 import type { Trip } from '@/types/database';
+import { isReceiptClassification, hasParseIssues, getParseIssues, getEntityLabel, type ParseIssue } from '@/lib/parseContract';
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
   flight: <Plane className="w-4 h-4" />,
@@ -28,6 +29,7 @@ const TYPE_ICONS: Record<string, React.ReactNode> = {
   car_rental: <Car className="w-4 h-4" />,
   parking: <MapPin className="w-4 h-4" />,
   activity: <Ticket className="w-4 h-4" />,
+  transport: <TrainFront className="w-4 h-4" />,
   other: <Package className="w-4 h-4" />,
 };
 
@@ -54,11 +56,12 @@ export function ImportReviewCard({
   const parsed = pending.parsed_data as Record<string, unknown>;
   const summary = (parsed._summary as string) || `New import from ${pending.sender || 'email'}`;
   const bookingType = (parsed.booking_type as string) || 'other';
+  const entityLabel = getEntityLabel(bookingType);
   const needsReview = pending.status === 'needs_review';
   const validation = parsed._validation as { hard_fails?: string[]; soft_issues?: string[] } | undefined;
-  const isFlightReceipt = parsed._email_classification === 'FLIGHT_RECEIPT' || parsed._is_receipt_only === true;
-  const parseIssues = parsed._parse_issues as Array<{ issueType: string; missingFields?: string[]; actionHint?: string }> | undefined;
-  const hasMissingFields = parseIssues && parseIssues.length > 0;
+  const isReceipt = isReceiptClassification(parsed);
+  const issues = getParseIssues(parsed);
+  const hasMissingFields = issues.length > 0;
 
   // Auto-select trip based on date overlap
   const startDate = (parsed.start_datetime as string)?.substring(0, 10);
@@ -75,14 +78,14 @@ export function ImportReviewCard({
 
   // Determine badge label
   const getBadgeLabel = () => {
-    if (isFlightReceipt) return 'Receipt';
+    if (isReceipt) return `${entityLabel} Receipt`;
     if (hasMissingFields) return 'Needs Attention';
     if (needsReview) return 'Needs Review';
     return 'Ready';
   };
 
-  const badgeVariant = isFlightReceipt ? 'outline' : (needsReview || hasMissingFields) ? 'outline' : 'secondary';
-  const badgeClass = isFlightReceipt 
+  const badgeVariant = isReceipt ? 'outline' : (needsReview || hasMissingFields) ? 'outline' : 'secondary';
+  const badgeClass = isReceipt 
     ? 'border-blue-500/40 text-blue-600' 
     : (needsReview || hasMissingFields) 
     ? 'border-orange-500/40 text-orange-600' 
@@ -115,12 +118,13 @@ export function ImportReviewCard({
             </Badge>
           </div>
 
-          {/* Validation warnings */}
-          {/* Missing required fields for flights */}
-          {hasMissingFields && parseIssues.map((issue, idx) => (
+          {/* Missing required fields — all entity types */}
+          {hasMissingFields && issues.map((issue, idx) => (
             <div key={idx} className="text-xs text-orange-700 bg-orange-500/10 rounded-md px-3 py-2 space-y-1">
               <p className="font-medium">
-                {issue.issueType === 'MISSING_REQUIRED_FIELDS' ? 'Missing flight details:' : 'Issue detected:'}
+                {issue.issueType === 'MISSING_REQUIRED_FIELDS' 
+                  ? `Missing ${getEntityLabel(issue.entityType).toLowerCase()} details:` 
+                  : 'Issue detected:'}
               </p>
               {issue.missingFields && issue.missingFields.map((f, i) => (
                 <p key={i} className="text-orange-600">
