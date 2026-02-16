@@ -1,68 +1,82 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Trip, TripState } from '@/types/database';
 import { useAccess } from '@/hooks/useAccess';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Lock, Archive, Clock, Moon, CalendarCog } from 'lucide-react';
-import { differenceInDays, parseISO, startOfDay, isBefore } from 'date-fns';
+import { Lock, Archive, Clock, Moon, CalendarCog, CalendarClock, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EditTripDatesDialog } from './EditTripDatesDialog';
+import { resolveCanonicalLifecycle, daysBetween, getTodayDateOnly } from '@/lib/canonicalTimePolicy';
 
 interface TripStatusHeroBarProps {
   trip: Trip;
 }
 
 /**
- * v2.1.40: Removed PRO badge from trip bar - plan is account-level, not per-trip.
- * Status badge (Active/Inactive/Locked/Closed) remains.
+ * v4.0.0: Uses canonical lifecycle resolver for status badge.
  */
 export function TripStatusHeroBar({ trip }: TripStatusHeroBarProps) {
    const { isPro } = useAccess();
    const [editDatesOpen, setEditDatesOpen] = useState(false);
    const tripState = (trip.trip_state || 'active') as TripState;
 
-   // Calculate days until deletion for Pro closed trips
-   const today = startOfDay(new Date());
-   const tripEndDate = startOfDay(parseISO(trip.end_date));
-   const daysSinceEnd = differenceInDays(today, tripEndDate);
-   const daysUntilDeletion = 45 - daysSinceEnd;
+   const lifecycle = useMemo(
+     () => resolveCanonicalLifecycle(trip.start_date, trip.end_date),
+     [trip.start_date, trip.end_date]
+   );
 
-   // v2.1.7: Display "Inactive" for ACTIVE trips past their end date
-   const isPastEndDate = isBefore(tripEndDate, today);
-   const isDisplayInactive = tripState === 'active' && isPastEndDate;
+   // Calculate days until deletion for Pro closed trips
+   const today = getTodayDateOnly();
+   const daysSinceEnd = daysBetween(trip.end_date, today);
+   const daysUntilDeletion = 45 - daysSinceEnd;
 
    const isProClosedTrip = isPro && tripState === 'closed';
    const showRetentionWarning = isProClosedTrip && daysUntilDeletion > 0;
    const isUrgent = showRetentionWarning && daysUntilDeletion <= 7;
  
    const getStatusConfig = () => {
-     // v2.1.7: Check for display-only "Inactive" state first
-     if (isDisplayInactive) {
+     // Server-side locked/closed states take precedence
+     if (tripState === 'locked') {
        return {
-         label: 'Inactive',
-         icon: <Moon className="w-3 h-3" />,
-         className: 'bg-slate-500/15 text-slate-600 dark:text-slate-400 border-slate-500/30',
+         label: 'Locked',
+         icon: <Lock className="w-3 h-3" />,
+         className: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30',
+       };
+     }
+     if (tripState === 'closed') {
+       return {
+         label: 'Closed',
+         icon: <Archive className="w-3 h-3" />,
+         className: 'bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/30',
        };
      }
 
-     switch (tripState) {
-       case 'active':
+     // Use canonical lifecycle for active trips
+     switch (lifecycle.phase) {
+       case 'COMPLETED':
+         return {
+           label: 'Inactive',
+           icon: <Moon className="w-3 h-3" />,
+           className: 'bg-slate-500/15 text-slate-600 dark:text-slate-400 border-slate-500/30',
+         };
+       case 'UPCOMING':
+         return {
+           label: 'Upcoming',
+           icon: <CalendarClock className="w-3 h-3" />,
+           className: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30',
+         };
+       case 'ACTIVE':
+         if (lifecycle.substate === 'PRE_TRIP') {
+           return {
+             label: 'Pre-Trip',
+             icon: <Sparkles className="w-3 h-3" />,
+             className: 'bg-sky-500/15 text-sky-700 dark:text-sky-400 border-sky-500/30',
+           };
+         }
          return {
            label: 'Active',
            icon: null,
            className: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
-         };
-       case 'locked':
-         return {
-           label: 'Locked',
-           icon: <Lock className="w-3 h-3" />,
-           className: 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30',
-         };
-       case 'closed':
-         return {
-           label: 'Closed',
-           icon: <Archive className="w-3 h-3" />,
-           className: 'bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/30',
          };
        default:
          return {

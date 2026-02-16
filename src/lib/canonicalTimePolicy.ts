@@ -14,10 +14,10 @@
  * All modules performing date/time logic MUST use these functions.
  */
 
-import type { DateOnly, LocalDateTime, TimeHHMM, TripDisplayStatus } from './canonicalTimeTypes';
+import type { DateOnly, LocalDateTime, TimeHHMM, TripDisplayStatus, TripLifecycle, TripLifecyclePhase, TripLifecycleSubstate } from './canonicalTimeTypes';
 
 // Re-export types and constructors for convenience
-export type { DateOnly, LocalDateTime, TimeHHMM, TripDisplayStatus };
+export type { DateOnly, LocalDateTime, TimeHHMM, TripDisplayStatus, TripLifecycle, TripLifecyclePhase, TripLifecycleSubstate };
 export { asDateOnly, asLocalDateTime } from './canonicalTimeTypes';
 export type { TimeZoneId } from './canonicalTimeTypes';
 
@@ -270,6 +270,53 @@ export function getTripDisplayStatus(
   if (startDate > todayStr) return 'FUTURE';
   if (endDate < todayStr) return 'PAST';
   return 'ACTIVE';
+}
+
+// ============================================================================
+// CANONICAL LIFECYCLE (v4.0.0 — 14-day pre-trip activation window)
+// ============================================================================
+
+/** Pre-trip activation window in days */
+const PRE_TRIP_WINDOW_DAYS = 14;
+
+/**
+ * Resolve the canonical trip lifecycle phase and substate.
+ * 
+ * Rules (evaluated in order):
+ * 1. COMPLETED: today > endDate
+ * 2. ACTIVE (IN_TRIP): startDate <= today <= endDate
+ * 3. ACTIVE (PRE_TRIP): today < startDate AND daysUntilStart <= 14
+ * 4. UPCOMING: daysUntilStart > 14
+ * 
+ * Uses daysBetween() for day calculation (noon-based, DST-safe).
+ * Lifecycle is derived ONLY from trip dates — never from timeline events,
+ * sorting order, or UI state.
+ */
+export function resolveCanonicalLifecycle(
+  startDate: DateOnly,
+  endDate: DateOnly,
+  today?: DateOnly
+): TripLifecycle {
+  const todayStr = today ?? getTodayDateOnly();
+  const daysUntilStart = daysBetween(todayStr, startDate);
+
+  // 1. COMPLETED: today is past end date
+  if (endDate < todayStr) {
+    return { phase: 'COMPLETED', substate: null, daysUntilStart };
+  }
+
+  // 2. ACTIVE (IN_TRIP): today is within trip range
+  if (startDate <= todayStr && endDate >= todayStr) {
+    return { phase: 'ACTIVE', substate: 'IN_TRIP', daysUntilStart };
+  }
+
+  // 3. ACTIVE (PRE_TRIP): trip starts within 14 days
+  if (daysUntilStart >= 0 && daysUntilStart <= PRE_TRIP_WINDOW_DAYS) {
+    return { phase: 'ACTIVE', substate: 'PRE_TRIP', daysUntilStart };
+  }
+
+  // 4. UPCOMING: trip is more than 14 days away
+  return { phase: 'UPCOMING', substate: null, daysUntilStart };
 }
 
 /**

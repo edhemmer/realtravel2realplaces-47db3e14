@@ -39,6 +39,20 @@ export type TimeHHMM = string; // "HH:MM"
  */
 export type TripDisplayStatus = 'FUTURE' | 'ACTIVE' | 'PAST';
 
+/**
+ * v4.0.0: Canonical trip lifecycle with 14-day pre-trip activation window.
+ * Derived solely from tripStart, tripEnd, and current date.
+ */
+export type TripLifecyclePhase = 'UPCOMING' | 'ACTIVE' | 'COMPLETED';
+export type TripLifecycleSubstate = 'PRE_TRIP' | 'IN_TRIP' | null;
+
+export interface TripLifecycle {
+  phase: TripLifecyclePhase;
+  substate: TripLifecycleSubstate;
+  /** Days until trip starts (positive = future, negative = started, 0 = starts today) */
+  daysUntilStart: number;
+}
+
 // ============================================================================
 // TYPE CONSTRUCTORS / VALIDATORS
 // ============================================================================
