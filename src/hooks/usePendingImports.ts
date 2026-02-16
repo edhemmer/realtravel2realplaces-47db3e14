@@ -150,11 +150,31 @@ export function useFileImportToTrip() {
 
       if (updateError) throw updateError;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['pending-imports'] });
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      toast.success('Import added to trip!');
+      
+      // v3.10.1: Show batch outcome summary if available
+      const parsed = variables.parsedData;
+      const batchSummary = parsed._batch_summary as { by_type?: Record<string, number>; receipts?: number; needs_attention?: number } | undefined;
+      if (batchSummary?.by_type && Object.keys(batchSummary.by_type).length > 0) {
+        const typeLabels: Record<string, string> = {
+          flight: 'Flight', stay: 'Lodging', car_rental: 'Car Rental',
+          transport: 'Transport', parking: 'Parking', activity: 'Activity',
+        };
+        const parts: string[] = [];
+        for (const [t, count] of Object.entries(batchSummary.by_type)) {
+          const label = typeLabels[t] || t;
+          parts.push(`${count} ${label}${(count as number) > 1 ? 's' : ''}`);
+        }
+        if (batchSummary.needs_attention && batchSummary.needs_attention > 0) {
+          parts.push(`${batchSummary.needs_attention} Needs Attention`);
+        }
+        toast.success(`Import added: ${parts.join(', ')}`);
+      } else {
+        toast.success('Import added to trip!');
+      }
     },
     onError: (err: Error) => {
       console.error('File import error:', err);
