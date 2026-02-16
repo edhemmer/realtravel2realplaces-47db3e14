@@ -17,6 +17,13 @@
  */
 
 import { parseISO, format, startOfDay, differenceInCalendarDays } from 'date-fns';
+import {
+  type BatchAnchorResult,
+  type ParsedFlightLeg,
+  resolveBatchAnchors,
+  deduplicateLegs,
+  buildLegId,
+} from './batchFlightAnchor';
 
 // ============================================================================
 // TYPES
@@ -374,6 +381,130 @@ export function applyValidationGate(
     isAutoCreateSafe: hasPendingValidation ? false : frame.isAutoCreateSafe,
   };
 }
+
+// ============================================================================
+// HOME AIRPORT BATCH RESOLUTION
+// ============================================================================
+
+/**
+ * Resolve a trip frame from a batch of parsed flight legs using the
+ * user's Home Airport as the anchor.
+ *
+ * This is the canonical entry point for multi-flight batch import.
+ * It delegates to batchFlightAnchor for anchor computation, then
+ * converts the result into a ResolvedFrame compatible with the rest
+ * of the trip creation pipeline.
+ *
+ * @param legs - All parsed flight legs from batch import
+ * @param homeAirportCode - User's home airport IATA code
+ * @returns Object containing the resolved frame and batch anchor details
+ */
+export function resolveHomeAirportFrame(
+  legs: ParsedFlightLeg[],
+  homeAirportCode: string
+): {
+  frame: ResolvedFrame;
+  anchorResult: BatchAnchorResult;
+} {
+  // Deduplicate legs before anchoring
+  const uniqueLegs = deduplicateLegs(legs);
+
+  // Resolve anchors using canonical batch logic
+  const anchorResult = resolveBatchAnchors(uniqueLegs, homeAirportCode);
+
+  // Convert anchor result to ResolvedFrame
+  if (!anchorResult.tripStartDateTime || !anchorResult.tripEndDateTime) {
+    return {
+      frame: createEmptyFrame('fly', anchorResult.warnings),
+      anchorResult,
+    };
+  }
+
+  // Extract date-only from ISO datetime strings
+  const startDate = anchorResult.tripStartDateTime.substring(0, 10);
+  const endDate = anchorResult.tripEndDateTime.substring(0, 10);
+
+  const confidence = anchorResult.isAnchored
+    ? (anchorResult.hasReturnToHome ? 0.95 : 0.75)
+    : 0.5;
+
+  const frame: ResolvedFrame = {
+    startDate,
+    endDate,
+    mode: 'fly',
+    confidence,
+    isAutoCreateSafe: confidence >= AUTO_CREATE_THRESHOLD,
+    warnings: anchorResult.warnings,
+  };
+
+  return { frame, anchorResult };
+}
+
+/**
+ * Convert parsed booking data (from parse-booking edge function) into
+ * ParsedFlightLeg format for batch anchor resolution.
+ *
+ * This adapter ensures the batch anchor resolver works with the existing
+ * parse-booking output without requiring edge function changes.
+ */
+export function bookingDataToFlightLeg(
+  parsedData: {
+    booking_type?: string;
+    departure_airport_code?: string | null;
+    arrival_airport_code?: string | null;
+    start_datetime?: string | null;
+    end_datetime?: string | null;
+    airline?: string | null;
+    confirmation_number?: string | null;
+    total_cost?: number | null;
+    notes?: string | null;
+    vendor_name?: string | null;
+  },
+  sourceFile?: string | null
+): ParsedFlightLeg | null {
+  // Only convert flight bookings
+  if (parsedData.booking_type !== 'flight') return null;
+
+  const departCode = parsedData.departure_airport_code?.trim().toUpperCase();
+  const arriveCode = parsedData.arrival_airport_code?.trim().toUpperCase();
+  const departDateTime = parsedData.start_datetime;
+
+  // Must have airport codes and departure time
+  if (!departCode || departCode.length !== 3) return null;
+  if (!arriveCode || arriveCode.length !== 3) return null;
+  if (!departDateTime) return null;
+
+  // Extract flight number from notes if present (format: "Outbound: XXXX, Return: XXXX")
+  let flightNumber: string | null = null;
+  if (parsedData.notes) {
+    const fnMatch = parsedData.notes.match(/(?:Outbound|Flight):\s*([A-Z0-9]+)/i);
+    if (fnMatch) flightNumber = fnMatch[1];
+  }
+
+  // buildLegId is already imported at top via batchFlightAnchor
+
+  return {
+    legId: buildLegId(
+      parsedData.confirmation_number || null,
+      flightNumber,
+      departCode,
+      departDateTime
+    ),
+    departAirportCode: departCode,
+    arriveAirportCode: arriveCode,
+    departDateTime,
+    arriveDateTime: parsedData.end_datetime || null,
+    carrier: parsedData.airline || parsedData.vendor_name || null,
+    flightNumber,
+    confirmationCode: parsedData.confirmation_number || null,
+    rawCost: parsedData.total_cost ?? null,
+    rawCurrency: null, // Currency not separately extracted by current parser
+    sourceFile: sourceFile || null,
+  };
+}
+
+// Re-export batch anchor types for consumer convenience
+export type { BatchAnchorResult, ParsedFlightLeg, BatchDestination } from './batchFlightAnchor';
 
 // ============================================================================
 // INTERNAL HELPERS
