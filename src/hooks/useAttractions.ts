@@ -4,6 +4,8 @@
  * Multi-query coverage across intent categories, progressive radius
  * expansion, deduplication, and distance-based ranking.
  *
+ * v4.0: Optional query parameter for keyword-based search.
+ *
  * Progressive Radius Steps:
  *   Step 1: 10 mi  → need ≥25 unique results
  *   Step 2: 25 mi  → need ≥40 unique results
@@ -17,6 +19,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   getMockAttractions,
   filterByRadius,
+  filterByQuery,
   dedupeAttractions,
   rankAttractions,
 } from '@/lib/mockAttractions';
@@ -29,6 +32,8 @@ interface UseAttractionsOptions {
   lng?: number;
   /** User-selected display radius (does NOT limit engine minimum depth) */
   radiusMiles?: number;
+  /** Optional keyword search query */
+  query?: string;
   enabled?: boolean;
 }
 
@@ -42,6 +47,7 @@ export function useAttractions({
   lat,
   lng,
   radiusMiles = 25,
+  query,
   enabled = true,
 }: UseAttractionsOptions) {
   const hasCity = !!city;
@@ -49,7 +55,7 @@ export function useAttractions({
   const canSearch = hasCity || hasCoords;
 
   return useQuery({
-    queryKey: ['attractions', city, state, lat, lng, radiusMiles],
+    queryKey: ['attractions', city, state, lat, lng, radiusMiles, query || ''],
     queryFn: async (): Promise<AttractionSuggestion[]> => {
       // Simulate network delay
       await new Promise((resolve) => setTimeout(resolve, 400));
@@ -58,6 +64,9 @@ export function useAttractions({
       const fullPool = hasCoords && !hasCity
         ? getMockAttractions('default')
         : getMockAttractions(city || '', state);
+
+      // Step 1b: Apply keyword filter if query is present
+      const queryFiltered = query ? filterByQuery(fullPool, query) : fullPool;
 
       // Step 2: Progressive radius expansion
       // Use the larger of user-selected radius or engine minimum to guarantee depth
@@ -68,7 +77,7 @@ export function useAttractions({
         // Use the maximum of the step radius and user-selected radius
         const effectiveRadius = Math.max(stepRadius, radiusMiles);
 
-        const filtered = filterByRadius(fullPool, effectiveRadius);
+        const filtered = filterByRadius(queryFiltered, effectiveRadius);
         const deduped = dedupeAttractions(filtered);
 
         results = deduped;

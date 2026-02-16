@@ -1,5 +1,6 @@
 /**
  * v3.6.0: Premium Explore screen with carousel + sectioned feed
+ * v4.0: Canonical keyword search via ExploreEngine query param
  *
  * Consumes v3.5.2 engine via useAttractions, then applies
  * ExploreRankingAndSections for carousel + vertical sections.
@@ -8,7 +9,7 @@
  * canonical resolveExploreOrigin helper.
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Trip } from '@/types/database';
 import { AttractionSuggestion } from '@/types/attraction';
 import { useAttractions } from '@/hooks/useAttractions';
@@ -23,11 +24,12 @@ import { ExploreSectionFeed } from '@/components/trips/explore/ExploreSectionFee
 import { AddToTimelineModal } from '@/components/trips/explore/AddToTimelineModal';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import {
   Compass, Loader2, AlertCircle,
-  Building2, Navigation, RefreshCw, Search, MapPinned,
+  Building2, Navigation, RefreshCw, Search, MapPinned, X,
 } from 'lucide-react';
 
 interface ExploreTabProps {
@@ -48,6 +50,26 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [refreshCounter, setRefreshCounter] = useState(0);
 
+  // Search state with debounce
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setDebouncedQuery(searchInput.trim());
+    }, 300);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [searchInput]);
+
+  const handleClearSearch = useCallback(() => {
+    setSearchInput('');
+    setDebouncedQuery('');
+  }, []);
+
   // Canonical origin resolution
   const origin = useMemo(() => {
     return resolveExploreOrigin(
@@ -63,13 +85,14 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
     origin.lat !== undefined || origin.searchCity !== undefined
   );
 
-  // v3.5.2 engine
+  // v3.5.2 engine with optional query
   const { data: attractions = [], isLoading, error, refetch } = useAttractions({
     city: origin.searchCity,
     state: origin.searchState,
     lat: origin.lat,
     lng: origin.lng,
     radiusMiles: parseInt(radius),
+    query: debouncedQuery || undefined,
     enabled: canFetch,
   });
 
@@ -160,6 +183,27 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
         )}
       </div>
 
+      {/* Search input */}
+      <div className="relative px-1">
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+        <Input
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Search attractions, trails, museums..."
+          className="pl-9 pr-9 h-10"
+        />
+        {searchInput && (
+          <button
+            type="button"
+            onClick={handleClearSearch}
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Clear search"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
       {/* Radius selector */}
       <div className="flex items-center gap-2 px-1">
         <Label className="text-xs text-muted-foreground whitespace-nowrap">
@@ -188,7 +232,9 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
       ) : isLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-          <span className="ml-2 text-muted-foreground">Finding attractions…</span>
+          <span className="ml-2 text-muted-foreground">
+            {debouncedQuery ? `Searching for "${debouncedQuery}"…` : 'Finding attractions…'}
+          </span>
         </div>
       ) : error ? (
         <Card className="border-dashed">
@@ -218,15 +264,21 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
                 <MapPinned className="w-8 h-8 text-muted-foreground" />
               </div>
             </div>
-            <h3 className="text-base font-medium mb-2">No places found in this area</h3>
+            <h3 className="text-base font-medium mb-2">
+              {debouncedQuery ? `No results for "${debouncedQuery}"` : 'No places found in this area'}
+            </h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Try a larger search radius.
+              {debouncedQuery ? 'Try a different search or clear to see all attractions.' : 'Try a larger search radius.'}
             </p>
-            {radius !== '50' && (
+            {debouncedQuery ? (
+              <Button variant="outline" size="sm" onClick={handleClearSearch}>
+                Clear search
+              </Button>
+            ) : radius !== '50' ? (
               <Button variant="outline" size="sm" onClick={() => setRadius('50')}>
                 Increase radius to 50 miles
               </Button>
-            )}
+            ) : null}
           </CardContent>
         </Card>
       ) : (
