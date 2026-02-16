@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
 import { formatLocalTimeDirect, formatLocalDateDirect } from '@/lib/canonicalTimeNormalizer';
 import { extractAirportCodes } from '@/lib/airportData';
+import { validateIATA, buildFlightDisplayLine } from '@/lib/flightDisplayUtils';
 import { AirportInfoPill } from './AirportInfoPill';
 import { useAccess } from '@/hooks/useAccess';
 
@@ -65,8 +66,15 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
     return match ? match[1].replace(/\s+/g, '') : null;
   };
 
-  // Extract airport codes from flight booking
+  // Extract airport codes from flight booking — DB fields first, text fallback
   const getFlightAirportCodes = (flight: Booking): { origin?: string; destination?: string } => {
+    // Priority 1: Use validated IATA codes from DB fields
+    const dbOrigin = validateIATA(flight.departure_airport_code);
+    const dbDest = validateIATA(flight.arrival_airport_code);
+    if (dbOrigin || dbDest) {
+      return { origin: dbOrigin || undefined, destination: dbDest || undefined };
+    }
+    // Priority 2: Fall back to text extraction from notes/vendor_name
     let codes = extractAirportCodes(flight.notes || '');
     if (codes.origin || codes.destination) return codes;
     codes = extractAirportCodes(flight.vendor_name || '');
@@ -133,6 +141,13 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                         </Badge>
                       )}
                     </div>
+
+                    {/* Route display — airport codes always visible */}
+                    {(airportCodes.origin || airportCodes.destination) && (
+                      <p className="text-sm font-medium text-foreground mb-1.5 pl-0">
+                        {airportCodes.origin || '—'} → {airportCodes.destination || '—'}
+                      </p>
+                    )}
                     
                     {/* Date/Time Row - v2.2.5: Uses direct digit extraction — no Date() timezone shifting */}
                     <div className="flex items-center gap-3 text-sm text-muted-foreground mb-1.5">
