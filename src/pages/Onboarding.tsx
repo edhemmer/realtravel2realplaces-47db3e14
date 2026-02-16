@@ -104,7 +104,7 @@ export default function Onboarding() {
   };
 
   const handleAddTrip = async () => {
-    await finishOnboarding(true);
+    await finishOnboarding(false);
   };
 
   const handleSkipTrip = () => {
