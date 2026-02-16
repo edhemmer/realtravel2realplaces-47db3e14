@@ -7,7 +7,7 @@ import { useCreateTrip } from '@/hooks/useTrips';
 import { useCreateBooking } from '@/hooks/useBookings';
 import { useCreateCompanion } from '@/hooks/useCompanions';
 import { supabase } from '@/integrations/supabase/client';
-import { isEmailFile, extractEmailBody } from '@/lib/emailBody';
+import { DropzoneIntake } from '@/components/trips/DropzoneIntake';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Upload, FileText, Loader2, X, Check, Plane, Car, Palmtree, Mountain, Building2, ClipboardPaste, Scan, TrainFront, ArrowLeft, Info } from 'lucide-react';
+import { CalendarIcon, FileText, Loader2, X, Check, Plane, Car, Palmtree, Mountain, Building2, ClipboardPaste, Scan, TrainFront, ArrowLeft, Info } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -114,13 +114,11 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
   // Form state (shared across steps)
   const [startDate, setStartDate] = useState<Date>();
   const [endDate, setEndDate] = useState<Date>();
-  const [isDragging, setIsDragging] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
   const [parsedBookings, setParsedBookings] = useState<ParsedBooking[]>([]);
   const [parseError, setParseError] = useState<string | null>(null);
   const [pastedText, setPastedText] = useState('');
   const [showPasteInput, setShowPasteInput] = useState(false);
-  const dropZoneRef = useRef<HTMLDivElement>(null);
 
   // Drive flow extra state
   const [driveDestination, setDriveDestination] = useState('');
@@ -277,112 +275,10 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
     }
   }, [setValue]);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (dropZoneRef.current && !dropZoneRef.current.contains(e.relatedTarget as Node)) {
-      setIsDragging(false);
-    }
-  }, []);
-
-  const handleDrop = useCallback(async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
+  // ── Dropzone text handler (fed by DropzoneIntake) ──────
+  const handleDropzoneText = useCallback(async (text: string) => {
     setParseError('');
-
-    // Diagnostic: log everything the browser received so we can debug
-    const dt = e.dataTransfer;
-    console.log('[DragDrop] types:', Array.from(dt.types));
-    console.log('[DragDrop] files:', dt.files.length, Array.from(dt.files).map(f => `${f.name} (${f.type})`));
-    for (const t of Array.from(dt.types)) {
-      if (t !== 'Files') {
-        console.log(`[DragDrop] data[${t}]:`, dt.getData(t)?.substring(0, 200));
-      }
-    }
-
-    // 1. Check for file drops (.eml, .msg, .txt, .html)
-    const files = dt.files;
-    if (files && files.length > 0) {
-      // Process all email files, or the first readable file
-      const emailFiles = Array.from(files).filter(f => isEmailFile(f.name));
-      if (emailFiles.length > 0) {
-        setIsParsing(true);
-        toast.info(`Extracting content from ${emailFiles.length} email file(s)...`);
-        const allBodies: string[] = [];
-        for (const file of emailFiles) {
-          const result = await extractEmailBody(file);
-          if (result.success && result.body) {
-            allBodies.push(result.body);
-          } else {
-            console.warn('[DragDrop] Failed to extract:', file.name, result.error);
-          }
-        }
-        if (allBodies.length > 0) {
-          await parseItineraryText(allBodies.join('\n\n---\n\n'));
-          return;
-        }
-        setIsParsing(false);
-        toast.warning("Couldn't read the email file(s). Please open them and copy/paste the text instead.");
-        return;
-      }
-
-      const file = files[0];
-      // Read any text-like file
-      if (file.type === 'text/plain' || file.type === 'text/html' || file.name.endsWith('.txt') || file.name.endsWith('.html')) {
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-          const rawText = event.target?.result as string;
-          if (!rawText) return;
-          // If HTML, strip tags
-          if (file.type === 'text/html' || file.name.endsWith('.html')) {
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = rawText;
-            const extracted = tempDiv.textContent || tempDiv.innerText || '';
-            if (extracted.trim()) await parseItineraryText(extracted.trim());
-          } else {
-            await parseItineraryText(rawText);
-          }
-        };
-        reader.readAsText(file);
-        return;
-      }
-
-      // Unsupported file type
-      toast.info(`"${file.name}" can't be read directly. Please open it, copy the confirmation text, and use "Paste Confirmation Text".`);
-      return;
-    }
-
-    // 2. Try text data from the drag (e.g. dragging selected text from browser)
-    const text = dt.getData('text/plain');
-    if (text && text.trim()) {
-      await parseItineraryText(text.trim());
-      return;
-    }
-
-    const html = dt.getData('text/html');
-    if (html) {
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = html;
-      const extracted = (tempDiv.textContent || tempDiv.innerText || '').trim();
-      if (extracted) {
-        await parseItineraryText(extracted);
-        return;
-      }
-    }
-
-    // 3. Nothing usable — guide user to paste instead
-    // This typically happens when dragging from email clients (Mail, Outlook)
-    // which don't expose content to browsers via drag-and-drop
-    setShowPasteInput(true);
-    setParseError('');
-    toast.info('Drag from email apps isn\'t supported by browsers. Please copy the confirmation text and paste it below.', { duration: 6000 });
+    await parseItineraryText(text);
   }, [parseItineraryText]);
 
   const handlePasteAndScan = useCallback(async () => {
@@ -686,38 +582,11 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
               <span><span className="italic">Real Travel 2 Real Places</span> reads your confirmations so you don't have to retype details.</span>
             </div>
 
-            {/* Drop Zone */}
-            <div
-              ref={dropZoneRef}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              className={cn(
-                'relative border-2 border-dashed rounded-lg p-8 transition-all duration-200 text-center',
-                isDragging
-                  ? 'border-primary bg-primary/5 scale-[1.02]'
-                  : 'border-muted-foreground/25 hover:border-muted-foreground/50',
-                isParsing && 'pointer-events-none opacity-60'
-              )}
-            >
-              {isParsing ? (
-                <div className="flex flex-col items-center gap-2">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                  <p className="text-sm text-muted-foreground">Parsing your confirmations...</p>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center gap-2">
-                  <Upload className={cn(
-                    "w-8 h-8 transition-colors",
-                    isDragging ? "text-primary" : "text-muted-foreground"
-                  )} />
-                  <p className="text-sm font-medium">
-                    {isDragging ? 'Drop to parse!' : 'Drop .eml files or selected text here.'}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">Or use "Paste Confirmation Text" below</p>
-                </div>
-              )}
-            </div>
+            {/* Drop Zone — powered by react-dropzone */}
+            <DropzoneIntake
+              onTextExtracted={handleDropzoneText}
+              isParsing={isParsing}
+            />
 
             {/* Paste alternative */}
             {!showPasteInput && !isParsing && (
