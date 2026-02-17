@@ -54,21 +54,23 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
     return match ? match[1].replace(/\s+/g, '') : null;
   };
 
-  const getFlightAirportCodes = (flight: Booking): { origin?: string; destination?: string } => {
+  const getFlightAirportCodes = (flight: Booking): { origin?: string; destination?: string; originName?: string; destinationName?: string } => {
     const dbOrigin = validateIATA(flight.departure_airport_code);
     const dbDest = validateIATA(flight.arrival_airport_code);
+    const originName = flight.departure_airport_name || undefined;
+    const destinationName = flight.arrival_airport_name || undefined;
     if (dbOrigin || dbDest) {
-      return { origin: dbOrigin || undefined, destination: dbDest || undefined };
+      return { origin: dbOrigin || undefined, destination: dbDest || undefined, originName, destinationName };
     }
     let codes = extractAirportCodes(flight.notes || '');
-    if (codes.origin || codes.destination) return codes;
+    if (codes.origin || codes.destination) return { ...codes, originName, destinationName };
     codes = extractAirportCodes(flight.vendor_name || '');
-    if (codes.origin || codes.destination) return codes;
+    if (codes.origin || codes.destination) return { ...codes, originName, destinationName };
     if (flight.pickup_location) {
       codes = extractAirportCodes(flight.pickup_location);
-      if (codes.origin) return codes;
+      if (codes.origin) return { ...codes, originName, destinationName };
     }
-    return {};
+    return { originName, destinationName };
   };
 
   return (
@@ -118,11 +120,27 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                       )}
                     </div>
 
-                    {(airportCodes.origin || airportCodes.destination) && (
-                      <p className="text-sm font-medium text-foreground mb-1.5 pl-0">
-                        {airportCodes.origin || '—'} → {airportCodes.destination || '—'}
-                      </p>
-                    )}
+                    {(() => {
+                      // v3.10.0: Show IATA codes if available, else airport name, never blank
+                      const depDisplay = airportCodes.origin || airportCodes.originName;
+                      const arrDisplay = airportCodes.destination || airportCodes.destinationName;
+                      if (!depDisplay && !arrDisplay) return null;
+                      return (
+                        <div className="mb-1.5 pl-0">
+                          <p className="text-sm font-medium text-foreground">
+                            {depDisplay || '—'} → {arrDisplay || '—'}
+                          </p>
+                          {/* Show airport names as secondary text when IATA codes are displayed */}
+                          {(airportCodes.origin && airportCodes.originName) || (airportCodes.destination && airportCodes.destinationName) ? (
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {airportCodes.origin && airportCodes.originName ? airportCodes.originName : ''}
+                              {airportCodes.origin && airportCodes.originName && airportCodes.destination && airportCodes.destinationName ? ' → ' : ''}
+                              {airportCodes.destination && airportCodes.destinationName ? airportCodes.destinationName : ''}
+                            </p>
+                          ) : null}
+                        </div>
+                      );
+                    })()}
                     
                     <div className="flex items-center gap-3 text-sm text-muted-foreground mb-1.5">
                       <span className="flex items-center gap-1.5">
