@@ -86,8 +86,24 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
     }
 
     // FORECAST_PRIMARY or FORECAST_BLEND — live data
+    // v3.10.8: If envelope is empty (provider error), fall through to seasonal display
     if (envelope.length === 0) {
-      return <p className="text-sm text-muted-foreground">No forecast available yet.</p>;
+      const fallbackMonth = new Date(weather.windowStart + 'T12:00:00').toLocaleDateString('en-US', { month: 'long' });
+      return (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <CalendarDays className="w-3.5 h-3.5" />
+            <span>Seasonal averages for {fallbackMonth}</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-lg font-bold">{formatTemp(summary.avgHigh)}</span>
+            <span className="text-sm text-muted-foreground">/ {formatTemp(summary.avgLow, false)}</span>
+            <span className="text-primary">
+              {getWeatherIcon(summary.precipTypeHint, summary.cloudCoverHint)}
+            </span>
+          </div>
+        </div>
+      );
     }
 
     return (
