@@ -658,6 +658,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avg_miles_per_tank: number | null
           created_at: string
           default_frequent_flyer: string | null
           default_tsa_precheck: string | null
@@ -675,11 +676,13 @@ export type Database = {
           preferred_home_airport: string | null
           subscription_started_at: string | null
           subscription_tier: Database["public"]["Enums"]["subscription_tier"]
+          tank_size_gallons: number | null
           temperature_unit: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          avg_miles_per_tank?: number | null
           created_at?: string
           default_frequent_flyer?: string | null
           default_tsa_precheck?: string | null
@@ -697,11 +700,13 @@ export type Database = {
           preferred_home_airport?: string | null
           subscription_started_at?: string | null
           subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
+          tank_size_gallons?: number | null
           temperature_unit?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          avg_miles_per_tank?: number | null
           created_at?: string
           default_frequent_flyer?: string | null
           default_tsa_precheck?: string | null
@@ -719,6 +724,7 @@ export type Database = {
           preferred_home_airport?: string | null
           subscription_started_at?: string | null
           subscription_tier?: Database["public"]["Enums"]["subscription_tier"]
+          tank_size_gallons?: number | null
           temperature_unit?: string | null
           updated_at?: string
           user_id?: string

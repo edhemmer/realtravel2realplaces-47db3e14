@@ -15,6 +15,8 @@ import { useCanonicalTripState } from './useCanonicalTripState';
 import { useBookings } from './useBookings';
 import { useParking } from './useParking';
 import { useForegroundResume } from './useForegroundResume';
+import { useUserProfile } from './useUserProfile';
+import { useIsPro } from './useSubscription';
 import { getCachedDeviceLocation } from '@/lib/deviceLocation';
 import { getTodayDateOnly } from '@/lib/canonicalTimePolicy';
 import { getLocalNowString } from '@/lib/canonicalNextStop';
@@ -44,16 +46,23 @@ export function useDriveEngine({ tripId, trip, weatherContext }: UseDriveEngineO
   const { data: bookings = [], isLoading: bookingsLoading } = useBookings(tripId);
   const { data: parkingList = [] } = useParking(tripId);
   const { weather, isLoading: weatherLoading } = useWeatherEngine(trip, bookings);
+  const { data: userProfile } = useUserProfile();
+  const isPro = useIsPro();
 
   const [resumeTick, setResumeTick] = useState(0);
   useForegroundResume(() => setResumeTick((t) => t + 1));
 
-  // v3.8.16: New DrivePlan output
+  // v3.8.16 + v3.10.9: DrivePlan output with fuel intelligence gating
   const drivePlan = useMemo(() => {
     const canonical = tripToDriveCanonical(trip);
-    return buildDrivePlan({ canonical, weather });
+    return buildDrivePlan({
+      canonical,
+      weather,
+      isPro,
+      avgMilesPerTank: userProfile?.avg_miles_per_tank,
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trip, bookings, weather, resumeTick]);
+  }, [trip, bookings, weather, resumeTick, isPro, userProfile?.avg_miles_per_tank]);
 
   // Legacy signals for NowCommandCenter alert merging
   const signals = useMemo(() => {

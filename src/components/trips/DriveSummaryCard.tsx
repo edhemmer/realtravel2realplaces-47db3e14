@@ -7,6 +7,7 @@
 
 import { Trip } from '@/types/database';
 import type { DrivePlan } from '@/types/drive';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -40,7 +41,8 @@ function RiskChipIcon({ type }: { type: string }) {
 }
 
 export function DriveSummaryCard({ trip, drivePlan, onAddGasExpense }: DriveSummaryCardProps) {
-  const { routeSummary, riskFlags, fuelPlan, weatherLine, navigationTargets, degradedReason } = drivePlan;
+  const navigate = useNavigate();
+  const { routeSummary, riskFlags, fuelPlan, fuelIntelligence, weatherLine, navigationTargets, degradedReason } = drivePlan;
   const primaryNav = navigationTargets.find(t => t.isPrimary);
 
   const destinationLabel = trip.destination_address ||
@@ -124,13 +126,43 @@ export function DriveSummaryCard({ trip, drivePlan, onAddGasExpense }: DriveSumm
           </div>
         )}
 
-        {/* Fuel hint (only with vehicle profile) */}
-        {fuelPlan && fuelPlan.estimatedStops > 0 && (
+        {/* Fuel hint (only with vehicle profile + enabled) */}
+        {fuelIntelligence.enabled && fuelPlan && fuelPlan.estimatedStops > 0 && (
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Fuel className="w-3 h-3" />
             <span>
               ~{fuelPlan.estimatedStops} fuel stop{fuelPlan.estimatedStops > 1 ? 's' : ''} recommended
               {fuelPlan.spacingMiles > 0 ? ` (every ~${fuelPlan.spacingMiles} mi)` : ''}
+            </span>
+          </div>
+        )}
+
+        {/* v3.10.9: Fuel intelligence gating messages */}
+        {!fuelIntelligence.enabled && fuelIntelligence.reason === 'PLAN_REQUIRED' && (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Fuel className="w-3 h-3" />
+            <span>
+              Fuel stop suggestions are available on Pro and Business.{' '}
+              <button
+                onClick={() => navigate('/plans')}
+                className="text-primary underline underline-offset-2 hover:text-primary/80"
+              >
+                Upgrade
+              </button>
+            </span>
+          </div>
+        )}
+        {!fuelIntelligence.enabled && fuelIntelligence.reason === 'MISSING_VEHICLE_RANGE' && (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Fuel className="w-3 h-3" />
+            <span>
+              Add vehicle range in Account to enable fuel stop suggestions.{' '}
+              <button
+                onClick={() => navigate('/account')}
+                className="text-primary underline underline-offset-2 hover:text-primary/80"
+              >
+                Add vehicle range
+              </button>
             </span>
           </div>
         )}

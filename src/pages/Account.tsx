@@ -16,6 +16,7 @@ import { TravelPreferencesCard } from '@/components/account/TravelPreferencesCar
 import { UpgradePlanDialog } from '@/components/account/UpgradePlanDialog';
 import { NotificationPreferencesCard } from '@/components/account/NotificationPreferencesCard';
 import { EmailImportCard } from '@/components/account/EmailImportCard';
+import { VehicleRangeCard } from '@/components/account/VehicleRangeCard';
 import { EMAIL_FORWARDING_ENABLED } from '@/lib/featureFlags';
 import { PlanPill } from '@/components/PlanPill';
 import { resetOnboarding } from './Onboarding';
@@ -199,6 +200,14 @@ export default function Account() {
             initialDatetimeFormat={profile?.preferred_datetime_format}
             initialDistanceUnit={profile?.distance_unit}
             initialTemperatureUnit={profile?.temperature_unit}
+          />
+        )}
+
+        {/* Vehicle Range (Optional) */}
+        {!isLoading && (
+          <VehicleRangeCard
+            initialMilesPerTank={profile?.avg_miles_per_tank}
+            initialTankSize={profile?.tank_size_gallons}
           />
         )}
 
