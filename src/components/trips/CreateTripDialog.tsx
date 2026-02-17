@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useCreateTrip } from '@/hooks/useTrips';
 import { useCreateBooking } from '@/hooks/useBookings';
 import { useCreateCompanion } from '@/hooks/useCompanions';
+import { useCompleteOnboarding } from '@/hooks/useOnboardingStatus';
 import { supabase } from '@/integrations/supabase/client';
 import { DropzoneIntake } from '@/components/trips/DropzoneIntake';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -95,17 +96,20 @@ interface ParsedBooking {
 interface CreateTripDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** v3.8.20: When true, wizard is the onboarding experience */
+  isOnboarding?: boolean;
 }
 
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
-export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) {
+export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: CreateTripDialogProps) {
   const navigate = useNavigate();
   const createTrip = useCreateTrip();
   const createBooking = useCreateBooking();
   const createCompanion = useCreateCompanion();
+  const completeOnboarding = useCompleteOnboarding();
 
   // Wizard state
   const [step, setStep] = useState<WizardStep>('mode');
@@ -391,7 +395,13 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
       onOpenChange(false);
 
       if (trip?.id) {
-        navigate(`/trip/${trip.id}`);
+        // v3.8.20: Mark onboarding complete + route to NOW view
+        if (isOnboarding) {
+          try { await completeOnboarding.mutateAsync(); } catch {}
+          navigate(`/trip/${trip.id}?tab=now`);
+        } else {
+          navigate(`/trip/${trip.id}`);
+        }
       }
     } catch (err) {
       console.error('Failed to create trip:', err);
@@ -440,7 +450,13 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
       resetAll();
       onOpenChange(false);
       if (trip?.id) {
-        navigate(`/trip/${trip.id}`);
+        // v3.8.20: Mark onboarding complete + route to NOW view
+        if (isOnboarding) {
+          try { await completeOnboarding.mutateAsync(); } catch {}
+          navigate(`/trip/${trip.id}?tab=now`);
+        } else {
+          navigate(`/trip/${trip.id}`);
+        }
       }
     } catch (err) {
       console.error('Failed to create drive trip:', err);
@@ -453,7 +469,11 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
     setStep('manual-form');
   };
 
-  const handleClose = () => {
+  const handleClose = async () => {
+    // v3.8.20: Mark onboarding complete even if wizard is closed early
+    if (isOnboarding) {
+      try { await completeOnboarding.mutateAsync(); } catch {}
+    }
     resetAll();
     onOpenChange(false);
   };
@@ -507,9 +527,14 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
         {step === 'mode' && (
           <div className="py-4 space-y-6">
             <div className="text-center space-y-2">
-              <h2 className="text-2xl font-bold tracking-tight">How are you traveling?</h2>
+              <h2 className="text-2xl font-bold tracking-tight">
+                {isOnboarding ? 'Add Your First Trip' : 'How are you traveling?'}
+              </h2>
               <p className="text-muted-foreground text-sm max-w-md mx-auto">
-                Choose how you'll get there so <span className="italic">Real Travel 2 Real Places</span> can set up the trip the right way.
+                {isOnboarding
+                  ? "Upload a confirmation or enter details. We'll organize everything."
+                  : <>Choose how you'll get there so <span className="italic">Real Travel 2 Real Places</span> can set up the trip the right way.</>
+                }
               </p>
             </div>
 
@@ -847,19 +872,29 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-green-600" />
-                  {parsedBookings.length} Booking(s) to Add
+                  {parsedBookings.length} Booking(s) Detected
                 </Label>
-                <div className="space-y-2 max-h-32 overflow-y-auto">
+                <div className="space-y-1.5 max-h-32 overflow-y-auto">
                   {parsedBookings.map((booking, index) => (
                     <div
                       key={index}
                       className="flex items-center justify-between p-2 rounded-md bg-muted/50 text-sm"
                     >
                       <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-muted-foreground" />
-                        <span>{getBookingTypeLabel(booking.booking_type)}</span>
-                        <span className="text-muted-foreground">•</span>
-                        <span className="font-medium">{booking.vendor_name}</span>
+                        <Check className="w-3.5 h-3.5 text-green-600 shrink-0" />
+                        <span className="text-foreground">
+                          {booking.booking_type === 'flight' && '✈️ Flight detected'}
+                          {booking.booking_type === 'stay' && '🏨 Hotel stay recognized'}
+                          {booking.booking_type === 'car_rental' && '🚗 Car rental added'}
+                          {booking.booking_type === 'activity' && '🎯 Activity found'}
+                          {booking.booking_type === 'transport' && '🚂 Transport found'}
+                        </span>
+                        {booking.vendor_name && (
+                          <>
+                            <span className="text-muted-foreground">•</span>
+                            <span className="font-medium">{booking.vendor_name}</span>
+                          </>
+                        )}
                       </div>
                       <Button
                         type="button"
@@ -1058,7 +1093,7 @@ export function CreateTripDialog({ open, onOpenChange }: CreateTripDialogProps) 
                   disabled={createTrip.isPending || !startDate || !endDate}
                 >
                   {createTrip.isPending ? 'Creating...' : parsedBookings.length > 0
-                    ? `Create Trip + ${parsedBookings.length} Booking(s)`
+                    ? 'Continue'
                     : 'Create Trip'}
                 </Button>
               </div>
