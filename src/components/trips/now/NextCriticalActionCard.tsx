@@ -1,8 +1,11 @@
 /**
- * v4.0.0 / v3.9.4: NextCriticalActionCard
+ * v3.8.15: NextCriticalActionCard
  *
  * Shows the earliest upcoming event with countdown + single primary action.
- * v3.9.4: Adds context labels, raw time microtext, and enforced button colors.
+ * v3.8.15: Accepts optional resolvedNextAction from execution intelligence layer.
+ * When present, uses it for context labels, countdown, and navigation targets.
+ * Falls back to legacy useNextStop when resolvedNextAction is null.
+ *
  * Uses canonical next stop engine — no Date() logic.
  */
 
@@ -10,15 +13,18 @@ import { useNextStop, type NextStopEvent } from '@/hooks/useNextStop';
 import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Navigation, Clock, CheckCircle2, CalendarClock, Sparkles, AlertTriangle } from 'lucide-react';
+import { Navigation, Clock, CheckCircle2, CalendarClock, Sparkles, AlertTriangle, Eye } from 'lucide-react';
 import { resolveMapsFromNextStop, openMapsDestination } from '@/lib/mapsDestination';
 import { getLocalNowString } from '@/lib/canonicalNextStop';
 import { resolveCanonicalLifecycle } from '@/lib/canonicalTimePolicy';
 import { useMemo } from 'react';
+import type { NextActionCardModel } from '@/lib/execution';
 
 interface NextCriticalActionCardProps {
   tripId: string;
   trip: import('@/types/database').Trip;
+  /** v3.8.15: Pre-resolved next action from execution intelligence layer */
+  resolvedNextAction?: NextActionCardModel | null;
 }
 
 /**
@@ -148,7 +154,7 @@ function resolveButtonStyle(eventType: string, hasLocation: boolean): { classNam
   };
 }
 
-export function NextCriticalActionCard({ tripId, trip }: NextCriticalActionCardProps) {
+export function NextCriticalActionCard({ tripId, trip, resolvedNextAction }: NextCriticalActionCardProps) {
   const { state } = useCanonicalTripState(tripId, trip);
   const { nextStop } = useNextStop(state);
 
@@ -161,6 +167,85 @@ export function NextCriticalActionCard({ tripId, trip }: NextCriticalActionCardP
     if (!nextStop) return null;
     return computeCountdown(nextStop);
   }, [nextStop]);
+
+  // v3.8.15: If resolvedNextAction is provided and has data, render it
+  if (resolvedNextAction) {
+    const ra = resolvedNextAction;
+    const hasTarget = ra.actionType === 'NAVIGATE' && ra.target;
+
+    return (
+      <Card className="border-primary/30 bg-gradient-to-br from-primary/8 to-background shadow-md">
+        <CardContent className="py-5 px-4">
+          {/* v3.8.15: Context label from execution resolver */}
+          {ra.contextLabel && (
+            <p className="text-[10px] font-bold uppercase tracking-widest text-primary/70 mb-1">
+              {ra.contextLabel}
+            </p>
+          )}
+          <div className="flex items-center gap-1.5 mb-1">
+            <Clock className="w-3.5 h-3.5 text-primary" />
+            <span className="text-xs font-semibold text-primary uppercase tracking-wider">
+              Next Up
+            </span>
+          </div>
+          <p className="text-base font-bold text-foreground truncate leading-snug">
+            {ra.title}
+          </p>
+          {ra.subtitle && (
+            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+              {ra.subtitle}
+            </p>
+          )}
+          {/* v3.8.15: Raw time microtext — verbatim from confirmation */}
+          {ra.rawTimeText && (
+            <p className="text-xs font-medium text-muted-foreground mt-0.5">
+              {resolveTimeMicrotext(ra.sourceWindow.eventType === 'DEPARTURE' ? 'flight_departure' : 
+                ra.sourceWindow.eventType === 'CHECKIN' ? 'hotel_checkin' :
+                ra.sourceWindow.eventType === 'CHECKOUT' ? 'hotel_checkout' :
+                ra.sourceWindow.eventType === 'PICKUP' ? 'rental_pickup' :
+                ra.sourceWindow.eventType === 'RETURN' ? 'rental_dropoff' :
+                ra.sourceWindow.eventType === 'EXPIRE' ? 'parking_expiration' :
+                'activity_start', ra.rawTimeText)}
+            </p>
+          )}
+          {/* v3.8.15: Countdown from resolver (only when minutesUntil available) */}
+          {ra.countdown && (
+            <p className="text-sm font-medium text-primary mt-0.5">
+              {ra.countdown}
+            </p>
+          )}
+          {/* v3.8.15: Action button — NAVIGATE or VIEW_DETAILS */}
+          {ra.actionType === 'NAVIGATE' && hasTarget ? (
+            <Button
+              variant="default"
+              className="w-full h-12 rounded-xl font-semibold shadow-sm mt-3 bg-primary hover:bg-primary/90 text-primary-foreground active:scale-[0.98]"
+              onClick={() => {
+                if (ra.target) {
+                  window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ra.target)}`, '_blank');
+                }
+              }}
+            >
+              <Navigation className="w-4 h-4" />
+              Navigate
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              className="w-full h-12 rounded-xl font-semibold shadow-sm mt-3"
+              onClick={() => {
+                // VIEW_DETAILS — scroll/navigate to booking detail
+              }}
+            >
+              <Eye className="w-4 h-4" />
+              View Details
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // ── Legacy fallback: use nextStop from canonical engine ──
 
   // No next stop — choose message based on canonical lifecycle
   if (!nextStop) {
