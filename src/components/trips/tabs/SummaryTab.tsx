@@ -8,6 +8,7 @@ import { useTripWeather } from '@/hooks/useWeather';
 import { useTravelAlerts } from '@/hooks/useTravelAlerts';
 import { useAccess } from '@/hooks/useAccess';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useDriveEngine } from '@/hooks/useDriveEngine';
 import { Trip, Booking, Parking, Companion } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,6 +54,11 @@ interface SummaryTabProps {
   onViewAllAlerts?: () => void;
 }
 
+// v3.8.16: Wrapper to wire DrivePlan into DriveSummaryCard
+function DriveSummaryCardWrapper({ trip, onAddGasExpense }: { trip: Trip; onAddGasExpense: () => void }) {
+  const { drivePlan } = useDriveEngine({ tripId: trip.id, trip });
+  return <DriveSummaryCard trip={trip as any} drivePlan={drivePlan} onAddGasExpense={onAddGasExpense} />;
+}
 
 // v3.8.6: Destination links moved to DestinationInfoCard
 
@@ -214,7 +220,7 @@ export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onV
 
       {/* Flight or Drive Summary based on transportation mode */}
       {transportationMode === 'drive' ? (
-        <DriveSummaryCard trip={trip as any} onAddGasExpense={() => setGasDialogOpen(true)} />
+        <DriveSummaryCardWrapper trip={trip} onAddGasExpense={() => setGasDialogOpen(true)} />
       ) : (
         <>
           <FlightSummaryCard bookings={bookings} companions={companions} bookingCompanions={bookingCompanions} />
