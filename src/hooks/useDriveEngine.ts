@@ -1,14 +1,16 @@
 /**
- * v3.12.0: Canonical Drive Engine Hook
+ * v3.8.16: Canonical Drive Engine Hook
  *
- * Single hook for consuming drive intelligence signals.
- * All drive-related UI surfaces must use this hook — no duplicated rules.
- *
+ * Single hook for consuming drive intelligence.
+ * Produces a DrivePlan that all Drive UI surfaces consume.
+ * Also maintains backward-compatible `signals` for NowCommandCenter alert merging.
  * Recomputes on foreground resume to prevent stale signals.
  */
 
 import { useMemo, useState } from 'react';
+import { buildDrivePlan, tripToDriveCanonical } from '@/lib/drive/driveIntelligence';
 import { computeDriveSignals, type DriveSignal, type DriveEngineInput, type DriveEngineWeatherContext } from '@/lib/driveEngine';
+import { useWeatherEngine } from './useWeatherEngine';
 import { useCanonicalTripState } from './useCanonicalTripState';
 import { useBookings } from './useBookings';
 import { useParking } from './useParking';
@@ -17,35 +19,45 @@ import { getCachedDeviceLocation } from '@/lib/deviceLocation';
 import { getTodayDateOnly } from '@/lib/canonicalTimePolicy';
 import { getLocalNowString } from '@/lib/canonicalNextStop';
 import type { Trip } from '@/types/database';
-import type { DriveRouteMeta } from '@/types/drive';
+import type { DrivePlan } from '@/types/drive';
 
 interface UseDriveEngineOptions {
   tripId: string;
   trip: Trip;
-  /** Optional weather context — only pass if already fetched */
+  /** Optional weather context for legacy signal system */
   weatherContext?: DriveEngineWeatherContext;
-  /** Optional route metadata — only pass if already resolved */
-  routeMeta?: DriveRouteMeta;
 }
 
 interface UseDriveEngineResult {
+  /** Canonical DrivePlan — single output for all Drive UI */
+  drivePlan: DrivePlan;
+  /** Legacy signals for NowCommandCenter alert merging */
   signals: DriveSignal[];
   hasCritical: boolean;
   hasWarning: boolean;
+  /** Whether data is still loading */
   isLoading: boolean;
 }
 
 export function useDriveEngine({ tripId, trip, weatherContext }: UseDriveEngineOptions): UseDriveEngineResult {
-  const { timelineEvents, isLoading } = useCanonicalTripState(tripId, trip);
-  const { data: bookings = [] } = useBookings(tripId);
+  const { timelineEvents, isLoading: stateLoading } = useCanonicalTripState(tripId, trip);
+  const { data: bookings = [], isLoading: bookingsLoading } = useBookings(tripId);
   const { data: parkingList = [] } = useParking(tripId);
+  const { weather, isLoading: weatherLoading } = useWeatherEngine(trip, bookings);
 
   const [resumeTick, setResumeTick] = useState(0);
   useForegroundResume(() => setResumeTick((t) => t + 1));
 
-  const signals = useMemo(() => {
-    if (isLoading) return [];
+  // v3.8.16: New DrivePlan output
+  const drivePlan = useMemo(() => {
+    const canonical = tripToDriveCanonical(trip);
+    return buildDrivePlan({ canonical, weather });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trip, bookings, weather, resumeTick]);
 
+  // Legacy signals for NowCommandCenter alert merging
+  const signals = useMemo(() => {
+    if (stateLoading) return [];
     const input: DriveEngineInput = {
       trip,
       bookings,
@@ -56,15 +68,15 @@ export function useDriveEngine({ tripId, trip, weatherContext }: UseDriveEngineO
       todayDateOnly: getTodayDateOnly(),
       nowLocal: getLocalNowString(),
     };
-
     return computeDriveSignals(input);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [trip, bookings, parkingList, timelineEvents, weatherContext, isLoading, resumeTick]);
+  }, [trip, bookings, parkingList, timelineEvents, weatherContext, stateLoading, resumeTick]);
 
   return {
+    drivePlan,
     signals,
     hasCritical: signals.some(s => s.severity === 'critical'),
     hasWarning: signals.some(s => s.severity === 'warning'),
-    isLoading,
+    isLoading: stateLoading || bookingsLoading || weatherLoading,
   };
 }
