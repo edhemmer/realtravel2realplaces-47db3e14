@@ -12,6 +12,8 @@ import type { WeatherEngineResult, WeatherMode } from '@/lib/weatherEngine';
 import type { DrivePlan } from '@/types/drive';
 import type { PlanTier } from '@/utils/planTier';
 import { tierIncludesPro } from '@/utils/planTier';
+import type { TripActivationIssue } from '@/lib/tripActivation/tripActivation';
+import { detectDuplicateCompanions } from '@/lib/travelers/travelerIdentity';
 
 // ============================================================================
 // TYPES
@@ -70,6 +72,8 @@ export interface TripReadinessInput {
   companionNames?: string[];
   /** User's avg miles per tank */
   avgMilesPerTank?: number | null;
+  /** v3.12.3: Activation issues from trip activation orchestrator */
+  activationIssues?: TripActivationIssue[];
 }
 
 // ============================================================================
@@ -327,6 +331,7 @@ function resolveDataFixCards(
   storedStart: string,
   storedEnd: string,
   companionNames?: string[],
+  activationIssues?: TripActivationIssue[],
 ): TripReadinessCard[] {
   const fixes: TripReadinessCard[] = [];
 
@@ -340,22 +345,49 @@ function resolveDataFixCards(
     });
   }
 
-  // B) Companion duplicates
+  // B) Companion duplicates — v3.12.3: use canonical traveler identity dedup
   if (companionNames && companionNames.length > 1) {
-    const normalized = companionNames.map(n => n.trim().toLowerCase().replace(/\s+/g, ' '));
-    const seen = new Set<string>();
-    let hasDupes = false;
-    for (const name of normalized) {
-      if (seen.has(name)) { hasDupes = true; break; }
-      seen.add(name);
-    }
-    if (hasDupes) {
+    if (detectDuplicateCompanions(companionNames)) {
       fixes.push({
         type: 'DATA_FIX',
         title: 'Possible duplicate companions',
         subtitle: 'Possible duplicate companions detected. Review.',
         actionLabel: 'Manage Companions',
         actionTarget: '#companions',
+        severity: 'warning',
+      });
+    }
+  }
+
+  // C) v3.12.3: Activation issues (airport unresolvable, stay missing address)
+  if (activationIssues && activationIssues.length > 0) {
+    // Group by code to avoid spam
+    const codesSeen = new Set<string>();
+    for (const issue of activationIssues) {
+      if (codesSeen.has(issue.code)) continue;
+      codesSeen.add(issue.code);
+
+      let actionLabel: string | undefined;
+      let actionTarget: string | undefined;
+
+      if (issue.code === 'AIRPORT_UNRESOLVABLE') {
+        actionLabel = 'Review Bookings';
+        actionTarget = '#bookings';
+      } else if (issue.code === 'STAY_MISSING_ADDRESS') {
+        actionLabel = 'Edit Lodging';
+        actionTarget = '#bookings';
+      }
+
+      fixes.push({
+        type: 'DATA_FIX',
+        title: issue.code === 'AIRPORT_UNRESOLVABLE'
+          ? 'Airport not resolved'
+          : issue.code === 'STAY_MISSING_ADDRESS'
+            ? 'Lodging address missing'
+            : 'Data issue',
+        subtitle: issue.message,
+        actionLabel,
+        actionTarget,
         severity: 'warning',
       });
     }
@@ -382,6 +414,7 @@ export function buildTripReadinessBrief(input: TripReadinessInput): TripReadines
     hasFlights,
     companionNames,
     avgMilesPerTank,
+    activationIssues,
   } = input;
 
   // 1. Derive trip window
@@ -407,8 +440,8 @@ export function buildTripReadinessBrief(input: TripReadinessInput): TripReadines
   const driveCard = resolveDriveReadinessCard(planTier, transportationMode, drivePlan, avgMilesPerTank);
   if (driveCard) cards.push(driveCard);
 
-  // DATA_FIX (only when issues detected)
-  const dataFixes = resolveDataFixCards(tripWindow, tripStartDate, tripEndDate, companionNames);
+  // DATA_FIX (only when issues detected) — v3.12.3: includes activation issues
+  const dataFixes = resolveDataFixCards(tripWindow, tripStartDate, tripEndDate, companionNames, activationIssues);
   cards.push(...dataFixes);
 
   return {

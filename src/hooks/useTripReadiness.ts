@@ -1,7 +1,8 @@
 /**
- * v3.12.0: useTripReadiness — Hook for consuming Trip Readiness Brief
+ * v3.12.3: useTripReadiness — Hook for consuming Trip Readiness Brief
  *
  * Wires canonical hooks into the readiness engine.
+ * Runs trip activation orchestrator for navigation sanity + issue detection.
  * No network I/O in the engine itself.
  */
 
@@ -16,9 +17,11 @@ import { useAccess } from './useAccess';
 import { useDriveEngine } from './useDriveEngine';
 import { buildTripReadinessBrief, type TripReadinessBrief } from '@/lib/tripReadiness/tripReadinessEngine';
 import { resolveEffectiveTier } from '@/utils/planTier';
+import { activateTrip, type TripActivationResult } from '@/lib/tripActivation/tripActivation';
 
 interface UseTripReadinessResult {
   brief: TripReadinessBrief | null;
+  activation: TripActivationResult | null;
   isLoading: boolean;
 }
 
@@ -43,6 +46,12 @@ export function useTripReadiness(tripId: string, trip: Trip | null): UseTripRead
     subscriptionTier: userProfile?.subscription_tier as any,
   });
 
+  // v3.12.3: Run trip activation orchestrator (pure, deterministic, idempotent)
+  const activation = useMemo(() => {
+    if (!trip) return null;
+    return activateTrip(tripId, trip, bookings, timelineEvents);
+  }, [trip, tripId, bookings, timelineEvents]);
+
   const brief = useMemo(() => {
     if (!trip) return null;
 
@@ -59,15 +68,18 @@ export function useTripReadiness(tripId: string, trip: Trip | null): UseTripRead
       hasFlights,
       companionNames: companions.map(c => c.name),
       avgMilesPerTank: userProfile?.avg_miles_per_tank,
+      activationIssues: activation?.issues,
     });
   }, [
     trip, tripId, timelineEvents, dateRange, weather,
     drivePlan, isDrive, planTier, transportationMode,
     hasFlights, companions, userProfile?.avg_miles_per_tank,
+    activation?.issues,
   ]);
 
   return {
     brief,
+    activation,
     isLoading: stateLoading || weatherLoading,
   };
 }
