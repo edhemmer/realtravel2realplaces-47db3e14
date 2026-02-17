@@ -9,6 +9,8 @@ import { useTravelAlerts } from '@/hooks/useTravelAlerts';
 import { useAccess } from '@/hooks/useAccess';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useDriveEngine } from '@/hooks/useDriveEngine';
+import { useTripReadiness } from '@/hooks/useTripReadiness';
+import { TripBriefSection } from '@/components/trips/TripBriefSection';
 import { Trip, Booking, Parking, Companion } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -93,6 +95,9 @@ export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onV
   
   // Travel alerts for weather changes, departure reminders, parking expiry
   const { alerts, hasAlerts, criticalCount } = useTravelAlerts(trip, bookings, parkingList, temperatureUnit);
+
+  // v3.12.0: Trip Readiness Brief
+  const { brief: tripBrief } = useTripReadiness(tripId, trip);
 
   // Determine transportation mode - auto-detect if unspecified
   const hasFlights = canonicalState.hasFlights;
@@ -184,6 +189,9 @@ export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onV
 
   return (
     <div className="space-y-3 md:space-y-5">
+      {/* v3.12.0: Trip Brief */}
+      {tripBrief && <TripBriefSection brief={tripBrief} />}
+
       {/* Destination Header */}
       <Card className="bg-gradient-to-br from-primary/10 via-accent/5 to-background border-border/40 shadow-sm">
         <CardContent className="pt-5 pb-4">

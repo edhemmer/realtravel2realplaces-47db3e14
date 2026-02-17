@@ -32,6 +32,8 @@ import { buildCanonicalTodayExecutionStack } from '@/lib/canonicalTodayExecution
 import { buildExecutionWindows, resolveNextAction, computeBufferStatus } from '@/lib/execution';
 import { useForegroundResume } from '@/hooks/useForegroundResume';
 import { QuickExpenseDialog } from '@/components/trips/QuickExpenseDialog';
+import { useTripReadiness } from '@/hooks/useTripReadiness';
+import { TripBriefSection } from '@/components/trips/TripBriefSection';
 import type { TravelAlert } from '@/hooks/useTravelAlerts';
 import type { DriveSignal } from '@/lib/driveEngine';
 
@@ -87,6 +89,9 @@ export function NowCommandCenter({
 
   // v3.12.0: Canonical Drive Engine — single source of drive intelligence
   const { signals: driveSignals, drivePlan } = useDriveEngine({ tripId, trip });
+
+  // v3.12.0: Trip Readiness Brief
+  const { brief: tripBrief } = useTripReadiness(tripId, trip);
 
   const [gasDialogOpen, setGasDialogOpen] = useState(false);
   const [quickExpenseOpen, setQuickExpenseOpen] = useState(false);
@@ -203,6 +208,9 @@ export function NowCommandCenter({
 
   return (
     <div className="space-y-5 pb-20">
+      {/* v3.12.0: Trip Brief */}
+      {tripBrief && <TripBriefSection brief={tripBrief} />}
+
       {/* 1. Quick Actions */}
       <div className="mb-1">
         <StickyQuickOpsStrip
