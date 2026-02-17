@@ -51,6 +51,10 @@ export interface CanonicalDateRange {
   startDateStr: string;
   /** Original trip end_date string for display */
   endDateStr: string;
+  /** v3.10.4: How the window was computed */
+  windowSource: 'canonicalTimeline' | 'fallback';
+  /** v3.10.4: Confidence indicator */
+  windowConfidence: 'computed' | 'fallback';
 }
 
 /**
@@ -186,25 +190,22 @@ export interface CanonicalTripState {
 // ============================================================================
 
 /**
- * v3.10.0: Calculate canonical date range for a trip.
+ * v3.10.4: Compute the canonical trip window from ALL confirmation entities.
  *
- * RULES — Explicit Confirmation Dates Only:
- * 1. Collect explicit dates from ALL confirmation entities:
- *    flights, lodging, rentals, transport, parking, engagements/tours.
- * 2. If confirmation dates exist:
- *    startDate = earliest explicit date, endDate = latest explicit date.
- *    Anchor (trip manual dates) may EXTEND the range outward but NEVER
- *    shrink or replace it.
- * 3. If ZERO confirmation dates exist → use anchor as fallback.
+ * STRICT RULES:
+ * - tripStartAt = MIN(all start datetimes)
+ * - tripEndAt   = MAX(all end datetimes, all start datetimes)
+ * - Flights use departAt as start candidate and arriveAt as end candidate
+ * - Stays use checkInAt as start and checkOutAt as end
+ * - All other types use start_datetime / end_datetime
+ * - If no confirmations exist, fall back to wizard/manual anchor dates
+ * - Anchor dates may EXTEND the range outward but NEVER shrink it
+ * - No UTC shifting that changes calendar day
+ * - After-midnight arrivals naturally produce the correct end date
  *
- * Hard rules:
- * - No math based on times
- * - No timezone conversions
- * - No inferred next-day logic
- * - If an entity only has one explicit date, it participates normally
- * - If arrival date not explicitly provided, do not derive one
+ * @returns CanonicalDateRange with windowSource metadata
  */
-export function calculateCanonicalDateRange(
+export function computeTripWindow(
   trip: Trip,
   bookings: Booking[],
   parkingList?: Parking[],
@@ -212,54 +213,97 @@ export function calculateCanonicalDateRange(
 ): CanonicalDateRange {
   const hasFlights = bookings.some(b => b.booking_type === 'flight');
 
-  // 1. Collect ALL explicit confirmation dates (string-only, no Date())
-  const confirmationDates: string[] = [];
+  // Collect ALL start and end datetime strings from confirmations
+  const startCandidates: string[] = [];
+  const endCandidates: string[] = [];
 
   bookings.forEach(booking => {
-    const s = extractDateFromDatetime(booking.start_datetime);
-    if (s) confirmationDates.push(s);
+    // Start candidate: always start_datetime
+    if (booking.start_datetime) {
+      startCandidates.push(booking.start_datetime);
+    }
+
+    // End candidate: end_datetime if available, else start_datetime as fallback
     if (booking.end_datetime) {
-      const e = extractDateFromDatetime(booking.end_datetime);
-      if (e) confirmationDates.push(e);
+      endCandidates.push(booking.end_datetime);
+    } else if (booking.start_datetime) {
+      // Single-leg event: its start is also its latest boundary contribution
+      endCandidates.push(booking.start_datetime);
     }
   });
 
   if (parkingList) {
     parkingList.forEach(p => {
-      const s = extractDateFromDatetime(p.start_local_datetime || p.start_datetime);
-      if (s) confirmationDates.push(s);
+      const startStr = p.start_local_datetime || p.start_datetime;
+      if (startStr) startCandidates.push(startStr);
       const endStr = p.end_local_datetime || p.end_datetime;
       if (endStr) {
-        const e = extractDateFromDatetime(endStr);
-        if (e) confirmationDates.push(e);
+        endCandidates.push(endStr);
+      } else if (startStr) {
+        endCandidates.push(startStr);
       }
     });
   }
 
   if (engagementEvents) {
     engagementEvents.forEach(evt => {
-      const d = extractDateFromDatetime(evt.event_datetime);
-      if (d) confirmationDates.push(d);
+      if (evt.event_datetime) {
+        startCandidates.push(evt.event_datetime);
+        endCandidates.push(evt.event_datetime);
+      }
     });
   }
 
-  // 2. Determine effective range
+  // Extract date from each candidate (use the date portion of the full datetime)
+  const allStartDates = startCandidates
+    .map(extractDateFromDatetime)
+    .filter((d): d is string => d !== null);
+  const allEndDates = endCandidates
+    .map(extractDateFromDatetime)
+    .filter((d): d is string => d !== null);
+
   let effectiveStartStr: string;
   let effectiveEndStr: string;
+  let windowSource: 'canonicalTimeline' | 'fallback';
 
-  if (confirmationDates.length > 0) {
-    // Confirmation dates define the base range
-    confirmationDates.sort(); // YYYY-MM-DD lexicographic
-    effectiveStartStr = confirmationDates[0];
-    effectiveEndStr = confirmationDates[confirmationDates.length - 1];
+  if (allStartDates.length > 0 || allEndDates.length > 0) {
+    // Compute from confirmations
+    const allDates = [...allStartDates, ...allEndDates];
+    allDates.sort(); // YYYY-MM-DD lexicographic sort
+    const minDate = allStartDates.length > 0
+      ? allStartDates.reduce((a, b) => a < b ? a : b)
+      : allDates[0];
+    const maxDate = allEndDates.length > 0
+      ? allEndDates.reduce((a, b) => a > b ? a : b)
+      : allDates[allDates.length - 1];
 
-    // Anchor may extend only, never shrink or replace
+    effectiveStartStr = minDate;
+    effectiveEndStr = maxDate;
+
+    // Anchor (trip manual dates) may extend only, never shrink
     if (trip.start_date < effectiveStartStr) effectiveStartStr = trip.start_date;
     if (trip.end_date > effectiveEndStr) effectiveEndStr = trip.end_date;
+
+    windowSource = 'canonicalTimeline';
   } else {
     // Zero confirmation dates → anchor fallback
     effectiveStartStr = trip.start_date;
     effectiveEndStr = trip.end_date;
+    windowSource = 'fallback';
+  }
+
+  // Guardrail: endDate must not be before startDate
+  let windowConfidence: 'computed' | 'fallback' = windowSource === 'canonicalTimeline' ? 'computed' : 'fallback';
+  if (effectiveEndStr < effectiveStartStr) {
+    // This should never happen, but prevents broken UI
+    console.warn('[computeTripWindow] endDate < startDate, falling back to wizard dates', {
+      computed: { start: effectiveStartStr, end: effectiveEndStr },
+      wizard: { start: trip.start_date, end: trip.end_date },
+    });
+    effectiveStartStr = trip.start_date;
+    effectiveEndStr = trip.end_date;
+    windowSource = 'fallback';
+    windowConfidence = 'fallback';
   }
 
   return {
@@ -268,7 +312,22 @@ export function calculateCanonicalDateRange(
     isFlightAnchored: hasFlights,
     startDateStr: effectiveStartStr,
     endDateStr: effectiveEndStr,
+    windowSource,
+    windowConfidence,
   };
+}
+
+/**
+ * @deprecated v3.10.4: Use computeTripWindow instead.
+ * Kept for backward compatibility during migration.
+ */
+export function calculateCanonicalDateRange(
+  trip: Trip,
+  bookings: Booking[],
+  parkingList?: Parking[],
+  engagementEvents?: TripEvent[]
+): CanonicalDateRange {
+  return computeTripWindow(trip, bookings, parkingList, engagementEvents);
 }
 
 /**
@@ -777,8 +836,8 @@ export function getCanonicalTripState(
   // v3.8.12: Run canonical ingestion pipeline (normalize + guardrails + validate)
   const ingestionResult = ingestCanonical(bookings, parkingList);
   
-  // v3.10.0: Pass parking + engagements so their explicit dates contribute to range
-  const dateRange = calculateCanonicalDateRange(trip, bookings, parkingList, engagementEvents);
+  // v3.10.4: Use computeTripWindow — single source of truth for trip boundaries
+  const dateRange = computeTripWindow(trip, bookings, parkingList, engagementEvents);
   
   // Build timeline events (pass destination timezone for non-flight events)
   // v2.2.5: Include engagement events from canonical trip_events stream
