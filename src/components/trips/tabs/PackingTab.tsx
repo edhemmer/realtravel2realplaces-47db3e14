@@ -3,7 +3,7 @@ import { usePackingItems, useCreatePackingItem, useUpdatePackingItem, useDeleteP
 import { useTrip } from '@/hooks/useTrips';
 import { useBookings } from '@/hooks/useBookings';
 import { useWeatherEngine } from '@/hooks/useWeatherEngine';
-import { generatePackingRecommendations } from '@/lib/packingEngine';
+import { generatePackingRecommendations, type PackingEngineResult, type PackingEngineOutput } from '@/lib/packingEngine';
 import { supabase } from '@/integrations/supabase/client';
 import { PackingItem } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -91,8 +91,8 @@ export function PackingTab({ tripId }: PackingTabProps) {
   // v3.8.13: Always-on weather engine
   const { weather, isLoading: weatherLoading } = useWeatherEngine(trip || null, bookings);
 
-  // v3.8.13: Local packing recommendations (instant, client-side)
-  const packingRecs = useMemo(() => {
+  // v3.8.14: Hardened packing recommendations with prerequisite gate
+  const packingOutput = useMemo(() => {
     if (!trip || !weather) return null;
     const days = differenceInDays(parseISO(trip.end_date), parseISO(trip.start_date)) + 1;
     const nights = days - 1;
@@ -101,6 +101,9 @@ export function PackingTab({ tripId }: PackingTabProps) {
       (trip as any).destination_type || 'unspecified'
     );
   }, [trip, weather]);
+
+  // Extract ready result (null if not ready)
+  const packingRecs: PackingEngineResult | null = packingOutput && !packingOutput.notReady ? packingOutput as PackingEngineResult : null;
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [copied, setCopied] = useState(false);
