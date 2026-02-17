@@ -52,10 +52,10 @@ function ProtectedRoute({ children, skipOnboardingGate }: { children: React.Reac
     return <Navigate to="/auth" replace />;
   }
 
-  // v2.3.x: Centralized onboarding gate — only ONE place decides this
+  // v3.8.20: New users go directly to wizard — no intro slides
   // skipOnboardingGate is true for /onboarding and /welcome-choice routes themselves
   if (!skipOnboardingGate && shouldShowOnboarding) {
-    return <Navigate to="/onboarding" replace />;
+    return <Navigate to="/dashboard" replace state={{ openCreateTrip: true, isOnboarding: true }} />;
   }
 
   return <>{children}</>;

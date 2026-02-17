@@ -43,14 +43,16 @@ export default function Dashboard() {
   const removeMembership = useRemoveTripMembership();
   const { isPro } = useAccess();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [isOnboarding, setIsOnboarding] = useState(false);
   const [tripToDelete, setTripToDelete] = useState<string | null>(null);
   const [tripToRemove, setTripToRemove] = useState<string | null>(null);
 
-  // v2.3.10: Auto-open create trip dialog if routed from WelcomeChoice
+  // v3.8.20: Auto-open create trip dialog; detect onboarding state
   useEffect(() => {
-    const state = location.state as { openCreateTrip?: boolean } | null;
+    const state = location.state as { openCreateTrip?: boolean; isOnboarding?: boolean } | null;
     if (state?.openCreateTrip) {
       setCreateDialogOpen(true);
+      setIsOnboarding(!!state.isOnboarding);
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
@@ -259,7 +261,7 @@ export default function Dashboard() {
         )}
       </PageTransition>
 
-      <CreateTripDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
+      <CreateTripDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} isOnboarding={isOnboarding} />
 
       <AlertDialog open={!!tripToDelete} onOpenChange={() => setTripToDelete(null)}>
         <AlertDialogContent>
