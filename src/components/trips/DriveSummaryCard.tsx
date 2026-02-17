@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Car, MapPin, Fuel, Navigation, AlertTriangle, Clock, CloudRain, Snowflake, DollarSign, Route, Star, Utensils, ExternalLink, Plus } from 'lucide-react';
 import { queryPlaces, type PlaceResult } from '@/lib/places/placesEngine';
+import { openNavTarget, buildMapsSearchUrl } from '@/lib/location/navigationTargets';
 
 interface DriveSummaryCardProps {
   trip: Trip & {
@@ -142,8 +143,8 @@ export function DriveSummaryCard({ trip, drivePlan, onAddGasExpense }: DriveSumm
     `${trip.destination_city}${trip.destination_state ? `, ${trip.destination_state}` : ''}`;
 
   const handleNavigateToPlace = (place: PlaceResult) => {
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
+    const target = { kind: 'COORDS' as const, value: `${place.lat},${place.lng}`, label: place.name };
+    openNavTarget(target);
   };
 
   const handleAddStop = (place: PlaceResult) => {
@@ -260,7 +261,8 @@ export function DriveSummaryCard({ trip, drivePlan, onAddGasExpense }: DriveSumm
                 className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 pl-[18px]"
                 onClick={() => {
                   if (zone.targetLatLng) {
-                    const url = `https://www.google.com/maps/search/gas+station/@${zone.targetLatLng.lat},${zone.targetLatLng.lng},12z`;
+                    const target = { kind: 'COORDS' as const, value: `${zone.targetLatLng.lat},${zone.targetLatLng.lng}`, label: `Gas station near mile ${zone.mileMarker}` };
+                    const url = buildMapsSearchUrl(target);
                     window.open(url, '_blank', 'noopener,noreferrer');
                   }
                 }}

@@ -1,9 +1,13 @@
 /**
- * v3.5.1: Canonical Explore Origin Resolver
+ * v3.12.2: Canonical Explore Origin Resolver
  *
  * Single source of truth for Explore search origin.
  * Auto-selects between DEVICE and STAY based on arrival detection.
  * No user-facing selectors — origin is resolved automatically.
+ *
+ * v3.12.2: Uses canonical LocationRef for consistent origin resolution.
+ * Stay and airport origins are resolved through the same canonical
+ * location resolver used by Weather and Maps.
  *
  * RULES:
  * 1. Find targetStay (active or next upcoming stay)
