@@ -1,12 +1,7 @@
 /**
- * v3.6.0: Premium Explore screen with carousel + sectioned feed
- * v4.0: Canonical keyword search via ExploreEngine query param
- *
- * Consumes v3.5.2 engine via useAttractions, then applies
- * ExploreRankingAndSections for carousel + vertical sections.
- *
- * No user-facing selectors. Origin resolved automatically via
- * canonical resolveExploreOrigin helper.
+ * v3.12.4: Explore tab wired to canonical context origin resolver.
+ * Origin resolved via resolveExploreOriginForContext (trip-level, timeline item, or booking).
+ * No Explore engine changes.
  */
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
@@ -16,10 +11,11 @@ import { useAttractions } from '@/hooks/useAttractions';
 import { useBookings } from '@/hooks/useBookings';
 import { useDeviceLocation } from '@/hooks/useDeviceLocation';
 import { getDeviceLocation } from '@/lib/deviceLocation';
+import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
 import { useTripPermission } from '@/pages/TripDetail';
-import { resolveExploreOrigin } from '@/types/exploreOrigin';
+import { resolveExploreOriginForContext, getExploreOriginSubtitle } from '@/lib/location/exploreContext';
+import { getExploreContext, clearExploreContext } from '@/lib/explore/exploreContextStore';
 import { buildExploreSections } from '@/lib/exploreRankingSections';
-import { resolveTripPrimaryLocation } from '@/lib/location/locationResolver';
 import { buildNavTarget, openNavTarget } from '@/lib/location/navigationTargets';
 import { ExploreCarousel } from '@/components/trips/explore/ExploreCarousel';
 import { ExploreSectionFeed } from '@/components/trips/explore/ExploreSectionFeed';
@@ -30,8 +26,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import {
-  Compass, Loader2, AlertCircle,
-  Building2, Navigation, RefreshCw, Search, MapPinned, X,
+  Loader2, AlertCircle,
+  Building2, Navigation, RefreshCw, Search, MapPinned, X, Plane,
 } from 'lucide-react';
 
 interface ExploreTabProps {
@@ -42,10 +38,10 @@ interface ExploreTabProps {
 type RadiusOption = '5' | '10' | '25' | '50';
 
 export function ExploreTab({ tripId, trip }: ExploreTabProps) {
-  // v3.10.12: No plan gating — Explore available to all tiers
   const { canEdit } = useTripPermission();
   const { data: bookings = [] } = useBookings(tripId);
   const deviceLocation = useDeviceLocation();
+  const { timelineEvents } = useCanonicalTripState(tripId, trip);
 
   const [radius, setRadius] = useState<RadiusOption>('25');
   const [selectedAttraction, setSelectedAttraction] = useState<AttractionSuggestion | null>(null);
@@ -72,27 +68,38 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
     setDebouncedQuery('');
   }, []);
 
-  // Canonical origin resolution
-  const origin = useMemo(() => {
-    return resolveExploreOrigin(
-      bookings,
-      deviceLocation.coords,
-      deviceLocation.status === 'denied' || deviceLocation.status === 'unavailable',
-      trip.destination_state
-    );
-  }, [bookings, deviceLocation.coords, deviceLocation.status, trip.destination_state, refreshCounter]);
+  // v3.12.4: Determine if trip is active
+  const isActive = useMemo(() => {
+    const now = new Date();
+    const start = new Date(trip.start_date + 'T00:00:00');
+    const end = new Date(trip.end_date + 'T23:59:59');
+    return now >= start && now <= end;
+  }, [trip.start_date, trip.end_date]);
 
-  // v3.10.12: Explore available to all tiers — no plan gating on fetch
-  const canFetch = origin.mode !== 'NO_ORIGIN' && (
-    origin.lat !== undefined || origin.searchCity !== undefined
-  );
+  // v3.12.4: Canonical context origin resolution
+  const exploreContext = useMemo(() => getExploreContext(tripId), [tripId, refreshCounter]);
+
+  const origin = useMemo(() => {
+    const deviceCoords = deviceLocation.coords
+      ? { lat: deviceLocation.coords.lat, lng: deviceLocation.coords.lng }
+      : null;
+
+    return resolveExploreOriginForContext({
+      tripId,
+      bookings,
+      timelineEvents,
+      isActive,
+      context: exploreContext,
+      deviceLocation: deviceCoords,
+    });
+  }, [tripId, bookings, timelineEvents, isActive, exploreContext, deviceLocation.coords, refreshCounter]);
+
+  const canFetch = origin !== null;
 
   // v3.5.2 engine with optional query
   const { data: attractions = [], isLoading, error, refetch } = useAttractions({
-    city: origin.searchCity,
-    state: origin.searchState,
-    lat: origin.lat,
-    lng: origin.lng,
+    lat: origin?.lat,
+    lng: origin?.lng,
     radiusMiles: parseInt(radius),
     query: debouncedQuery || undefined,
     enabled: canFetch,
@@ -112,7 +119,6 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
   };
 
   const handleNavigate = (attraction: AttractionSuggestion) => {
-    const query = attraction.locationSummary || attraction.name;
     const target = buildNavTarget({
       kind: 'PLACE',
       key: attraction.name,
@@ -125,15 +131,14 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
   };
 
   const handleRefresh = useCallback(async () => {
+    clearExploreContext(tripId);
     await getDeviceLocation();
     setRefreshCounter((c) => c + 1);
     refetch();
-  }, [refetch]);
-
-  // v3.10.12: Explore is available to all plan tiers — no Free user teaser
+  }, [refetch, tripId]);
 
   // === NO ORIGIN ===
-  if (origin.mode === 'NO_ORIGIN') {
+  if (!origin) {
     return (
       <Card className="border-dashed border-amber-300/50 bg-amber-50/30 dark:bg-amber-950/10">
         <CardContent className="py-12 text-center">
@@ -144,12 +149,17 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
           </div>
           <h3 className="text-lg font-semibold mb-2">Add lodging to explore nearby</h3>
           <p className="text-muted-foreground max-w-md mx-auto">
-            {origin.noOriginMessage}
+            Add lodging or flight bookings to explore near your destination.
           </p>
         </CardContent>
       </Card>
     );
   }
+
+  // === Subtitle icon ===
+  const OriginIcon = origin.source === 'DEVICE' ? Navigation
+    : origin.source === 'ARRIVAL_AIRPORT' ? Plane
+    : Building2;
 
   // === MAIN EXPLORE SCREEN ===
   return (
@@ -171,21 +181,21 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
 
         {/* Subtitle */}
         <div className="flex items-center gap-1.5">
-          {origin.mode === 'DEVICE' ? (
-            <Navigation className="w-3.5 h-3.5 text-primary shrink-0" />
-          ) : (
-            <Building2 className="w-3.5 h-3.5 text-primary shrink-0" />
-          )}
+          <OriginIcon className="w-3.5 h-3.5 text-primary shrink-0" />
           <span className="text-sm text-muted-foreground truncate">
-            Exploring near: {origin.label}
+            {getExploreOriginSubtitle(origin.source)}
           </span>
         </div>
 
-        {/* Pre-arrival hint */}
-        {origin.mode === 'STAY' && !origin.isArrived && (
-          <p className="text-xs text-muted-foreground/70 leading-relaxed">
-            Showing ideas near your lodging. This updates when you arrive.
-          </p>
+        {/* Context hint */}
+        {exploreContext.kind !== 'TRIP' && (
+          <button
+            type="button"
+            onClick={() => { clearExploreContext(tripId); setRefreshCounter(c => c + 1); }}
+            className="text-xs text-primary hover:underline"
+          >
+            ← Back to trip-level explore
+          </button>
         )}
       </div>
 

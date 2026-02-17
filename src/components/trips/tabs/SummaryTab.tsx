@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useBookings } from '@/hooks/useBookings';
+import { setExploreContext } from '@/lib/explore/exploreContextStore';
 import { useParking } from '@/hooks/useParking';
 import { useExpenses } from '@/hooks/useExpenses';
 import { useCompanions } from '@/hooks/useCompanions';
@@ -54,6 +55,8 @@ interface SummaryTabProps {
   maxVisibleAlerts?: number;
   /** v2.6.12: Navigate to full alerts view */
   onViewAllAlerts?: () => void;
+  /** v3.12.4: Navigate to Explore tab */
+  onExploreTab?: () => void;
 }
 
 // v3.8.16: Wrapper to wire DrivePlan into DriveSummaryCard
@@ -64,7 +67,7 @@ function DriveSummaryCardWrapper({ trip, onAddGasExpense }: { trip: Trip; onAddG
 
 // v3.8.6: Destination links moved to DestinationInfoCard
 
-export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onViewAllAlerts }: SummaryTabProps) {
+export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onViewAllAlerts, onExploreTab }: SummaryTabProps) {
   const [gasDialogOpen, setGasDialogOpen] = useState(false);
   const [selectedCompanion, setSelectedCompanion] = useState<Companion | null>(null);
   const [companionDialogOpen, setCompanionDialogOpen] = useState(false);
@@ -295,6 +298,10 @@ export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onV
             events={timeline}
             datetimeFormat={userProfile?.preferred_datetime_format as DatetimeFormatPreference}
             onEventClick={handleTimelineClick}
+            onExploreNearby={onExploreTab ? (eventId) => {
+              setExploreContext(tripId, { kind: 'TIMELINE_ITEM', id: eventId });
+              onExploreTab();
+            } : undefined}
           />
         </CardContent>
       </Card>

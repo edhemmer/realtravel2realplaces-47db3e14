@@ -3,12 +3,14 @@
  * 
  * v2.3.x: Mobile Redesign v3 — intent-based bottom navigation
  * v3.5.1: Removed per-entry Explore origin hints — ExploreTab auto-resolves
+ * v3.12.4: Explore nearby from timeline sets context + navigates to Explore
  */
 
 import { useState, useCallback, useEffect } from 'react';
 import { Trip } from '@/types/database';
 import { useAccess } from '@/hooks/useAccess';
 import { useExploreDiscovery } from '@/hooks/useExploreDiscovery';
+import { setExploreContext } from '@/lib/explore/exploreContextStore';
 import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { TripDetailLayout, type TripTab } from '@/components/layout';
@@ -132,6 +134,12 @@ export function MobileNavigationRouter({
     }
   }, [hasDiscoveredExplore, markExploreDiscovered]);
 
+  // v3.12.4: Explore nearby from timeline item
+  const handleExploreNearby = useCallback((eventId: string) => {
+    setExploreContext(tripId, { kind: 'TIMELINE_ITEM', id: eventId });
+    handleTabChange('explore');
+  }, [tripId, handleTabChange]);
+
   const renderTabContent = () => {
     const sectionLabel = MORE_TAB_LABELS[activeTab];
     return (
@@ -188,7 +196,7 @@ export function MobileNavigationRouter({
               </button>
             </div>
             {planSubView === 'timeline' ? (
-              <TripTimeline events={timelineEvents} datetimeFormat={datetimeFormat} />
+              <TripTimeline events={timelineEvents} datetimeFormat={datetimeFormat} onExploreNearby={handleExploreNearby} />
             ) : (
               <TripBookingsContainer tripId={tripId} trip={trip} />
             )}
