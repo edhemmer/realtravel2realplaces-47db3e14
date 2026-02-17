@@ -1,8 +1,8 @@
 /**
- * v3.8.13: WeatherEngine — Always-On Weather Intelligence
+ * v3.10.7: WeatherEngine — Always-On Weather Intelligence (Never Blank)
  * 
  * SINGLE SOURCE OF TRUTH for weather mode resolution and seasonal normals.
- * Always returns a result for any trip, even months out.
+ * Always returns a deterministic result for any trip — never null, never blank.
  * 
  * Modes:
  * - SEASONAL_NORMALS: >14 days out (bundled averages for date window)
@@ -17,7 +17,11 @@
 // ============================================================================
 
 export type WeatherMode = 'SEASONAL_NORMALS' | 'FORECAST_BLEND' | 'FORECAST_PRIMARY';
+export type WeatherUnavailableReason = 'OUT_OF_RANGE' | 'NO_COORDS' | 'PROVIDER_ERROR' | 'UNKNOWN';
 export type AnchorType = 'LODGING' | 'FLIGHT_DESTINATION' | 'TRIP_DESTINATION';
+
+/** v3.10.7: Configurable forecast window (days). Trips beyond this use seasonal normals. */
+export const FORECAST_WINDOW_DAYS = 14;
 export type PrecipTypeHint = 'rain' | 'snow' | 'mixed' | 'unknown';
 export type CloudCoverHint = 'mostly_sunny' | 'mixed' | 'mostly_cloudy' | 'unknown';
 export type WindHint = 'calm' | 'breezy' | 'windy' | 'unknown';
@@ -57,6 +61,12 @@ export interface WeatherEngineResult {
   envelope: WeatherDayEnvelope[];
   /** Summary signals for packing consumption */
   summary: WeatherSummary;
+  /** v3.10.7: Human-readable location label (e.g., "Milan, Italy") */
+  locationLabel: string;
+  /** v3.10.7: Reason when mode is effectively seasonal or data is limited */
+  reason?: WeatherUnavailableReason;
+  /** v3.10.7: ISO timestamp of when forecast was fetched (forecast modes only) */
+  asOf?: string;
 }
 
 export interface WeatherSummary {
@@ -456,6 +466,20 @@ export function resolveWeather(input: WeatherEngineInput): WeatherEngineResult {
     }
   }
 
+  // v3.10.7: Build location label
+  const locationLabel = [anchor.city, anchor.state, anchor.country]
+    .filter(Boolean)
+    .join(', ');
+
+  // v3.10.7: Determine reason for seasonal mode
+  const reason: WeatherUnavailableReason | undefined = 
+    mode === 'SEASONAL_NORMALS' ? 'OUT_OF_RANGE' : undefined;
+
+  // v3.10.7: asOf for forecast modes
+  const asOf = (mode === 'FORECAST_PRIMARY' || mode === 'FORECAST_BLEND') && input.forecast && input.forecast.length > 0
+    ? new Date().toISOString()
+    : undefined;
+
   return {
     weatherMode: mode,
     anchor,
@@ -463,5 +487,8 @@ export function resolveWeather(input: WeatherEngineInput): WeatherEngineResult {
     windowEnd: input.endDate,
     envelope,
     summary: computeSummary(envelope),
+    locationLabel,
+    reason,
+    asOf,
   };
 }

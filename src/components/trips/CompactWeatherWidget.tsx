@@ -1,47 +1,27 @@
-import { useTripWeather } from '@/hooks/useWeather';
+/**
+ * v3.10.7: CompactWeatherWidget — Never blank. Uses WeatherEngine for deterministic display.
+ */
+import { useWeatherEngine } from '@/hooks/useWeatherEngine';
 import { useProfileTemperatureUnit } from '@/hooks/useProfileTemperatureUnit';
-import { normalizeCondition } from '@/lib/canonicalWeather';
-import { Cloud, Sun, CloudRain, Snowflake, MapPin } from 'lucide-react';
+import { Cloud, Sun, CloudRain, Snowflake, MapPin, CalendarDays } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Trip } from '@/types/database';
 
 interface CompactWeatherWidgetProps {
-  city: string;
-  country: string;
-  state?: string;
-  startDate: string;
-  endDate: string;
+  trip: Trip;
   className?: string;
 }
 
-const getWeatherIcon = (condition: string) => {
-  const normalized = normalizeCondition(condition);
-  switch (normalized) {
-    case 'rain': return <CloudRain className="w-4 h-4" />;
-    case 'snow':
-    case 'ice':
-    case 'sleet': return <Snowflake className="w-4 h-4" />;
-    case 'sunny': return <Sun className="w-4 h-4" />;
-    default: return <Cloud className="w-4 h-4" />;
-  }
+const getWeatherIcon = (precipType: string, cloudCover: string) => {
+  if (precipType === 'rain') return <CloudRain className="w-4 h-4" />;
+  if (precipType === 'snow' || precipType === 'mixed') return <Snowflake className="w-4 h-4" />;
+  if (cloudCover === 'mostly_sunny') return <Sun className="w-4 h-4" />;
+  return <Cloud className="w-4 h-4" />;
 };
 
-export function CompactWeatherWidget({ 
-  city, 
-  country, 
-  state, 
-  startDate, 
-  endDate,
-  className 
-}: CompactWeatherWidgetProps) {
-  const { formatTemp, unit: temperatureUnit } = useProfileTemperatureUnit();
-  const { current, tripForecast, weatherAnalysis, isLoading } = useTripWeather(
-    city?.trim() || '',
-    country || '',
-    startDate,
-    endDate,
-    state || undefined,
-    temperatureUnit
-  );
+export function CompactWeatherWidget({ trip, className }: CompactWeatherWidgetProps) {
+  const { formatTemp } = useProfileTemperatureUnit();
+  const { weather, isLoading } = useWeatherEngine(trip);
 
   if (isLoading) {
     return (
@@ -52,14 +32,9 @@ export function CompactWeatherWidget({
     );
   }
 
-  // Use current weather if available, otherwise use trip forecast average
-  const displayTemp = current?.temperature ?? weatherAnalysis.avgHigh;
-  const displayCondition = current?.condition ?? (tripForecast[0]?.condition || 'Unknown');
-  const todayForecast = tripForecast[0];
+  if (!weather) return null;
 
-  if (!displayTemp && !todayForecast) {
-    return null;
-  }
+  const { weatherMode, summary, locationLabel } = weather;
 
   return (
     <div className={cn(
@@ -68,19 +43,23 @@ export function CompactWeatherWidget({
     )}>
       <div className="flex items-center gap-1.5 text-muted-foreground">
         <MapPin className="w-3.5 h-3.5" />
-        <span className="hidden sm:inline">{city}</span>
+        <span className="hidden sm:inline truncate max-w-[120px]">{trip.destination_city}</span>
       </div>
       <div className="flex items-center gap-1.5">
-        <span className="text-primary">{getWeatherIcon(displayCondition)}</span>
-        {displayTemp && (
-          <span className="font-medium">{formatTemp(displayTemp)}</span>
-        )}
-        {todayForecast && weatherAnalysis.avgLow && (
-          <span className="text-muted-foreground text-xs">
-            / {formatTemp(weatherAnalysis.avgLow, false)}
-          </span>
-        )}
+        <span className="text-primary">
+          {getWeatherIcon(summary.precipTypeHint, summary.cloudCoverHint)}
+        </span>
+        <span className="font-medium">{formatTemp(summary.avgHigh)}</span>
+        <span className="text-muted-foreground text-xs">
+          / {formatTemp(summary.avgLow, false)}
+        </span>
       </div>
+      {weatherMode === 'SEASONAL_NORMALS' && (
+        <div className="flex items-center gap-1 text-muted-foreground text-xs">
+          <CalendarDays className="w-3 h-3" />
+          <span>Seasonal</span>
+        </div>
+      )}
     </div>
   );
 }
