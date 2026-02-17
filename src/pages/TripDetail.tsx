@@ -375,7 +375,7 @@ export default function TripDetail() {
 
                   <div className="mt-4 sm:mt-6">
                     <TabsContent value="summary">
-                      <TripSummaryContainer tripId={trip.id} trip={trip} onDrillThrough={handleDrillThrough} />
+                      <TripSummaryContainer tripId={trip.id} trip={trip} onDrillThrough={handleDrillThrough} onExploreTab={() => handleTabChange('explore')} />
                     </TabsContent>
                     <TabsContent value="bookings">
                       <TripBookingsContainer 

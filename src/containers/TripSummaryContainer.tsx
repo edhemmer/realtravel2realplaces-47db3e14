@@ -37,13 +37,15 @@ interface TripSummaryContainerProps {
   maxVisibleAlerts?: number;
   /** v2.6.12: Navigate to full alerts view */
   onViewAllAlerts?: () => void;
+  /** v3.12.4: Navigate to Explore tab */
+  onExploreTab?: () => void;
 }
 
 /**
  * Container that wires canonical hooks to SummaryTab.
  * v2.6.12: Prefers shell-provided state on desktop to avoid redundant computation.
  */
-export function TripSummaryContainer({ tripId, trip, onDrillThrough, maxVisibleAlerts, onViewAllAlerts }: TripSummaryContainerProps) {
+export function TripSummaryContainer({ tripId, trip, onDrillThrough, maxVisibleAlerts, onViewAllAlerts, onExploreTab }: TripSummaryContainerProps) {
   // v2.6.12: Check shell context first (desktop path)
   const shell = useDesktopTripShell();
   
@@ -82,6 +84,7 @@ export function TripSummaryContainer({ tripId, trip, onDrillThrough, maxVisibleA
       onDrillThrough={onDrillThrough}
       maxVisibleAlerts={maxVisibleAlerts}
       onViewAllAlerts={onViewAllAlerts}
+      onExploreTab={onExploreTab}
     />
   );
 }

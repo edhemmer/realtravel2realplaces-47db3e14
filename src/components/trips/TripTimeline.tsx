@@ -25,6 +25,8 @@ interface TripTimelineProps {
   events: CanonicalTimelineEvent[];
   datetimeFormat?: DatetimeFormatPreference;
   onEventClick?: (event: CanonicalTimelineEvent) => void;
+  /** v3.12.4: Explore nearby action for timeline items */
+  onExploreNearby?: (eventId: string) => void;
 }
 
 // v3.6.1: openExternalUrl removed — "View" inline button removed; row tap handles detail view
@@ -76,7 +78,7 @@ function buildFlightSubtitle(
   });
 }
 
-export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimelineProps) {
+export function TripTimeline({ events, datetimeFormat, onEventClick, onExploreNearby }: TripTimelineProps) {
   if (events.length === 0) {
     return (
       <p className="text-muted-foreground text-center py-8 text-sm">
@@ -223,9 +225,9 @@ export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimel
                           </p>
                         </div>
                       </div>
-                      {/* v3.6.1: Navigate button - h-[34px], no shadow, content-hugging; View button removed */}
+                      {/* v3.6.1: Navigate + v3.12.4: Explore nearby buttons */}
                       {(event.address || event.departureAirportCode || event.title) && resolveMapsFromTimelineEvent(event) && (
-                        <div className="mt-1">
+                        <div className="mt-1 flex gap-1.5">
                           <Button
                             size="sm"
                             variant="default"
@@ -235,6 +237,17 @@ export function TripTimeline({ events, datetimeFormat, onEventClick }: TripTimel
                             <Navigation className="w-3 h-3 mr-1" />
                             Navigate
                           </Button>
+                          {onExploreNearby && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className={`h-[34px] px-3 text-[11px] rounded-full shadow-none press-scale ${isPast ? 'opacity-80' : ''}`}
+                              onClick={(e) => { e.stopPropagation(); onExploreNearby(event.id); }}
+                            >
+                              <Compass className="w-3 h-3 mr-1" />
+                              Explore nearby
+                            </Button>
+                          )}
                         </div>
                       )}
                     </div>
