@@ -14,6 +14,7 @@ import type {
   DrivePlan,
   DriveRiskFlag,
   DriveFuelPlan,
+  DriveFuelIntelligence,
   DriveNavigationTarget,
   LocationRef,
   DrivePreferences,
@@ -153,6 +154,10 @@ export interface BuildDrivePlanInput {
   weather: WeatherEngineResult | null;
   /** Whether route metadata indicates tolls */
   routeHasTolls?: boolean;
+  /** v3.10.9: Whether user has Pro/Business plan */
+  isPro?: boolean;
+  /** v3.10.9: User's avg miles per tank (from profile) */
+  avgMilesPerTank?: number | null;
 }
 
 /**
@@ -160,7 +165,7 @@ export interface BuildDrivePlanInput {
  * All Drive UI surfaces must consume this output — no per-component logic.
  */
 export function buildDrivePlan(input: BuildDrivePlanInput): DrivePlan {
-  const { canonical, weather, routeHasTolls } = input;
+  const { canonical, weather, routeHasTolls, isPro, avgMilesPerTank } = input;
 
   // Get route summary
   const routeResult = getRoute(
@@ -190,6 +195,16 @@ export function buildDrivePlan(input: BuildDrivePlanInput): DrivePlan {
   // Navigation targets
   const navigationTargets = buildNavigationTargets(canonical);
 
+  // v3.10.9: Fuel intelligence gating
+  let fuelIntelligence: DriveFuelIntelligence;
+  if (!isPro) {
+    fuelIntelligence = { enabled: false, reason: 'PLAN_REQUIRED' };
+  } else if (!avgMilesPerTank) {
+    fuelIntelligence = { enabled: false, reason: 'MISSING_VEHICLE_RANGE' };
+  } else {
+    fuelIntelligence = { enabled: true };
+  }
+
   // Overall confidence
   const confidence = routeResult.confidence === 'low' && canonical.confidence === 'low'
     ? 'low'
@@ -201,6 +216,7 @@ export function buildDrivePlan(input: BuildDrivePlanInput): DrivePlan {
     routeSummary: routeResult.summary,
     riskFlags: riskFlags.slice(0, MAX_RISK_FLAGS),
     fuelPlan,
+    fuelIntelligence,
     weatherLine,
     navigationTargets,
     confidence,

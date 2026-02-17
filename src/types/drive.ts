@@ -62,6 +62,8 @@ export interface DrivePlan {
   riskFlags: DriveRiskFlag[];
   /** Fuel plan (only when vehicle profile exists) */
   fuelPlan: DriveFuelPlan | null;
+  /** v3.10.9: Fuel intelligence gating */
+  fuelIntelligence: DriveFuelIntelligence;
   /** Weather on route (from canonical WeatherEngine) */
   weatherLine: string | null;
   /** Navigation targets */
@@ -70,6 +72,12 @@ export interface DrivePlan {
   confidence: 'high' | 'medium' | 'low';
   /** Reason for low confidence (if applicable) */
   degradedReason?: string;
+}
+
+/** v3.10.9: Fuel intelligence gating result */
+export interface DriveFuelIntelligence {
+  enabled: boolean;
+  reason?: 'PLAN_REQUIRED' | 'MISSING_VEHICLE_RANGE';
 }
 
 export interface DriveRouteSummary {

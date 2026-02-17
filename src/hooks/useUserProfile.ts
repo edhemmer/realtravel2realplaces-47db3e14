@@ -18,6 +18,9 @@ export interface UserProfile {
   temperature_unit?: 'fahrenheit' | 'celsius' | null;
   /** Patch 2.1.18: Flag indicating user has completed initial onboarding */
   has_completed_onboarding?: boolean;
+  /** v3.10.9: Vehicle range for fuel intelligence */
+  avg_miles_per_tank?: number | null;
+  tank_size_gallons?: number | null;
 }
 
 /**
