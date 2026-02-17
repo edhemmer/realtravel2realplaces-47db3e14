@@ -103,6 +103,62 @@ interface CreateTripDialogProps {
 }
 
 // ============================================================================
+// BATCH PERSISTENCE (sessionStorage — survives stumbles/refreshes)
+// ============================================================================
+
+const WIZARD_BATCH_KEY = 'rt2rp_wizard_batch';
+
+function saveWizardBatch(bookings: ParsedBooking[]) {
+  try {
+    sessionStorage.setItem(WIZARD_BATCH_KEY, JSON.stringify(bookings));
+  } catch { /* storage full or unavailable — non-critical */ }
+}
+
+function loadWizardBatch(): ParsedBooking[] | null {
+  try {
+    const raw = sessionStorage.getItem(WIZARD_BATCH_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+  } catch { /* corrupt data — ignore */ }
+  return null;
+}
+
+function clearWizardBatch() {
+  try { sessionStorage.removeItem(WIZARD_BATCH_KEY); } catch {}
+}
+
+/**
+ * Deterministic booking fingerprint for deduplication.
+ * Uses confirmation_number + vendor_name + booking_type + start_datetime.
+ */
+function bookingFingerprint(b: ParsedBooking): string {
+  return [
+    (b.confirmation_number || '').trim().toUpperCase(),
+    (b.vendor_name || '').trim().toUpperCase(),
+    b.booking_type,
+    (b.start_datetime || '').substring(0, 16),
+  ].join('|');
+}
+
+/**
+ * Merge new bookings into existing array, deduplicating by fingerprint.
+ * Append-only: existing items are never overwritten.
+ */
+function mergeBookings(existing: ParsedBooking[], incoming: ParsedBooking[]): ParsedBooking[] {
+  const seen = new Set(existing.map(bookingFingerprint));
+  const merged = [...existing];
+  for (const booking of incoming) {
+    const fp = bookingFingerprint(booking);
+    if (!seen.has(fp)) {
+      seen.add(fp);
+      merged.push(booking);
+    }
+  }
+  return merged;
+}
+
+// ============================================================================
 // MAIN COMPONENT
 // ============================================================================
 
@@ -178,13 +234,35 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
     setDriveOriginLocation(null);
     setDriveDestLocation(null);
     setComplexityResult(null);
+    clearWizardBatch();
   }, [reset]);
 
   useEffect(() => {
     if (open) {
-      resetAll();
+      // v3.8.23-fix: On open, check for a persisted batch to resume
+      const savedBatch = loadWizardBatch();
+      if (savedBatch && savedBatch.length > 0) {
+        // Resume: load persisted batch, skip to manual-form review
+        setParsedBookings(savedBatch);
+        setTravelMode('fly');
+        setValue('transportation_mode', 'flight');
+        setStep('manual-form');
+        
+        // Restore dates from batch if available
+        const suggestedDates = getSuggestedTripDates(savedBatch);
+        if (suggestedDates.start_date) {
+          try { setStartDate(parseISO(suggestedDates.start_date)); } catch {}
+        }
+        if (suggestedDates.end_date) {
+          try { setEndDate(parseISO(suggestedDates.end_date)); } catch {}
+        }
+        
+        toast.info(`Resuming with ${savedBatch.length} booking(s) from your previous session.`);
+      } else {
+        resetAll();
+      }
     }
-  }, [open, resetAll]);
+  }, [open, resetAll, setValue]);
 
   // ============================================================================
   // PARSING LOGIC (reused from existing)
@@ -228,7 +306,12 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
         }
 
         if (parsed.bookings && Array.isArray(parsed.bookings)) {
-          setParsedBookings(parsed.bookings);
+          // v3.8.23-fix: APPEND new bookings with dedup — never replace the batch
+          setParsedBookings(prev => {
+            const merged = mergeBookings(prev, parsed.bookings);
+            saveWizardBatch(merged);
+            return merged;
+          });
 
           // v2.2.7: Use TripFrameResolver for canonical date resolution
           const frameMode: TripFrameMode = travelMode === 'fly' ? 'fly' : travelMode === 'drive' ? 'drive' : 'train';
@@ -564,12 +647,36 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
     if (isOnboarding) {
       try { await completeOnboarding.mutateAsync(); } catch {}
     }
-    resetAll();
+    // v3.8.23-fix: Preserve batch in sessionStorage when closing without creating.
+    // Only reset in-memory UI state, NOT the persisted batch.
+    // The batch will be auto-loaded on next dialog open.
+    if (parsedBookings.length > 0) {
+      saveWizardBatch(parsedBookings);
+    }
+    // Reset UI state but don't clear the batch
+    reset();
+    setStep('mode');
+    setTravelMode(null);
+    setStartDate(undefined);
+    setEndDate(undefined);
+    setParsedBookings([]);
+    setParseError(null);
+    setPastedText('');
+    setShowPasteInput(false);
+    setDriveDestination('');
+    setDriveOrigin('');
+    setDriveOriginLocation(null);
+    setDriveDestLocation(null);
+    setComplexityResult(null);
     onOpenChange(false);
   };
 
   const removeBooking = (index: number) => {
-    setParsedBookings(prev => prev.filter((_, i) => i !== index));
+    setParsedBookings(prev => {
+      const updated = prev.filter((_, i) => i !== index);
+      saveWizardBatch(updated); // Persist removal
+      return updated;
+    });
   };
 
   const getBookingTypeLabel = (type: BookingType) => {
