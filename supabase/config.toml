@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.process-pending-import]
 verify_jwt = false
+
+[functions.nearby-places]
+verify_jwt = false

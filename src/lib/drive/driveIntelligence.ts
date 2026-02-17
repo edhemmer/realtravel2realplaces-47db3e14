@@ -1,5 +1,5 @@
 /**
- * v3.8.16: Drive Intelligence — Canonical DrivePlan Producer
+ * v3.11.3: Drive Intelligence — Canonical DrivePlan Producer
  *
  * Single source of truth for drive trip intelligence.
  * Consumes trip data + weather envelope + route provider to produce DrivePlan.
@@ -7,6 +7,7 @@
  *
  * DETERMINISTIC: Same inputs → same output.
  * No timezone/date math. Dates used as stored.
+ * No network I/O. No async. Pure logic only.
  */
 
 import type {
@@ -15,6 +16,7 @@ import type {
   DriveRiskFlag,
   DriveFuelPlan,
   DriveFuelIntelligence,
+  DriveSuggestionsEligibility,
   FuelStopZone,
   DriveNavigationTarget,
   LocationRef,
@@ -334,6 +336,25 @@ export function buildDrivePlan(input: BuildDrivePlanInput): DrivePlan {
     }
   }
 
+  // v3.11.3: Suggestions eligibility (pure logic, no I/O)
+  let suggestions: DriveSuggestionsEligibility;
+  if (!isPro) {
+    suggestions = { eligible: false, reason: 'PLAN_REQUIRED' };
+  } else if (!avgMilesPerTank || avgMilesPerTank <= 0) {
+    suggestions = { eligible: false, reason: 'MISSING_VEHICLE_RANGE' };
+  } else {
+    // Find first stop zone with coordinates
+    const firstZoneWithCoords = fuelIntelligence.stopZones.find(z => z.targetLatLng !== null);
+    if (firstZoneWithCoords?.targetLatLng) {
+      suggestions = {
+        eligible: true,
+        nextWindowCenter: firstZoneWithCoords.targetLatLng,
+      };
+    } else {
+      suggestions = { eligible: false, reason: 'WINDOW_COORDS_MISSING' };
+    }
+  }
+
   // Overall confidence
   const confidence = routeResult.confidence === 'low' && canonical.confidence === 'low'
     ? 'low'
@@ -346,6 +367,7 @@ export function buildDrivePlan(input: BuildDrivePlanInput): DrivePlan {
     riskFlags: riskFlags.slice(0, MAX_RISK_FLAGS),
     fuelPlan,
     fuelIntelligence,
+    suggestions,
     weatherLine,
     navigationTargets,
     confidence,
