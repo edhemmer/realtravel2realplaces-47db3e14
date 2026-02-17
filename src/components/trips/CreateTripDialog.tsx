@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -27,13 +27,15 @@ import { getSuggestedTripDates } from '@/hooks/useTripDateSync';
 import { resolveTripFrame, validateConfirmationAlignment, isFrameResolved, type TripFrameMode } from '@/lib/tripFrameResolver';
 import { LocationInput } from '@/components/LocationInput';
 import { LocationStructured, isLocationComplete, locationLabel } from '@/lib/location/types';
+import { evaluateTripComplexity, type TripComplexityResult } from '@/lib/canonical/tripComplexity';
+import type { CanonicalItem } from '@/lib/canonical/canonicalTypes';
 
 // ============================================================================
 // TYPES & HELPERS
 // ============================================================================
 
 type TravelMode = 'fly' | 'drive' | 'train' | null;
-type WizardStep = 'mode' | 'fly-parse' | 'drive-form' | 'train-manual' | 'manual-form';
+type WizardStep = 'mode' | 'fly-parse' | 'drive-form' | 'train-manual' | 'manual-form' | 'review-confirm';
 
 function parsePassengers(passengerString: string | undefined, airline: string | undefined): Array<{
   name: string;
@@ -123,6 +125,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
   const [parseError, setParseError] = useState<string | null>(null);
   const [pastedText, setPastedText] = useState('');
   const [showPasteInput, setShowPasteInput] = useState(false);
+  const [complexityResult, setComplexityResult] = useState<TripComplexityResult | null>(null);
 
   // Drive flow extra state
   const [driveDestination, setDriveDestination] = useState('');
@@ -174,6 +177,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
     setDriveOrigin('');
     setDriveOriginLocation(null);
     setDriveDestLocation(null);
+    setComplexityResult(null);
   }, [reset]);
 
   useEffect(() => {
@@ -305,6 +309,92 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
   // ============================================================================
   // TRIP CREATION (shared)
   // ============================================================================
+
+  /** v3.8.23: Pre-submit gate — checks complexity before timeline build */
+  const handlePreSubmit = handleSubmit((data: TripFormData) => {
+    if (parsedBookings.length > 0) {
+      // Convert parsed bookings to minimal CanonicalItem-compatible objects for evaluation
+      const pseudoCanonical: CanonicalItem[] = parsedBookings.map(b => {
+        const base = {
+          sourceId: '',
+          canonicalId: '',
+          vendorName: b.vendor_name || '',
+          confirmationNumber: b.confirmation_number || null,
+          confirmationNumbers: [],
+          totalCost: b.total_cost || 0,
+          myShare: 0,
+          notes: null,
+          linkUrl: null,
+          rawEvidence: [],
+          warnings: [],
+          rawStartTime: { dateText: null, timeText: null, datetimeText: null, timezoneText: null },
+          rawEndTime: { dateText: null, timeText: null, datetimeText: null, timezoneText: null },
+          startDatetime: b.start_datetime || null,
+          endDatetime: b.end_datetime || null,
+        };
+        if (b.booking_type === 'flight') {
+          return {
+            ...base,
+            type: 'flight' as const,
+            airline: b.airline || null,
+            passengers: [],
+            passengerName: b.passenger_name || null,
+            dep: { iata: undefined, name: undefined, city: undefined },
+            arr: { iata: undefined, name: undefined, city: undefined },
+            departureAirportCode: null,
+            departureAirportName: null,
+            arrivalAirportCode: null,
+            arrivalAirportName: null,
+            iataConfidence: 'low' as const,
+            flightNumber: null,
+          };
+        }
+        if (b.booking_type === 'stay') {
+          return {
+            ...base,
+            type: 'stay' as const,
+            propertyName: b.property_name || null,
+            stayType: (b.stay_type as any) || null,
+            address: b.address || null,
+          };
+        }
+        if (b.booking_type === 'car_rental') {
+          return {
+            ...base,
+            type: 'car_rental' as const,
+            rentalCompany: b.rental_company || null,
+            pickupLocation: b.pickup_location || null,
+            returnLocation: b.return_location || null,
+            address: b.address || null,
+          };
+        }
+        // activity / transport → activity canonical
+        return {
+          ...base,
+          type: 'activity' as const,
+          activitySource: 'confirmation' as const,
+          ticketRequired: false,
+          advanceRecommended: false,
+          ticketsPurchased: false,
+          bookingPattern: null,
+          bookingUrl: null,
+          address: b.address || null,
+          locationSummary: null,
+        };
+      });
+
+      const result = evaluateTripComplexity(pseudoCanonical);
+      setComplexityResult(result);
+
+      if (result.band !== 'SIMPLE') {
+        // Show review step
+        setStep('review-confirm');
+        return;
+      }
+    }
+    // SIMPLE or no bookings → auto-build
+    onSubmit(data);
+  });
 
   const onSubmit = async (data: TripFormData) => {
     if (!startDate || !endDate) return;
@@ -911,7 +1001,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
               </div>
             )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={handlePreSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Trip Name</Label>
                 <Input id="name" placeholder="Trip name" {...register('name')} />
@@ -1098,6 +1188,98 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
                 </Button>
               </div>
             </form>
+          </div>
+        )}
+
+        {/* ── STEP: Review & Confirm (MODERATE / COMPLEX) ──────── */}
+        {step === 'review-confirm' && (
+          <div className="space-y-4">
+            <button
+              onClick={() => setStep('manual-form')}
+              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </button>
+
+            <div className="space-y-1">
+              <h2 className="text-xl font-bold">Review Your Trip</h2>
+              <p className="text-sm text-muted-foreground">
+                {complexityResult?.band === 'COMPLEX'
+                  ? 'This is a complex itinerary. Please confirm the items below before we build your timeline.'
+                  : 'We detected multiple segments. Review before building your timeline.'}
+              </p>
+            </div>
+
+            {complexityResult && (
+              <div className="flex flex-wrap gap-1.5">
+                {complexityResult.reasons.map((reason, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground"
+                  >
+                    {reason}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Grouped items by type */}
+            <div className="space-y-3 max-h-60 overflow-y-auto">
+              {['flight', 'stay', 'car_rental', 'activity', 'transport'].map(type => {
+                const items = parsedBookings.filter(b => b.booking_type === type);
+                if (items.length === 0) return null;
+                const typeLabel = type === 'flight' ? '✈️ Flights'
+                  : type === 'stay' ? '🏨 Lodging'
+                  : type === 'car_rental' ? '🚗 Car Rentals'
+                  : type === 'activity' ? '🎯 Activities'
+                  : '🚂 Transport';
+                return (
+                  <div key={type} className="space-y-1.5">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{typeLabel}</p>
+                    {items.map((booking) => {
+                      const idx = parsedBookings.indexOf(booking);
+                      return (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between p-2 rounded-md bg-muted/50 text-sm"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Check className="w-3.5 h-3.5 text-primary shrink-0" />
+                            <span className="truncate font-medium">{booking.vendor_name}</span>
+                            {booking.confirmation_number && (
+                              <span className="text-xs text-muted-foreground">#{booking.confirmation_number}</span>
+                            )}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeBooking(idx)}
+                            className="h-6 w-6 p-0 shrink-0"
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <Button type="button" variant="outline" onClick={handleClose} className="flex-1">
+                Cancel
+              </Button>
+              <Button
+                onClick={() => handleSubmit(onSubmit)()}
+                className="flex-1 bg-gradient-ocean hover:opacity-90"
+                disabled={createTrip.isPending || parsedBookings.length === 0}
+              >
+                {createTrip.isPending ? 'Building...' : 'Confirm & Build Timeline'}
+              </Button>
+            </div>
           </div>
         )}
 
