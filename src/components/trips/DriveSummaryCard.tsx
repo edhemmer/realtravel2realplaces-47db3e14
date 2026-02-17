@@ -137,6 +137,32 @@ export function DriveSummaryCard({ trip, drivePlan, onAddGasExpense }: DriveSumm
           </div>
         )}
 
+        {/* v3.11.0: Fuel stop zones */}
+        {fuelIntelligence.enabled && fuelIntelligence.stopZones.length > 0 && (
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+              <Fuel className="w-3 h-3" />
+              Suggested fuel stops
+            </p>
+            {fuelIntelligence.stopZones.map((zone) => (
+              <button
+                key={zone.id}
+                className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 pl-[18px]"
+                onClick={() => {
+                  if (zone.targetLatLng) {
+                    const url = `https://www.google.com/maps/search/gas+station/@${zone.targetLatLng.lat},${zone.targetLatLng.lng},12z`;
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                  }
+                }}
+                disabled={!zone.targetLatLng}
+              >
+                <MapPin className="w-3 h-3" />
+                Fuel stop around mile {zone.mileMarker}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* v3.10.9: Fuel intelligence gating messages */}
         {!fuelIntelligence.enabled && fuelIntelligence.reason === 'PLAN_REQUIRED' && (
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
