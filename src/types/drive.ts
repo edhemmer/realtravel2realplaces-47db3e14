@@ -74,10 +74,26 @@ export interface DrivePlan {
   degradedReason?: string;
 }
 
-/** v3.10.9: Fuel intelligence gating result */
+/** v3.10.9 + v3.11.0: Fuel intelligence gating and stop zones */
 export interface DriveFuelIntelligence {
   enabled: boolean;
-  reason?: 'PLAN_REQUIRED' | 'MISSING_VEHICLE_RANGE';
+  reason?: 'PLAN_REQUIRED' | 'MISSING_VEHICLE_RANGE' | 'ROUTE_DISTANCE_MISSING';
+  /** v3.11.0: Range parameters (only when enabled) */
+  rangeMiles?: number;
+  safeRangeMiles?: number;
+  /** v3.11.0: Suggested fuel stop zones along the route */
+  stopZones: FuelStopZone[];
+}
+
+/** v3.11.0: A suggested fuel stop area along the route */
+export interface FuelStopZone {
+  id: string;
+  /** Mile marker along the route */
+  mileMarker: number;
+  /** Approximate lat/lng on the route at this distance */
+  targetLatLng: { lat: number; lng: number } | null;
+  /** Search radius in miles */
+  radiusMiles: number;
 }
 
 export interface DriveRouteSummary {

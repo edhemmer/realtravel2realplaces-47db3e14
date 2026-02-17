@@ -15,6 +15,7 @@ import type {
   DriveRiskFlag,
   DriveFuelPlan,
   DriveFuelIntelligence,
+  FuelStopZone,
   DriveNavigationTarget,
   LocationRef,
   DrivePreferences,
@@ -30,6 +31,13 @@ import { resolveMapsDestination, buildMapsDirectionsUrl } from '@/lib/mapsDestin
 const LONG_DRIVE_THRESHOLD_MINUTES = 240; // 4 hours
 const WEATHER_RISK_CONDITIONS = ['rain', 'snow', 'mixed'];
 const MAX_RISK_FLAGS = 3;
+
+// v3.11.0: Fuel stop zone constants
+const RESERVE_FACTOR = 0.20;
+const MIN_FIRST_STOP_MILES = 120;
+const FIRST_STOP_RANGE_FACTOR = 0.45;
+const AVOID_ARRIVAL_BUFFER_MILES = 30;
+const STOP_ZONE_RADIUS_MILES = 5;
 
 // ============================================================================
 // RISK FLAG RESOLVERS
@@ -97,6 +105,77 @@ function computeFuelPlan(
     tripMiles: distanceMiles,
     vehicleRangeMiles: range,
   };
+}
+
+// ============================================================================
+// v3.11.0: FUEL STOP ZONE COMPUTATION
+// ============================================================================
+
+/**
+ * Interpolate a lat/lng along a straight line between origin and destination
+ * at a given fraction (0..1). Returns null if coords are unavailable.
+ */
+function interpolateLatLng(
+  origin: LocationRef | undefined,
+  destination: LocationRef,
+  fraction: number,
+): { lat: number; lng: number } | null {
+  const oLat = origin?.lat;
+  const oLng = origin?.lng;
+  const dLat = destination.lat;
+  const dLng = destination.lng;
+  if (oLat == null || oLng == null || dLat == null || dLng == null) return null;
+  return {
+    lat: oLat + (dLat - oLat) * fraction,
+    lng: oLng + (dLng - oLng) * fraction,
+  };
+}
+
+/**
+ * Compute fuel stop zones along a route.
+ * Returns zones (areas, not specific stations) with mile markers and approximate coordinates.
+ */
+function computeFuelStopZones(
+  totalDistanceMiles: number,
+  rangeMiles: number,
+  safeRangeMiles: number,
+  origin: LocationRef | undefined,
+  destination: LocationRef,
+): FuelStopZone[] {
+  // No stops needed if within safe range
+  if (totalDistanceMiles <= safeRangeMiles) return [];
+
+  const firstStopAt = Math.max(MIN_FIRST_STOP_MILES, Math.floor(rangeMiles * FIRST_STOP_RANGE_FACTOR));
+  const repeatEvery = firstStopAt;
+  const arrivalCutoff = totalDistanceMiles - AVOID_ARRIVAL_BUFFER_MILES;
+
+  // Generate mile markers
+  const markers: number[] = [];
+  let marker = firstStopAt;
+  while (marker < arrivalCutoff) {
+    markers.push(marker);
+    marker += repeatEvery;
+  }
+
+  // Ensure last segment doesn't exceed safe range
+  const lastMarker = markers.length > 0 ? markers[markers.length - 1] : 0;
+  if ((totalDistanceMiles - lastMarker) > safeRangeMiles && lastMarker < arrivalCutoff) {
+    // Insert an additional marker
+    const additional = totalDistanceMiles - safeRangeMiles;
+    if (additional > lastMarker && additional < arrivalCutoff) {
+      markers.push(Math.round(additional));
+    }
+  }
+
+  // Deduplicate and sort
+  const uniqueMarkers = [...new Set(markers)].sort((a, b) => a - b);
+
+  return uniqueMarkers.map((m, i) => ({
+    id: `fuel-zone-${i}`,
+    mileMarker: m,
+    targetLatLng: interpolateLatLng(origin, destination, m / totalDistanceMiles),
+    radiusMiles: STOP_ZONE_RADIUS_MILES,
+  }));
 }
 
 // ============================================================================
@@ -195,14 +274,40 @@ export function buildDrivePlan(input: BuildDrivePlanInput): DrivePlan {
   // Navigation targets
   const navigationTargets = buildNavigationTargets(canonical);
 
-  // v3.10.9: Fuel intelligence gating
+  // v3.10.9 + v3.11.0: Fuel intelligence gating + stop zones
   let fuelIntelligence: DriveFuelIntelligence;
   if (!isPro) {
-    fuelIntelligence = { enabled: false, reason: 'PLAN_REQUIRED' };
-  } else if (!avgMilesPerTank) {
-    fuelIntelligence = { enabled: false, reason: 'MISSING_VEHICLE_RANGE' };
+    fuelIntelligence = { enabled: false, reason: 'PLAN_REQUIRED', stopZones: [] };
+  } else if (!avgMilesPerTank || avgMilesPerTank <= 0) {
+    fuelIntelligence = { enabled: false, reason: 'MISSING_VEHICLE_RANGE', stopZones: [] };
   } else {
-    fuelIntelligence = { enabled: true };
+    // v3.11.0: Compute stop zones
+    const safeRangeMiles = Math.floor(avgMilesPerTank * (1 - RESERVE_FACTOR));
+    const totalDistance = routeResult.summary?.distanceMiles;
+
+    if (!totalDistance) {
+      fuelIntelligence = {
+        enabled: true,
+        reason: 'ROUTE_DISTANCE_MISSING',
+        rangeMiles: avgMilesPerTank,
+        safeRangeMiles,
+        stopZones: [],
+      };
+    } else {
+      const stopZones = computeFuelStopZones(
+        totalDistance,
+        avgMilesPerTank,
+        safeRangeMiles,
+        canonical.origin,
+        canonical.destination,
+      );
+      fuelIntelligence = {
+        enabled: true,
+        rangeMiles: avgMilesPerTank,
+        safeRangeMiles,
+        stopZones,
+      };
+    }
   }
 
   // Overall confidence
