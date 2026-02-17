@@ -64,6 +64,8 @@ export interface DrivePlan {
   fuelPlan: DriveFuelPlan | null;
   /** v3.10.9: Fuel intelligence gating */
   fuelIntelligence: DriveFuelIntelligence;
+  /** v3.11.3: Suggestions eligibility */
+  suggestions: DriveSuggestionsEligibility;
   /** Weather on route (from canonical WeatherEngine) */
   weatherLine: string | null;
   /** Navigation targets */
@@ -72,6 +74,14 @@ export interface DrivePlan {
   confidence: 'high' | 'medium' | 'low';
   /** Reason for low confidence (if applicable) */
   degradedReason?: string;
+}
+
+/** v3.11.3: Suggestions eligibility (canonical — no network I/O) */
+export interface DriveSuggestionsEligibility {
+  eligible: boolean;
+  reason?: 'PLAN_REQUIRED' | 'MISSING_VEHICLE_RANGE' | 'WINDOW_COORDS_MISSING';
+  /** Center of the next fuel window (first stop zone with coords) */
+  nextWindowCenter?: { lat: number; lng: number };
 }
 
 /** v3.10.9 + v3.11.0: Fuel intelligence gating and stop zones */
