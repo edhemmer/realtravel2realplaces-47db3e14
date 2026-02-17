@@ -6,10 +6,11 @@
  * one of these types before entering the system.
  * 
  * RULES:
- * - Confirmation numbers ONLY in `confirmationNumber`
+ * - Confirmation numbers ONLY in `confirmationNumber` / `confirmationNumbers`
  * - Airport codes ONLY in IATA-validated fields
  * - Addresses/locations ONLY in location fields
  * - No "best guess" cross-field assignments
+ * - No date/time/timezone math — raw "as-issued" values preserved
  */
 
 import type { DateOnly, LocalDateTime } from '@/lib/canonicalTimeTypes';
@@ -34,14 +35,50 @@ export interface CanonicalWarning {
   rawValue?: string;
 }
 
+/** Passenger extracted from a confirmation */
+export interface Passenger {
+  firstName: string;
+  lastName: string;
+  middleName?: string;
+  title?: string;
+  /** Normalized full name for deduplication (uppercased, trimmed) */
+  fullNameNormalized: string;
+}
+
+/** Structured airport reference */
+export interface AirportRef {
+  /** Validated 3-letter IATA code or undefined */
+  iata?: string;
+  /** Human-readable airport name */
+  name?: string;
+  /** City name */
+  city?: string;
+}
+
+/** Raw "as-issued" time fields — never modified by math */
+export interface RawTimeFields {
+  /** Raw date text exactly as it appeared in the confirmation */
+  dateText: string | null;
+  /** Raw time text exactly as it appeared in the confirmation */
+  timeText: string | null;
+  /** Raw combined datetime text */
+  datetimeText: string | null;
+  /** Raw timezone text if present, else null — never inferred */
+  timezoneText: string | null;
+}
+
 /** Base fields shared by all canonical items */
 export interface CanonicalItemBase {
   /** Source record ID (booking.id, parking.id, etc.) */
   sourceId: string;
+  /** Deterministic canonical ID for dedupe/merge */
+  canonicalId: string;
   /** Vendor / provider name */
   vendorName: string;
   /** Confirmation / PNR / reference number — ONLY field allowed for this data */
   confirmationNumber: string | null;
+  /** All confirmation numbers seen across merges */
+  confirmationNumbers: string[];
   /** Total cost */
   totalCost: number;
   /** User's share of the cost */
@@ -54,6 +91,10 @@ export interface CanonicalItemBase {
   rawEvidence: RawEvidence[];
   /** Warnings emitted during normalization */
   warnings: CanonicalWarning[];
+  /** Raw "as-issued" start time fields — no math applied */
+  rawStartTime: RawTimeFields;
+  /** Raw "as-issued" end time fields — no math applied */
+  rawEndTime: RawTimeFields;
 }
 
 // ============================================================================
@@ -63,19 +104,28 @@ export interface CanonicalItemBase {
 export interface CanonicalFlight extends CanonicalItemBase {
   type: 'flight';
   airline: string | null;
+  /** All passengers listed on the confirmation */
+  passengers: Passenger[];
+  /** Legacy single passenger name (first passenger or raw) */
   passengerName: string | null;
-  /** Validated 3-letter IATA code or null */
+  /** Structured departure airport */
+  dep: AirportRef;
+  /** Structured arrival airport */
+  arr: AirportRef;
+  /** Validated 3-letter IATA code or null (convenience accessor from dep.iata) */
   departureAirportCode: string | null;
   /** Human-readable airport name (for display when IATA unresolved) */
   departureAirportName: string | null;
-  /** Validated 3-letter IATA code or null */
+  /** Validated 3-letter IATA code or null (convenience accessor from arr.iata) */
   arrivalAirportCode: string | null;
   /** Human-readable airport name */
   arrivalAirportName: string | null;
   startDatetime: LocalDateTime | null;
   endDatetime: LocalDateTime | null;
-  /** Whether IATA codes were confidently resolved */
-  iataConfidence: 'high' | 'low' | 'unresolved';
+  /** Resolution confidence for IATA codes */
+  iataConfidence: 'high' | 'medium' | 'low';
+  /** Flight number if available */
+  flightNumber: string | null;
 }
 
 // ============================================================================

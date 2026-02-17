@@ -31,7 +31,7 @@ import { WeatherSnapshot } from './canonicalWeather';
 import { resolveBookingTimezone, resolveDestinationTimezone, convertUtcToLocalString } from './canonicalTimeNormalizer';
 import { preserveTimeString } from './canonicalTimePreservation';
 import { ingestCanonical, type IngestionResult } from '@/lib/ingestion/ingestCanonical';
-import type { CanonicalItem } from '@/lib/canonical/canonicalTypes';
+import type { CanonicalItem, CanonicalFlight } from '@/lib/canonical/canonicalTypes';
 
 // ============================================================================
 // TYPES
@@ -310,10 +310,22 @@ export function buildCanonicalTimeline(
   bookings: Booking[],
   parkingList: Parking[],
   tripDestinationTimeZone?: string | null,
-  engagementEvents?: TripEvent[]
+  engagementEvents?: TripEvent[],
+  canonicalItems?: CanonicalItem[]
 ): CanonicalTimelineEvent[] {
   const events: CanonicalTimelineEvent[] = [];
   const destTz = tripDestinationTimeZone || null;
+
+  // v3.8.12: Build lookup of canonical flight items by sourceId for IATA confidence
+  const canonicalFlights = new Map<string, CanonicalFlight>();
+  if (canonicalItems) {
+    for (const ci of canonicalItems) {
+      if (ci.type === 'flight') {
+        canonicalFlights.set(ci.sourceId, ci);
+      }
+    }
+  }
+
   // Process bookings
   bookings.forEach(booking => {
     // v2.2.5: Create Date objects at noon from the date portion only.
@@ -332,6 +344,16 @@ export function buildCanonicalTimeline(
         const depTz = getAirportTimeZone(booking.departure_airport_code);
         const arrTz = getAirportTimeZone(booking.arrival_airport_code);
 
+        // v3.8.12: Look up canonical flight item for IATA confidence
+        const canonicalFlight = canonicalFlights.get(booking.id);
+        const iataConfidence = canonicalFlight?.iataConfidence ?? 'low';
+
+        // v3.8.12: IATA-first display rules
+        // Only populate airport codes when BOTH are valid IATA and confidence is not "low"
+        const depIata = booking.departure_airport_code?.match(/^[A-Z]{3}$/) ? booking.departure_airport_code : undefined;
+        const arrIata = booking.arrival_airport_code?.match(/^[A-Z]{3}$/) ? booking.arrival_airport_code : undefined;
+        const showRoute = !!(depIata && arrIata && iataConfidence !== 'low');
+
         // v2.1.22: Combined flight entry (departure + arrival on one row)
         events.push({
           id: `${booking.id}-flight`,
@@ -345,8 +367,9 @@ export function buildCanonicalTimeline(
           hasExplicitTime: hasExplicitTime(booking.start_datetime),
           address: booking.address,
           linkUrl: booking.link_url,
-          departureAirportCode: booking.departure_airport_code || undefined,
-          arrivalAirportCode: booking.arrival_airport_code || undefined,
+          // v3.8.12: Only show route codes when both are valid IATA and confident
+          departureAirportCode: showRoute ? depIata : undefined,
+          arrivalAirportCode: showRoute ? arrIata : undefined,
           departureTime: startDate,
           arrivalTime: endDate || undefined,
           hasDepartureTime: hasExplicitTime(booking.start_datetime),
@@ -759,7 +782,8 @@ export function getCanonicalTripState(
   
   // Build timeline events (pass destination timezone for non-flight events)
   // v2.2.5: Include engagement events from canonical trip_events stream
-  const timelineEvents = buildCanonicalTimeline(bookings, parkingList, destTz, engagementEvents);
+  // v3.8.12: Pass canonical items for IATA confidence lookup
+  const timelineEvents = buildCanonicalTimeline(bookings, parkingList, destTz, engagementEvents, ingestionResult.items);
   
   // Calculate costs
   const costs = calculateCanonicalCosts(expenses, bookings, parkingList);
