@@ -1,22 +1,18 @@
-import { useTripWeather, MAX_FORECAST_DAYS } from '@/hooks/useWeather';
+/**
+ * v3.10.7: TripHeaderWidgets — Weather card never blank. Uses WeatherEngine.
+ */
+import { useWeatherEngine } from '@/hooks/useWeatherEngine';
 import { useProfileTemperatureUnit } from '@/hooks/useProfileTemperatureUnit';
 import { useParking } from '@/hooks/useParking';
 import { useExpenses } from '@/hooks/useExpenses';
 import { useBookings } from '@/hooks/useBookings';
 import { calculateTripCostSummary } from '@/lib/expenseCalculations';
 import { formatCurrency, TRIP_TOTAL_LABEL } from '@/lib/displayFormats';
-import { 
-  normalizeCondition, 
-  conditionLabel, 
-  deriveWeatherPills,
-  forecastToSnapshots,
-  type WeatherSnapshot,
-} from '@/lib/canonicalWeather';
 import { Trip, Parking } from '@/types/database';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
-  Thermometer, DollarSign, CircleParking, Cloud, Sun, CloudRain, Snowflake 
+  Thermometer, DollarSign, CircleParking, Cloud, Sun, CloudRain, Snowflake, CalendarDays 
 } from 'lucide-react';
 import { parseISO, isAfter, format } from 'date-fns';
 
@@ -24,36 +20,22 @@ interface TripHeaderWidgetsProps {
   trip: Trip;
 }
 
-const getWeatherIcon = (condition: string) => {
-  const normalized = normalizeCondition(condition);
-  switch (normalized) {
-    case 'rain': return <CloudRain className="w-4 h-4" />;
-    case 'snow':
-    case 'ice':
-    case 'sleet': return <Snowflake className="w-4 h-4" />;
-    case 'sunny': return <Sun className="w-4 h-4" />;
-    default: return <Cloud className="w-4 h-4" />;
-  }
+const getWeatherIcon = (precipType: string, cloudCover: string) => {
+  if (precipType === 'rain') return <CloudRain className="w-4 h-4" />;
+  if (precipType === 'snow' || precipType === 'mixed') return <Snowflake className="w-4 h-4" />;
+  if (cloudCover === 'mostly_sunny') return <Sun className="w-4 h-4" />;
+  return <Cloud className="w-4 h-4" />;
 };
 
 export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
-  const { formatTemp, unit: temperatureUnit } = useProfileTemperatureUnit();
-  const { tripForecast, weatherAnalysis, isLoading: weatherLoading } = useTripWeather(
-    trip.destination_city?.trim() || '',
-    trip.destination_country || '',
-    trip.start_date,
-    trip.end_date,
-    trip.destination_state || undefined,
-    temperatureUnit
-  );
-
+  const { formatTemp } = useProfileTemperatureUnit();
   const { data: bookings = [] } = useBookings(trip.id);
   const { data: parkingList = [] } = useParking(trip.id);
   const { data: expenses = [] } = useExpenses(trip.id);
+  const { weather, isLoading: weatherLoading } = useWeatherEngine(trip, bookings);
 
   // Calculate costs with defensive guards (v2.1.30)
   const costSummary = calculateTripCostSummary(expenses, bookings, parkingList);
-  // Guard against NaN/undefined with fallback to 0
   const totalCost = Number.isFinite(costSummary.totalCost) ? costSummary.totalCost : 0;
   const bookingsTotal = Number.isFinite(costSummary.bookingsTotal) ? costSummary.bookingsTotal : 0;
   const expensesTotal = Number.isFinite(costSummary.expensesTotal) ? costSummary.expensesTotal : 0;
@@ -63,6 +45,84 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
   const upcomingParking = parkingList
     .filter((p: Parking) => p.end_datetime && isAfter(parseISO(p.end_datetime), now))
     .sort((a: Parking, b: Parking) => parseISO(a.end_datetime!).getTime() - parseISO(b.end_datetime!).getTime())[0];
+
+  // v3.10.7: Render weather content based on engine mode
+  const renderWeatherContent = () => {
+    if (weatherLoading) {
+      return <p className="text-sm text-muted-foreground">Loading...</p>;
+    }
+    if (!weather) {
+      return <p className="text-sm text-muted-foreground">Weather will appear once your destination is available.</p>;
+    }
+
+    const { weatherMode, summary, envelope } = weather;
+
+    if (weatherMode === 'SEASONAL_NORMALS') {
+      // Seasonal fallback — always has data from bundled normals
+      const monthName = envelope.length > 0
+        ? new Date(envelope[0].dateISO + 'T12:00:00').toLocaleDateString('en-US', { month: 'long' })
+        : '';
+      return (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <CalendarDays className="w-3.5 h-3.5" />
+            <span>Seasonal averages for {monthName}</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-lg font-bold">{formatTemp(summary.avgHigh)}</span>
+            <span className="text-sm text-muted-foreground">/ {formatTemp(summary.avgLow, false)}</span>
+            <span className="text-primary">
+              {getWeatherIcon(summary.precipTypeHint, summary.cloudCoverHint)}
+            </span>
+          </div>
+          <div className="flex gap-1 flex-wrap">
+            {summary.hasCold && <Badge variant="outline" className="text-xs">❄️ Cold</Badge>}
+            {summary.hasHot && <Badge variant="outline" className="text-xs">☀️ Hot</Badge>}
+            {summary.hasRain && <Badge variant="outline" className="text-xs">🌧️ Rain likely</Badge>}
+            {summary.hasSnow && <Badge variant="outline" className="text-xs">🌨️ Snow possible</Badge>}
+          </div>
+        </div>
+      );
+    }
+
+    // FORECAST_PRIMARY or FORECAST_BLEND — live data
+    if (envelope.length === 0) {
+      return <p className="text-sm text-muted-foreground">No forecast available yet.</p>;
+    }
+
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center gap-3">
+          <span className="text-lg font-bold">{formatTemp(summary.avgHigh)}</span>
+          <div className="flex gap-1">
+            {summary.hasHot && <Badge variant="outline" className="text-xs">☀️ Hot</Badge>}
+            {summary.hasCold && <Badge variant="outline" className="text-xs">❄️ Cold</Badge>}
+            {summary.hasRain && <Badge variant="outline" className="text-xs">🌧️ Rain</Badge>}
+          </div>
+        </div>
+        <div className="flex gap-1 overflow-x-auto">
+          {envelope.slice(0, 7).map((day) => {
+            const dayDate = new Date(day.dateISO + 'T12:00:00');
+            return (
+              <div key={day.dateISO} className="flex flex-col items-center p-1.5 min-w-[2.5rem] rounded bg-background/50 text-center">
+                <span className="text-[9px] text-muted-foreground">
+                  {dayDate.toLocaleDateString('en-US', { weekday: 'short' })}
+                </span>
+                <span className="text-[9px] font-medium text-foreground/70">
+                  {dayDate.getDate()}
+                </span>
+                {getWeatherIcon(day.precipTypeHint, day.cloudCoverHint)}
+                <span className="text-[10px] font-medium">{formatTemp(day.typicalHigh, false)}</span>
+              </div>
+            );
+          })}
+        </div>
+        {weatherMode === 'FORECAST_BLEND' && (
+          <p className="text-[10px] text-muted-foreground">Blended forecast + seasonal averages</p>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="grid gap-3 md:grid-cols-3">
@@ -75,41 +135,7 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {weatherLoading ? (
-            <p className="text-sm text-muted-foreground">Loading...</p>
-          ) : tripForecast.length > 0 ? (
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                {weatherAnalysis.avgHigh && (
-                  <span className="text-lg font-bold">{formatTemp(weatherAnalysis.avgHigh)}</span>
-                )}
-                <div className="flex gap-1">
-                  {weatherAnalysis.hasHot && <Badge variant="outline" className="text-xs">☀️ Hot</Badge>}
-                  {weatherAnalysis.hasCold && <Badge variant="outline" className="text-xs">❄️ Cold</Badge>}
-                  {weatherAnalysis.hasRain && <Badge variant="outline" className="text-xs">🌧️ Rain</Badge>}
-                </div>
-              </div>
-              <div className="flex gap-1 overflow-x-auto">
-                {tripForecast.slice(0, MAX_FORECAST_DAYS).map((day) => {
-                  const dayDate = new Date(day.date + 'T12:00:00');
-                  return (
-                    <div key={day.date} className="flex flex-col items-center p-1.5 min-w-[2.5rem] rounded bg-background/50 text-center">
-                      <span className="text-[9px] text-muted-foreground">
-                        {dayDate.toLocaleDateString('en-US', { weekday: 'short' })}
-                      </span>
-                      <span className="text-[9px] font-medium text-foreground/70">
-                        {dayDate.getDate()}
-                      </span>
-                      {getWeatherIcon(day.condition)}
-                      <span className="text-[10px] font-medium">{formatTemp(day.tempHigh, false)}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">No forecast available</p>
-          )}
+          {renderWeatherContent()}
         </CardContent>
       </Card>
 
