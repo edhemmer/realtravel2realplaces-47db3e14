@@ -28,7 +28,6 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } }
     });
 
-    // Validate the user's session by calling getUser
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
     
     if (authError || !user) {
@@ -39,7 +38,12 @@ serve(async (req) => {
       });
     }
 
-    const { destination_city, destination_state, destination_country, start_date, end_date, trip_type, weather_forecast, destination_type } = await req.json();
+    const { 
+      destination_city, destination_state, destination_country, 
+      start_date, end_date, trip_type, destination_type,
+      weather_forecast, weather_envelope 
+    } = await req.json();
+    
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
@@ -55,11 +59,9 @@ serve(async (req) => {
     // Get month for seasonality
     const travelMonth = startD.toLocaleString('en-US', { month: 'long' });
 
-    // Detect beach/tropical destinations
+    // Detect destination type
     const beachDestinations = ['florida', 'miami', 'orlando', 'tampa', 'key west', 'fort lauderdale', 'clearwater', 'naples', 'sarasota', 'destin', 'panama city', 'jacksonville beach', 'daytona', 'hawaii', 'maui', 'honolulu', 'cancun', 'cabo', 'puerto rico', 'virgin islands', 'bahamas', 'caribbean', 'aruba', 'jamaica', 'turks', 'caicos', 'bermuda', 'maldives', 'bali', 'phuket', 'thailand beach', 'costa rica', 'san diego', 'los angeles', 'santa monica', 'malibu', 'galveston', 'south padre', 'gulf shores', 'myrtle beach', 'outer banks', 'hilton head', 'charleston'];
     const beachStates = ['florida', 'fl', 'hawaii', 'hi'];
-    
-    // Detect mountain destinations
     const mountainDestinations = ['aspen', 'vail', 'breckenridge', 'telluride', 'park city', 'jackson hole', 'big sky', 'lake tahoe', 'mammoth', 'whistler', 'banff', 'jasper', 'zermatt', 'chamonix', 'innsbruck', 'st moritz', 'courchevel', 'verbier', 'denver', 'boulder', 'colorado springs', 'flagstaff', 'sedona', 'grand canyon', 'yellowstone', 'yosemite', 'glacier', 'rocky mountain', 'gatlinburg', 'pigeon forge', 'asheville', 'lake placid', 'stowe', 'killington', 'salt lake city', 'reno', 'santa fe', 'taos', 'durango', 'steamboat', 'keystone', 'copper mountain', 'winter park', 'crested butte', 'sun valley', 'bend', 'mount rainier', 'swiss alps', 'austrian alps', 'italian alps', 'dolomites', 'pyrenees', 'scottish highlands', 'patagonia', 'queenstown', 'interlaken'];
     const mountainStates = ['colorado', 'co', 'utah', 'ut', 'wyoming', 'wy', 'montana', 'mt', 'idaho', 'id', 'vermont', 'vt', 'new hampshire', 'nh'];
     
@@ -67,7 +69,6 @@ serve(async (req) => {
     const stateLower = destination_state?.toLowerCase() || '';
     const countryLower = destination_country?.toLowerCase() || '';
     
-    // Manual destination type overrides auto-detection
     const manualDestinationType = destination_type && destination_type !== 'unspecified' ? destination_type : null;
     
     const autoDetectedBeach = beachDestinations.some(beach => 
@@ -78,7 +79,6 @@ serve(async (req) => {
       cityLower.includes(mountain) || stateLower.includes(mountain) || countryLower.includes(mountain)
     ) || mountainStates.some(state => stateLower === state || stateLower.includes(state));
 
-    // Use manual setting if provided, otherwise use auto-detection
     const isBeachDestination = manualDestinationType === 'beach' || (!manualDestinationType && autoDetectedBeach);
     const isMountainDestination = manualDestinationType === 'mountain' || (!manualDestinationType && autoDetectedMountain);
     const isCityDestination = manualDestinationType === 'city';
@@ -119,11 +119,28 @@ MANDATORY CITY/URBAN ITEMS (YOU MUST INCLUDE ALL OF THESE):
 - Smart casual outfit for dining: 1 set
 These items are RECOMMENDED for city destinations.` : '';
 
+    // v3.8.13: Build weather context from envelope if available
+    let weatherContext = '';
+    if (weather_envelope) {
+      const env = weather_envelope;
+      weatherContext = `
+- Weather intelligence: ${env.weatherMode === 'SEASONAL_NORMALS' ? 'Based on typical conditions for this time of year' : env.weatherMode === 'FORECAST_BLEND' ? 'Mix of forecast + typical conditions' : 'Based on current forecast'}
+- Average high: ${env.summary?.avgHigh || 'unknown'}°F, Average low: ${env.summary?.avgLow || 'unknown'}°F
+- Rain expected: ${env.summary?.hasRain ? 'Yes' : 'No'}
+- Snow expected: ${env.summary?.hasSnow ? 'Yes' : 'No'}
+- Cold days (≤45°F): ${env.summary?.hasCold ? 'Yes' : 'No'}
+- Hot days (≥90°F): ${env.summary?.hasHot ? 'Yes' : 'No'}
+- Precipitation type: ${env.summary?.precipTypeHint || 'unknown'}
+- Cloud cover: ${env.summary?.cloudCoverHint || 'unknown'}`;
+    } else if (weather_forecast) {
+      weatherContext = `- Weather forecast: ${JSON.stringify(weather_forecast)}`;
+    }
+
     const systemPrompt = `You are a smart travel packing assistant. Generate a practical, accurate packing list based on the destination, trip duration, time of year, and weather conditions.
 
 CRITICAL RULES for clothing quantities:
 - Trip nights (not days) determine clothing quantities
-- Underwear: exactly ${tripNights} pairs (you can wash if needed)
+- Underwear: exactly ${tripNights} pairs
 - Socks: exactly ${tripNights} pairs
 - Tops/T-shirts: ${tripNights} shirts (one per day)
 - Bottoms: ${Math.ceil(tripNights / 2)} pairs of pants/shorts (can repeat)
@@ -141,23 +158,25 @@ Location-aware items:
 - Business trips: add professional attire items
 
 Weather-based adjustments:
-- Rain in forecast: umbrella, rain jacket
+- Rain likely: umbrella, rain jacket
 - Hot (>80°F): more shorts, light fabrics, sun protection
 - Cold (<50°F): layers, warm jacket, thermals
-- Snow in forecast: snow boots, insulated jacket, warm gloves, thermal layers
+- Snow likely: snow boots, insulated jacket, warm gloves, thermal layers
 - Variable: versatile pieces that layer
 
-Return a JSON object with categorized items. Each item needs: category, item_name, quantity.
-Categories: Clothing, Swimwear & Beach, Hiking & Outdoor, City Essentials, Toiletries & Health, Electronics, Documents, Essentials, Weather Gear, Business (if applicable)`;
+For each item, indicate if it's a seasonal/specialty item the traveler may need to BUY vs a common item they likely already OWN.
+
+Return a JSON object with categorized items. Each item needs: category, item_name, quantity, own_it_likely (boolean), suggest_buy_early (boolean), rationale (optional string).
+Categories: Clothing Core, Layers & Outerwear, Rain & Wet Weather, Cold / Snow Gear, Footwear, Accessories, Swimwear & Beach, Toiletries & Health, Tech & Chargers, Documents & Critical Items, Business (if applicable)`;
 
     const userPrompt = `Generate a packing list for this trip:
 - Destination: ${destination_city}${destination_state ? `, ${destination_state}` : ''}, ${destination_country}
 - Dates: ${start_date} to ${end_date} (${tripNights} nights, ${tripDays} days)
 - Month of travel: ${travelMonth}
 - Trip type: ${trip_type}
-${weather_forecast ? `- Weather forecast: ${JSON.stringify(weather_forecast)}` : ''}
+${weatherContext}
 
-Return a practical packing list. Be accurate with quantities based on trip length.`;
+Return a practical packing list. Be accurate with quantities based on trip length. Mark seasonal/specialty items as suggest_buy_early=true with a short rationale.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -188,21 +207,16 @@ Return a practical packing list. Be accurate with quantities based on trip lengt
                         category: { 
                           type: "string", 
                           description: "Item category",
-                          enum: ["Clothing", "Swimwear & Beach", "Hiking & Outdoor", "Toiletries & Health", "Electronics", "Documents", "Essentials", "Weather Gear", "Business"]
+                          enum: ["Clothing Core", "Layers & Outerwear", "Rain & Wet Weather", "Cold / Snow Gear", "Footwear", "Accessories", "Swimwear & Beach", "Toiletries & Health", "Tech & Chargers", "Documents & Critical Items", "Business"]
                         },
                         item_name: { type: "string", description: "Name of the item" },
                         quantity: { type: "number", description: "How many to pack" },
+                        own_it_likely: { type: "boolean", description: "Whether the traveler likely already owns this" },
+                        suggest_buy_early: { type: "boolean", description: "Whether to suggest buying early if missing" },
+                        rationale: { type: "string", description: "Short reason for including this item (e.g., 'Typical wet period')" },
                       },
                       required: ["category", "item_name", "quantity"],
                     },
-                  },
-                  luggage_recommendation: {
-                    type: "object",
-                    properties: {
-                      type: { type: "string", enum: ["Personal Item", "Carry-On", "Checked Bag"] },
-                      description: { type: "string" },
-                    },
-                    required: ["type", "description"],
                   },
                   special_notes: {
                     type: "array",
@@ -210,7 +224,7 @@ Return a practical packing list. Be accurate with quantities based on trip lengt
                     description: "Special packing tips for this destination/time of year"
                   }
                 },
-                required: ["items", "luggage_recommendation"],
+                required: ["items"],
               },
             },
           },
