@@ -260,10 +260,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
         toast.info(`Resuming with ${savedBatch.length} booking(s) from your previous session.`);
       } else {
         resetAll();
-        // v3.9.8: Onboarding skips mode chooser → direct to manual form
-        if (isOnboarding) {
-          setStep('manual-form');
-        }
+        // v3.10.1: Onboarding lands on mode selector (Fly/Drive/Train) — no skip
       }
     }
   }, [open, resetAll, setValue, isOnboarding]);
@@ -729,11 +726,11 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
           <div className="py-4 space-y-6">
             <div className="text-center space-y-2">
               <h2 className="text-2xl font-bold tracking-tight">
-                {isOnboarding ? 'Add Your First Trip' : 'How are you traveling?'}
+                {isOnboarding ? 'How are you traveling?' : 'How are you traveling?'}
               </h2>
               <p className="text-muted-foreground text-sm max-w-md mx-auto">
                 {isOnboarding
-                  ? "Upload a confirmation or enter details. We'll organize everything."
+                  ? "Select your travel mode and we'll set everything up for you."
                   : <>Choose how you'll get there so <span className="italic">Real Travel 2 Real Places</span> can set up the trip the right way.</>
                 }
               </p>
@@ -1051,59 +1048,22 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
         {/* ── STEP: Manual Form (legacy + post-parse review) ──── */}
         {step === 'manual-form' && (
           <div className="space-y-4">
-            {/* Back button — hide during onboarding (no previous step) */}
-            {!isOnboarding && (
-              <button
-                onClick={() => setStep(travelMode ? (travelMode === 'fly' ? 'fly-parse' : 'mode') : 'mode')}
-                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back
-              </button>
-            )}
+            {/* Back button — always shown, routes to previous step */}
+            <button
+              onClick={() => setStep(travelMode ? (travelMode === 'fly' ? 'fly-parse' : 'mode') : 'mode')}
+              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </button>
 
-            {/* v3.9.8: Onboarding header */}
+            {/* v3.10.1: Onboarding header — no upload/import language */}
             {isOnboarding && (
               <div className="text-center space-y-1 pb-1">
-                <h2 className="text-xl font-bold tracking-tight">Create Your First Trip</h2>
+                <h2 className="text-xl font-bold tracking-tight">Trip Details</h2>
                 <p className="text-sm text-muted-foreground">
-                  Enter your destination and dates. You can add confirmations later.
+                  Enter your destination and dates to get started.
                 </p>
-              </div>
-            )}
-
-            {/* v3.9.8: Optional inline confirmation helper (onboarding only, no bookings yet) */}
-            {isOnboarding && parsedBookings.length === 0 && (
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/40">
-                <span className="text-xs font-medium text-muted-foreground">Have confirmations?</span>
-                <div className="flex items-center gap-1.5">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs px-2.5"
-                    onClick={() => {
-                      setShowPasteInput(true);
-                    }}
-                  >
-                    <ClipboardPaste className="w-3 h-3 mr-1" />
-                    Paste Email
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs px-2.5"
-                    onClick={() => {
-                      setTravelMode('fly');
-                      setValue('transportation_mode', 'flight');
-                      setStep('fly-parse');
-                    }}
-                  >
-                    <Scan className="w-3 h-3 mr-1" />
-                    Upload File
-                  </Button>
-                </div>
               </div>
             )}
 
@@ -1159,50 +1119,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
               </div>
             )}
 
-            {/* v3.9.8: Inline paste input (triggered from onboarding helper) */}
-            {isOnboarding && showPasteInput && parsedBookings.length === 0 && (
-              <div className="space-y-2">
-                <Textarea
-                  value={pastedText}
-                  onChange={(e) => setPastedText(e.target.value)}
-                  placeholder="Paste your booking confirmation email text here..."
-                  className="min-h-[100px] text-sm"
-                  autoFocus
-                  disabled={isParsing}
-                />
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => { setPastedText(''); setShowPasteInput(false); }}
-                    disabled={isParsing}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="flex-1"
-                    onClick={handlePasteAndScan}
-                    disabled={isParsing || !pastedText.trim()}
-                  >
-                    {isParsing ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin mr-1" />
-                        Scanning...
-                      </>
-                    ) : (
-                      <>
-                        <Scan className="w-4 h-4 mr-1" />
-                        Scan & Import
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            )}
+            {/* v3.10.1: Removed onboarding-only paste input — confirmations handled via fly-parse step */}
 
             <form onSubmit={handlePreSubmit} className="space-y-4">
               <div className="space-y-2">

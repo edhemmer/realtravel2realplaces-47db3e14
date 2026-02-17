@@ -1,20 +1,16 @@
 /**
- * Onboarding Page — v3.9.8: Single CTA, direct-to-wizard
+ * Onboarding Page — v3.10.1: Premium intro card → Wizard mode selector
  * 
- * Shows a single "Create your first trip" button that routes to dashboard
- * with the Create Trip Wizard auto-opened.
- * 
- * BEHAVIOR:
- * - Shows only once after first signup/login for new users
- * - Completing or skipping sets has_completed_onboarding = true in DB
- * - Can be manually re-viewed via Account page (doesn't reset DB flag)
+ * Shows a welcoming intro card with "Create your first trip" CTA.
+ * Routes to the Create Trip Wizard which opens at the Fly/Drive/Train selector.
+ * No upload/import/paste prompts in onboarding.
  */
 
 import { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
-import { Plane, ArrowRight } from 'lucide-react';
+import { Plane, ArrowRight, MapPin, Shield } from 'lucide-react';
 import { 
   useOnboardingStatus,
   useCompleteOnboarding, 
@@ -90,8 +86,19 @@ export default function Onboarding() {
               Welcome to Real Travel 2 Real Places
             </h1>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              You can add confirmations later (email, photo, or manual).
+              Your travel command center. Organized, stress-free, and ready when you are.
             </p>
+          </div>
+
+          <div className="flex justify-center gap-6 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-primary/70" />
+              Fly, drive, or train
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Shield className="w-3.5 h-3.5 text-primary/70" />
+              Everything in one place
+            </span>
           </div>
 
           <div className="space-y-3">
