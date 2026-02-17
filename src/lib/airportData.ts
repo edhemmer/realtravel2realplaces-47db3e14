@@ -7,6 +7,8 @@ export interface Airport {
   city: string;
   state?: string;
   country: string;
+  /** Alternate names for fuzzy matching (e.g., "Heathrow", "Fiumicino") */
+  aliases?: string[];
   officialUrl?: string;
   mapUrl?: string;
   transportUrl?: string;
@@ -15,7 +17,7 @@ export interface Airport {
 
 export const airports: Airport[] = [
   // Major US Airports
-  { code: 'ATL', name: 'Hartsfield-Jackson Atlanta International', city: 'Atlanta', state: 'GA', country: 'USA', officialUrl: 'https://www.atl.com', mapUrl: 'https://www.atl.com/maps/', parkingUrl: 'https://www.atl.com/parking/' },
+  { code: 'ATL', name: 'Hartsfield-Jackson Atlanta International', city: 'Atlanta', state: 'GA', country: 'USA', aliases: ['Hartsfield-Jackson', 'Hartsfield-Jackson Int', 'Hartsfield Jackson', 'Atlanta Airport'], officialUrl: 'https://www.atl.com', mapUrl: 'https://www.atl.com/maps/', parkingUrl: 'https://www.atl.com/parking/' },
   { code: 'DFW', name: 'Dallas/Fort Worth International', city: 'Dallas', state: 'TX', country: 'USA', officialUrl: 'https://www.dfwairport.com', mapUrl: 'https://www.dfwairport.com/maps/', parkingUrl: 'https://www.dfwairport.com/parking/' },
   { code: 'DEN', name: 'Denver International', city: 'Denver', state: 'CO', country: 'USA', officialUrl: 'https://www.flydenver.com', mapUrl: 'https://www.flydenver.com/maps', parkingUrl: 'https://www.flydenver.com/parking' },
   { code: 'ORD', name: "O'Hare International", city: 'Chicago', state: 'IL', country: 'USA', officialUrl: 'https://www.flychicago.com/ohare', mapUrl: 'https://www.flychicago.com/ohare/map/', parkingUrl: 'https://www.flychicago.com/ohare/parking/' },
@@ -81,17 +83,18 @@ export const airports: Airport[] = [
   { code: 'LGB', name: 'Long Beach', city: 'Long Beach', state: 'CA', country: 'USA', officialUrl: 'https://www.lgb.org', parkingUrl: 'https://www.lgb.org/parking' },
   { code: 'TUS', name: 'Tucson International', city: 'Tucson', state: 'AZ', country: 'USA', officialUrl: 'https://www.flytucson.com', parkingUrl: 'https://www.flytucson.com/parking/' },
   // Major International Airports
-  { code: 'LHR', name: 'Heathrow', city: 'London', country: 'UK', officialUrl: 'https://www.heathrow.com', mapUrl: 'https://www.heathrow.com/at-the-airport/airport-maps', parkingUrl: 'https://www.heathrow.com/transport-and-directions/heathrow-parking' },
-  { code: 'LGW', name: 'Gatwick', city: 'London', country: 'UK', officialUrl: 'https://www.gatwickairport.com', mapUrl: 'https://www.gatwickairport.com/at-the-airport/airport-maps/', parkingUrl: 'https://www.gatwickairport.com/parking/' },
+  { code: 'LHR', name: 'Heathrow', city: 'London', country: 'UK', aliases: ['London Heathrow', 'Heathrow London', 'Heathrow (London)'], officialUrl: 'https://www.heathrow.com', mapUrl: 'https://www.heathrow.com/at-the-airport/airport-maps', parkingUrl: 'https://www.heathrow.com/transport-and-directions/heathrow-parking' },
+  { code: 'LGW', name: 'Gatwick', city: 'London', country: 'UK', aliases: ['London Gatwick', 'Gatwick (London)'], officialUrl: 'https://www.gatwickairport.com', mapUrl: 'https://www.gatwickairport.com/at-the-airport/airport-maps/', parkingUrl: 'https://www.gatwickairport.com/parking/' },
   { code: 'CDG', name: 'Charles de Gaulle', city: 'Paris', country: 'France', officialUrl: 'https://www.parisaeroport.fr/en/passengers/flights/paris-charles-de-gaulle', mapUrl: 'https://www.parisaeroport.fr/en/passengers/access/paris-charles-de-gaulle/terminal-maps', parkingUrl: 'https://www.parisaeroport.fr/en/passengers/access/paris-charles-de-gaulle/car-parks' },
   { code: 'ORY', name: 'Orly', city: 'Paris', country: 'France', officialUrl: 'https://www.parisaeroport.fr/en/passengers/flights/paris-orly', parkingUrl: 'https://www.parisaeroport.fr/en/passengers/access/paris-orly/car-parks' },
   { code: 'FRA', name: 'Frankfurt', city: 'Frankfurt', country: 'Germany', officialUrl: 'https://www.frankfurt-airport.com', mapUrl: 'https://www.frankfurt-airport.com/en/airport-guide/terminal-overview.html', parkingUrl: 'https://www.frankfurt-airport.com/en/directions/parking.html' },
   { code: 'MUC', name: 'Munich', city: 'Munich', country: 'Germany', officialUrl: 'https://www.munich-airport.de/en', mapUrl: 'https://www.munich-airport.de/en/consumer/at-the-airport/terminal-info', parkingUrl: 'https://www.munich-airport.de/en/consumer/to-and-from/parking' },
   { code: 'AMS', name: 'Schiphol', city: 'Amsterdam', country: 'Netherlands', officialUrl: 'https://www.schiphol.nl/en', mapUrl: 'https://www.schiphol.nl/en/at-schiphol/map', parkingUrl: 'https://www.schiphol.nl/en/parking' },
   { code: 'MAD', name: 'Adolfo Suárez Madrid–Barajas', city: 'Madrid', country: 'Spain', officialUrl: 'https://www.aena.es/en/adolfo-suarez-madrid-barajas.html', parkingUrl: 'https://www.aena.es/en/adolfo-suarez-madrid-barajas/parking.html' },
-  { code: 'BCN', name: 'Barcelona–El Prat', city: 'Barcelona', country: 'Spain', officialUrl: 'https://www.aena.es/en/josep-tarradellas-barcelona-el-prat.html', parkingUrl: 'https://www.aena.es/en/josep-tarradellas-barcelona-el-prat/parking.html' },
-  { code: 'FCO', name: 'Leonardo da Vinci–Fiumicino', city: 'Rome', country: 'Italy', officialUrl: 'https://www.adr.it/fiumicino', mapUrl: 'https://www.adr.it/fiumicino-map', parkingUrl: 'https://www.adr.it/fiumicino-parking' },
-  { code: 'MXP', name: 'Milan Malpensa', city: 'Milan', country: 'Italy', officialUrl: 'https://www.milanomalpensa-airport.com/en', parkingUrl: 'https://www.milanomalpensa-airport.com/en/parking' },
+  { code: 'BCN', name: 'Barcelona–El Prat', city: 'Barcelona', country: 'Spain', aliases: ['El Prat', 'Barcelona El Prat'], officialUrl: 'https://www.aena.es/en/josep-tarradellas-barcelona-el-prat.html', parkingUrl: 'https://www.aena.es/en/josep-tarradellas-barcelona-el-prat/parking.html' },
+  { code: 'FCO', name: 'Leonardo da Vinci–Fiumicino', city: 'Rome', country: 'Italy', aliases: ['Fiumicino', 'Rome Fiumicino', 'Roma Fiumicino'], officialUrl: 'https://www.adr.it/fiumicino', mapUrl: 'https://www.adr.it/fiumicino-map', parkingUrl: 'https://www.adr.it/fiumicino-parking' },
+  { code: 'LIN', name: 'Milan Linate', city: 'Milan', country: 'Italy', aliases: ['Linate', 'Linate (Milan)', 'Milano Linate'] },
+  { code: 'MXP', name: 'Milan Malpensa', city: 'Milan', country: 'Italy', aliases: ['Malpensa', 'Malpensa (Milan)', 'Milano Malpensa'], officialUrl: 'https://www.milanomalpensa-airport.com/en', parkingUrl: 'https://www.milanomalpensa-airport.com/en/parking' },
   { code: 'ZRH', name: 'Zurich', city: 'Zurich', country: 'Switzerland', officialUrl: 'https://www.zurich-airport.com/en', mapUrl: 'https://www.zurich-airport.com/en/passengers/at-the-airport/airport-maps', parkingUrl: 'https://www.zurich-airport.com/en/passengers/how-to-get-there/parking' },
   { code: 'DUB', name: 'Dublin', city: 'Dublin', country: 'Ireland', officialUrl: 'https://www.dublinairport.com', mapUrl: 'https://www.dublinairport.com/at-the-airport/terminal-maps', parkingUrl: 'https://www.dublinairport.com/to-from-the-airport/car-parking' },
   { code: 'LIS', name: 'Lisbon Portela', city: 'Lisbon', country: 'Portugal', officialUrl: 'https://www.lisbon-airport.com', parkingUrl: 'https://www.lisbon-airport.com/parking' },
@@ -132,6 +135,23 @@ export const airports: Airport[] = [
   { code: 'SCL', name: 'Arturo Merino Benítez International', city: 'Santiago', country: 'Chile', officialUrl: 'https://www.nuevopudahuel.cl/en', mapUrl: 'https://www.nuevopudahuel.cl/en/plano-del-aeropuerto', parkingUrl: 'https://www.nuevopudahuel.cl/en/estacionamiento' },
   { code: 'BOG', name: 'El Dorado International', city: 'Bogotá', country: 'Colombia', officialUrl: 'https://eldorado.aero/en', mapUrl: 'https://eldorado.aero/en/terminal-map', parkingUrl: 'https://eldorado.aero/en/parking' },
   { code: 'LIM', name: 'Jorge Chávez International', city: 'Lima', country: 'Peru', officialUrl: 'https://www.lima-airport.com/en', parkingUrl: 'https://www.lima-airport.com/en/passengers/ground-transportation/parking' },
+  { code: 'TFS', name: 'Tenerife South', city: 'Tenerife', country: 'Spain', aliases: ['Reina Sofía', 'Tenerife Sur'] },
+  { code: 'TFN', name: 'Tenerife North', city: 'Tenerife', country: 'Spain', aliases: ['Los Rodeos'] },
+  { code: 'STN', name: 'London Stansted', city: 'London', country: 'UK', aliases: ['Stansted'] },
+  { code: 'LTN', name: 'London Luton', city: 'London', country: 'UK', aliases: ['Luton'] },
+  { code: 'EDI', name: 'Edinburgh', city: 'Edinburgh', country: 'UK' },
+  { code: 'MAN', name: 'Manchester', city: 'Manchester', country: 'UK' },
+  { code: 'BHX', name: 'Birmingham', city: 'Birmingham', country: 'UK' },
+  { code: 'AGP', name: 'Málaga–Costa del Sol', city: 'Málaga', country: 'Spain', aliases: ['Malaga'] },
+  { code: 'PMI', name: 'Palma de Mallorca', city: 'Palma', country: 'Spain', aliases: ['Mallorca'] },
+  { code: 'BGY', name: 'Milan Bergamo', city: 'Bergamo', country: 'Italy', aliases: ['Orio al Serio', 'Bergamo'] },
+  { code: 'NAP', name: 'Naples International', city: 'Naples', country: 'Italy', aliases: ['Napoli', 'Capodichino'] },
+  { code: 'BUD', name: 'Budapest Ferenc Liszt', city: 'Budapest', country: 'Hungary' },
+  { code: 'PRG', name: 'Václav Havel Prague', city: 'Prague', country: 'Czech Republic', aliases: ['Prague'] },
+  { code: 'WAW', name: 'Warsaw Chopin', city: 'Warsaw', country: 'Poland' },
+  { code: 'ATH', name: 'Athens Eleftherios Venizelos', city: 'Athens', country: 'Greece', aliases: ['Athens International'] },
+  { code: 'IST', name: 'Istanbul Airport', city: 'Istanbul', country: 'Turkey' },
+  { code: 'SAW', name: 'Istanbul Sabiha Gökçen', city: 'Istanbul', country: 'Turkey', aliases: ['Sabiha Gokcen'] },
 ];
 
 export function formatAirport(airport: Airport): string {

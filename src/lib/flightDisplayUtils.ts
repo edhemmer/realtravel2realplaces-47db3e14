@@ -39,17 +39,14 @@ export function sanitizeAirportCodeForStorage(value: string | null | undefined):
 // ============================================================================
 
 /**
- * Build the required flight subtitle line:
- * "{ORIGIN_IATA} → {DEST_IATA} • Conf {CONFIRMATION} • Dep {DEP_TIME} • Arr {ARR_TIME}"
- *
- * Rules:
- * - IATA codes show "—" if invalid/missing
- * - Conf segment omitted if no confirmation number
- * - Missing times show "Time not provided"
+ * Build the required flight subtitle line.
+ * v3.10.0: Shows IATA codes prominently. Falls back to airport name. Never blank.
  */
 export function buildFlightDisplayLine(opts: {
   departureAirportCode?: string | null;
   arrivalAirportCode?: string | null;
+  departureAirportName?: string | null;
+  arrivalAirportName?: string | null;
   confirmationNumber?: string | null;
   startDatetime?: string | null;
   endDatetime?: string | null;
@@ -66,13 +63,14 @@ export function buildFlightDisplayLine(opts: {
 }): string {
   const parts: string[] = [];
 
-  // Airport route — only show if at least one code is valid
+  // Airport route — show code if valid, else airport name, never "—"
   const depCode = validateIATA(opts.departureAirportCode);
   const arrCode = validateIATA(opts.arrivalAirportCode);
-  
-  // v4.1.0: Prevent rendering "— → —" — only show route if at least one code exists
-  if (depCode || arrCode) {
-    parts.push(`${depCode || '—'} → ${arrCode || '—'}`);
+  const depDisplay = depCode || (opts.departureAirportName?.trim() || null);
+  const arrDisplay = arrCode || (opts.arrivalAirportName?.trim() || null);
+
+  if (depDisplay || arrDisplay) {
+    parts.push(`${depDisplay || '—'} → ${arrDisplay || '—'}`);
   }
 
   // Confirmation number (only if present)
