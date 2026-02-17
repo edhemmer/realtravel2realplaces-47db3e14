@@ -32,6 +32,7 @@ import { resolveBookingTimezone, resolveDestinationTimezone, convertUtcToLocalSt
 import { preserveTimeString } from './canonicalTimePreservation';
 import { ingestCanonical, type IngestionResult } from '@/lib/ingestion/ingestCanonical';
 import type { CanonicalItem, CanonicalFlight } from '@/lib/canonical/canonicalTypes';
+import { computeFlightLocalDatetimes } from '@/lib/canonical/normalizeCanonicalItem';
 
 // ============================================================================
 // TYPES
@@ -218,17 +219,29 @@ export function computeTripWindow(
   const endCandidates: string[] = [];
 
   bookings.forEach(booking => {
-    // Start candidate: always start_datetime
-    if (booking.start_datetime) {
-      startCandidates.push(booking.start_datetime);
-    }
+    if (booking.booking_type === 'flight') {
+      // v3.10.5: Use local wall-clock model with rollover for flights
+      const local = computeFlightLocalDatetimes(booking.start_datetime, booking.end_datetime);
+      if (local.departLocalKey) startCandidates.push(local.departLocalKey);
+      else if (booking.start_datetime) startCandidates.push(booking.start_datetime);
 
-    // End candidate: end_datetime if available, else start_datetime as fallback
-    if (booking.end_datetime) {
-      endCandidates.push(booking.end_datetime);
-    } else if (booking.start_datetime) {
-      // Single-leg event: its start is also its latest boundary contribution
-      endCandidates.push(booking.start_datetime);
+      if (local.arriveLocalKey) {
+        endCandidates.push(local.arriveLocalKey);
+      } else if (local.departLocalKey) {
+        endCandidates.push(local.departLocalKey);
+      } else if (booking.start_datetime) {
+        endCandidates.push(booking.start_datetime);
+      }
+    } else {
+      // Non-flight: use raw datetime strings as before
+      if (booking.start_datetime) {
+        startCandidates.push(booking.start_datetime);
+      }
+      if (booking.end_datetime) {
+        endCandidates.push(booking.end_datetime);
+      } else if (booking.start_datetime) {
+        endCandidates.push(booking.start_datetime);
+      }
     }
   });
 
@@ -407,11 +420,31 @@ export function buildCanonicalTimeline(
         const canonicalFlight = canonicalFlights.get(booking.id);
         const iataConfidence = canonicalFlight?.iataConfidence ?? 'low';
 
+        // v3.10.5: Use canonical local datetime fields for correct arrival date
+        const flightLocal = canonicalFlight
+          ? {
+              departLocalKey: canonicalFlight.departLocalKey,
+              arriveLocalKey: canonicalFlight.arriveLocalKey,
+              arriveLocalDate: canonicalFlight.arriveLocalDate,
+            }
+          : computeFlightLocalDatetimes(booking.start_datetime, booking.end_datetime);
+
+        // v3.10.5: Compute arrival Date at noon using local key (handles rollover)
+        const arrivalDateStr = flightLocal.arriveLocalDate
+          || (flightLocal.arriveLocalKey ? extractDateFromDatetime(flightLocal.arriveLocalKey) : null)
+          || endDateStr;
+        const arrivalDate = arrivalDateStr ? parseDateAtNoon(arrivalDateStr) : endDate;
+
         // v3.8.12: IATA-first display rules
-        // Only populate airport codes when BOTH are valid IATA and confidence is not "low"
         const depIata = booking.departure_airport_code?.match(/^[A-Z]{3}$/) ? booking.departure_airport_code : undefined;
         const arrIata = booking.arrival_airport_code?.match(/^[A-Z]{3}$/) ? booking.arrival_airport_code : undefined;
         const showRoute = !!(depIata && arrIata && iataConfidence !== 'low');
+
+        // v3.10.5: Use local keys for display — never raw ISO with timezone suffix
+        const departureLocalTimeStr = flightLocal.departLocalKey
+          || preserveTimeString(booking.start_datetime) || undefined;
+        const arrivalLocalTimeStr = flightLocal.arriveLocalKey
+          || preserveTimeString(booking.end_datetime) || undefined;
 
         // v2.1.22: Combined flight entry (departure + arrival on one row)
         events.push({
@@ -421,26 +454,25 @@ export function buildCanonicalTimeline(
           bookingType: 'flight',
           eventType: 'flight',
           title: booking.airline || booking.vendor_name,
-          subtitle: '', // v3.13.2: Flight subtitle built by buildFlightDisplayLine, not from raw fields
+          subtitle: '', // v3.13.2: Flight subtitle built by buildFlightDisplayLine
           datetime: startDate,
           hasExplicitTime: hasExplicitTime(booking.start_datetime),
           address: booking.address,
           linkUrl: booking.link_url,
-          // v3.8.12: Only show route codes when both are valid IATA and confident
           departureAirportCode: showRoute ? depIata : undefined,
           arrivalAirportCode: showRoute ? arrIata : undefined,
           departureTime: startDate,
-          arrivalTime: endDate || undefined,
+          arrivalTime: arrivalDate || undefined,
           hasDepartureTime: hasExplicitTime(booking.start_datetime),
           hasArrivalTime: booking.end_datetime ? hasExplicitTime(booking.end_datetime) : false,
           confirmationNumber: booking.confirmation_number || undefined,
-          // v2.2.4: Timezone-aware local time fields
-          departureLocalTime: preserveTimeString(booking.start_datetime) || undefined,
+          // v3.10.5: Local wall-clock time strings for display
+          departureLocalTime: departureLocalTimeStr,
           departureTimeZone: depTz,
-          arrivalLocalTime: preserveTimeString(booking.end_datetime) || undefined,
+          arrivalLocalTime: arrivalLocalTimeStr,
           arrivalTimeZone: arrTz,
-          // v3.11.3: Preserve time string as-is — no conversion
-          eventLocalDateTime: preserveTimeString(booking.start_datetime) || undefined,
+          // v3.10.5: Event local datetime uses departure local key
+          eventLocalDateTime: (flightLocal.departLocalKey || preserveTimeString(booking.start_datetime)) || undefined,
           eventTimeZone: depTz || null,
         });
         break;

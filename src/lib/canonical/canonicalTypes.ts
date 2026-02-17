@@ -126,6 +126,22 @@ export interface CanonicalFlight extends CanonicalItemBase {
   iataConfidence: 'high' | 'medium' | 'low';
   /** Flight number if available */
   flightNumber: string | null;
+
+  // v3.10.5: Local wall-clock flight datetime model
+  /** Departure date YYYY-MM-DD (local wall-clock) */
+  departLocalDate: DateOnly | null;
+  /** Departure time HH:mm (local wall-clock) */
+  departLocalTime: string | null;
+  /** Arrival date YYYY-MM-DD (local wall-clock, with rollover applied) */
+  arriveLocalDate: DateOnly | null;
+  /** Arrival time HH:mm (local wall-clock) */
+  arriveLocalTime: string | null;
+  /** Combined departure key for sorting: YYYY-MM-DDTHH:mm */
+  departLocalKey: string | null;
+  /** Combined arrival key for sorting: YYYY-MM-DDTHH:mm */
+  arriveLocalKey: string | null;
+  /** True if arrival date was derived via rollover (not explicit in confirmation) */
+  arrivalDateDerived: boolean;
 }
 
 // ============================================================================

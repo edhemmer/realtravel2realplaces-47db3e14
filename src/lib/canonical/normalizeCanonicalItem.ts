@@ -226,6 +226,104 @@ export function normalizeParkingRecord(parking: Parking): CanonicalParking {
 // CONCEPT NORMALIZERS
 // ============================================================================
 
+// ============================================================================
+// v3.10.5: FLIGHT LOCAL DATETIME COMPUTATION
+// ============================================================================
+
+/**
+ * Extract date (YYYY-MM-DD) and time (HH:mm) from a datetime string.
+ * Pure string extraction — no Date objects, no timezone math.
+ */
+function extractDateAndTime(datetimeStr: string | null | undefined): { date: string | null; time: string | null } {
+  if (!datetimeStr) return { date: null, time: null };
+  const raw = datetimeStr.trim();
+  // Strip timezone suffix
+  const stripped = raw.replace(/Z$/, '').replace(/[+-]\d{2}:\d{2}$/, '').replace(/[+-]\d{4}$/, '');
+  const dateMatch = stripped.match(/^(\d{4}-\d{2}-\d{2})/);
+  const timeMatch = stripped.match(/[T ](\d{2}:\d{2})/);
+  return {
+    date: dateMatch ? dateMatch[1] : null,
+    time: timeMatch ? timeMatch[1] : null,
+  };
+}
+
+/**
+ * Increment a YYYY-MM-DD date string by 1 day using calendar math only.
+ * No Date objects with timezone side effects — uses UTC Date purely for arithmetic.
+ */
+function incrementDateByOne(dateStr: string): string {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  // Use UTC to avoid any DST issues
+  const dt = new Date(Date.UTC(y, m - 1, d + 1));
+  const yy = dt.getUTCFullYear();
+  const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(dt.getUTCDate()).padStart(2, '0');
+  return `${yy}-${mm}-${dd}`;
+}
+
+/**
+ * v3.10.5: Compute local wall-clock datetime fields for a flight leg.
+ *
+ * RULES:
+ * - If confirmation provides explicit arrival date → use it
+ * - If only arrival time provided (no separate arrival date):
+ *   - If arriveTime < departTime → arriveDate = departDate + 1 (after-midnight rollover)
+ *   - Else arriveDate = departDate
+ * - "+1 day" is calendar math only, not timezone conversion
+ * - Never allow arriveLocal to be missing if arriveTime exists
+ */
+export function computeFlightLocalDatetimes(
+  startDatetime: string | null | undefined,
+  endDatetime: string | null | undefined
+): {
+  departLocalDate: string | null;
+  departLocalTime: string | null;
+  arriveLocalDate: string | null;
+  arriveLocalTime: string | null;
+  departLocalKey: string | null;
+  arriveLocalKey: string | null;
+  arrivalDateDerived: boolean;
+} {
+  const depart = extractDateAndTime(startDatetime);
+  const arrive = extractDateAndTime(endDatetime);
+
+  const departLocalDate = depart.date;
+  const departLocalTime = depart.time;
+
+  let arriveLocalDate = arrive.date;
+  let arriveLocalTime = arrive.time;
+  let arrivalDateDerived = false;
+
+  // If arrival time exists but no arrival date → derive from departure date + rollover
+  if (arriveLocalTime && !arriveLocalDate && departLocalDate) {
+    if (departLocalTime && arriveLocalTime < departLocalTime) {
+      // After-midnight: arrival time is earlier than departure time → next day
+      arriveLocalDate = incrementDateByOne(departLocalDate);
+    } else {
+      arriveLocalDate = departLocalDate;
+    }
+    arrivalDateDerived = true;
+  }
+
+  // Build combined keys for sorting (string-only, no Date objects)
+  const departLocalKey = departLocalDate && departLocalTime
+    ? `${departLocalDate}T${departLocalTime}`
+    : null;
+  const arriveLocalKey = arriveLocalDate && arriveLocalTime
+    ? `${arriveLocalDate}T${arriveLocalTime}`
+    : null;
+
+  return {
+    departLocalDate,
+    departLocalTime,
+    arriveLocalDate,
+    arriveLocalTime,
+    departLocalKey,
+    arriveLocalKey,
+    arrivalDateDerived,
+  };
+}
+
 function baseFields(booking: Booking, evidence: RawEvidence[], warnings: CanonicalWarning[]) {
   const confNum = booking.confirmation_number || null;
   return {
@@ -319,6 +417,10 @@ function normalizeFlight(booking: Booking): CanonicalFlight {
         startRaw.datetimeText, depCode, arrCode,
       ]);
 
+  // v3.10.5: Compute local wall-clock datetime fields for flight
+  const { departLocalDate, departLocalTime, arriveLocalDate, arriveLocalTime, departLocalKey, arriveLocalKey, arrivalDateDerived } =
+    computeFlightLocalDatetimes(booking.start_datetime, booking.end_datetime);
+
   return {
     type: 'flight',
     ...baseFields(booking, evidence, warnings),
@@ -336,6 +438,13 @@ function normalizeFlight(booking: Booking): CanonicalFlight {
     endDatetime: asLocalDateTime(booking.end_datetime),
     iataConfidence,
     flightNumber,
+    departLocalDate,
+    departLocalTime,
+    arriveLocalDate,
+    arriveLocalTime,
+    departLocalKey,
+    arriveLocalKey,
+    arrivalDateDerived,
   };
 }
 

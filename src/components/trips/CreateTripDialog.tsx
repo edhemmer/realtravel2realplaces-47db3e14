@@ -431,6 +431,13 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
             arrivalAirportName: null,
             iataConfidence: 'low' as const,
             flightNumber: null,
+            departLocalDate: null,
+            departLocalTime: null,
+            arriveLocalDate: null,
+            arriveLocalTime: null,
+            departLocalKey: null,
+            arriveLocalKey: null,
+            arrivalDateDerived: false,
           };
         }
         if (b.booking_type === 'stay') {
