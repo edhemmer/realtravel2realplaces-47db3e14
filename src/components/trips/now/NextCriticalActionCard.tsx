@@ -18,13 +18,15 @@ import { resolveMapsFromNextStop, openMapsDestination } from '@/lib/mapsDestinat
 import { getLocalNowString } from '@/lib/canonicalNextStop';
 import { resolveCanonicalLifecycle } from '@/lib/canonicalTimePolicy';
 import { useMemo } from 'react';
-import type { NextActionCardModel } from '@/lib/execution';
+import type { NextActionCardModel, BufferStatusResult } from '@/lib/execution';
 
 interface NextCriticalActionCardProps {
   tripId: string;
   trip: import('@/types/database').Trip;
   /** v3.8.15: Pre-resolved next action from execution intelligence layer */
   resolvedNextAction?: NextActionCardModel | null;
+  /** v3.8.17: Buffer status from buffer intelligence layer */
+  bufferStatus?: BufferStatusResult | null;
 }
 
 /**
@@ -154,7 +156,7 @@ function resolveButtonStyle(eventType: string, hasLocation: boolean): { classNam
   };
 }
 
-export function NextCriticalActionCard({ tripId, trip, resolvedNextAction }: NextCriticalActionCardProps) {
+export function NextCriticalActionCard({ tripId, trip, resolvedNextAction, bufferStatus }: NextCriticalActionCardProps) {
   const { state } = useCanonicalTripState(tripId, trip);
   const { nextStop } = useNextStop(state);
 
@@ -213,6 +215,19 @@ export function NextCriticalActionCard({ tripId, trip, resolvedNextAction }: Nex
             <p className="text-sm font-medium text-primary mt-0.5">
               {ra.countdown}
             </p>
+          )}
+          {/* v3.8.17: Buffer intelligence badge */}
+          {bufferStatus && bufferStatus.status !== 'NOT_READY' && (
+            <div className={`mt-2 px-3 py-1.5 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 ${
+              bufferStatus.status === 'COMFORTABLE' 
+                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' 
+                : bufferStatus.status === 'TIGHT'
+                ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400'
+                : 'bg-destructive/10 text-destructive'
+            }`}>
+              {bufferStatus.status === 'HIGH_RISK' && <AlertTriangle className="w-3 h-3" />}
+              {bufferStatus.uiLabel}
+            </div>
           )}
           {/* v3.8.15: Action button — NAVIGATE or VIEW_DETAILS */}
           {ra.actionType === 'NAVIGATE' && hasTarget ? (

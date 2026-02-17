@@ -29,7 +29,7 @@ import { TripSectionLoading } from '@/components/trips/TripSectionStates';
 import { getLocalNowString } from '@/lib/canonicalNextStop';
 import { getNowParkingHighlight } from '@/lib/canonicalParkingHighlight';
 import { buildCanonicalTodayExecutionStack } from '@/lib/canonicalTodayExecutionStack';
-import { buildExecutionWindows, resolveNextAction } from '@/lib/execution';
+import { buildExecutionWindows, resolveNextAction, computeBufferStatus } from '@/lib/execution';
 import { useForegroundResume } from '@/hooks/useForegroundResume';
 import { QuickExpenseDialog } from '@/components/trips/QuickExpenseDialog';
 import type { TravelAlert } from '@/hooks/useTravelAlerts';
@@ -86,7 +86,7 @@ export function NowCommandCenter({
   const { alerts: travelAlerts, hasAlerts: hasTravelAlerts } = useTravelAlerts(trip, bookings, parkingList, temperatureUnit);
 
   // v3.12.0: Canonical Drive Engine — single source of drive intelligence
-  const { signals: driveSignals } = useDriveEngine({ tripId, trip });
+  const { signals: driveSignals, drivePlan } = useDriveEngine({ tripId, trip });
 
   const [gasDialogOpen, setGasDialogOpen] = useState(false);
   const [quickExpenseOpen, setQuickExpenseOpen] = useState(false);
@@ -156,6 +156,13 @@ export function NowCommandCenter({
   const nextAction = useMemo(
     () => resolveNextAction(executionWindows, trip.trip_type),
     [executionWindows, trip.trip_type]
+  );
+
+  // v3.8.17: Buffer Intelligence — cross-engine reasoning
+  const bufferStatus = useMemo(
+    () => computeBufferStatus(nextAction, drivePlan),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [nextAction, drivePlan, resumeTick]
   );
 
   // v3.12.0: Map DriveSignal[] → TravelAlert[] for unified rendering
@@ -229,7 +236,7 @@ export function NowCommandCenter({
       <TodayCriticalActionsCard criticalActions={todayExecution.criticalActions} />
 
       {/* 4. NextCriticalActionCard — enhanced with execution intelligence */}
-      <NextCriticalActionCard tripId={tripId} trip={trip} resolvedNextAction={nextAction} />
+      <NextCriticalActionCard tripId={tripId} trip={trip} resolvedNextAction={nextAction} bufferStatus={bufferStatus} />
 
       {/* 5. ActiveAlertsStack — max 3, severity-ordered, merged with Drive Engine signals */}
       {(hasTravelAlerts || driveSignals.length > 0) && (
