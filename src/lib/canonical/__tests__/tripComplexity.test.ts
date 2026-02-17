@@ -35,6 +35,13 @@ function makeFlight(overrides: Partial<CanonicalFlight> = {}): CanonicalFlight {
     endDatetime: '2025-06-01T11:00',
     iataConfidence: 'high',
     flightNumber: null,
+    departLocalDate: '2025-06-01',
+    departLocalTime: '08:00',
+    arriveLocalDate: '2025-06-01',
+    arriveLocalTime: '11:00',
+    departLocalKey: '2025-06-01T08:00',
+    arriveLocalKey: '2025-06-01T11:00',
+    arrivalDateDerived: false,
     ...overrides,
   };
 }
