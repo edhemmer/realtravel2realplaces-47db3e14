@@ -19,6 +19,8 @@ import { getDeviceLocation } from '@/lib/deviceLocation';
 import { useTripPermission } from '@/pages/TripDetail';
 import { resolveExploreOrigin } from '@/types/exploreOrigin';
 import { buildExploreSections } from '@/lib/exploreRankingSections';
+import { resolveTripPrimaryLocation } from '@/lib/location/locationResolver';
+import { buildNavTarget, openNavTarget } from '@/lib/location/navigationTargets';
 import { ExploreCarousel } from '@/components/trips/explore/ExploreCarousel';
 import { ExploreSectionFeed } from '@/components/trips/explore/ExploreSectionFeed';
 import { AddToTimelineModal } from '@/components/trips/explore/AddToTimelineModal';
@@ -111,11 +113,15 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
 
   const handleNavigate = (attraction: AttractionSuggestion) => {
     const query = attraction.locationSummary || attraction.name;
-    window.open(
-      `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(query)}`,
-      '_blank',
-      'noopener,noreferrer'
-    );
+    const target = buildNavTarget({
+      kind: 'PLACE',
+      key: attraction.name,
+      label: attraction.name,
+      address: attraction.locationSummary || undefined,
+    });
+    if (target) {
+      openNavTarget(target);
+    }
   };
 
   const handleRefresh = useCallback(async () => {

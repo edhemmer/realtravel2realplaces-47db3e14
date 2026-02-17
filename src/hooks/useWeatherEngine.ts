@@ -22,6 +22,7 @@ import {
   type WeatherEngineInput,
   type WeatherMode,
 } from '@/lib/weatherEngine';
+import { resolveTripPrimaryLocation } from '@/lib/location/locationResolver';
 
 interface UseWeatherEngineResult {
   /** Full weather engine result — always populated when trip exists */
@@ -67,7 +68,9 @@ export function useWeatherEngine(trip: Trip | null, bookings?: Booking[]): UseWe
   const weather = useMemo(() => {
     if (!trip) return null;
 
-    // Resolve anchors from bookings
+    // v3.12.2: Use canonical location resolver for consistent anchoring
+    const primaryLocation = resolveTripPrimaryLocation(trip, bookings || []);
+
     let lodgingCity: string | undefined;
     let lodgingState: string | undefined;
     let lodgingCountry: string | undefined;
@@ -75,22 +78,14 @@ export function useWeatherEngine(trip: Trip | null, bookings?: Booking[]): UseWe
     let flightArrivalState: string | undefined;
     let flightArrivalCountry: string | undefined;
 
-    if (bookings) {
-      const lodging = bookings.find(b => b.booking_type === 'stay');
-      if (lodging?.address) {
-        lodgingCity = trip.destination_city;
-        lodgingState = trip.destination_state || undefined;
-        lodgingCountry = trip.destination_country;
-      }
-
-      if (!lodgingCity) {
-        const flight = bookings.find(b => b.booking_type === 'flight' && b.arrival_airport_code);
-        if (flight) {
-          flightArrivalCity = trip.destination_city;
-          flightArrivalState = trip.destination_state || undefined;
-          flightArrivalCountry = trip.destination_country;
-        }
-      }
+    if (primaryLocation.kind === 'STAY') {
+      lodgingCity = primaryLocation.city || trip.destination_city;
+      lodgingState = primaryLocation.state || trip.destination_state || undefined;
+      lodgingCountry = primaryLocation.country || trip.destination_country;
+    } else if (primaryLocation.kind === 'AIRPORT') {
+      flightArrivalCity = primaryLocation.city || trip.destination_city;
+      flightArrivalState = primaryLocation.state || trip.destination_state || undefined;
+      flightArrivalCountry = primaryLocation.country || trip.destination_country;
     }
 
     const input: WeatherEngineInput = {

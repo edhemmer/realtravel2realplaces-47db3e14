@@ -170,7 +170,7 @@ export function openMapsDestination(dest: MapsDestination): void {
 
 /**
  * Resolve Maps destination from a CanonicalTimelineEvent.
- * Maps the event's available fields into the resolver input.
+ * v3.12.2: Uses canonical LocationRef + NavTarget for flights.
  */
 export function resolveMapsFromTimelineEvent(event: {
   address?: string;
@@ -180,22 +180,40 @@ export function resolveMapsFromTimelineEvent(event: {
   arrivalAirportCode?: string;
   bookingType?: string;
 }): MapsDestination | null {
-  // v3.13.2: For flights, validate IATA code before using as navigation target
+  // v3.12.2: For flights, use canonical airport resolver
   if (event.bookingType === 'flight') {
-    const code = event.departureAirportCode?.trim().toUpperCase();
-    if (code && /^[A-Z]{3}$/.test(code)) {
-      return resolveMapsDestination({
-        locationLabel: `${code} Airport`,
-      });
+    const { resolveAirportRef } = require('@/lib/location/locationResolver');
+    const { buildNavTarget } = require('@/lib/location/navigationTargets');
+
+    // Prefer departure airport for navigation (user needs to get there)
+    const depRef = resolveAirportRef({ iata: event.departureAirportCode });
+    if (depRef) {
+      const target = buildNavTarget(depRef);
+      if (target) {
+        return {
+          query: target.value,
+          lat: depRef.lat,
+          lng: depRef.lng,
+          precision: depRef.lat != null ? 'GEO' : 'PLACE',
+        };
+      }
     }
-    // Fallback: try arrival airport
-    const arrCode = event.arrivalAirportCode?.trim().toUpperCase();
-    if (arrCode && /^[A-Z]{3}$/.test(arrCode)) {
-      return resolveMapsDestination({
-        locationLabel: `${arrCode} Airport`,
-      });
+
+    // Fallback: arrival airport
+    const arrRef = resolveAirportRef({ iata: event.arrivalAirportCode });
+    if (arrRef) {
+      const target = buildNavTarget(arrRef);
+      if (target) {
+        return {
+          query: target.value,
+          lat: arrRef.lat,
+          lng: arrRef.lng,
+          precision: arrRef.lat != null ? 'GEO' : 'PLACE',
+        };
+      }
     }
-    // Final fallback: use address or title if available
+
+    // Final fallback: address or null
     if (event.address) {
       return resolveMapsDestination({ address: event.address });
     }
@@ -211,6 +229,7 @@ export function resolveMapsFromTimelineEvent(event: {
 
 /**
  * Resolve Maps destination from a NextStopEvent shape.
+ * v3.12.2: Uses canonical airport resolver for flights.
  */
 export function resolveMapsFromNextStop(event: {
   address?: string;
@@ -218,15 +237,27 @@ export function resolveMapsFromNextStop(event: {
   type?: string;
   displayName?: string;
 }): MapsDestination | null {
-  // v3.13.2: For flights, validate IATA code before using as navigation target
+  // v3.12.2: For flights, use canonical airport resolver
   if (event.type === 'flight' || event.type === 'flight_departure') {
+    const { resolveAirportRef } = require('@/lib/location/locationResolver');
+    const { buildNavTarget } = require('@/lib/location/navigationTargets');
+
     const code = event.locationLabel?.trim().toUpperCase();
     if (code && /^[A-Z]{3}$/.test(code)) {
-      return resolveMapsDestination({
-        locationLabel: `${code} Airport`,
-      });
+      const ref = resolveAirportRef({ iata: code });
+      if (ref) {
+        const target = buildNavTarget(ref);
+        if (target) {
+          return {
+            query: target.value,
+            lat: ref.lat,
+            lng: ref.lng,
+            precision: ref.lat != null ? 'GEO' : 'PLACE',
+          };
+        }
+      }
     }
-    // Fallback: use address if available
+    // Fallback: address
     if (event.address) {
       return resolveMapsDestination({ address: event.address });
     }
