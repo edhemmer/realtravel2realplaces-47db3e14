@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react';
 import { usePackingItems, useCreatePackingItem, useUpdatePackingItem, useDeletePackingItem, useBulkCreatePackingItems, useDeleteAutoPackingItems } from '@/hooks/usePackingItems';
 import { useTrip } from '@/hooks/useTrips';
-import { useTripWeather } from '@/hooks/useWeather';
+import { useBookings } from '@/hooks/useBookings';
+import { useWeatherEngine } from '@/hooks/useWeatherEngine';
+import { generatePackingRecommendations } from '@/lib/packingEngine';
 import { supabase } from '@/integrations/supabase/client';
 import { PackingItem } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +17,7 @@ import { Progress } from '@/components/ui/progress';
 import { 
   Plus, Trash2, Sparkles, Copy, Check, Cloud, Sun, 
   Briefcase, ShoppingBag, Luggage, Waves, RefreshCw, AlertCircle, Mountain, Building2,
-  Minus
+  Minus, Thermometer, MapPin, ShoppingCart
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { differenceInDays, parseISO } from 'date-fns';
@@ -25,15 +27,23 @@ interface PackingTabProps {
   tripId: string;
 }
 
-// Icon mapping for categories
+// Icon mapping for categories (extended for v3.8.13)
 const categoryIcons: Record<string, React.ReactNode> = {
   'Clothing': <ShoppingBag className="w-4 h-4" />,
+  'Clothing Core': <ShoppingBag className="w-4 h-4" />,
+  'Layers & Outerwear': <Mountain className="w-4 h-4" />,
+  'Rain & Wet Weather': <Cloud className="w-4 h-4" />,
+  'Cold / Snow Gear': <Thermometer className="w-4 h-4" />,
+  'Footwear': <ShoppingBag className="w-4 h-4" />,
+  'Accessories': <Sun className="w-4 h-4" />,
   'Swimwear & Beach': <Waves className="w-4 h-4" />,
   'Hiking & Outdoor': <Mountain className="w-4 h-4" />,
   'City Essentials': <Building2 className="w-4 h-4" />,
   'Toiletries & Health': <Plus className="w-4 h-4" />,
   'Electronics': <Sparkles className="w-4 h-4" />,
+  'Tech & Chargers': <Sparkles className="w-4 h-4" />,
   'Documents': <Briefcase className="w-4 h-4" />,
+  'Documents & Critical Items': <Briefcase className="w-4 h-4" />,
   'Essentials': <Check className="w-4 h-4" />,
   'Weather Gear': <Cloud className="w-4 h-4" />,
   'Business': <Briefcase className="w-4 h-4" />,
@@ -42,19 +52,27 @@ const categoryIcons: Record<string, React.ReactNode> = {
 // Category colors for visual distinction
 const categoryColors: Record<string, string> = {
   'Clothing': 'bg-blue-500/10 text-blue-600 border-blue-200',
+  'Clothing Core': 'bg-blue-500/10 text-blue-600 border-blue-200',
+  'Layers & Outerwear': 'bg-orange-500/10 text-orange-600 border-orange-200',
+  'Rain & Wet Weather': 'bg-sky-500/10 text-sky-600 border-sky-200',
+  'Cold / Snow Gear': 'bg-indigo-500/10 text-indigo-600 border-indigo-200',
+  'Footwear': 'bg-stone-500/10 text-stone-600 border-stone-200',
+  'Accessories': 'bg-yellow-500/10 text-yellow-600 border-yellow-200',
   'Swimwear & Beach': 'bg-cyan-500/10 text-cyan-600 border-cyan-200',
   'Hiking & Outdoor': 'bg-emerald-500/10 text-emerald-600 border-emerald-200',
   'City Essentials': 'bg-slate-500/10 text-slate-600 border-slate-200',
   'Toiletries & Health': 'bg-green-500/10 text-green-600 border-green-200',
   'Electronics': 'bg-purple-500/10 text-purple-600 border-purple-200',
+  'Tech & Chargers': 'bg-purple-500/10 text-purple-600 border-purple-200',
   'Documents': 'bg-amber-500/10 text-amber-600 border-amber-200',
+  'Documents & Critical Items': 'bg-amber-500/10 text-amber-600 border-amber-200',
   'Essentials': 'bg-rose-500/10 text-rose-600 border-rose-200',
   'Weather Gear': 'bg-sky-500/10 text-sky-600 border-sky-200',
   'Business': 'bg-slate-500/10 text-slate-600 border-slate-200',
 };
 
 interface AIPackingResponse {
-  items: { category: string; item_name: string; quantity: number }[];
+  items: { category: string; item_name: string; quantity: number; own_it_likely?: boolean; suggest_buy_early?: boolean; rationale?: string }[];
   special_notes?: string[];
 }
 
@@ -63,14 +81,28 @@ export function PackingTab({ tripId }: PackingTabProps) {
   const { canEdit } = useTripPermission();
   const { data: packingItems = [], isLoading } = usePackingItems(tripId);
   const { data: trip } = useTrip(tripId);
+  const { data: bookings = [] } = useBookings(tripId);
   const createItem = useCreatePackingItem();
   const updateItem = useUpdatePackingItem();
   const deleteItem = useDeletePackingItem();
   const bulkCreate = useBulkCreatePackingItems();
   const deleteAutoItems = useDeleteAutoPackingItems();
   
+  // v3.8.13: Always-on weather engine
+  const { weather, isLoading: weatherLoading } = useWeatherEngine(trip || null, bookings);
+
+  // v3.8.13: Local packing recommendations (instant, client-side)
+  const packingRecs = useMemo(() => {
+    if (!trip || !weather) return null;
+    const days = differenceInDays(parseISO(trip.end_date), parseISO(trip.start_date)) + 1;
+    const nights = days - 1;
+    return generatePackingRecommendations(
+      weather, days, nights, trip.trip_type, 
+      (trip as any).destination_type || 'unspecified'
+    );
+  }, [trip, weather]);
+
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [specialNotes, setSpecialNotes] = useState<string[]>([]);
@@ -90,16 +122,6 @@ export function PackingTab({ tripId }: PackingTabProps) {
 
   const tripNights = tripDays - 1;
 
-  // Get weather data for AI packing list generation
-  const { tripForecast, weatherAnalysis, isLoading: weatherLoading } = useTripWeather(
-    trip?.destination_city?.trim() || '',
-    trip?.destination_country || '',
-    trip?.start_date || '',
-    trip?.end_date || '',
-    trip?.destination_state || undefined
-  );
-
-
   const resetForm = () => {
     setFormData({ category: '', item_name: '', quantity: '1' });
     setPreselectedCategory(null);
@@ -114,7 +136,6 @@ export function PackingTab({ tripId }: PackingTabProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // v1.3.3: User-added items are marked as custom
     await createItem.mutateAsync({
       trip_id: tripId,
       category: formData.category,
@@ -153,7 +174,7 @@ export function PackingTab({ tripId }: PackingTabProps) {
     
     setIsGenerating(true);
     try {
-      // v1.3.3: Delete auto-generated items first, preserving custom items
+      // Delete auto-generated items first, preserving custom items
       await deleteAutoItems.mutateAsync({ trip_id: tripId });
       
       const { data, error } = await supabase.functions.invoke<{ success: boolean; data: AIPackingResponse; error?: string }>('generate-packing-list', {
@@ -165,13 +186,11 @@ export function PackingTab({ tripId }: PackingTabProps) {
           end_date: trip.end_date,
           trip_type: trip.trip_type,
           destination_type: (trip as any).destination_type || 'unspecified',
-          weather_forecast: tripForecast.length > 0 ? {
-            avgHigh: weatherAnalysis.avgHigh,
-            avgLow: weatherAnalysis.avgLow,
-            hasRain: weatherAnalysis.hasRain,
-            hasHot: weatherAnalysis.hasHot,
-            hasCold: weatherAnalysis.hasCold,
-            hasSnow: weatherAnalysis.hasSnow,
+          // v3.8.13: Pass weather envelope for richer AI context
+          weather_envelope: weather ? {
+            weatherMode: weather.weatherMode,
+            summary: weather.summary,
+            anchorLabel: weather.anchor.label,
           } : null,
         },
       });
@@ -179,7 +198,6 @@ export function PackingTab({ tripId }: PackingTabProps) {
       if (error) throw error;
 
       if (data?.success && data.data?.items) {
-        // v1.3.3: Mark AI-generated items as is_custom: false
         await bulkCreate.mutateAsync({ trip_id: tripId, items: data.data.items, is_custom: false });
         
         if (data.data.special_notes) {
@@ -238,7 +256,7 @@ export function PackingTab({ tripId }: PackingTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header v1.3.2 */}
+      {/* Header v3.8.13 */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h3 className="text-lg font-semibold">Packing List</h3>
@@ -247,9 +265,9 @@ export function PackingTab({ tripId }: PackingTabProps) {
         {canEdit && (
           <div className="flex gap-2 flex-wrap">
             {packingItems.length === 0 ? (
-              <Button onClick={generatePackingList} variant="outline" disabled={isGenerating || weatherLoading}>
+              <Button onClick={generatePackingList} variant="outline" disabled={isGenerating}>
                 <Sparkles className="w-4 h-4 mr-2" />
-                {isGenerating ? 'Generating...' : weatherLoading ? 'Checking Weather...' : 'Generate AI Packing List'}
+                {isGenerating ? 'Generating...' : 'Generate AI Packing List'}
               </Button>
             ) : (
               <>
@@ -277,6 +295,56 @@ export function PackingTab({ tripId }: PackingTabProps) {
         )}
       </div>
 
+      {/* v3.8.13: Weather Intelligence Banner */}
+      {weather && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="pt-4 pb-3">
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-1.5">
+                {weather.weatherMode === 'FORECAST_PRIMARY' ? (
+                  <Sun className="w-4 h-4 text-primary" />
+                ) : weather.weatherMode === 'FORECAST_BLEND' ? (
+                  <Cloud className="w-4 h-4 text-primary" />
+                ) : (
+                  <Thermometer className="w-4 h-4 text-primary" />
+                )}
+                <span className="text-sm font-medium text-primary">
+                  {packingRecs?.modeLabel || 'Weather Intelligence'}
+                </span>
+              </div>
+              <span className="text-xs text-muted-foreground">•</span>
+              <div className="flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">{weather.anchor.label}</span>
+              </div>
+              <span className="text-xs text-muted-foreground">•</span>
+              <span className="text-sm text-muted-foreground">
+                {weather.summary.avgHigh}°F high / {weather.summary.avgLow}°F low
+              </span>
+              {weather.summary.hasRain && (
+                <Badge variant="outline" className="text-xs border-sky-300 text-sky-600 bg-sky-50">
+                  Rain likely
+                </Badge>
+              )}
+              {weather.summary.hasSnow && (
+                <Badge variant="outline" className="text-xs border-blue-300 text-blue-600 bg-blue-50">
+                  Snow likely
+                </Badge>
+              )}
+              {weather.summary.hasCold && (
+                <Badge variant="outline" className="text-xs border-indigo-300 text-indigo-600 bg-indigo-50">
+                  Cold
+                </Badge>
+              )}
+              {weather.summary.hasHot && (
+                <Badge variant="outline" className="text-xs border-orange-300 text-orange-600 bg-orange-50">
+                  Hot
+                </Badge>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Special Notes from AI */}
       {specialNotes.length > 0 && (
@@ -374,7 +442,7 @@ export function PackingTab({ tripId }: PackingTabProps) {
                           </span>
                         </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
-                          {/* Quantity Stepper - Compact & Elegant */}
+                          {/* Quantity Stepper */}
                           {canEdit ? (
                             <div className="inline-flex items-center h-5 rounded-full border border-border/60 bg-muted/30 overflow-hidden">
                               <button
@@ -424,11 +492,11 @@ export function PackingTab({ tripId }: PackingTabProps) {
             </div>
             <h4 className="text-base font-medium mb-1">No packing list yet</h4>
             <p className="text-muted-foreground text-sm text-center max-w-sm mb-4">
-              Packing lists help you avoid last-minute stress.
+              {weather ? `Weather data is ready — generate your smart packing list based on ${packingRecs?.modeLabel?.toLowerCase() || 'conditions'}.` : 'Packing lists help you avoid last-minute stress.'}
             </p>
             {canEdit && (
               <div className="flex gap-2">
-                <Button onClick={generatePackingList} disabled={isGenerating || weatherLoading} className="bg-gradient-ocean hover:opacity-90">
+                <Button onClick={generatePackingList} disabled={isGenerating} className="bg-gradient-ocean hover:opacity-90">
                   <Sparkles className="w-4 h-4 mr-2" />
                   {isGenerating ? 'Generating...' : 'Generate packing list'}
                 </Button>
