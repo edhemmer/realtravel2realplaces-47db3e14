@@ -1,9 +1,9 @@
 /**
- * v3.11.3: Places Service — Separate from DriveEngine
+ * v3.11.4: Places Service — Low-Level Provider Wrapper
  *
- * Fetches nearby places via backend edge function.
- * Never imported by DriveEngine. UI-only consumption.
- * Fail-safe: returns empty array on any error.
+ * Thin wrapper around the nearby-places edge function.
+ * Only imported by placesEngine.ts — no direct usage by UI components.
+ * Fail-safe: returns empty array on any error, never throws.
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -17,7 +17,7 @@ export interface NearbyPlace {
   lng: number;
 }
 
-export type PlaceType = 'gas_station' | 'restaurant';
+export type PlaceType = 'gas_station' | 'restaurant' | 'convenience_store';
 
 interface FetchNearbyPlacesParams {
   lat: number;
@@ -28,8 +28,8 @@ interface FetchNearbyPlacesParams {
 }
 
 /**
- * Fetch nearby places via the places-search edge function.
- * Fail-safe: returns empty array on error, never throws.
+ * Low-level fetch via the nearby-places edge function.
+ * Consumed by placesEngine only — not by UI components directly.
  */
 export async function fetchNearbyPlaces({
   lat,

@@ -1,8 +1,8 @@
 /**
- * v3.11.3: Drive Summary Card — Premium, Minimal
+ * v3.11.4: Drive Summary Card — Premium, Minimal
  *
  * Consumes DrivePlan only for canonical data.
- * Async Places calls for suggestions (gas + food) when eligible.
+ * Async Places calls via canonical PlacesEngine (gas + food) when eligible.
  * Shows: destination, date, route summary, risk chips, fuel hint, navigation, suggestions.
  */
 
@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Car, MapPin, Fuel, Navigation, AlertTriangle, Clock, CloudRain, Snowflake, DollarSign, Route, Star, Utensils, ExternalLink, Plus } from 'lucide-react';
-import { fetchNearbyPlaces, type NearbyPlace } from '@/lib/places/placesService';
+import { queryPlaces, type PlaceResult } from '@/lib/places/placesEngine';
 
 interface DriveSummaryCardProps {
   trip: Trip & {
@@ -44,7 +44,7 @@ function RiskChipIcon({ type }: { type: string }) {
 }
 
 function PlaceItem({ place, onNavigate, onAddStop }: {
-  place: NearbyPlace;
+  place: PlaceResult;
   onNavigate: () => void;
   onAddStop: () => void;
 }) {
@@ -87,37 +87,51 @@ export function DriveSummaryCard({ trip, drivePlan, onAddGasExpense }: DriveSumm
   const { routeSummary, riskFlags, fuelPlan, fuelIntelligence, suggestions, weatherLine, navigationTargets, degradedReason } = drivePlan;
   const primaryNav = navigationTargets.find(t => t.isPrimary);
 
-  // v3.11.3: Async Places data
-  const [gasPlaces, setGasPlaces] = useState<NearbyPlace[]>([]);
-  const [foodPlaces, setFoodPlaces] = useState<NearbyPlace[]>([]);
+  // v3.11.4: Async Places data via canonical PlacesEngine
+  const [gasPlaces, setGasPlaces] = useState<PlaceResult[]>([]);
+  const [foodPlaces, setFoodPlaces] = useState<PlaceResult[]>([]);
   const [placesLoading, setPlacesLoading] = useState(false);
-  const [placesError, setPlacesError] = useState(false);
+  const [placesUnavailable, setPlacesUnavailable] = useState(false);
 
   useEffect(() => {
     if (!suggestions.eligible || !suggestions.nextWindowCenter) return;
     
     let cancelled = false;
     setPlacesLoading(true);
-    setPlacesError(false);
+    setPlacesUnavailable(false);
 
     const { lat, lng } = suggestions.nextWindowCenter;
     
     Promise.all([
-      fetchNearbyPlaces({ lat, lng, type: 'gas_station', limit: 5 }),
-      fetchNearbyPlaces({ lat, lng, type: 'restaurant', limit: 5 }),
-    ]).then(([gas, food]) => {
+      queryPlaces({
+        origin: { lat, lng },
+        category: 'gas',
+        radiusMiles: 8,
+        limit: 5,
+        planContext: 'pro',
+        sourceContext: 'drive_suggestions',
+      }),
+      queryPlaces({
+        origin: { lat, lng },
+        category: 'food',
+        radiusMiles: 8,
+        limit: 5,
+        planContext: 'pro',
+        sourceContext: 'drive_suggestions',
+      }),
+    ]).then(([gasResult, foodResult]) => {
       if (!cancelled) {
-        setGasPlaces(gas);
-        setFoodPlaces(food);
+        setGasPlaces(gasResult.results);
+        setFoodPlaces(foodResult.results);
         setPlacesLoading(false);
-        if (gas.length === 0 && food.length === 0) {
-          setPlacesError(true);
+        if (gasResult.status === 'UNAVAILABLE' && foodResult.status === 'UNAVAILABLE') {
+          setPlacesUnavailable(true);
         }
       }
     }).catch(() => {
       if (!cancelled) {
         setPlacesLoading(false);
-        setPlacesError(true);
+        setPlacesUnavailable(true);
       }
     });
 
@@ -127,12 +141,12 @@ export function DriveSummaryCard({ trip, drivePlan, onAddGasExpense }: DriveSumm
   const destinationLabel = trip.destination_address ||
     `${trip.destination_city}${trip.destination_state ? `, ${trip.destination_state}` : ''}`;
 
-  const handleNavigateToPlace = (place: NearbyPlace) => {
+  const handleNavigateToPlace = (place: PlaceResult) => {
     const url = `https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  const handleAddStop = (place: NearbyPlace) => {
+  const handleAddStop = (place: PlaceResult) => {
     // Navigate to trip detail with prefilled stop data via URL params
     const params = new URLSearchParams({
       addStop: 'true',
@@ -294,9 +308,9 @@ export function DriveSummaryCard({ trip, drivePlan, onAddGasExpense }: DriveSumm
           </div>
         )}
 
-        {suggestions.eligible && placesError && gasPlaces.length === 0 && foodPlaces.length === 0 && (
+        {suggestions.eligible && placesUnavailable && gasPlaces.length === 0 && foodPlaces.length === 0 && (
           <div className="text-xs text-muted-foreground pl-[18px] italic">
-            No nearby suggestions available at this time.
+            Suggestions will appear when available.
           </div>
         )}
 
