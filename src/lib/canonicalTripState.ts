@@ -30,6 +30,8 @@ import { getAirportTimeZone } from './airportTimezones';
 import { WeatherSnapshot } from './canonicalWeather';
 import { resolveBookingTimezone, resolveDestinationTimezone, convertUtcToLocalString } from './canonicalTimeNormalizer';
 import { preserveTimeString } from './canonicalTimePreservation';
+import { ingestCanonical, type IngestionResult } from '@/lib/ingestion/ingestCanonical';
+import type { CanonicalItem } from '@/lib/canonical/canonicalTypes';
 
 // ============================================================================
 // TYPES
@@ -167,6 +169,10 @@ export interface CanonicalTripState {
   weatherByKey: Record<string, WeatherSnapshot>;
   /** v2.2.13: True if trip frame has unresolved time validation issues */
   framePendingValidation?: boolean;
+  /** v3.8.12: Canonical ingestion result with guardrail warnings */
+  ingestionResult?: IngestionResult;
+  /** v3.8.12: Normalized canonical items */
+  canonicalItems?: CanonicalItem[];
   /** Quick accessors */
   hasFlights: boolean;
   hasStays: boolean;
@@ -745,6 +751,9 @@ export function getCanonicalTripState(
   // v2.2.10: Resolve destination timezone for non-flight booking events
   const destTz = resolveDestinationTimezone(trip.destination_state, trip.destination_country);
   
+  // v3.8.12: Run canonical ingestion pipeline (normalize + guardrails + validate)
+  const ingestionResult = ingestCanonical(bookings, parkingList);
+  
   // v3.10.0: Pass parking + engagements so their explicit dates contribute to range
   const dateRange = calculateCanonicalDateRange(trip, bookings, parkingList, engagementEvents);
   
@@ -768,6 +777,8 @@ export function getCanonicalTripState(
     timelineEvents,
     costs,
     weatherByKey: {}, // v2.2.6: Populated by consumer hooks via forecastToSnapshots
+    ingestionResult,
+    canonicalItems: ingestionResult.items,
     hasFlights,
     hasStays,
     hasRentals,
