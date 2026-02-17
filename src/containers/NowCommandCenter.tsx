@@ -1,12 +1,13 @@
 /**
- * v3.10.9: NowCommandCenter Container
+ * v3.8.15: NowCommandCenter Container
  *
  * Mobile-only execution-first command center for the NOW tab.
  * 
  * CANONICAL SINGLE SOURCE: Calls buildCanonicalTodayExecutionStack ONCE
  * and passes pre-sorted output to all child surfaces. No child re-sorts.
  *
- * v3.10.9: Reads isExecutionMode from stack to show DEPARTURE MODE label.
+ * v3.8.15: Integrates execution windows + next action resolver for
+ * deterministic time-to-event intelligence.
  */
 
 import { useState, useMemo, useCallback } from 'react';
@@ -28,6 +29,7 @@ import { TripSectionLoading } from '@/components/trips/TripSectionStates';
 import { getLocalNowString } from '@/lib/canonicalNextStop';
 import { getNowParkingHighlight } from '@/lib/canonicalParkingHighlight';
 import { buildCanonicalTodayExecutionStack } from '@/lib/canonicalTodayExecutionStack';
+import { buildExecutionWindows, resolveNextAction } from '@/lib/execution';
 import { useForegroundResume } from '@/hooks/useForegroundResume';
 import { QuickExpenseDialog } from '@/components/trips/QuickExpenseDialog';
 import type { TravelAlert } from '@/hooks/useTravelAlerts';
@@ -144,6 +146,18 @@ export function NowCommandCenter({
     [timelineEvents, activeStayAddress, activeParkingIds, resumeTick]
   );
 
+  // v3.8.15: Execution windows + next action resolver
+  const executionWindows = useMemo(
+    () => buildExecutionWindows(timelineEvents),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [timelineEvents, resumeTick]
+  );
+
+  const nextAction = useMemo(
+    () => resolveNextAction(executionWindows, trip.trip_type),
+    [executionWindows, trip.trip_type]
+  );
+
   // v3.12.0: Map DriveSignal[] → TravelAlert[] for unified rendering
   const mergedAlerts = useMemo((): TravelAlert[] => {
     const driveAlerts: TravelAlert[] = driveSignals.map((s): TravelAlert => ({
@@ -214,8 +228,8 @@ export function NowCommandCenter({
       {/* 3. Critical Today Actions — from canonical stack (pre-sorted, no re-sort) */}
       <TodayCriticalActionsCard criticalActions={todayExecution.criticalActions} />
 
-      {/* 4. NextCriticalActionCard */}
-      <NextCriticalActionCard tripId={tripId} trip={trip} />
+      {/* 4. NextCriticalActionCard — enhanced with execution intelligence */}
+      <NextCriticalActionCard tripId={tripId} trip={trip} resolvedNextAction={nextAction} />
 
       {/* 5. ActiveAlertsStack — max 3, severity-ordered, merged with Drive Engine signals */}
       {(hasTravelAlerts || driveSignals.length > 0) && (
