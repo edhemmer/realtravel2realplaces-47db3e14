@@ -23,6 +23,7 @@ import type {
 import type { WeatherEngineResult } from '@/lib/weatherEngine';
 import { getRoute } from './routeProvider';
 import { resolveMapsDestination, buildMapsDirectionsUrl } from '@/lib/mapsDestination';
+import { projectMileMarker, hasRouteGeometry, type RouteGeometry } from './routeGeometry';
 
 // ============================================================================
 // THRESHOLDS (fixed constants — no heuristics)
@@ -108,39 +109,29 @@ function computeFuelPlan(
 }
 
 // ============================================================================
-// v3.11.0: FUEL STOP ZONE COMPUTATION
+// v3.11.0 + v3.11.1: FUEL STOP ZONE COMPUTATION (Route Geometry Projection)
 // ============================================================================
 
 /**
- * Interpolate a lat/lng along a straight line between origin and destination
- * at a given fraction (0..1). Returns null if coords are unavailable.
+ * Generate a stable zone ID from mile marker and coordinates.
  */
-function interpolateLatLng(
-  origin: LocationRef | undefined,
-  destination: LocationRef,
-  fraction: number,
-): { lat: number; lng: number } | null {
-  const oLat = origin?.lat;
-  const oLng = origin?.lng;
-  const dLat = destination.lat;
-  const dLng = destination.lng;
-  if (oLat == null || oLng == null || dLat == null || dLng == null) return null;
-  return {
-    lat: oLat + (dLat - oLat) * fraction,
-    lng: oLng + (dLng - oLng) * fraction,
-  };
+function stableZoneId(mileMarker: number, latLng: { lat: number; lng: number } | null): string {
+  if (!latLng) return `fuel-zone-${mileMarker}`;
+  const rLat = latLng.lat.toFixed(5);
+  const rLng = latLng.lng.toFixed(5);
+  return `${mileMarker}-${rLat}-${rLng}`;
 }
 
 /**
  * Compute fuel stop zones along a route.
+ * v3.11.1: Projects onto actual route geometry (steps/polyline) instead of linear interpolation.
  * Returns zones (areas, not specific stations) with mile markers and approximate coordinates.
  */
 function computeFuelStopZones(
   totalDistanceMiles: number,
   rangeMiles: number,
   safeRangeMiles: number,
-  origin: LocationRef | undefined,
-  destination: LocationRef,
+  geometry: RouteGeometry | undefined,
 ): FuelStopZone[] {
   // No stops needed if within safe range
   if (totalDistanceMiles <= safeRangeMiles) return [];
@@ -170,12 +161,16 @@ function computeFuelStopZones(
   // Deduplicate and sort
   const uniqueMarkers = [...new Set(markers)].sort((a, b) => a - b);
 
-  return uniqueMarkers.map((m, i) => ({
-    id: `fuel-zone-${i}`,
-    mileMarker: m,
-    targetLatLng: interpolateLatLng(origin, destination, m / totalDistanceMiles),
-    radiusMiles: STOP_ZONE_RADIUS_MILES,
-  }));
+  // v3.11.1: Project each marker onto route geometry
+  return uniqueMarkers.map((m) => {
+    const latLng = geometry ? projectMileMarker(geometry, m) : null;
+    return {
+      id: stableZoneId(m, latLng),
+      mileMarker: m,
+      targetLatLng: latLng,
+      radiusMiles: STOP_ZONE_RADIUS_MILES,
+    };
+  });
 }
 
 // ============================================================================
@@ -294,13 +289,42 @@ export function buildDrivePlan(input: BuildDrivePlanInput): DrivePlan {
         stopZones: [],
       };
     } else {
+      // v3.11.1: Build route geometry for projection
+      const routeGeo: RouteGeometry = {
+        steps: routeResult.summary?.steps,
+        polyline: routeResult.summary?.polyline,
+        origin: canonical.origin?.lat != null && canonical.origin?.lng != null
+          ? { lat: canonical.origin.lat, lng: canonical.origin.lng }
+          : undefined,
+      };
+
+      // Check if geometry is available for accurate projection
+      const geoAvailable = hasRouteGeometry(routeGeo);
+
       const stopZones = computeFuelStopZones(
         totalDistance,
         avgMilesPerTank,
         safeRangeMiles,
-        canonical.origin,
-        canonical.destination,
+        geoAvailable ? routeGeo : undefined,
       );
+
+      // If geometry was missing but we still have distance, note it
+      if (!geoAvailable && stopZones.length > 0) {
+        fuelIntelligence = {
+          enabled: true,
+          reason: 'ROUTE_GEOMETRY_MISSING',
+          rangeMiles: avgMilesPerTank,
+          safeRangeMiles,
+          stopZones: [], // No zones without geometry
+        };
+      } else {
+        fuelIntelligence = {
+          enabled: true,
+          rangeMiles: avgMilesPerTank,
+          safeRangeMiles,
+          stopZones,
+        };
+      }
       fuelIntelligence = {
         enabled: true,
         rangeMiles: avgMilesPerTank,

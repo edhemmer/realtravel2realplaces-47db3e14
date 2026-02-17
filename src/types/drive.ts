@@ -77,7 +77,7 @@ export interface DrivePlan {
 /** v3.10.9 + v3.11.0: Fuel intelligence gating and stop zones */
 export interface DriveFuelIntelligence {
   enabled: boolean;
-  reason?: 'PLAN_REQUIRED' | 'MISSING_VEHICLE_RANGE' | 'ROUTE_DISTANCE_MISSING';
+  reason?: 'PLAN_REQUIRED' | 'MISSING_VEHICLE_RANGE' | 'ROUTE_DISTANCE_MISSING' | 'ROUTE_GEOMETRY_MISSING';
   /** v3.11.0: Range parameters (only when enabled) */
   rangeMiles?: number;
   safeRangeMiles?: number;
@@ -103,6 +103,28 @@ export interface DriveRouteSummary {
   durationMinutes: number;
   /** Primary route label (e.g., "via I-85") */
   routeLabel?: string;
+  /** Route geometry: decoded polyline points */
+  polyline?: RoutePolylinePoint[];
+  /** Route geometry: step-level segments */
+  steps?: RouteStep[];
+}
+
+/** A point on a decoded route polyline */
+export interface RoutePolylinePoint {
+  lat: number;
+  lng: number;
+}
+
+/** A step in route directions with distance and endpoint */
+export interface RouteStep {
+  /** Distance of this step in miles */
+  distanceMiles: number;
+  /** End coordinate of this step */
+  endLat: number;
+  endLng: number;
+  /** Start coordinate of this step (optional; inferred from previous step if missing) */
+  startLat?: number;
+  startLng?: number;
 }
 
 export type DriveRiskFlagType = 'TOLL_POSSIBLE' | 'WEATHER_RISK' | 'LONG_DRIVE';
