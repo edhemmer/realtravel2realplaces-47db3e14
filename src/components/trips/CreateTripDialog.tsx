@@ -24,9 +24,9 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { getVendorUrl } from '@/lib/vendorUrls';
 import { BookingType, StayType } from '@/types/database';
-// getSuggestedTripDates no longer used here — consumed by buildSuggestedTripMeta
-import { resolveTripFrame, validateConfirmationAlignment, isFrameResolved, type TripFrameMode } from '@/lib/tripFrameResolver';
-// v3.9.31: Single canonical meta resolver for auto-filling trip identity
+// v3.9.24: tripFrameResolver only needed for Drive flow validation
+import { resolveTripFrame, isFrameResolved } from '@/lib/tripFrameResolver';
+// v3.9.24: Single canonical meta resolver for auto-filling trip identity
 import { buildSuggestedTripMeta } from '@/lib/suggestedTripMeta';
 import { LocationInput } from '@/components/LocationInput';
 import { LocationStructured, isLocationComplete, locationLabel } from '@/lib/location/types';
@@ -366,12 +366,11 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
             return merged;
           });
 
-          // v3.9.45: Use ref for travelMode to avoid stale closure
+          // v3.9.24: Compute meta from full merged set
           setBuildStatus('computing_meta');
           setAutofillStatus('running');
-          const currentMode = travelModeRef.current;
-          const frameMode: TripFrameMode = currentMode === 'fly' ? 'fly' : currentMode === 'drive' ? 'drive' : 'fly';
-          const meta = buildSuggestedTripMeta(allMergedBookings, frameMode);
+          const currentMode = travelModeRef.current || 'fly';
+          const meta = buildSuggestedTripMeta(allMergedBookings, currentMode);
 
           // Auto-fill ONLY empty fields — never overwrite user input
           if (meta.suggestedStart) {
@@ -1306,7 +1305,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
             {(autofillStatus === 'needs_user' || autofillStatus === 'failed_timeout') && parsedBookings.length > 0 && (
               <div className="flex items-start gap-2 p-3 rounded-lg bg-accent/50 border border-accent text-sm text-foreground">
                 <Info className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
-                <span>Some details couldn't be auto-filled. You can review them now or after creating the trip.</span>
+                <span>A few details need review. You can finish now or after creating the trip.</span>
               </div>
             )}
 
