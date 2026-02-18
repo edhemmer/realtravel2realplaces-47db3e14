@@ -13,7 +13,7 @@ import { useDeviceLocation } from '@/hooks/useDeviceLocation';
 import { getDeviceLocation } from '@/lib/deviceLocation';
 import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
 import { useTripPermission } from '@/pages/TripDetail';
-import { resolveExploreOriginForContext, getExploreOriginSubtitle } from '@/lib/location/exploreContext';
+import { resolveExploreOriginForContext, getExploreOriginSubtitle, hasExploreDestination, ensureExploreOriginGeocode } from '@/lib/location/exploreContext';
 import { getExploreContext, clearExploreContext } from '@/lib/explore/exploreContextStore';
 import { buildExploreSections } from '@/lib/exploreRankingSections';
 import { buildNavTarget, openNavTarget } from '@/lib/location/navigationTargets';
@@ -76,23 +76,38 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
     return now >= start && now <= end;
   }, [trip.start_date, trip.end_date]);
 
-  // v3.12.4: Canonical context origin resolution
+  // v3.9.16: Trigger async geocode for destination-only trips
+  const [geocodeReady, setGeocodeReady] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    ensureExploreOriginGeocode(trip).then(() => {
+      if (!cancelled) setGeocodeReady(true);
+    });
+    return () => { cancelled = true; };
+  }, [trip.id, trip.destination_city, trip.destination_country]);
+
+  // v3.9.16: Canonical context origin resolution
   const exploreContext = useMemo(() => getExploreContext(tripId), [tripId, refreshCounter]);
 
+  // v3.9.16: Gate check — destination required (not lodging)
+  const hasDestination = useMemo(() => hasExploreDestination(trip), [trip]);
+
   const origin = useMemo(() => {
+    if (!hasDestination) return null;
     const deviceCoords = deviceLocation.coords
       ? { lat: deviceLocation.coords.lat, lng: deviceLocation.coords.lng }
       : null;
 
     return resolveExploreOriginForContext({
       tripId,
+      trip,
       bookings,
       timelineEvents,
       isActive,
       context: exploreContext,
       deviceLocation: deviceCoords,
     });
-  }, [tripId, bookings, timelineEvents, isActive, exploreContext, deviceLocation.coords, refreshCounter]);
+  }, [tripId, trip, bookings, timelineEvents, isActive, exploreContext, deviceLocation.coords, refreshCounter, hasDestination, geocodeReady]);
 
   const canFetch = origin !== null;
 
@@ -137,22 +152,32 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
     refetch();
   }, [refetch, tripId]);
 
-  // === NO ORIGIN ===
-  if (!origin) {
+  // === NO DESTINATION (gate) ===
+  if (!hasDestination) {
     return (
-      <Card className="border-dashed border-amber-300/50 bg-amber-50/30 dark:bg-amber-950/10">
+      <Card className="border-dashed border-muted-foreground/20 bg-muted/30">
         <CardContent className="py-12 text-center">
           <div className="flex justify-center mb-4">
-            <div className="p-3 rounded-full bg-amber-100 dark:bg-amber-900/30">
-              <Building2 className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+            <div className="p-3 rounded-full bg-muted">
+              <MapPinned className="w-8 h-8 text-muted-foreground" />
             </div>
           </div>
-          <h3 className="text-lg font-semibold mb-2">Add lodging to explore nearby</h3>
+          <h3 className="text-lg font-semibold mb-2">Add a destination to use Explore</h3>
           <p className="text-muted-foreground max-w-md mx-auto">
-            Add lodging or flight bookings to explore near your destination.
+            Set your trip destination to discover attractions and things to do nearby.
           </p>
         </CardContent>
       </Card>
+    );
+  }
+
+  // === NO ORIGIN (destination exists but couldn't resolve coords yet) ===
+  if (!origin) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <span className="ml-2 text-muted-foreground">Locating your destination…</span>
+      </div>
     );
   }
 
