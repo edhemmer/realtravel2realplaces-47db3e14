@@ -13,7 +13,7 @@ import { useRemoveTripMembership } from '@/hooks/useTripMembers';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, MapPin, Calendar, Plane, Trash2, Users, ChevronRight, DollarSign, Compass, Radio, UserMinus } from 'lucide-react';
+import { Plus, MapPin, Calendar, Plane, Car, TrainFront, Route, Trash2, Users, ChevronRight, DollarSign, Compass, Radio, UserMinus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatTripDateRange } from '@/lib/displayFormats';
 import { getTodayDateOnly } from '@/lib/canonicalTimePolicy';
@@ -301,6 +301,27 @@ export default function Dashboard() {
   );
 }
 
+/**
+ * TravelModeIcon — Color-coded travel mode badge for trip cards
+ */
+function TravelModeIcon({ mode, isPast }: { mode: string; isPast: boolean }) {
+  const config = {
+    flight: { Icon: Plane, bg: 'bg-primary/10', text: 'text-primary' },
+    drive: { Icon: Car, bg: 'bg-success/10', text: 'text-success' },
+    train: { Icon: TrainFront, bg: 'bg-accent-foreground/10', text: 'text-accent-foreground' },
+    unspecified: { Icon: Route, bg: 'bg-muted', text: 'text-muted-foreground' },
+  }[mode] ?? { Icon: Route, bg: 'bg-muted', text: 'text-muted-foreground' };
+
+  const { Icon, bg, text } = config;
+  const dimmed = isPast ? 'opacity-50' : '';
+
+  return (
+    <span className={`inline-flex items-center justify-center w-7 h-7 rounded-lg shrink-0 ${bg} ${dimmed}`}>
+      <Icon className={`w-4 h-4 ${text}`} />
+    </span>
+  );
+}
+
 /** 
  * TripCard — Memoized card with premium hover elevation
  */
@@ -353,6 +374,7 @@ const TripCard = React.memo(function TripCard({
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
+              <TravelModeIcon mode={(trip as Trip).transportation_mode} isPast={isPastTrip} />
               <CardTitle className="text-lg truncate group-hover:text-primary transition-colors duration-200">
                 {trip.name}
               </CardTitle>
@@ -361,9 +383,6 @@ const TripCard = React.memo(function TripCard({
                   <Radio className="w-2.5 h-2.5" />
                   Live
                 </span>
-              )}
-              {(trip as Trip).transportation_mode === 'flight' && (
-                <Plane className={`w-3.5 h-3.5 shrink-0 ${isPastTrip ? 'text-muted-foreground/50' : 'text-primary/70'}`} />
               )}
             </div>
             <CardDescription className="flex items-center gap-1 mt-1">
