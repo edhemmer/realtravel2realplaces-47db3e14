@@ -77,10 +77,25 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               Reload
             </Button>
           </div>
-          {process.env.NODE_ENV === 'development' && this.state.error && (
-            <pre className="mt-6 text-xs text-left text-muted-foreground bg-muted p-3 rounded max-w-lg overflow-auto max-h-40">
-              {this.state.error.message}
-            </pre>
+          {import.meta.env.DEV && this.state.error && (
+            <details className="mt-6 text-left max-w-lg w-full">
+              <summary className="cursor-pointer text-sm font-medium text-destructive">
+                Details (dev only)
+              </summary>
+              <div className="mt-2 space-y-2">
+                <p className="text-xs font-mono text-destructive break-all">
+                  {this.state.error.message}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Route: {typeof window !== 'undefined' ? window.location.pathname : 'unknown'}
+                </p>
+                {this.state.error.stack && (
+                  <pre className="text-[10px] text-muted-foreground bg-muted p-3 rounded overflow-auto max-h-60 whitespace-pre-wrap">
+                    {this.state.error.stack}
+                  </pre>
+                )}
+              </div>
+            </details>
           )}
         </div>
       );
