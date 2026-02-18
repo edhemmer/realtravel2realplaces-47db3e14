@@ -43,6 +43,7 @@ import { enrichParsedBookingCost } from '@/lib/costAttribution';
 
 type TravelMode = 'fly' | 'drive' | 'train' | null;
 type WizardStep = 'mode' | 'fly-parse' | 'drive-form' | 'train-manual' | 'manual-form' | 'review-confirm';
+type AutofillStatus = 'idle' | 'running' | 'filled' | 'needs_user' | 'failed_timeout';
 
 function parsePassengers(passengerString: string | undefined, airline: string | undefined): Array<{
   name: string;
@@ -201,6 +202,10 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
   // v3.9.49: Canonical build status for progress overlay
   const [buildStatus, setBuildStatus] = useState<BuildStatus>('idle');
 
+  // v3.9.45: Autofill status for UI state + overlay control
+  const [autofillStatus, setAutofillStatus] = useState<AutofillStatus>('idle');
+  const autofillTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // v3.9.49: Ref to track latest travelMode for use in async callbacks (prevents stale closure)
   const travelModeRef = useRef<TravelMode>(null);
 
@@ -257,6 +262,8 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
     setDriveDestLocation(null);
     setComplexityResult(null);
     setBuildStatus('idle');
+    setAutofillStatus('idle');
+    if (autofillTimerRef.current) clearTimeout(autofillTimerRef.current);
     clearWizardBatch();
   }, [reset]);
 
@@ -358,8 +365,9 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
             return merged;
           });
 
-          // v3.9.49: Use ref for travelMode to avoid stale closure
+          // v3.9.45: Use ref for travelMode to avoid stale closure
           setBuildStatus('computing_meta');
+          setAutofillStatus('running');
           const currentMode = travelModeRef.current;
           const frameMode: TripFrameMode = currentMode === 'fly' ? 'fly' : currentMode === 'drive' ? 'drive' : 'fly';
           const meta = buildSuggestedTripMeta(allMergedBookings, frameMode);
@@ -384,7 +392,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
             setValue('destination_country', meta.suggestedDestinationFields.country);
           }
 
-          // v3.9.49: Also fill trip name from suggestedDestination when city-only (no airport match)
+          // v3.9.45: Also fill trip name from suggestedDestination when city-only
           if (!getValues('name') && meta.suggestedDestination) {
             setValue('name', `${meta.suggestedDestination} Trip`);
           }
@@ -392,7 +400,25 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
             setValue('destination_city', meta.suggestedDestination);
           }
 
-          setBuildStatus(meta.suggestedDestinationFields.city ? 'ready' : 'needs_input');
+          // v3.9.45: Determine autofill status
+          const hasName = !!getValues('name');
+          const hasCity = !!getValues('destination_city');
+          const hasStart = !!meta.suggestedStart;
+          const hasEnd = !!meta.suggestedEnd;
+          const allFilled = hasName && hasCity && hasStart && hasEnd;
+
+          if (allFilled) {
+            setAutofillStatus('filled');
+            setBuildStatus('ready');
+          } else {
+            // Start 2-second safety fallback timer
+            if (autofillTimerRef.current) clearTimeout(autofillTimerRef.current);
+            autofillTimerRef.current = setTimeout(() => {
+              setAutofillStatus('needs_user');
+              setBuildStatus('needs_input');
+            }, 2000);
+            setBuildStatus(meta.suggestedDestinationFields.city ? 'ready' : 'needs_input');
+          }
         } else {
           // No bookings parsed — fall back to per-email AI trip metadata for dates only
           if (parsed.trip?.start_date) {
@@ -802,6 +828,9 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
     setDriveOriginLocation(null);
     setDriveDestLocation(null);
     setComplexityResult(null);
+    setAutofillStatus('idle');
+    setBuildStatus('idle');
+    if (autofillTimerRef.current) clearTimeout(autofillTimerRef.current);
     onOpenChange(false);
   };
 
@@ -1264,6 +1293,14 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
 
             {/* v3.10.1: Removed onboarding-only paste input — confirmations handled via fly-parse step */}
 
+            {/* v3.9.45: Manual confirm banner when autofill couldn't resolve everything */}
+            {(autofillStatus === 'needs_user' || autofillStatus === 'failed_timeout') && parsedBookings.length > 0 && (
+              <div className="flex items-start gap-2 p-3 rounded-lg bg-accent/50 border border-accent text-sm text-foreground">
+                <Info className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
+                <span>We couldn't auto-fill everything from these confirmations. Please confirm the trip name, destination, and dates.</span>
+              </div>
+            )}
+
             <form onSubmit={handlePreSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Trip Name</Label>
@@ -1436,20 +1473,38 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-4">
-                <Button type="button" variant="outline" onClick={handleClose} className="flex-1">
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  className="flex-1 bg-gradient-ocean hover:opacity-90"
-                  disabled={createTrip.isPending || !startDate || !endDate}
-                >
-                  {createTrip.isPending ? 'Creating...' : parsedBookings.length > 0
-                    ? 'Continue'
-                    : 'Create Trip'}
-                </Button>
-              </div>
+              {/* v3.9.45: Missing fields helper */}
+              {(() => {
+                const missing: string[] = [];
+                if (!watch('name')) missing.push('Trip name');
+                if (!watch('destination_city')) missing.push('City');
+                if (!startDate) missing.push('Start date');
+                if (!endDate) missing.push('End date');
+                const canContinue = missing.length === 0;
+                return (
+                  <div className="space-y-2 pt-4">
+                    {!canContinue && missing.length > 0 && (
+                      <p className="text-xs text-muted-foreground text-center">
+                        Missing: {missing.join(', ')}
+                      </p>
+                    )}
+                    <div className="flex gap-3">
+                      <Button type="button" variant="outline" onClick={handleClose} className="flex-1">
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        className="flex-1 bg-gradient-ocean hover:opacity-90"
+                        disabled={createTrip.isPending || !canContinue}
+                      >
+                        {createTrip.isPending ? 'Creating...' : parsedBookings.length > 0
+                          ? 'Continue'
+                          : 'Create Trip'}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })()}
             </form>
           </div>
         )}
