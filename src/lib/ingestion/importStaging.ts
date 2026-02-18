@@ -13,6 +13,7 @@
  */
 
 import { extractDateToken, deriveTripDateRange, type TripDateRange } from '@/lib/canonicalTripDates';
+import { toDateTokenFromString } from '@/lib/dateTokenExtractor';
 import { buildSuggestedTripMeta, type SuggestedTripMeta } from '@/lib/suggestedTripMeta';
 
 // ============================================================================
@@ -59,15 +60,16 @@ export function extractDateTokensFromParsedItems(
   const tokens: string[] = [];
 
   for (const item of items) {
-    const startToken = extractDateToken(item.start_datetime as string | null | undefined);
-    const endToken = extractDateToken(item.end_datetime as string | null | undefined);
+    // Try ISO extraction first, then broad format extraction as fallback
+    const startToken = extractDateToken(item.start_datetime as string | null | undefined)
+      || toDateTokenFromString(item.start_datetime as string | null | undefined);
+    const endToken = extractDateToken(item.end_datetime as string | null | undefined)
+      || toDateTokenFromString(item.end_datetime as string | null | undefined);
 
     if (startToken) tokens.push(startToken);
 
     if (endToken) {
       tokens.push(endToken);
-    } else if (startToken) {
-      // Fallback: if end missing, departure/start token already captured above
     }
   }
 
@@ -143,6 +145,18 @@ export function buildImportStaging(
   }));
 
   const meta = buildSuggestedTripMeta(metaBookings, travelMode);
+
+  // v3.9.37: Dev-only verification logs
+  if (import.meta.env.DEV) {
+    console.log('[IMPORT_STAGING] DATE_TOKENS_EXTRACTED', {
+      count: dateTokens.length,
+      uniqueTokens: dateTokens,
+    });
+    console.log('[IMPORT_STAGING] DERIVED_TRIP_RANGE', {
+      start: tripFrame.startDate,
+      end: tripFrame.endDate,
+    });
+  }
 
   return {
     sessionId: id,
