@@ -15,7 +15,7 @@ import { DatetimeFormatPreference } from '@/lib/displayFormats';
 import { formatLocalTimeDirect, formatLocalDateDirect } from '@/lib/canonicalTimeNormalizer';
 import { UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
 import { resolveMapsFromTimelineEvent, openMapsDestination } from '@/lib/mapsDestination';
-import { buildFlightDisplayLine } from '@/lib/flightDisplayUtils';
+import { buildFlightDisplayModel, buildFlightSubtitleLine } from '@/lib/flightDisplayModel';
 import { 
   Plane, Building2, Car, CircleParking, Compass, Ticket, 
   TrainFront, Bus, TramFront, Ship, PartyPopper, Navigation
@@ -57,25 +57,28 @@ const getEventIcon = (type: string, transportMode?: string) => {
 };
 
 /**
- * v3.13.2: Build combined flight subtitle using canonical display format.
- * Pattern: DEN → COS • Conf EJMB2X • Dep 6:00 AM • Arr 7:39 AM
- * Uses buildFlightDisplayLine for consistency across all surfaces.
+ * v3.9.17: Build combined flight subtitle using canonical FlightDisplayModel.
+ * Pattern: TFS → MXP • Conf EJMB2X • Dep 6:00 AM • Arr 7:39 AM
+ * Note: Timeline events don't carry end_datetime, so next-day detection
+ * is not available here (arrival date is shown via timeline grouping).
  */
 function buildFlightSubtitle(
   event: CanonicalTimelineEvent,
   datetimeFormat: DatetimeFormatPreference
 ): string {
   const use24h = datetimeFormat === 'DD/MM/YYYY 24h';
-  return buildFlightDisplayLine({
+  const model = buildFlightDisplayModel({
     departureAirportCode: event.departureAirportCode,
     arrivalAirportCode: event.arrivalAirportCode,
     confirmationNumber: event.confirmationNumber,
+    startDatetime: event.eventLocalDateTime,
     departureLocalTime: event.departureLocalTime,
     arrivalLocalTime: event.arrivalLocalTime,
     hasDepartureTime: event.hasDepartureTime,
     hasArrivalTime: event.hasArrivalTime,
     use24h,
   });
+  return buildFlightSubtitleLine(model);
 }
 
 export function TripTimeline({ events, datetimeFormat, onEventClick, onExploreNearby }: TripTimelineProps) {

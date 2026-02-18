@@ -25,6 +25,7 @@ import {
 import { cn } from '@/lib/utils';
 import { resolveMapsDestination, openMapsDestination } from '@/lib/mapsDestination';
 import { buildFlightDisplayLine } from '@/lib/flightDisplayUtils';
+import { buildFlightDisplayModel } from '@/lib/flightDisplayModel';
 import { GasLocatorPill } from '@/components/trips/GasLocatorPill';
 // v3.11.2: Removed date-fns parseISO/format — using canonical time policy
 import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER, extractDateForDisplay } from '@/lib/datetimeIntegrity';
@@ -1126,6 +1127,56 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                 </div>
               </CardHeader>
               <CardContent className="space-y-1.5 text-sm">
+                {/* v3.9.17: Flight-specific departure/arrival with IATA + next-day */}
+                {booking.booking_type === 'flight' ? (() => {
+                  const fm = buildFlightDisplayModel({
+                    departureAirportCode: booking.departure_airport_code,
+                    arrivalAirportCode: booking.arrival_airport_code,
+                    departureAirportName: booking.departure_airport_name,
+                    arrivalAirportName: booking.arrival_airport_name,
+                    confirmationNumber: booking.confirmation_number,
+                    startDatetime: booking.start_datetime,
+                    endDatetime: booking.end_datetime,
+                  });
+                  return (
+                    <div className="space-y-1.5 text-xs">
+                      {/* Route: TFS → MXP */}
+                      {fm.routeDisplay && (
+                        <div className="font-semibold text-sm">
+                          {fm.routeDisplay}
+                        </div>
+                      )}
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <div>
+                          <span className="text-muted-foreground block text-[10px]">Departure</span>
+                          <span className="font-medium">
+                            {fm.depDate || '—'},{' '}
+                            {fm.hasDepTime && fm.depTime ? fm.depTime : (
+                              <span className="text-destructive">{UNKNOWN_TIME_PLACEHOLDER}</span>
+                            )}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block text-[10px]">Arrival</span>
+                          <span className="font-medium">
+                            {fm.isNextDay && fm.arrDate ? fm.arrDate : (fm.depDate || '—')},{' '}
+                            {fm.hasArrTime && fm.arrTime ? fm.arrTime : (
+                              <span className="text-destructive">{UNKNOWN_TIME_PLACEHOLDER}</span>
+                            )}
+                            {fm.isNextDay && <span className="text-muted-foreground ml-1 text-[10px]">(+1)</span>}
+                          </span>
+                        </div>
+                      </div>
+                      {booking.confirmation_number && (
+                        <div>
+                          <span className="text-muted-foreground block text-[10px]">Conf #</span>
+                          <span className="font-mono font-medium">{booking.confirmation_number}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })() : (
+                  <>
                 {/* Transport-specific: From → To display */}
                 {booking.booking_type === 'transport' && ((booking as any).from_location || (booking as any).to_location) && (
                   <div className="text-xs">
@@ -1140,7 +1191,6 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                     <span className="text-muted-foreground block text-[10px]">
                       {booking.booking_type === 'transport' ? 'Departure' : 'When'}
                     </span>
-                    {/* v3.11.2: Use canonical string display — no parseDatetimeForDisplay/Date */}
                     {(() => {
                       const dateStr = extractDateOnly(booking.start_datetime);
                       const timeStr = hasExplicitTime(booking.start_datetime)
@@ -1156,7 +1206,6 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                       ) : <span className="text-muted-foreground">--</span>;
                     })()}
                   </div>
-                  {/* Transport: show arrival time if available */}
                   {booking.booking_type === 'transport' && booking.end_datetime && (
                     <div>
                       <span className="text-muted-foreground block">Arrival</span>
@@ -1183,12 +1232,13 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                     </div>
                   )}
                 </div>
-                {/* Transport: show reference/ticket number separately */}
                 {booking.booking_type === 'transport' && booking.confirmation_number && (
                   <div className="text-xs">
                     <span className="text-muted-foreground block">Reference / Ticket #</span>
                     <span className="font-mono font-medium">{booking.confirmation_number}</span>
                   </div>
+                )}
+                  </>
                 )}
                 
                 {/* v2.1.24: Use normalized costs for display (Frontier-style single total) */}
