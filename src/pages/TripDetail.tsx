@@ -45,6 +45,7 @@ import { MobileAddExpenseCard } from '@/components/trips/MobileAddExpenseCard';
 // Patch 2.2.3: Mobile-first layout components
 import { TripDetailLayout, type TripTab } from '@/components/layout';
 import { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // v3.9.5: Context to share capability-scoped permissions with child components
 interface TripPermissionContextType {
@@ -95,7 +96,7 @@ const MOBILE_SECTION_LABELS: Partial<Record<TripTab, string>> = {
 export default function TripDetail() {
   const { tripId } = useParams<{ tripId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { data: trip, isLoading } = useTrip(tripId || '');
+  const { data: trip, isLoading, isError, error: tripError } = useTrip(tripId || '');
   const { data: ownership, isLoading: ownershipLoading } = useTripOwnership(tripId || '');
   const { data: bookings = [] } = useBookings(tripId || '');
   const { isPro, canAccessBusinessFeatures, tier } = useAccess();
@@ -178,6 +179,37 @@ export default function TripDetail() {
     );
   }
 
+  // v3.9.10: Error state — handle fetch failures explicitly
+  if (isError) {
+    const isAuthError = tripError?.message?.includes('JWT') || tripError?.message?.includes('401') || tripError?.message?.includes('403');
+    return (
+      <Layout>
+        <div className="text-center py-16">
+          <h2 className="text-xl font-semibold mb-2">
+            {isAuthError ? 'Session expired' : 'We couldn\'t load this trip'}
+          </h2>
+          <p className="text-muted-foreground mb-4">
+            {isAuthError
+              ? 'Please sign in again to continue.'
+              : 'Something went wrong loading this trip. Please try again.'}
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Button asChild variant="outline">
+              <Link to="/dashboard">Back to Dashboard</Link>
+            </Button>
+            {isAuthError ? (
+              <Button asChild>
+                <Link to="/auth">Sign In</Link>
+              </Button>
+            ) : (
+              <Button onClick={() => window.location.reload()}>Retry</Button>
+            )}
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   if (!trip) {
     return (
       <Layout>
@@ -185,7 +217,7 @@ export default function TripDetail() {
           <h2 className="text-xl font-semibold mb-2">Trip not found</h2>
           <p className="text-muted-foreground mb-4">This trip doesn't exist or you don't have access.</p>
           <Button asChild>
-            <Link to="/">Back to Dashboard</Link>
+            <Link to="/dashboard">Back to Dashboard</Link>
           </Button>
         </div>
       </Layout>
@@ -315,6 +347,7 @@ export default function TripDetail() {
   return (
     <TripPermissionContext.Provider value={{ isOwner, canEdit, canAddExpenses, canAddLodging, canEditTripMeta, isReadOnlyOverall }}>
       <Layout>
+        <ErrorBoundary context="TripDetail">
         {/* v2.3.x: Mobile uses MobileNavigationRouter, desktop uses existing Tabs */}
         {isMobile ? (
           <>
@@ -432,6 +465,7 @@ export default function TripDetail() {
             </DesktopTripShell>
           </TripDetailLayout>
         )}
+        </ErrorBoundary>
       </Layout>
     </TripPermissionContext.Provider>
   );

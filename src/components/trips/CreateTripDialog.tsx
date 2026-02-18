@@ -589,6 +589,27 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
       onOpenChange(false);
 
       if (trip?.id) {
+        // v3.9.10: Verify trip is loadable before routing
+        try {
+          const { data: verifyTrip, error: verifyError } = await supabase
+            .from('trips')
+            .select('id')
+            .eq('id', trip.id)
+            .maybeSingle();
+
+          if (verifyError || !verifyTrip) {
+            console.error('[CreateTrip] Trip verification failed:', verifyError);
+            toast.error('Trip created, but it couldn\'t be loaded yet. Please try opening it from your dashboard.');
+            navigate('/dashboard');
+            return;
+          }
+        } catch (verifyErr) {
+          console.error('[CreateTrip] Trip verification exception:', verifyErr);
+          toast.error('Trip created, but it couldn\'t be loaded yet. Please try opening it from your dashboard.');
+          navigate('/dashboard');
+          return;
+        }
+
         // v3.8.20: Mark onboarding complete + route to NOW view
         if (isOnboarding) {
           try { await completeOnboarding.mutateAsync(); } catch {}
@@ -644,6 +665,25 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
       resetAll();
       onOpenChange(false);
       if (trip?.id) {
+        // v3.9.10: Verify trip loadable before routing
+        try {
+          const { data: verifyTrip, error: verifyError } = await supabase
+            .from('trips')
+            .select('id')
+            .eq('id', trip.id)
+            .maybeSingle();
+
+          if (verifyError || !verifyTrip) {
+            toast.error('Trip created, but it couldn\'t be loaded yet. Please try from your dashboard.');
+            navigate('/dashboard');
+            return;
+          }
+        } catch {
+          toast.error('Trip created, but it couldn\'t be loaded yet. Please try from your dashboard.');
+          navigate('/dashboard');
+          return;
+        }
+
         // v3.8.20: Mark onboarding complete + route to NOW view
         if (isOnboarding) {
           try { await completeOnboarding.mutateAsync(); } catch {}
