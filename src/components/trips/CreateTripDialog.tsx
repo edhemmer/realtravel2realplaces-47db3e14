@@ -853,7 +853,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className={`${dialogMaxWidth} max-h-[85vh] overflow-y-auto relative top-[50%] translate-y-[-50%]`}>
+      <DialogContent className={`${dialogMaxWidth} max-h-[85vh] overflow-y-auto`}>
 
         {/* v3.9.49: Canonical build progress overlay */}
         <ImportBuildProgressOverlay
@@ -866,7 +866,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
 
         {/* ── STEP: Mode Chooser ───────────────────────────────── */}
         {step === 'mode' && (
-          <div className="py-4 space-y-6">
+          <div className="py-2 space-y-4">
             <div className="text-center space-y-2">
               <h2 className="text-2xl font-bold tracking-tight">
                 {isOnboarding ? 'How are you traveling?' : 'How are you traveling?'}
@@ -879,46 +879,46 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               {/* Fly */}
               <button
                 onClick={() => handleModeSelect('fly')}
-                className="group flex flex-col items-center gap-2 p-6 rounded-xl border-2 border-border hover:border-primary/60 hover:bg-primary/5 transition-all duration-200 cursor-pointer"
+                className="group flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-border hover:border-primary/60 hover:bg-primary/5 transition-all duration-200 cursor-pointer"
               >
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                  <Plane className="w-6 h-6 text-primary" />
+                <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                  <Plane className="w-5 h-5 text-primary" />
                 </div>
-                <span className="text-lg font-semibold">Fly</span>
+                <span className="text-base font-semibold text-foreground">Fly</span>
                 <span className="text-xs text-muted-foreground text-center leading-snug">
-                  Best when you have airline confirmations.
+                  Airline confirmations
                 </span>
               </button>
 
               {/* Drive */}
               <button
                 onClick={() => handleModeSelect('drive')}
-                className="group flex flex-col items-center gap-2 p-6 rounded-xl border-2 border-border hover:border-primary/60 hover:bg-primary/5 transition-all duration-200 cursor-pointer"
+                className="group flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-border hover:border-primary/60 hover:bg-primary/5 transition-all duration-200 cursor-pointer"
               >
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                  <Car className="w-6 h-6 text-primary" />
+                <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                  <Car className="w-5 h-5 text-primary" />
                 </div>
-                <span className="text-lg font-semibold">Drive</span>
+                <span className="text-base font-semibold text-foreground">Drive</span>
                 <span className="text-xs text-muted-foreground text-center leading-snug">
-                  Best when you're on the road with a car.
+                  Road trip by car
                 </span>
               </button>
 
               {/* Train */}
               <button
                 onClick={() => handleModeSelect('train')}
-                className="group flex flex-col items-center gap-2 p-6 rounded-xl border-2 border-border hover:border-primary/60 hover:bg-primary/5 transition-all duration-200 cursor-pointer"
+                className="group flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-border hover:border-primary/60 hover:bg-primary/5 transition-all duration-200 cursor-pointer"
               >
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                  <TrainFront className="w-6 h-6 text-primary" />
+                <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                  <TrainFront className="w-5 h-5 text-primary" />
                 </div>
-                <span className="text-lg font-semibold">Train</span>
+                <span className="text-base font-semibold text-foreground">Train</span>
                 <span className="text-xs text-muted-foreground text-center leading-snug">
-                  Best for rail tickets and passes.
+                  Rail tickets &amp; passes
                 </span>
               </button>
             </div>
