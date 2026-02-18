@@ -112,47 +112,58 @@ export function buildSuggestedTripMeta(
   let destAirport: Airport | undefined = undefined;
 
   if (flights.length > 0) {
-    // Sort flights by start_datetime to find first departure and last arrival
-    const sortedFlights = [...flights].sort((a, b) => {
-      const da = a.start_datetime || '';
-      const db = b.start_datetime || '';
-      return da.localeCompare(db);
-    });
+    // Sort flights chronologically
+    const sortedFlights = [...flights].sort((a, b) =>
+      (a.start_datetime || '').localeCompare(b.start_datetime || '')
+    );
 
-    // Origin = first flight's departure
-    const firstFlight = sortedFlights[0];
-    const firstDepCode = (firstFlight as any).departure_airport_code?.trim().toUpperCase();
+    const firstDepCode = sortedFlights[0]?.departure_airport_code?.trim().toUpperCase() || null;
+    const lastArrCode = sortedFlights[sortedFlights.length - 1]?.arrival_airport_code?.trim().toUpperCase() || null;
 
-    // Destination = last flight's arrival (final leg endpoint)
-    // For a round-trip, this is the return arrival. For one-way chains,
-    // we want the farthest destination, which is trickier.
-    // Strategy: find the last flight's arrival airport.
-    const lastFlight = sortedFlights[sortedFlights.length - 1];
-    const lastArrCode = (lastFlight as any).arrival_airport_code?.trim().toUpperCase();
-
-    // For a round trip where last arrival == first departure,
-    // the destination is the first arrival or the mid-point.
-    // Better heuristic: find the arrival of the first outbound leg.
-    const firstArrCode = (firstFlight as any).arrival_airport_code?.trim().toUpperCase();
-
+    // Set origin
     if (firstDepCode) {
       const originAirport = getAirportByCode(firstDepCode);
       suggestedOrigin = originAirport?.city || firstDepCode;
     }
 
-    // Determine destination:
-    // If round-trip (last arrival == first departure), destination = first arrival
-    // Otherwise, destination = last arrival
-    if (lastArrCode && firstDepCode && lastArrCode === firstDepCode && firstArrCode) {
-      // Round trip detected — destination is first flight's arrival
-      destAirport = getAirportByCode(firstArrCode);
-      suggestedDestination = destAirport?.city || firstArrCode;
+    // Determine destination
+    if (lastArrCode && firstDepCode && lastArrCode === firstDepCode) {
+      // Round-trip detected: last arrival == origin
+      // Find turnaround point — the arrival just before the return path begins.
+      // Walk legs forward; the return path starts when a leg's arrival matches origin.
+      let turnaroundCode: string | null = null;
+
+      for (let i = 0; i < sortedFlights.length; i++) {
+        const arrCode = sortedFlights[i]?.arrival_airport_code?.trim().toUpperCase() || null;
+        if (i > 0 && arrCode === firstDepCode) {
+          // This leg returns to origin — turnaround is previous leg's arrival
+          turnaroundCode = sortedFlights[i - 1]?.arrival_airport_code?.trim().toUpperCase() || null;
+          break;
+        }
+      }
+
+      // Fallback: midpoint leg's arrival (for symmetrical itineraries)
+      if (!turnaroundCode) {
+        const midIdx = Math.floor(sortedFlights.length / 2) - 1;
+        const safeMid = Math.max(0, Math.min(midIdx, sortedFlights.length - 1));
+        turnaroundCode = sortedFlights[safeMid]?.arrival_airport_code?.trim().toUpperCase() || null;
+      }
+
+      if (turnaroundCode) {
+        destAirport = getAirportByCode(turnaroundCode);
+        suggestedDestination = destAirport?.city || turnaroundCode;
+      }
     } else if (lastArrCode) {
+      // One-way or open-jaw
       destAirport = getAirportByCode(lastArrCode);
       suggestedDestination = destAirport?.city || lastArrCode;
-    } else if (firstArrCode) {
-      destAirport = getAirportByCode(firstArrCode);
-      suggestedDestination = destAirport?.city || firstArrCode;
+    } else {
+      // Fallback: first flight's arrival
+      const firstArrCode = sortedFlights[0]?.arrival_airport_code?.trim().toUpperCase() || null;
+      if (firstArrCode) {
+        destAirport = getAirportByCode(firstArrCode);
+        suggestedDestination = destAirport?.city || firstArrCode;
+      }
     }
   }
 
