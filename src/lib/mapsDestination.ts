@@ -10,6 +10,9 @@
  *   if (dest) openMapsDestination(dest);
  */
 
+import { resolveAirportRef } from '@/lib/location/locationResolver';
+import { buildNavTarget } from '@/lib/location/navigationTargets';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -182,10 +185,7 @@ export function resolveMapsFromTimelineEvent(event: {
 }): MapsDestination | null {
   // v3.12.2: For flights, use canonical airport resolver
   if (event.bookingType === 'flight') {
-    const { resolveAirportRef } = require('@/lib/location/locationResolver');
-    const { buildNavTarget } = require('@/lib/location/navigationTargets');
-
-    // Prefer departure airport for navigation (user needs to get there)
+    // v3.12.2: For flights, use canonical airport resolver
     const depRef = resolveAirportRef({ iata: event.departureAirportCode });
     if (depRef) {
       const target = buildNavTarget(depRef);
@@ -239,8 +239,7 @@ export function resolveMapsFromNextStop(event: {
 }): MapsDestination | null {
   // v3.12.2: For flights, use canonical airport resolver
   if (event.type === 'flight' || event.type === 'flight_departure') {
-    const { resolveAirportRef } = require('@/lib/location/locationResolver');
-    const { buildNavTarget } = require('@/lib/location/navigationTargets');
+    // v3.12.2: For flights, use canonical airport resolver
 
     const code = event.locationLabel?.trim().toUpperCase();
     if (code && /^[A-Z]{3}$/.test(code)) {
