@@ -1,17 +1,18 @@
 /**
  * Booking-Expense Synchronization Utilities
- * v2.1.9 - Links expenses to bookings for accurate financial tracking
+ * v3.9.21 - Links expenses to bookings for accurate financial tracking
  * 
  * Since we cannot add a booking_id column, we use a marker in the notes field:
  * Format: [linked_booking:booking_uuid]
  * 
- * AIRFARE COST RULES (v2.1.9 - Cost Duplication Prevention):
- * - Each flight booking represents ONE confirmation (may contain multiple legs)
+ * AIRFARE COST RULES (v3.9.21 - Canonical Cost Attribution):
+ * - Each booking represents ONE confirmation (may contain multiple legs)
  * - booking.total_cost is the SINGLE source of truth - the total from the confirmation
- * - We NEVER create per-segment/per-leg expenses - only booking-level
- * - This prevents double-counting when:
- *   a) A confirmation shows one total for all legs (most common)
- *   b) Multiple legs exist as timeline events without individual costs
+ * - costAttributionMode determines how expenses are created:
+ *   BOOKING_TOTAL: one expense per confirmation total (non-duplicative)
+ *   PER_LEG: one expense per leg with explicit leg cost
+ *   MIXED_NEEDS_REVIEW: no automatic expense; user must review
+ *   NONE: no expense (no cost data)
  * - If booking.total_cost is null/0, no expense is created
  */
 

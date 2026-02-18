@@ -426,6 +426,9 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
           warnings: [],
           rawStartTime: { dateText: null, timeText: null, datetimeText: null, timezoneText: null },
           rawEndTime: { dateText: null, timeText: null, datetimeText: null, timezoneText: null },
+          costAttributionMode: 'NONE' as const,
+          bookingCostTotal: null,
+          bookingCostBreakdown: [] as Array<{ label: string; amount: number; currency: string }>,
           startDatetime: b.start_datetime || null,
           endDatetime: b.end_datetime || null,
         };
@@ -451,6 +454,8 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
             departLocalKey: null,
             arriveLocalKey: null,
             arrivalDateDerived: false,
+            legCost: null,
+            legCostSourceRef: null,
           };
         }
         if (b.booking_type === 'stay') {

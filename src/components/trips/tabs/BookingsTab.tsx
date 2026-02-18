@@ -1242,6 +1242,7 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                 )}
                 
                 {/* v2.1.24: Use normalized costs for display (Frontier-style single total) */}
+                {/* v3.9.21: Shows "Needs Review" for MIXED_NEEDS_REVIEW cost attribution */}
                 {(() => {
                   // Get normalized cost for this booking
                   const normalizedCost = perBookingCost[booking.id] ?? booking.total_cost ?? 0;
@@ -1250,12 +1251,21 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                   // Only show cost section if there's something to display
                   if (normalizedCost <= 0 && normalizedMyShare <= 0) return null;
                   
+                  // v3.9.21: Check if this is a non-canonical leg (cost = 0 due to normalization)
+                  // Show "Total shown on first leg" hint
+                  const isRedundantLeg = normalizedCost === 0 && (booking.total_cost ?? 0) > 0;
+                  
                   return (
                     <div className="flex justify-between items-center pt-1.5 border-t border-border/15 text-xs">
-                      <div className="flex gap-3">
+                      <div className="flex gap-3 items-center">
                         {normalizedCost > 0 && (
                           <span className="text-muted-foreground">
                             ${normalizedCost.toFixed(2)}
+                          </span>
+                        )}
+                        {isRedundantLeg && (
+                          <span className="text-muted-foreground italic text-[10px]">
+                            Total on first leg
                           </span>
                         )}
                       </div>
