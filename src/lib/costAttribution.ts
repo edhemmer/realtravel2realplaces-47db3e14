@@ -64,10 +64,15 @@ const BOOKING_TOTAL_PATTERNS = [
   /payment\s+total\s*[:=]?\s*([A-Z]{3})?\s*\$?\s*([\d,]+(?:\.\d{2})?)/i,
   /total\s+paid\s*[:=]?\s*([A-Z]{3})?\s*\$?\s*([\d,]+(?:\.\d{2})?)/i,
   /grand\s+total\s*[:=]?\s*([A-Z]{3})?\s*\$?\s*([\d,]+(?:\.\d{2})?)/i,
-  /amount\s+charged\s*[:=]?\s*([A-Z]{3})?\s*\$?\s*([\d,]+(?:\.\d{2})?)/i,
+  /amount\s+(?:charged|paid)\s*[:=]?\s*([A-Z]{3})?\s*\$?\s*([\d,]+(?:\.\d{2})?)/i,
   /total\s+charge[ds]?\s*[:=]?\s*([A-Z]{3})?\s*\$?\s*([\d,]+(?:\.\d{2})?)/i,
   /total\s+amount\s*[:=]?\s*([A-Z]{3})?\s*\$?\s*([\d,]+(?:\.\d{2})?)/i,
   /(?:^|\n)\s*total\s*[:=]?\s*([A-Z]{3})?\s*\$?\s*([\d,]+(?:\.\d{2})?)/im,
+  // Currency-first patterns: "USD 924.00", "EUR 150.00" near total keywords
+  /payment\s+total\s+([A-Z]{3})\s+([\d,]+(?:\.\d{2})?)/i,
+  /total\s+([A-Z]{3})\s+([\d,]+(?:\.\d{2})?)/i,
+  // Dollar-sign-first: "Total: $924.00"
+  /total\s*[:=]?\s*\$\s*()([\d,]+(?:\.\d{2})?)/i,
 ];
 
 /** Patterns for per-leg/segment pricing */
@@ -364,4 +369,52 @@ export function getDisplayCostForLeg(
  */
 export function costNeedsReview(costAttributionMode: CostAttributionMode): boolean {
   return costAttributionMode === 'MIXED_NEEDS_REVIEW';
+}
+
+// ============================================================================
+// v3.9.28: PARSED BOOKING COST ENRICHMENT
+// ============================================================================
+
+/**
+ * Enrich a parsed booking with cost extracted from raw text when the AI parser
+ * did not capture total_cost. This is the universal fallback for receipt cost
+ * extraction across all airlines/vendors.
+ *
+ * RULES:
+ * - Only enriches if parsed.total_cost is null/undefined/0
+ * - Uses extractMonetaryTotalsFromConfirmation on the raw source text
+ * - Picks the highest-confidence booking-total candidate
+ * - Never overwrites an existing valid cost
+ * - Returns the enriched parsed data (mutated in place for convenience)
+ */
+export function enrichParsedBookingCost(
+  parsed: Record<string, unknown>,
+  rawText: string | undefined,
+): Record<string, unknown> {
+  // Only enrich if cost is missing
+  const existingCost = parsed.total_cost as number | null | undefined;
+  if (typeof existingCost === 'number' && existingCost > 0 && Number.isFinite(existingCost)) {
+    return parsed; // Already has a valid cost
+  }
+
+  if (!rawText || typeof rawText !== 'string') return parsed;
+
+  const candidates = extractMonetaryTotalsFromConfirmation(rawText);
+  const bookingTotals = candidates.filter(c => c.isBookingTotal);
+
+  if (bookingTotals.length === 0) return parsed;
+
+  // Pick highest confidence, or first if equal
+  const best = bookingTotals.sort((a, b) => {
+    const rank = { HIGH: 3, MED: 2, LOW: 1 };
+    return (rank[b.confidence] || 0) - (rank[a.confidence] || 0);
+  })[0];
+
+  parsed.total_cost = best.amount;
+  // Store currency if extracted (for future multi-currency support)
+  if (best.currency && best.currency !== 'USD') {
+    parsed._extracted_currency = best.currency;
+  }
+
+  return parsed;
 }
