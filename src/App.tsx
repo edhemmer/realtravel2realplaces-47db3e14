@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { BrandedPageLoader } from "@/components/ui/premium-loading";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import LandingPage from "./pages/LandingPage";
 import Auth from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -167,11 +168,13 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
+          <ErrorBoundary context="App">
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </ErrorBoundary>
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>
