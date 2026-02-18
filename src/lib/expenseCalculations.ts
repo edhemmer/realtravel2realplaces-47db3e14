@@ -196,21 +196,38 @@ export interface TripCostSummary {
 }
 
 /**
- * Generate a stable booking key for grouping flight bookings
- * Used to detect legacy duplicated leg costs
+ * Generate a stable booking key for grouping bookings by provider + reference.
+ * v3.9.25: Extended to all booking types (flights, stays, rentals, activities).
+ * Used to detect legacy duplicated leg costs and prevent multi-email import duplicates.
+ *
+ * Key format: providerCanonical::bookingRefRaw
+ */
+export function getStableBookingKey(booking: Booking): string {
+  // Provider = airline for flights, vendor_name for everything else
+  const provider = (
+    booking.booking_type === 'flight'
+      ? (booking.airline || booking.vendor_name || '')
+      : (booking.vendor_name || booking.rental_company || booking.property_name || '')
+  ).toLowerCase().trim();
+
+  // Reference = confirmation_number (the raw booking ref from the confirmation)
+  const bookingRef = (booking.confirmation_number || '').toLowerCase().trim();
+
+  // If no reference, use provider + approximate date as fallback
+  if (!bookingRef) {
+    const dateKey = booking.start_datetime?.split('T')[0] || '';
+    return `${provider}::${dateKey}::no-ref`;
+  }
+
+  return `${provider}::${bookingRef}`;
+}
+
+/**
+ * @deprecated v3.9.25: Use getStableBookingKey instead.
+ * Kept for backward compatibility.
  */
 function getFlightBookingKey(booking: Booking): string {
-  // Primary grouping key: confirmation number + airline (case-insensitive, trimmed)
-  const confirmationNumber = (booking.confirmation_number || '').toLowerCase().trim();
-  const airline = (booking.airline || booking.vendor_name || '').toLowerCase().trim();
-  
-  // If no confirmation number, use vendor + approximate date as fallback
-  if (!confirmationNumber) {
-    const dateKey = booking.start_datetime?.split('T')[0] || '';
-    return `${airline}::${dateKey}::no-conf`;
-  }
-  
-  return `${confirmationNumber}::${airline}`;
+  return getStableBookingKey(booking);
 }
 
 /**
