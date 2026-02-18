@@ -371,98 +371,96 @@ const TripCard = React.memo(function TripCard({
 
     return (
     <Card 
-      className={`group transition-all duration-200 overflow-hidden border-border/50 hover:shadow-lg ${cardClassName} ${pastTripStyles} ${activeBorder}`}
+      className={`group relative transition-all duration-200 overflow-hidden border-border/50 hover:shadow-lg ${cardClassName} ${pastTripStyles} ${activeBorder}`}
     >
       {/* Mode accent strip */}
       <div className={`h-[3px] w-full ${modeTheme.gradients.buttonBg}`} />
-      <div className="flex items-stretch">
-        {/* Left content area */}
-        <div className="flex-1 min-w-0">
-          <CardHeader className="pb-2">
-            <div className="flex items-start justify-between">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <TravelModeIcon mode={tripMode} isPast={isPastTrip} />
-                  <CardTitle className="text-lg truncate">
-                    {trip.name}
-                  </CardTitle>
-                  {isActive && (
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-teal-500/15 text-teal-600 dark:text-teal-400 shrink-0">
-                      <Radio className="w-2.5 h-2.5" />
-                      Live
-                    </span>
-                  )}
-                </div>
-                <CardDescription className="flex items-center gap-1 mt-1">
-                  <MapPin className="w-3 h-3" />
-                  {trip.destination_city}, {trip.destination_country}
-                </CardDescription>
-              </div>
+
+      {/* Content area with right padding to protect from absolute button */}
+      <div className="pr-[80px] sm:pr-[88px]">
+        <CardHeader className="pb-2">
+          <div className="flex items-start justify-between">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                {isShared && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full bg-muted text-muted-foreground">
-                    <Users className="w-3 h-3" />
-                    Shared
+                <TravelModeIcon mode={tripMode} isPast={isPastTrip} />
+                <CardTitle className="text-lg truncate">
+                  {trip.name}
+                </CardTitle>
+                {isActive && (
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-teal-500/15 text-teal-600 dark:text-teal-400 shrink-0">
+                    <Radio className="w-2.5 h-2.5" />
+                    Live
                   </span>
                 )}
-                <TripLifecycleBadges trip={trip as Trip} isPro={isPro} compact />
               </div>
+              <CardDescription className="flex items-center gap-1 mt-1">
+                <MapPin className="w-3 h-3" />
+                {trip.destination_city}, {trip.destination_country}
+              </CardDescription>
             </div>
-          </CardHeader>
-          <CardContent className="pt-2">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-              <Calendar className="w-4 h-4" />
-              <span>{formatTripDateRange(trip.start_date, trip.end_date)}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className={`flex items-center gap-1 text-sm font-medium ${modeTheme.palette.primary}`}>
-                View Trip
-                <ChevronRight className="w-4 h-4" />
-              </div>
-              {canDelete && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleDeleteClick} 
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+            <div className="flex items-center gap-2">
+              {isShared && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full bg-muted text-muted-foreground">
+                  <Users className="w-3 h-3" />
+                  Shared
+                </span>
               )}
-              {isShared && onRemove && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleRemoveClick} 
-                  className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                >
-                  <UserMinus className="w-4 h-4" />
-                </Button>
-              )}
+              <TripLifecycleBadges trip={trip as Trip} isPro={isPro} compact />
             </div>
-          </CardContent>
-        </div>
-
-        {/* Right: CTA rail with mode action button */}
-        <div className={`flex items-center justify-center shrink-0 w-[84px] sm:w-24 ${modeTheme.palette.subtle} border-l ${modeTheme.palette.border} border-opacity-15`}>
-          <button
-            onClick={handleCardClick}
-            aria-label={`Open trip: ${trip.name}`}
-            className={`
-              w-[52px] h-[52px] sm:w-[60px] sm:h-[60px] rounded-2xl shrink-0
-              flex items-center justify-center
-              ${modeTheme.gradients.buttonBg} ${modeTheme.palette.border} border
-              shadow-md
-              transition-all duration-200
-              hover:-translate-y-0.5 hover:shadow-lg
-              active:scale-[0.97]
-              focus-visible:outline-none focus-visible:ring-2 ${modeTheme.palette.focus}
-            `}
-          >
-            {React.createElement(MODE_ICONS[tripMode], { className: `w-7 h-7 ${modeTheme.palette.icon}` })}
-          </button>
-        </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-2">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+            <Calendar className="w-4 h-4" />
+            <span>{formatTripDateRange(trip.start_date, trip.end_date)}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <div className={`flex items-center gap-1 text-sm font-medium ${modeTheme.palette.primary}`}>
+              View Trip
+              <ChevronRight className="w-4 h-4" />
+            </div>
+            {canDelete && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleDeleteClick} 
+                className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
+            {isShared && onRemove && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleRemoveClick} 
+                className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+              >
+                <UserMinus className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+        </CardContent>
       </div>
+
+      {/* Mode action button — absolutely positioned in right whitespace */}
+      <button
+        onClick={handleCardClick}
+        aria-label={`Open trip: ${trip.name}`}
+        className={`
+          absolute right-8 top-1/2 -translate-y-1/2
+          w-[52px] h-[52px] sm:w-[60px] sm:h-[60px] rounded-2xl
+          flex items-center justify-center
+          ${modeTheme.gradients.buttonBg} ${modeTheme.palette.border} border
+          shadow-md
+          transition-all duration-200
+          hover:-translate-y-[calc(50%+2px)] hover:shadow-lg
+          active:scale-[0.97]
+          focus-visible:outline-none focus-visible:ring-2 ${modeTheme.palette.focus}
+        `}
+      >
+        {React.createElement(MODE_ICONS[tripMode], { className: `w-7 h-7 ${modeTheme.palette.icon}` })}
+      </button>
     </Card>
   );
 });
