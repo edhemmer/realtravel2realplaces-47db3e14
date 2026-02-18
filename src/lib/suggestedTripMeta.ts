@@ -1,5 +1,5 @@
 /**
- * v3.9.45: Canonical SuggestedTripMeta Resolver
+ * v3.9.24: Canonical SuggestedTripMeta Resolver
  *
  * Single source of truth for auto-filling trip identity (name, destination, dates)
  * from the full merged/deduped booking set in the Create Trip flow.
@@ -11,15 +11,14 @@
  * - No timezone math, no date conversions — raw string ordering only
  * - Destination fields only filled when deterministically known (no guessing)
  *
- * v3.9.45 CHANGES:
- * - Deterministic fallback chain: lodging → flights → locations → raw text
- * - Always populate suggestedDestinationFields.city when destination is known
+ * v3.9.24 CHANGES:
+ * - Date derivation uses direct min/max on raw YYYY-MM-DD strings FIRST (no complex frame resolver dependency)
+ * - Destination fallback chain: lodging → flights (last arrival, turnaround) → to_location/from_location → address
  * - Airport name → IATA → city resolution via resolveIata
+ * - Never empty suggestedTripName when bookings exist
  */
 
 import { getAirportByCode, type Airport } from '@/lib/airportData';
-import { getSuggestedTripDates } from '@/hooks/useTripDateSync';
-import { validateConfirmationAlignment, isFrameResolved, type TripFrameMode } from '@/lib/tripFrameResolver';
 import { resolveIata } from '@/lib/airports/resolveIata';
 import { parseISO } from 'date-fns';
 
@@ -73,6 +72,19 @@ interface MetaBooking {
 // ============================================================================
 
 /**
+ * Extract YYYY-MM-DD date portion from a datetime string.
+ * Works with ISO, "YYYY-MM-DD", "YYYY-MM-DDTHH:mm", etc.
+ * Returns null if not extractable.
+ */
+function extractDateOnly(dt: string | null | undefined): string | null {
+  if (!dt) return null;
+  const trimmed = dt.trim();
+  // Match YYYY-MM-DD at start
+  const match = trimmed.match(/^(\d{4}-\d{2}-\d{2})/);
+  return match ? match[1] : null;
+}
+
+/**
  * Helper: resolve an airport code from explicit code field,
  * falling back to resolveIata on the airport name or location text field.
  */
@@ -82,7 +94,7 @@ function resolveAirportCode(
   locationText: string | null | undefined
 ): string | null {
   const trimmed = code?.trim().toUpperCase();
-  if (trimmed && trimmed.length >= 2) return trimmed;
+  if (trimmed && trimmed.length >= 2 && trimmed.length <= 4) return trimmed;
   // Fallback: try airport name first (more specific than location text)
   if (airportName) {
     const resolution = resolveIata(airportName);
@@ -116,6 +128,8 @@ function resolveCity(
       const ap = getAirportByCode(resolution.code);
       if (ap) return { city: ap.city, state: ap.state || null, country: ap.country, airport: ap };
     }
+    // Use trimmed airport name as city fallback
+    return { city: airportName.trim(), state: null, country: null, airport: undefined };
   }
   // Try location text → resolveIata → airport data
   if (locationText) {
@@ -138,12 +152,12 @@ function resolveCity(
  * Build suggested trip metadata from the full merged booking set.
  *
  * @param bookings - ALL merged/deduped bookings from the import session
- * @param mode - Travel mode selected by user
+ * @param _mode - Travel mode selected by user (currently unused — dates derived from all bookings)
  * @returns SuggestedTripMeta with all derivable fields
  */
 export function buildSuggestedTripMeta(
   bookings: MetaBooking[],
-  mode: TripFrameMode
+  _mode: string
 ): SuggestedTripMeta {
   const empty: SuggestedTripMeta = {
     suggestedStart: null,
@@ -157,30 +171,36 @@ export function buildSuggestedTripMeta(
 
   if (bookings.length === 0) return empty;
 
-  // ── 1. Derive dates from full booking set ──────────────────────────
+  // ── 1. Derive dates — DIRECT min/max on raw date strings ──────────
+  // No complex frame resolver. Just find earliest start and latest end.
+  let earliestDate: string | null = null;
+  let latestDate: string | null = null;
+
+  for (const b of bookings) {
+    const startD = extractDateOnly(b.start_datetime);
+    if (startD) {
+      if (!earliestDate || startD < earliestDate) earliestDate = startD;
+      if (!latestDate || startD > latestDate) latestDate = startD;
+    }
+    const endD = extractDateOnly(b.end_datetime);
+    if (endD) {
+      if (!latestDate || endD > latestDate) latestDate = endD;
+      // Also consider end_datetime as potential earliest (e.g., single stay with only end_datetime)
+    }
+  }
+
   let suggestedStart: Date | null = null;
   let suggestedEnd: Date | null = null;
 
-  const alignment = validateConfirmationAlignment(bookings, mode);
-
-  if (alignment.aligned && alignment.frame && isFrameResolved(alignment.frame)) {
-    try { suggestedStart = parseISO(alignment.frame.startDate); } catch {}
-    try { suggestedEnd = parseISO(alignment.frame.endDate); } catch {}
+  if (earliestDate) {
+    try { suggestedStart = parseISO(earliestDate); } catch {}
   }
-  
-  // Always try fallback if dates not resolved
-  if (!suggestedStart || !suggestedEnd) {
-    const suggestedDates = getSuggestedTripDates(bookings);
-    if (suggestedDates.start_date && !suggestedStart) {
-      try { suggestedStart = parseISO(suggestedDates.start_date); } catch {}
-    }
-    if (suggestedDates.end_date && !suggestedEnd) {
-      try { suggestedEnd = parseISO(suggestedDates.end_date); } catch {}
-    }
+  if (latestDate) {
+    try { suggestedEnd = parseISO(latestDate); } catch {}
   }
 
   // ── 2. Destination resolution — deterministic fallback chain ───────
-  // Priority: A) Lodging → B) Flights → C) to_location/from_location → D) raw text
+  // Priority: A) Lodging → B) Flights (last arrival / turnaround) → C) to_location → D) address
 
   let suggestedOrigin: string | null = null;
   let suggestedDestination: string | null = null;
@@ -226,16 +246,17 @@ export function buildSuggestedTripMeta(
     const lastArrCode = resolveAirportCode(lastFlight?.arrival_airport_code, lastFlight?.arrival_airport_name, lastFlight?.to_location);
 
     // Set origin from first departure
-    if (firstDepCode || firstFlight?.departure_airport_name || firstFlight?.from_location) {
-      const resolved = resolveCity(firstDepCode, firstFlight?.departure_airport_name, firstFlight?.from_location);
-      suggestedOrigin = resolved.city;
+    if (!suggestedOrigin) {
+      if (firstDepCode || firstFlight?.departure_airport_name || firstFlight?.from_location) {
+        const resolved = resolveCity(firstDepCode, firstFlight?.departure_airport_name, firstFlight?.from_location);
+        suggestedOrigin = resolved.city;
+      }
     }
 
     // Determine destination from flights only if not already resolved from lodging
     if (!suggestedDestination) {
       if (lastArrCode && firstDepCode && lastArrCode === firstDepCode) {
-        // Round-trip detected: last arrival == origin
-        // Find turnaround point
+        // Round-trip detected: last arrival == origin → find turnaround
         let turnaroundCode: string | null = null;
         let turnaroundAirportName: string | null = null;
         let turnaroundLocationText: string | null = null;
@@ -243,6 +264,7 @@ export function buildSuggestedTripMeta(
         for (let i = 0; i < sortedFlights.length; i++) {
           const arrCode = resolveAirportCode(sortedFlights[i]?.arrival_airport_code, sortedFlights[i]?.arrival_airport_name, sortedFlights[i]?.to_location);
           if (i > 0 && arrCode === firstDepCode) {
+            // The leg BEFORE this return-home leg is the turnaround
             turnaroundCode = resolveAirportCode(sortedFlights[i - 1]?.arrival_airport_code, sortedFlights[i - 1]?.arrival_airport_name, sortedFlights[i - 1]?.to_location);
             turnaroundAirportName = sortedFlights[i - 1]?.arrival_airport_name || null;
             turnaroundLocationText = sortedFlights[i - 1]?.to_location || null;
@@ -251,7 +273,7 @@ export function buildSuggestedTripMeta(
         }
 
         // Fallback: midpoint leg's arrival
-        if (!turnaroundCode) {
+        if (!turnaroundCode && !turnaroundAirportName && !turnaroundLocationText) {
           const midIdx = Math.floor(sortedFlights.length / 2) - 1;
           const safeMid = Math.max(0, Math.min(midIdx, sortedFlights.length - 1));
           turnaroundCode = resolveAirportCode(sortedFlights[safeMid]?.arrival_airport_code, sortedFlights[safeMid]?.arrival_airport_name, sortedFlights[safeMid]?.to_location);
@@ -265,7 +287,7 @@ export function buildSuggestedTripMeta(
           destFields = { city: resolved.city, state: resolved.state, country: resolved.country };
         }
       } else if (lastArrCode || lastFlight?.arrival_airport_name || lastFlight?.to_location) {
-        // One-way or open-jaw
+        // One-way or open-jaw: destination = chronologically last arrival
         const resolved = resolveCity(lastArrCode, lastFlight?.arrival_airport_name, lastFlight?.to_location);
         suggestedDestination = resolved.city;
         destFields = { city: resolved.city, state: resolved.state, country: resolved.country };
@@ -278,18 +300,14 @@ export function buildSuggestedTripMeta(
           destFields = { city: resolved.city, state: resolved.state, country: resolved.country };
         }
       }
-    } else if (!suggestedOrigin) {
-      // We have destination from lodging but no origin — still try to get origin from flights
-      // (already handled above)
     }
   }
 
-  // ── 2C. Fallback: to_location / from_location from any booking ─────
-  if (!suggestedDestination && bookings.length > 0) {
-    const nonFlights = bookings.filter(b => b.booking_type !== 'flight');
-    for (const b of nonFlights) {
+  // ── 2C. Fallback: to_location / from_location / address from any booking ───
+  if (!suggestedDestination) {
+    for (const b of bookings) {
       const loc = b.to_location || b.from_location || b.address;
-      if (loc) {
+      if (loc && loc.trim()) {
         const resolution = resolveIata(loc);
         if (resolution.code) {
           const ap = getAirportByCode(resolution.code);
@@ -323,22 +341,19 @@ export function buildSuggestedTripMeta(
   } else if (bookings.length > 0) {
     suggestedTripName = 'New Trip (Imported)';
   }
-  // v3.9.46: suggestedTripName is never null when bookings exist
 
-  // ── 4. Build destination fields ────────────────────────────────────
-  const suggestedDestinationFields = {
-    city: destFields.city,
-    state: destFields.state,
-    country: destFields.country,
-  };
-
+  // ── 4. Return ──────────────────────────────────────────────────────
   return {
     suggestedStart,
     suggestedEnd,
     suggestedOrigin,
     suggestedDestination,
     suggestedTripName,
-    suggestedDestinationFields,
+    suggestedDestinationFields: {
+      city: destFields.city,
+      state: destFields.state,
+      country: destFields.country,
+    },
     isReady: !!(suggestedStart && suggestedEnd),
   };
 }
