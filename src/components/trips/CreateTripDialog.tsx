@@ -36,6 +36,8 @@ import type { CanonicalItem } from '@/lib/canonical/canonicalTypes';
 import { runCanonicalImportPipeline } from '@/lib/ingestion/canonicalImportPipeline';
 // v3.9.28: Receipt cost extraction fallback
 import { enrichParsedBookingCost } from '@/lib/costAttribution';
+// v3.9.35: Canonical import staging — single source for trip creation inputs
+import { buildImportStaging, type ParsedImportStaging } from '@/lib/ingestion/importStaging';
 
 // ============================================================================
 // TYPES & HELPERS
@@ -199,6 +201,8 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
   const [pastedText, setPastedText] = useState('');
   const [showPasteInput, setShowPasteInput] = useState(false);
   const [complexityResult, setComplexityResult] = useState<TripComplexityResult | null>(null);
+  // v3.9.35: Canonical import staging — single source for trip creation inputs
+  const [importStaging, setImportStaging] = useState<ParsedImportStaging | null>(null);
 
   // v3.9.49: Canonical build status for progress overlay
   const [buildStatus, setBuildStatus] = useState<BuildStatus>('idle');
@@ -267,6 +271,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
     setDriveOriginLocation(null);
     setDriveDestLocation(null);
     setComplexityResult(null);
+    setImportStaging(null);
     setBuildStatus('idle');
     setAutofillStatus('idle');
     if (autofillTimerRef.current) clearTimeout(autofillTimerRef.current);
@@ -287,8 +292,10 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
         setValue('transportation_mode', 'flight');
         setStep('manual-form');
         
-        // v3.9.49: Restore ALL meta from batch using canonical resolver
-        const meta = buildSuggestedTripMeta(savedBatch, 'fly');
+        // v3.9.35: Rebuild staging from persisted batch (canonical source)
+        const staging = buildImportStaging(savedBatch as any[], 'fly');
+        setImportStaging(staging);
+        const meta = staging.meta;
         if (meta.suggestedStart) setStartDate(meta.suggestedStart);
         if (meta.suggestedEnd) setEndDate(meta.suggestedEnd);
         if (meta.suggestedTripName) setValue('name', meta.suggestedTripName);
@@ -376,7 +383,11 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
           setBuildStatus('computing_meta');
           setAutofillStatus('running');
           const currentMode = travelModeRef.current || 'fly';
-          const meta = buildSuggestedTripMeta(allMergedBookings, currentMode);
+
+          // v3.9.35: Build canonical staging — single source for trip creation
+          const staging = buildImportStaging(allMergedBookings as any[], currentMode);
+          setImportStaging(staging);
+          const meta = staging.meta;
 
           // Auto-fill ONLY empty fields — never overwrite user input
           if (meta.suggestedStart) {
@@ -605,11 +616,15 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
       return;
     }
 
-    // v3.9.46: For import mode, allow missing dates/fields — use fallbacks
+    // v3.9.35: For import mode, prefer staging tripFrame dates (canonical source)
     const hasBookings = parsedBookings.length > 0;
-    const effectiveStartDate = startDate || (hasBookings ? new Date() : null);
-    const effectiveEndDate = endDate || (hasBookings ? new Date(Date.now() + 7 * 86400000) : null);
-    if (!effectiveStartDate || !effectiveEndDate) return;
+    const stagingStart = importStaging?.tripFrame.startDate || null;
+    const stagingEnd = importStaging?.tripFrame.endDate || null;
+
+    // Priority: staging tripFrame → UI-selected dates → fallback
+    const effectiveStartDateStr = stagingStart || (startDate ? format(startDate, 'yyyy-MM-dd') : null) || (hasBookings ? format(new Date(), 'yyyy-MM-dd') : null);
+    const effectiveEndDateStr = stagingEnd || (endDate ? format(endDate, 'yyyy-MM-dd') : null) || (hasBookings ? format(new Date(Date.now() + 7 * 86400000), 'yyyy-MM-dd') : null);
+    if (!effectiveStartDateStr || !effectiveEndDateStr) return;
     
     // v3.9.46: Fallback trip name and city for import-driven creation
     const effectiveName = data.name?.trim() || (hasBookings ? 'New Trip (Imported)' : 'New Trip');
@@ -637,8 +652,8 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
         destination_type: data.destination_type,
         origin_address: data.origin_address || undefined,
         destination_address: data.destination_address || undefined,
-        start_date: format(effectiveStartDate, 'yyyy-MM-dd'),
-        end_date: format(effectiveEndDate, 'yyyy-MM-dd'),
+        start_date: effectiveStartDateStr,
+        end_date: effectiveEndDateStr,
       } as any);
 
       // v3.9.26: If timed out while awaiting, mark completed and bail
