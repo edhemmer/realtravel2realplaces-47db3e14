@@ -1161,8 +1161,8 @@ export type Database = {
         Row: {
           created_at: string
           destination_address: string | null
-          destination_city: string
-          destination_country: string
+          destination_city: string | null
+          destination_country: string | null
           destination_state: string | null
           destination_type: Database["public"]["Enums"]["destination_type"]
           end_date: string
@@ -1181,8 +1181,8 @@ export type Database = {
         Insert: {
           created_at?: string
           destination_address?: string | null
-          destination_city: string
-          destination_country: string
+          destination_city?: string | null
+          destination_country?: string | null
           destination_state?: string | null
           destination_type?: Database["public"]["Enums"]["destination_type"]
           end_date: string
@@ -1201,8 +1201,8 @@ export type Database = {
         Update: {
           created_at?: string
           destination_address?: string | null
-          destination_city?: string
-          destination_country?: string
+          destination_city?: string | null
+          destination_country?: string | null
           destination_state?: string | null
           destination_type?: Database["public"]["Enums"]["destination_type"]
           end_date?: string
