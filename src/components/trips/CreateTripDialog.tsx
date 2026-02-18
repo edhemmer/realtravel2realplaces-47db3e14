@@ -320,16 +320,19 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
             toast.warning(`${pipelineResult.needsAttentionItems.length} booking(s) have incomplete fields. Please review.`, { duration: 6000 });
           }
 
-          // v3.8.23-fix: APPEND new bookings with dedup — never replace the batch
+          // v3.9.26: APPEND new bookings with dedup, then derive dates from FULL merged set
+          let allMergedBookings: typeof parsedBookings = [];
           setParsedBookings(prev => {
             const merged = mergeBookings(prev, parsed.bookings);
             saveWizardBatch(merged);
+            allMergedBookings = merged;
             return merged;
           });
 
-          // v2.2.7: Use TripFrameResolver for canonical date resolution
+          // v3.9.26: Derive trip dates from ALL accumulated bookings (not just current parse batch)
+          // This ensures multi-email imports produce correct start/end spanning all legs
           const frameMode: TripFrameMode = travelMode === 'fly' ? 'fly' : travelMode === 'drive' ? 'drive' : 'train';
-          const alignment = validateConfirmationAlignment(parsed.bookings, frameMode);
+          const alignment = validateConfirmationAlignment(allMergedBookings, frameMode);
 
           if (alignment.aligned && alignment.frame && isFrameResolved(alignment.frame)) {
             try { setStartDate(parseISO(alignment.frame.startDate)); } catch {}
@@ -337,8 +340,8 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
           } else if (!alignment.aligned) {
             // Warn user about potential multi-trip confirmations
             toast.warning('These confirmations may belong to separate trips. Please review the dates.');
-            // Fall back to suggested dates
-            const suggestedDates = getSuggestedTripDates(parsed.bookings);
+            // Fall back to suggested dates from ALL merged bookings
+            const suggestedDates = getSuggestedTripDates(allMergedBookings);
             if (suggestedDates.start_date) {
               try { setStartDate(parseISO(suggestedDates.start_date)); } catch {}
             }
