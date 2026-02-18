@@ -15,6 +15,7 @@
 import { getAirportByCode, type Airport } from '@/lib/airportData';
 import { getSuggestedTripDates } from '@/hooks/useTripDateSync';
 import { validateConfirmationAlignment, isFrameResolved, type TripFrameMode } from '@/lib/tripFrameResolver';
+import { resolveIata } from '@/lib/airports/resolveIata';
 import { parseISO } from 'date-fns';
 
 // ============================================================================
@@ -111,33 +112,74 @@ export function buildSuggestedTripMeta(
   let suggestedDestination: string | null = null;
   let destAirport: Airport | undefined = undefined;
 
+  /**
+   * Helper: resolve an airport code from explicit code field,
+   * falling back to resolveIata on the location text field.
+   */
+  function resolveAirportCode(code: string | null | undefined, locationText: string | null | undefined): string | null {
+    const trimmed = code?.trim().toUpperCase();
+    if (trimmed && trimmed.length >= 2) return trimmed;
+    // Fallback: try to extract IATA from location text
+    if (locationText) {
+      const resolution = resolveIata(locationText);
+      if (resolution.code) return resolution.code;
+    }
+    return null;
+  }
+
+  /**
+   * Helper: get display city from code or location text.
+   */
+  function resolveCity(code: string | null, locationText: string | null | undefined): { city: string | null; airport: Airport | undefined } {
+    if (code) {
+      const ap = getAirportByCode(code);
+      if (ap) return { city: ap.city, airport: ap };
+      return { city: code, airport: undefined };
+    }
+    // Use raw location text as city name (cleaned up)
+    if (locationText) {
+      // Try resolveIata for a clean city name
+      const resolution = resolveIata(locationText);
+      if (resolution.code) {
+        const ap = getAirportByCode(resolution.code);
+        if (ap) return { city: ap.city, airport: ap };
+      }
+      // Use raw text, trimmed
+      return { city: locationText.trim(), airport: undefined };
+    }
+    return { city: null, airport: undefined };
+  }
+
   if (flights.length > 0) {
     // Sort flights chronologically
     const sortedFlights = [...flights].sort((a, b) =>
       (a.start_datetime || '').localeCompare(b.start_datetime || '')
     );
 
-    const firstDepCode = sortedFlights[0]?.departure_airport_code?.trim().toUpperCase() || null;
-    const lastArrCode = sortedFlights[sortedFlights.length - 1]?.arrival_airport_code?.trim().toUpperCase() || null;
+    const firstFlight = sortedFlights[0];
+    const lastFlight = sortedFlights[sortedFlights.length - 1];
+
+    const firstDepCode = resolveAirportCode(firstFlight?.departure_airport_code, firstFlight?.from_location);
+    const lastArrCode = resolveAirportCode(lastFlight?.arrival_airport_code, lastFlight?.to_location);
 
     // Set origin
-    if (firstDepCode) {
-      const originAirport = getAirportByCode(firstDepCode);
-      suggestedOrigin = originAirport?.city || firstDepCode;
+    if (firstDepCode || firstFlight?.from_location) {
+      const resolved = resolveCity(firstDepCode, firstFlight?.from_location);
+      suggestedOrigin = resolved.city;
     }
 
     // Determine destination
     if (lastArrCode && firstDepCode && lastArrCode === firstDepCode) {
       // Round-trip detected: last arrival == origin
       // Find turnaround point — the arrival just before the return path begins.
-      // Walk legs forward; the return path starts when a leg's arrival matches origin.
       let turnaroundCode: string | null = null;
+      let turnaroundLocationText: string | null = null;
 
       for (let i = 0; i < sortedFlights.length; i++) {
-        const arrCode = sortedFlights[i]?.arrival_airport_code?.trim().toUpperCase() || null;
+        const arrCode = resolveAirportCode(sortedFlights[i]?.arrival_airport_code, sortedFlights[i]?.to_location);
         if (i > 0 && arrCode === firstDepCode) {
-          // This leg returns to origin — turnaround is previous leg's arrival
-          turnaroundCode = sortedFlights[i - 1]?.arrival_airport_code?.trim().toUpperCase() || null;
+          turnaroundCode = resolveAirportCode(sortedFlights[i - 1]?.arrival_airport_code, sortedFlights[i - 1]?.to_location);
+          turnaroundLocationText = sortedFlights[i - 1]?.to_location || null;
           break;
         }
       }
@@ -146,23 +188,50 @@ export function buildSuggestedTripMeta(
       if (!turnaroundCode) {
         const midIdx = Math.floor(sortedFlights.length / 2) - 1;
         const safeMid = Math.max(0, Math.min(midIdx, sortedFlights.length - 1));
-        turnaroundCode = sortedFlights[safeMid]?.arrival_airport_code?.trim().toUpperCase() || null;
+        turnaroundCode = resolveAirportCode(sortedFlights[safeMid]?.arrival_airport_code, sortedFlights[safeMid]?.to_location);
+        turnaroundLocationText = sortedFlights[safeMid]?.to_location || null;
       }
 
-      if (turnaroundCode) {
-        destAirport = getAirportByCode(turnaroundCode);
-        suggestedDestination = destAirport?.city || turnaroundCode;
+      if (turnaroundCode || turnaroundLocationText) {
+        const resolved = resolveCity(turnaroundCode, turnaroundLocationText);
+        destAirport = resolved.airport;
+        suggestedDestination = resolved.city;
       }
-    } else if (lastArrCode) {
+    } else if (lastArrCode || lastFlight?.to_location) {
       // One-way or open-jaw
-      destAirport = getAirportByCode(lastArrCode);
-      suggestedDestination = destAirport?.city || lastArrCode;
+      const resolved = resolveCity(lastArrCode, lastFlight?.to_location);
+      destAirport = resolved.airport;
+      suggestedDestination = resolved.city;
     } else {
       // Fallback: first flight's arrival
-      const firstArrCode = sortedFlights[0]?.arrival_airport_code?.trim().toUpperCase() || null;
-      if (firstArrCode) {
-        destAirport = getAirportByCode(firstArrCode);
-        suggestedDestination = destAirport?.city || firstArrCode;
+      const firstArrCode = resolveAirportCode(firstFlight?.arrival_airport_code, firstFlight?.to_location);
+      if (firstArrCode || firstFlight?.to_location) {
+        const resolved = resolveCity(firstArrCode, firstFlight?.to_location);
+        destAirport = resolved.airport;
+        suggestedDestination = resolved.city;
+      }
+    }
+  }
+
+  // ── 2b. Fallback: derive from non-flight bookings (stays, etc.) ────
+  if (!suggestedDestination && bookings.length > 0) {
+    // Try to find a stay or activity with a location
+    const nonFlights = bookings.filter(b => b.booking_type !== 'flight');
+    for (const b of nonFlights) {
+      const loc = b.to_location || b.from_location;
+      if (loc) {
+        const resolution = resolveIata(loc);
+        if (resolution.code) {
+          const ap = getAirportByCode(resolution.code);
+          if (ap) {
+            destAirport = ap;
+            suggestedDestination = ap.city;
+            break;
+          }
+        }
+        // Use raw location text
+        suggestedDestination = loc.trim();
+        break;
       }
     }
   }
