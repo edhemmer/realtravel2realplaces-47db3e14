@@ -6,10 +6,12 @@
  * - 300ms anti-flicker delay
  * - Plane icon angled/profile for orbiting effect
  * - "Still working" after 20s
+ *
+ * v3.9.26: Added build_failed / build_timeout states with recovery UI.
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { Globe, Plane } from 'lucide-react';
+import { Globe, Plane, AlertTriangle, RotateCcw, PenLine, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export type BuildStatus =
@@ -20,7 +22,9 @@ export type BuildStatus =
   | 'ready'
   | 'needs_input'
   | 'creating_trip'
-  | 'trip_created';
+  | 'trip_created'
+  | 'build_failed'
+  | 'build_timeout';
 
 const PHASE_TEXT: Record<string, string> = {
   parsing: 'Reading confirmations…',
@@ -30,22 +34,30 @@ const PHASE_TEXT: Record<string, string> = {
 };
 
 const ACTIVE_STATUSES: BuildStatus[] = ['parsing', 'merging', 'computing_meta', 'creating_trip'];
+const ERROR_STATUSES: BuildStatus[] = ['build_failed', 'build_timeout'];
 
 interface ImportBuildProgressOverlayProps {
   buildStatus: BuildStatus;
   onCancel?: () => void;
+  onRetry?: () => void;
+  onCreateManually?: () => void;
 }
 
-export function ImportBuildProgressOverlay({ buildStatus, onCancel }: ImportBuildProgressOverlayProps) {
+export function ImportBuildProgressOverlay({ buildStatus, onCancel, onRetry, onCreateManually }: ImportBuildProgressOverlayProps) {
   const [visible, setVisible] = useState(false);
   const [showSlowMessage, setShowSlowMessage] = useState(false);
   const flickerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const slowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isActive = ACTIVE_STATUSES.includes(buildStatus);
+  const isError = ERROR_STATUSES.includes(buildStatus);
 
-  // Anti-flicker: only show after 300ms of active status
+  // Anti-flicker: only show after 300ms of active status; show immediately for errors
   useEffect(() => {
-    if (isActive) {
+    if (isError) {
+      setVisible(true);
+      setShowSlowMessage(false);
+      if (flickerTimerRef.current) clearTimeout(flickerTimerRef.current);
+    } else if (isActive) {
       flickerTimerRef.current = setTimeout(() => setVisible(true), 300);
     } else {
       setVisible(false);
@@ -55,11 +67,11 @@ export function ImportBuildProgressOverlay({ buildStatus, onCancel }: ImportBuil
     return () => {
       if (flickerTimerRef.current) clearTimeout(flickerTimerRef.current);
     };
-  }, [isActive]);
+  }, [isActive, isError]);
 
   // "Still working" message after 20s
   useEffect(() => {
-    if (visible) {
+    if (visible && isActive) {
       slowTimerRef.current = setTimeout(() => setShowSlowMessage(true), 20000);
     } else {
       setShowSlowMessage(false);
@@ -68,10 +80,50 @@ export function ImportBuildProgressOverlay({ buildStatus, onCancel }: ImportBuil
     return () => {
       if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
     };
-  }, [visible]);
+  }, [visible, isActive]);
 
   if (!visible) return null;
 
+  // ── Error / Timeout state ──
+  if (isError) {
+    return (
+      <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm rounded-lg">
+        <div className="flex flex-col items-center gap-4 px-6 py-8 max-w-xs text-center">
+          <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
+            <AlertTriangle className="w-6 h-6 text-destructive" />
+          </div>
+          <div className="space-y-1.5">
+            <p className="text-sm font-semibold text-foreground">We couldn't finish building your trip.</p>
+            <p className="text-xs text-muted-foreground">
+              Your confirmations are saved. Try again, or create the trip from the wizard.
+            </p>
+          </div>
+          <div className="flex flex-col gap-2 w-full">
+            {onRetry && (
+              <Button size="sm" onClick={onRetry} className="w-full gap-1.5">
+                <RotateCcw className="w-3.5 h-3.5" />
+                Try Again
+              </Button>
+            )}
+            {onCreateManually && (
+              <Button size="sm" variant="outline" onClick={onCreateManually} className="w-full gap-1.5">
+                <PenLine className="w-3.5 h-3.5" />
+                Create Manually
+              </Button>
+            )}
+            {onCancel && (
+              <Button size="sm" variant="ghost" onClick={onCancel} className="w-full gap-1.5 text-muted-foreground">
+                <X className="w-3.5 h-3.5" />
+                Close
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Active / Building state ──
   const phaseText = PHASE_TEXT[buildStatus] || 'Processing…';
 
   return (

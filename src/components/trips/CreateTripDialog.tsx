@@ -207,6 +207,11 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
   const [autofillStatus, setAutofillStatus] = useState<AutofillStatus>('idle');
   const autofillTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // v3.9.26: Build timeout ref + session id for idempotency
+  const buildTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const buildSessionIdRef = useRef<string | null>(null);
+  const buildCompletedSessionsRef = useRef<Set<string>>(new Set());
+
   // v3.9.49: Ref to track latest travelMode for use in async callbacks (prevents stale closure)
   const travelModeRef = useRef<TravelMode>(null);
 
@@ -265,6 +270,8 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
     setBuildStatus('idle');
     setAutofillStatus('idle');
     if (autofillTimerRef.current) clearTimeout(autofillTimerRef.current);
+    if (buildTimeoutRef.current) clearTimeout(buildTimeoutRef.current);
+    buildSessionIdRef.current = null;
     clearWizardBatch();
   }, [reset]);
 
@@ -589,6 +596,16 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
   });
 
   const onSubmit = async (data: TripFormData) => {
+    // v3.9.26: Generate a session id for idempotency
+    const sessionId = buildSessionIdRef.current || `build_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    buildSessionIdRef.current = sessionId;
+
+    // v3.9.26: Check if this session already completed (prevents duplicate on retry after timeout)
+    if (buildCompletedSessionsRef.current.has(sessionId)) {
+      console.warn('[CreateTrip] Session already completed, skipping duplicate build');
+      return;
+    }
+
     // v3.9.46: For import mode, allow missing dates/fields — use fallbacks
     const hasBookings = parsedBookings.length > 0;
     const effectiveStartDate = startDate || (hasBookings ? new Date() : null);
@@ -601,6 +618,14 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
     if (!effectiveCity && !hasBookings) return; // Manual mode still requires city
     
     setBuildStatus('creating_trip');
+
+    // v3.9.26: 60-second hard timeout
+    let timedOut = false;
+    if (buildTimeoutRef.current) clearTimeout(buildTimeoutRef.current);
+    buildTimeoutRef.current = setTimeout(() => {
+      timedOut = true;
+      setBuildStatus('build_timeout');
+    }, 60000);
 
     try {
       const trip = await createTrip.mutateAsync({
@@ -617,11 +642,23 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
         end_date: format(effectiveEndDate, 'yyyy-MM-dd'),
       } as any);
 
+      // v3.9.26: If timed out while awaiting, mark completed and bail
+      if (timedOut) {
+        buildCompletedSessionsRef.current.add(sessionId);
+        return;
+      }
+
       if (parsedBookings.length > 0 && trip?.id) {
         const createdCompanions: Map<string, string> = new Map();
         let totalCompanionsCreated = 0;
 
         for (const booking of parsedBookings) {
+          // v3.9.26: Bail if timed out mid-booking-creation
+          if (timedOut) {
+            buildCompletedSessionsRef.current.add(sessionId);
+            return;
+          }
+
           const vendorUrl = booking.booking_type !== 'transport' ? getVendorUrl(booking.vendor_name, booking.booking_type) : null;
           const createdBooking = await createBooking.mutateAsync({
             trip_id: trip.id,
@@ -641,7 +678,6 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
             return_location: booking.return_location,
             notes: booking.notes,
             link_url: vendorUrl || undefined,
-            // v3.9.49: Persist airport + location fields for downstream engines
             departure_airport_code: booking.departure_airport_code || undefined,
             arrival_airport_code: booking.arrival_airport_code || undefined,
             departure_airport_name: booking.departure_airport_name || undefined,
@@ -692,6 +728,13 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
         toast.success(`Created trip with ${parsedBookings.length} booking(s)${companionMsg}!`);
       }
 
+      // v3.9.26: Mark session completed, clear timeout
+      buildCompletedSessionsRef.current.add(sessionId);
+      if (buildTimeoutRef.current) clearTimeout(buildTimeoutRef.current);
+
+      // v3.9.26: If timed out during final steps, don't navigate
+      if (timedOut) return;
+
       resetAll();
       onOpenChange(false);
 
@@ -727,6 +770,11 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
       }
     } catch (err) {
       console.error('Failed to create trip:', err);
+      // v3.9.26: Clear timeout and show error state
+      if (buildTimeoutRef.current) clearTimeout(buildTimeoutRef.current);
+      if (!timedOut) {
+        setBuildStatus('build_failed');
+      }
     }
   };
 
@@ -839,8 +887,26 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
     setAutofillStatus('idle');
     setBuildStatus('idle');
     if (autofillTimerRef.current) clearTimeout(autofillTimerRef.current);
+    if (buildTimeoutRef.current) clearTimeout(buildTimeoutRef.current);
     onOpenChange(false);
   };
+
+  // v3.9.26: Retry handler — resets build state and re-triggers submit with a new session id
+  const handleBuildRetry = useCallback(() => {
+    buildSessionIdRef.current = null; // Force new session id
+    setBuildStatus('idle');
+    if (buildTimeoutRef.current) clearTimeout(buildTimeoutRef.current);
+    // Re-trigger submit
+    handleSubmit(onSubmit)();
+  }, [handleSubmit, onSubmit]);
+
+  // v3.9.26: Create manually — clear error state and let user edit the form
+  const handleCreateManually = useCallback(() => {
+    buildSessionIdRef.current = null;
+    setBuildStatus('idle');
+    if (buildTimeoutRef.current) clearTimeout(buildTimeoutRef.current);
+    setStep('manual-form');
+  }, []);
 
   const removeBooking = (index: number) => {
     setParsedBookings(prev => {
@@ -892,13 +958,16 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className={`${dialogMaxWidth} max-h-[85vh] overflow-y-auto`}>
 
-        {/* v3.9.49: Canonical build progress overlay */}
+        {/* v3.9.49: Canonical build progress overlay with v3.9.26 recovery */}
         <ImportBuildProgressOverlay
           buildStatus={buildStatus}
           onCancel={() => {
             setBuildStatus('idle');
             setIsParsing(false);
+            if (buildTimeoutRef.current) clearTimeout(buildTimeoutRef.current);
           }}
+          onRetry={handleBuildRetry}
+          onCreateManually={handleCreateManually}
         />
 
         {/* ── STEP: Mode Chooser ───────────────────────────────── */}
