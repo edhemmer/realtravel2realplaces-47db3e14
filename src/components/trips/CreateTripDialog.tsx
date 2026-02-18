@@ -554,6 +554,8 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
             departLocalKey: null,
             arriveLocalKey: null,
             arrivalDateDerived: false,
+            departureDateToken: null,
+            arrivalDateToken: null,
             legCost: null,
             legCostSourceRef: null,
           };

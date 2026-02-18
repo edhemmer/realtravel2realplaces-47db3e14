@@ -14,6 +14,7 @@
  */
 
 import type { Booking, Parking } from '@/types/database';
+import { toDateTokenFromString } from '@/lib/dateTokenExtractor';
 import type {
   CanonicalItem,
   CanonicalFlight,
@@ -455,6 +456,9 @@ function normalizeFlight(booking: Booking): CanonicalFlight {
     departLocalKey,
     arriveLocalKey,
     arrivalDateDerived,
+    // v3.9.37: Canonical date tokens for trip frame derivation
+    departureDateToken: departLocalDate || toDateTokenFromString(booking.start_datetime) || null,
+    arrivalDateToken: arriveLocalDate || toDateTokenFromString(booking.end_datetime) || departLocalDate || toDateTokenFromString(booking.start_datetime) || null,
     // v3.9.21: Per-leg cost fields (null = not explicitly per-leg)
     legCost: null,
     legCostSourceRef: null,

@@ -151,6 +151,12 @@ export interface CanonicalFlight extends CanonicalItemBase {
   /** True if arrival date was derived via rollover (not explicit in confirmation) */
   arrivalDateDerived: boolean;
 
+  // v3.9.37: Canonical date tokens for trip frame derivation
+  /** Departure date token YYYY-MM-DD (always populated if any date extractable) */
+  departureDateToken: string | null;
+  /** Arrival date token YYYY-MM-DD (falls back to departureDateToken if missing) */
+  arrivalDateToken: string | null;
+
   // v3.9.21: Per-leg cost (only set when costAttributionMode = PER_LEG)
   /** Per-leg cost when explicitly provided by confirmation */
   legCost: { amount: number; currency: string; source: string; confidence: string } | null;

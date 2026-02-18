@@ -45,6 +45,8 @@ function makeFlight(overrides: Partial<CanonicalFlight> = {}): CanonicalFlight {
     departLocalKey: '2025-06-01T08:00',
     arriveLocalKey: '2025-06-01T11:00',
     arrivalDateDerived: false,
+    departureDateToken: '2025-06-01',
+    arrivalDateToken: '2025-06-01',
     legCost: null,
     legCostSourceRef: null,
     ...overrides,
