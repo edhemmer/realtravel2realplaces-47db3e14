@@ -7,6 +7,7 @@ import { Lock, Archive, Clock, Moon, CalendarCog, CalendarClock, Sparkles } from
 import { cn } from '@/lib/utils';
 import { EditTripDatesDialog } from './EditTripDatesDialog';
 import { resolveCanonicalLifecycle, daysBetween, getTodayDateOnly } from '@/lib/canonicalTimePolicy';
+import { getTripMode, getModeTheme } from '@/lib/modeTheme';
 
 interface TripStatusHeroBarProps {
   trip: Trip;
@@ -89,10 +90,14 @@ export function TripStatusHeroBar({ trip }: TripStatusHeroBarProps) {
  
    const statusConfig = getStatusConfig();
  
+    const modeTheme = getModeTheme(getTripMode(trip));
+
     return (
       <>
       <div className="sticky top-16 z-40 -mx-4 px-4 sm:-mx-0 sm:px-0">
-        <div className="bg-card/95 backdrop-blur-md border border-border/50 rounded-lg shadow-sm">
+        <div className="bg-card/95 backdrop-blur-md border border-border/50 rounded-lg shadow-sm overflow-hidden">
+          {/* Mode accent strip */}
+          <div className={`h-[3px] w-full ${modeTheme.gradients.headerBg}`} />
           <div className="flex items-center justify-between gap-4 px-5 py-3.5">
             {/* Trip name - primary focal point */}
              <h2 className="font-bold text-xl truncate flex-1">{trip.name}</h2>

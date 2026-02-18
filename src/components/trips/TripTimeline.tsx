@@ -20,6 +20,7 @@ import {
   Plane, Building2, Car, CircleParking, Compass, Ticket, 
   TrainFront, Bus, TramFront, Ship, PartyPopper, Navigation
 } from 'lucide-react';
+import { getModeTheme } from '@/lib/modeTheme';
 
 interface TripTimelineProps {
   events: CanonicalTimelineEvent[];
@@ -55,6 +56,26 @@ const getEventIcon = (type: string, transportMode?: string) => {
     default: return <PartyPopper className="w-4 h-4" />;
   }
 };
+
+/** Resolve transport pill theme classes based on event type */
+function getTransportPillClasses(type: string, transportMode?: string): { bg: string; border: string; iconColor: string } {
+  if (type === 'flight') {
+    const t = getModeTheme('fly');
+    return { bg: t.gradients.pillBg, border: t.palette.border, iconColor: t.palette.primary };
+  }
+  if (type === 'transport') {
+    if (transportMode === 'train') {
+      const t = getModeTheme('train');
+      return { bg: t.gradients.pillBg, border: t.palette.border, iconColor: t.palette.primary };
+    }
+    // Bus/metro/ferry etc. — use neutral
+  }
+  if (type === 'car_rental') {
+    const t = getModeTheme('drive');
+    return { bg: t.gradients.pillBg, border: t.palette.border, iconColor: t.palette.primary };
+  }
+  return { bg: '', border: '', iconColor: '' };
+}
 
 /**
  * v3.9.17: Build combined flight subtitle using canonical FlightDisplayModel.
@@ -184,9 +205,15 @@ export function TripTimeline({ events, datetimeFormat, onEventClick, onExploreNe
                     )}
                     {/* Icon circle - v3.6.1: reduced from w-8 h-8 to w-7 h-7 */}
                     <div className="relative z-10 flex-shrink-0">
-                      <div className={`w-7 h-7 rounded-full border-2 border-background flex items-center justify-center ${isToday ? 'bg-primary/15 text-primary' : isPast ? 'bg-muted/60 text-muted-foreground' : 'bg-primary/10 text-primary'}`}>
-                        {getEventIcon(event.bookingType, event.transportMode)}
-                      </div>
+                      {(() => {
+                        const pill = getTransportPillClasses(event.bookingType, event.transportMode);
+                        const hasPill = !!pill.bg;
+                        return (
+                          <div className={`w-7 h-7 rounded-full border-2 border-background flex items-center justify-center ${hasPill ? `${pill.bg} ${pill.iconColor}` : isToday ? 'bg-primary/15 text-primary' : isPast ? 'bg-muted/60 text-muted-foreground' : 'bg-primary/10 text-primary'}`}>
+                            {getEventIcon(event.bookingType, event.transportMode)}
+                          </div>
+                        );
+                      })()}
                     </div>
                     
                     {/* Event content - v3.6.1: reduced bottom padding */}
