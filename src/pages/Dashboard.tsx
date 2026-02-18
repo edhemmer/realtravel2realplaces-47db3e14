@@ -14,6 +14,7 @@ import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, MapPin, Calendar, Plane, Car, TrainFront, Route, Trash2, Users, ChevronRight, DollarSign, Compass, Radio, UserMinus } from 'lucide-react';
+import { getTripMode, getModeTheme, type TripMode } from '@/lib/modeTheme';
 import { useNavigate } from 'react-router-dom';
 import { formatTripDateRange } from '@/lib/displayFormats';
 import { getTodayDateOnly } from '@/lib/canonicalTimePolicy';
@@ -302,22 +303,23 @@ export default function Dashboard() {
 }
 
 /**
- * TravelModeIcon — Color-coded travel mode badge for trip cards
+ * TravelModeIcon — Uses canonical getModeTheme() for all mode styling.
  */
-function TravelModeIcon({ mode, isPast }: { mode: string; isPast: boolean }) {
-  const config = {
-    flight: { Icon: Plane, bg: 'bg-primary/10', text: 'text-primary' },
-    drive: { Icon: Car, bg: 'bg-success/10', text: 'text-success' },
-    train: { Icon: TrainFront, bg: 'bg-accent-foreground/10', text: 'text-accent-foreground' },
-    unspecified: { Icon: Route, bg: 'bg-muted', text: 'text-muted-foreground' },
-  }[mode] ?? { Icon: Route, bg: 'bg-muted', text: 'text-muted-foreground' };
+const MODE_ICONS: Record<TripMode, React.ComponentType<{ className?: string }>> = {
+  fly: Plane,
+  drive: Car,
+  train: TrainFront,
+  unknown: Route,
+};
 
-  const { Icon, bg, text } = config;
+function TravelModeIcon({ mode, isPast }: { mode: TripMode; isPast: boolean }) {
+  const theme = getModeTheme(mode);
+  const Icon = MODE_ICONS[mode];
   const dimmed = isPast ? 'opacity-50' : '';
 
   return (
-    <span className={`inline-flex items-center justify-center w-7 h-7 rounded-lg shrink-0 ${bg} ${dimmed}`}>
-      <Icon className={`w-4 h-4 ${text}`} />
+    <span className={`inline-flex items-center justify-center w-7 h-7 rounded-lg shrink-0 ${theme.palette.background} ${dimmed}`}>
+      <Icon className={`w-4 h-4 ${theme.palette.primary}`} />
     </span>
   );
 }
@@ -347,6 +349,8 @@ const TripCard = React.memo(function TripCard({
   const todayStr = getTodayDateOnly();
   const isPastTrip = trip.end_date < todayStr;
   const canDelete = isPro && !isShared && tripState === 'active';
+  const tripMode = getTripMode(trip as Trip);
+  const modeTheme = getModeTheme(tripMode);
 
   const handleCardClick = useCallback(() => {
     onNavigate(trip.id);
@@ -367,14 +371,16 @@ const TripCard = React.memo(function TripCard({
 
   return (
     <Card 
-      className={`group cursor-pointer transition-all duration-200 overflow-hidden border-border/50 hover:border-primary/20 hover:shadow-lg ${cardClassName} ${pastTripStyles} ${activeBorder}`}
+      className={`group cursor-pointer transition-all duration-200 overflow-hidden border-border/50 hover:shadow-lg ${cardClassName} ${pastTripStyles} ${activeBorder}`}
       onClick={handleCardClick}
     >
+      {/* Mode accent strip */}
+      <div className={`h-[3px] w-full ${modeTheme.gradients.buttonBg}`} />
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <TravelModeIcon mode={(trip as Trip).transportation_mode} isPast={isPastTrip} />
+              <TravelModeIcon mode={tripMode} isPast={isPastTrip} />
               <CardTitle className="text-lg truncate group-hover:text-primary transition-colors duration-200">
                 {trip.name}
               </CardTitle>
@@ -407,7 +413,7 @@ const TripCard = React.memo(function TripCard({
           <span>{formatTripDateRange(trip.start_date, trip.end_date)}</span>
         </div>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1 text-sm text-primary font-medium group-hover:gap-2 transition-all duration-200">
+          <div className={`flex items-center gap-1 text-sm font-medium group-hover:gap-2 transition-all duration-200 ${modeTheme.palette.primary}`}>
             View Trip
             <ChevronRight className="w-4 h-4" />
           </div>
