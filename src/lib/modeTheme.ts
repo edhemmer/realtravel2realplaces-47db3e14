@@ -69,18 +69,18 @@ const FLY_THEME: ModeTheme = {
 const DRIVE_THEME: ModeTheme = {
   id: 'drive',
   palette: {
-    primary: 'text-amber-700 dark:text-amber-400',
-    accent: 'text-amber-900 dark:text-amber-300',
-    background: 'bg-amber-500/10 dark:bg-amber-500/15',
-    border: 'border-amber-500/25 dark:border-amber-400/25',
-    icon: 'text-amber-900 dark:text-amber-100',
-    subtle: 'bg-amber-50/60 dark:bg-amber-950/30',
-    focus: 'ring-amber-500/40 dark:ring-amber-400/40',
+    primary: 'text-[#8B7355] dark:text-amber-300',
+    accent: 'text-[#6B5B45] dark:text-amber-200',
+    background: 'bg-[#E6D2B3]/15 dark:bg-amber-500/12',
+    border: 'border-[#A9885C]/30 dark:border-amber-400/20',
+    icon: 'text-[#3E3A34] dark:text-amber-100',
+    subtle: 'bg-[#F5EDE0]/50 dark:bg-amber-950/20',
+    focus: 'ring-[#A9885C]/30 dark:ring-amber-400/30',
   },
   gradients: {
-    buttonBg: 'bg-gradient-to-br from-amber-500 to-amber-700 dark:from-amber-600 dark:to-amber-800',
-    headerBg: 'bg-gradient-to-r from-amber-500/8 to-amber-700/5 dark:from-amber-500/10 dark:to-amber-700/8',
-    pillBg: 'bg-gradient-to-r from-amber-500/10 to-amber-700/10 dark:from-amber-500/15 dark:to-amber-700/15',
+    buttonBg: 'bg-gradient-to-br from-[#EBD8BF] to-[#C9A874] dark:from-[#8B7355] dark:to-[#6B5B45]',
+    headerBg: 'bg-gradient-to-r from-[#E6D2B3]/6 to-[#C9A874]/4 dark:from-amber-500/8 dark:to-amber-700/6',
+    pillBg: 'bg-gradient-to-r from-[#E6D2B3]/12 to-[#C9A874]/8 dark:from-amber-500/12 dark:to-amber-700/10',
   },
 };
 
