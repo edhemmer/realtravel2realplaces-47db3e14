@@ -2,13 +2,15 @@
  * ImportBuildProgressOverlay — Premium plane-orbiting-globe progress indicator.
  * Driven exclusively by canonical buildStatus from the import session.
  *
- * v3.9.49: Single overlay rendered at the import flow level.
+ * v3.9.45: Single overlay rendered at the import flow level.
+ * - 300ms anti-flicker delay
+ * - Plane icon angled/profile for orbiting effect
+ * - "Still working" after 20s
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { Globe, Plane, Loader2 } from 'lucide-react';
+import { Globe, Plane } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 
 export type BuildStatus =
   | 'idle'
@@ -81,11 +83,11 @@ export function ImportBuildProgressOverlay({ buildStatus, onCancel }: ImportBuil
           <div className="absolute inset-0 flex items-center justify-center">
             <Globe className="w-10 h-10 text-primary/30" />
           </div>
-          {/* Orbiting plane */}
+          {/* Orbiting plane — angled/profile for flight effect */}
           <div
             className="absolute inset-0 animate-[orbit_3s_linear_infinite]"
           >
-            <Plane className="w-5 h-5 text-primary absolute -top-1 left-1/2 -translate-x-1/2 -rotate-45" />
+            <Plane className="w-5 h-5 text-primary absolute -top-1 left-1/2 -translate-x-1/2 rotate-[-30deg]" />
           </div>
         </div>
 
