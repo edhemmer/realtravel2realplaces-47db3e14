@@ -853,7 +853,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className={`${dialogMaxWidth} max-h-[90vh] overflow-y-auto relative`}>
+      <DialogContent className={`${dialogMaxWidth} max-h-[85vh] overflow-y-auto relative top-[50%] translate-y-[-50%]`}>
 
         {/* v3.9.49: Canonical build progress overlay */}
         <ImportBuildProgressOverlay
