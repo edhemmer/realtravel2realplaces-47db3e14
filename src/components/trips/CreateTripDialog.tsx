@@ -365,13 +365,12 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
           }
 
           // v3.9.49: APPEND new bookings with dedup, compute meta from full merged set
-          let allMergedBookings: ParsedBooking[] = [];
-          setParsedBookings(prev => {
-            const merged = mergeBookings(prev, parsed.bookings);
-            saveWizardBatch(merged);
-            allMergedBookings = merged;
-            return merged;
-          });
+          // IMPORTANT: Compute merged set synchronously OUTSIDE setState to avoid
+          // React 18 batching deferral — updater functions run during render, not inline.
+          const prevBookings = parsedBookings;
+          const allMergedBookings = mergeBookings(prevBookings, parsed.bookings);
+          saveWizardBatch(allMergedBookings);
+          setParsedBookings(allMergedBookings);
 
           // v3.9.24: Compute meta from full merged set
           setBuildStatus('computing_meta');
