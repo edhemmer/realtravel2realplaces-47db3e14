@@ -54,6 +54,8 @@ import { validateParsedBookingTimes, shouldValidateBookingType } from '@/lib/boo
 // v3.9.5: Direct digit extraction for edit form population
 import { extractDatetimeLocalValue } from '@/lib/canonicalTimeNormalizer';
 import { normalizeDatetimeForStorage } from '@/lib/datetimeIntegrity';
+// v3.9.9: Canonical import pipeline — single entry point for all booking parsing
+import { runCanonicalImportPipelineSingle } from '@/lib/ingestion/canonicalImportPipeline';
 
 // Helper to safely open external URLs in new tab
 const openExternalUrl = (url: string | null | undefined) => {
@@ -330,12 +332,12 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
       if (data?.success && data?.data) {
         const parsed = data.data;
         
-        // Check if this is a receipt-only upload (no service dates)
-        if (data.is_receipt_only === true) {
-          // v4.1.0: Distinguish flight receipts from generic receipts
+        // v3.9.9: Run canonical import pipeline for unified classification + validation
+        const pipelineResult = runCanonicalImportPipelineSingle(parsed, text);
+        
+        // Receipt detection — unified through pipeline
+        if (pipelineResult.status === 'RECEIPT_ONLY') {
           const isFlightReceipt = parsed._email_classification === 'FLIGHT_RECEIPT';
-          
-          // Create expense instead of booking
           const expenseCreated = await createExpenseFromReceipt(parsed);
           
           if (expenseCreated) {
@@ -371,38 +373,32 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
         // Validate dates before applying
         const dateValidation = validateBookingDates(parsed.start_datetime, parsed.end_datetime);
         
-        // v4.1.0: Surface missing required fields for flight confirmations
-        if (data.has_issues && data.missing_fields) {
-          const missingLabels = (data.missing_fields as string[]).map((f: string) => {
+        // v3.9.9: Surface required field issues from pipeline
+        const stagedItem = pipelineResult.stagedItems[0];
+        if (stagedItem?.requiredFieldIssue) {
+          const missingLabels = stagedItem.requiredFieldIssue.missingFields.map((f: string) => {
             switch (f) {
               case 'departure_airport_code': return 'departure airport';
               case 'arrival_airport_code': return 'arrival airport';
-              case 'departure_datetime': return 'departure time';
-              case 'arrival_datetime': return 'arrival time';
+              case 'start_datetime': return 'start date/time';
+              case 'end_datetime': return 'end date/time';
               default: return f.replace(/_/g, ' ');
             }
           });
-          toast.warning('Flight details incomplete', {
+          toast.warning('Booking details incomplete', {
             description: `Missing: ${missingLabels.join(', ')}. Please complete these fields below before saving.`,
             duration: 10000,
           });
           setTimeIsEstimated(true);
         }
         
-        // v2.2.12: Run ConfirmationTimeValidator on all booking-derived events
-        if (shouldValidateBookingType(parsed.booking_type) && dateValidation.valid && dateValidation.startDt) {
-          const normalizedStart = normalizeDatetimeForStorage(parsed.start_datetime);
-          const normalizedEnd = normalizeDatetimeForStorage(parsed.end_datetime);
-          const timeValidation = validateParsedBookingTimes(parsed, normalizedStart, normalizedEnd);
-          
-          if (timeValidation.isLowConfidence) {
-            // Flag as low-confidence — mark time as estimated, let user review
-            setTimeIsEstimated(true);
-            toast.warning('Times need review', {
-              description: `Parsed times may not match the confirmation. ${timeValidation.issuesSummary || 'Please verify times before saving.'}`,
-              duration: 8000,
-            });
-          }
+        // v3.9.9: Time validation from pipeline (replaces inline validateParsedBookingTimes)
+        if (stagedItem?.timeValidation?.isLowConfidence) {
+          setTimeIsEstimated(true);
+          toast.warning('Times need review', {
+            description: `Parsed times may not match the confirmation. ${stagedItem.timeValidation.issuesSummary || 'Please verify times before saving.'}`,
+            duration: 8000,
+          });
         }
         
         // v2.1.30: Enhanced partial parsing feedback
@@ -649,6 +645,10 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
         const warnings = data.data.warnings || [];
         const confidence = data.data.confidence || 75;
 
+        // v3.9.9: Run canonical import pipeline on photo-parsed draft
+        const pipelineResult = runCanonicalImportPipelineSingle(draft);
+        const stagedItem = pipelineResult.stagedItems[0];
+
         // Populate the form with draft data
         setBookingType(draft.booking_type || 'flight');
         
@@ -673,12 +673,19 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
         }));
 
         setParseSource('pasted_text');
-        setTimeIsEstimated(!draft.start_datetime || !/T\d{2}:\d{2}/.test(draft.start_datetime));
+        // v3.9.9: Use pipeline timeIsEstimated
+        setTimeIsEstimated(stagedItem?.timeIsEstimated ?? true);
 
         // Open the booking dialog for review
         setDialogOpen(true);
 
-        if (warnings.length > 0) {
+        // v3.9.9: Surface pipeline required field issues for photo-parsed drafts
+        if (stagedItem?.requiredFieldIssue) {
+          toast.warning('Some booking fields are incomplete', {
+            description: stagedItem.requiredFieldIssue.actionHint,
+            duration: 8000,
+          });
+        } else if (warnings.length > 0) {
           toast.warning('Photo parsed with warnings', {
             description: warnings.join('. '),
             duration: 6000,
