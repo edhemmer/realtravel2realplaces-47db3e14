@@ -37,7 +37,7 @@ import { runCanonicalImportPipeline } from '@/lib/ingestion/canonicalImportPipel
 // v3.9.28: Receipt cost extraction fallback
 import { enrichParsedBookingCost } from '@/lib/costAttribution';
 // v3.9.35: Canonical import staging — single source for trip creation inputs
-import { buildImportStaging, type ParsedImportStaging } from '@/lib/ingestion/importStaging';
+import { buildImportStaging, buildStagingSnapshot, extractDateTokensFromParsedItems, deriveTripFrameFromDateTokens, type ParsedImportStaging, type StagingSnapshot } from '@/lib/ingestion/importStaging';
 
 // ============================================================================
 // TYPES & HELPERS
@@ -215,6 +215,8 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
   const buildTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const buildSessionIdRef = useRef<string | null>(null);
   const buildCompletedSessionsRef = useRef<Set<string>>(new Set());
+  // v3.9.40: Immutable staging snapshot — frozen at Continue time
+  const stagingSnapshotRef = useRef<StagingSnapshot | null>(null);
 
   // v3.9.49: Ref to track latest travelMode for use in async callbacks (prevents stale closure)
   const travelModeRef = useRef<TravelMode>(null);
@@ -277,6 +279,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
     if (autofillTimerRef.current) clearTimeout(autofillTimerRef.current);
     if (buildTimeoutRef.current) clearTimeout(buildTimeoutRef.current);
     buildSessionIdRef.current = null;
+    stagingSnapshotRef.current = null;
     clearWizardBatch();
   }, [reset]);
 
@@ -507,9 +510,14 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
   // TRIP CREATION (shared)
   // ============================================================================
 
-  /** v3.8.23: Pre-submit gate — checks complexity before timeline build */
+  /** v3.9.40: Pre-submit gate — builds immutable snapshot + checks complexity */
   const handlePreSubmit = handleSubmit((data: TripFormData) => {
+    // v3.9.40: Build immutable staging snapshot synchronously at Continue time
     if (parsedBookings.length > 0) {
+      const currentMode = travelModeRef.current || 'fly';
+      const snapshot = buildStagingSnapshot(parsedBookings as any[], currentMode);
+      stagingSnapshotRef.current = snapshot;
+
       // Convert parsed bookings to minimal CanonicalItem-compatible objects for evaluation
       const pseudoCanonical: CanonicalItem[] = parsedBookings.map(b => {
         const base = {
@@ -618,14 +626,17 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
       return;
     }
 
-    // v3.9.35: For import mode, prefer staging tripFrame dates (canonical source)
-    const hasBookings = parsedBookings.length > 0;
-    const stagingStart = importStaging?.tripFrame.startDate || null;
-    const stagingEnd = importStaging?.tripFrame.endDate || null;
+    // v3.9.40: Use immutable snapshot if available (import mode), else fall back
+    const snapshot = stagingSnapshotRef.current;
+    const hasBookings = snapshot ? snapshot.canonicalItems.length > 0 : parsedBookings.length > 0;
 
-    // Priority: staging tripFrame → UI-selected dates → fallback
-    const effectiveStartDateStr = stagingStart || (startDate ? format(startDate, 'yyyy-MM-dd') : null) || (hasBookings ? format(new Date(), 'yyyy-MM-dd') : null);
-    const effectiveEndDateStr = stagingEnd || (endDate ? format(endDate, 'yyyy-MM-dd') : null) || (hasBookings ? format(new Date(Date.now() + 7 * 86400000), 'yyyy-MM-dd') : null);
+    // v3.9.40: Dates come ONLY from snapshot when available
+    const snapshotStart = snapshot?.derivedTripRange.startDate || null;
+    const snapshotEnd = snapshot?.derivedTripRange.endDate || null;
+
+    // Priority: snapshot → UI-selected dates → fallback
+    const effectiveStartDateStr = snapshotStart || (startDate ? format(startDate, 'yyyy-MM-dd') : null) || (hasBookings ? format(new Date(), 'yyyy-MM-dd') : null);
+    const effectiveEndDateStr = snapshotEnd || (endDate ? format(endDate, 'yyyy-MM-dd') : null) || (hasBookings ? format(new Date(Date.now() + 7 * 86400000), 'yyyy-MM-dd') : null);
     if (!effectiveStartDateStr || !effectiveEndDateStr) return;
     
     // v3.9.46: Fallback trip name and city for import-driven creation
@@ -664,11 +675,14 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
         return;
       }
 
-      if (parsedBookings.length > 0 && trip?.id) {
+      // v3.9.40: Use snapshot items for timeline writes (atomic — same set used for dates)
+      const bookingsToWrite = snapshot ? snapshot.canonicalItems as unknown as ParsedBooking[] : parsedBookings;
+
+      if (bookingsToWrite.length > 0 && trip?.id) {
         const createdCompanions: Map<string, string> = new Map();
         let totalCompanionsCreated = 0;
 
-        for (const booking of parsedBookings) {
+        for (const booking of bookingsToWrite) {
           // v3.9.26: Bail if timed out mid-booking-creation
           if (timedOut) {
             buildCompletedSessionsRef.current.add(sessionId);
@@ -738,10 +752,50 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
           }
         }
 
+        // v3.9.40: Post-create auto-heal — verify trip dates match derived range
+        if (trip?.id && !timedOut) {
+          try {
+            const { data: savedBookings } = await supabase
+              .from('bookings')
+              .select('start_datetime, end_datetime')
+              .eq('trip_id', trip.id);
+
+            if (savedBookings && savedBookings.length > 0) {
+              const savedTokens = extractDateTokensFromParsedItems(
+                savedBookings.map(b => ({
+                  start_datetime: b.start_datetime,
+                  end_datetime: b.end_datetime,
+                }))
+              );
+              const healedRange = deriveTripFrameFromDateTokens(savedTokens);
+
+              if (healedRange.startDate && healedRange.endDate) {
+                const needsHeal =
+                  healedRange.startDate !== effectiveStartDateStr ||
+                  healedRange.endDate !== effectiveEndDateStr;
+
+                if (needsHeal) {
+                  console.warn('[CreateTrip] TRIP_RANGE_AUTOFIXED', {
+                    original: { start: effectiveStartDateStr, end: effectiveEndDateStr },
+                    healed: { start: healedRange.startDate, end: healedRange.endDate },
+                  });
+                  await supabase.rpc('update_trip_dates', {
+                    p_trip_id: trip.id,
+                    p_start_date: healedRange.startDate,
+                    p_end_date: healedRange.endDate,
+                  });
+                }
+              }
+            }
+          } catch (healErr) {
+            console.error('[CreateTrip] Auto-heal failed (non-blocking):', healErr);
+          }
+        }
+
         const companionMsg = totalCompanionsCreated > 0
           ? ` and ${totalCompanionsCreated} companion(s)`
           : '';
-        toast.success(`Created trip with ${parsedBookings.length} booking(s)${companionMsg}!`);
+        toast.success(`Created trip with ${bookingsToWrite.length} booking(s)${companionMsg}!`);
       }
 
       // v3.9.26: Mark session completed, clear timeout
