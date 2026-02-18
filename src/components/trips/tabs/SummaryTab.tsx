@@ -27,6 +27,7 @@ import { FirstTripHint } from '@/components/trips/FirstTripHint';
 import { AirportSnapshotCard } from '@/components/trips/AirportSnapshotCard';
 import { TripTimeline } from '@/components/trips/TripTimeline';
 import { generateTripICS, downloadICSFile } from '@/lib/icsGenerator';
+import { resolveMapsDestination, openMapsDestination } from '@/lib/mapsDestination';
 import { logExpenseDebug } from '@/lib/expenseCalculations';
 import { 
   getCanonicalTripState, 
@@ -164,9 +165,8 @@ export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onV
   };
 
   const openInMaps = (address: string) => {
-    const { resolveMapsDestination: resolve, openMapsDestination: open } = require('@/lib/mapsDestination');
-    const dest = resolve({ address });
-    if (dest) open(dest);
+    const dest = resolveMapsDestination({ address });
+    if (dest) openMapsDestination(dest);
     else window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank', 'noopener,noreferrer');
   };
 
