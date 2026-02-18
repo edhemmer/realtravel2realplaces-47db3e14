@@ -23,8 +23,10 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { getVendorUrl } from '@/lib/vendorUrls';
 import { BookingType, StayType } from '@/types/database';
-import { getSuggestedTripDates } from '@/hooks/useTripDateSync';
+// getSuggestedTripDates no longer used here — consumed by buildSuggestedTripMeta
 import { resolveTripFrame, validateConfirmationAlignment, isFrameResolved, type TripFrameMode } from '@/lib/tripFrameResolver';
+// v3.9.31: Single canonical meta resolver for auto-filling trip identity
+import { buildSuggestedTripMeta } from '@/lib/suggestedTripMeta';
 import { LocationInput } from '@/components/LocationInput';
 import { LocationStructured, isLocationComplete, locationLabel } from '@/lib/location/types';
 import { evaluateTripComplexity, type TripComplexityResult } from '@/lib/canonical/tripComplexity';
@@ -194,7 +196,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
   const [driveOriginLocation, setDriveOriginLocation] = useState<LocationStructured | null>(null);
   const [driveDestLocation, setDriveDestLocation] = useState<LocationStructured | null>(null);
 
-  const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<TripFormData>({
+  const { register, handleSubmit, setValue, watch, getValues, reset, formState: { errors } } = useForm<TripFormData>({
     resolver: zodResolver(tripSchema),
     defaultValues: {
       name: '',
@@ -252,14 +254,14 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
         setValue('transportation_mode', 'flight');
         setStep('manual-form');
         
-        // Restore dates from batch if available
-        const suggestedDates = getSuggestedTripDates(savedBatch);
-        if (suggestedDates.start_date) {
-          try { setStartDate(parseISO(suggestedDates.start_date)); } catch {}
-        }
-        if (suggestedDates.end_date) {
-          try { setEndDate(parseISO(suggestedDates.end_date)); } catch {}
-        }
+        // v3.9.31: Restore ALL meta from batch using canonical resolver
+        const meta = buildSuggestedTripMeta(savedBatch, 'fly');
+        if (meta.suggestedStart) setStartDate(meta.suggestedStart);
+        if (meta.suggestedEnd) setEndDate(meta.suggestedEnd);
+        if (meta.suggestedTripName) setValue('name', meta.suggestedTripName);
+        if (meta.suggestedDestinationFields.city) setValue('destination_city', meta.suggestedDestinationFields.city);
+        if (meta.suggestedDestinationFields.state) setValue('destination_state', meta.suggestedDestinationFields.state || '');
+        if (meta.suggestedDestinationFields.country) setValue('destination_country', meta.suggestedDestinationFields.country || '');
         
         toast.info(`Resuming with ${savedBatch.length} booking(s) from your previous session.`);
       } else {
@@ -298,13 +300,9 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
       if (data?.success && data?.data) {
         const parsed = data.data;
 
+        // v3.9.31: Only use per-email AI trip_type hint (non-identity field)
         if (parsed.trip) {
-          if (parsed.trip.trip_name) setValue('name', parsed.trip.trip_name);
-          if (parsed.trip.destination_city) setValue('destination_city', parsed.trip.destination_city);
-          if (parsed.trip.destination_state) setValue('destination_state', parsed.trip.destination_state);
-          if (parsed.trip.destination_country) setValue('destination_country', parsed.trip.destination_country);
           if (parsed.trip.trip_type) setValue('trip_type', parsed.trip.trip_type);
-
           if (parsed.bookings?.some((b: any) => b.booking_type === 'flight')) {
             setValue('transportation_mode', 'flight');
           }
@@ -327,7 +325,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
             toast.warning(`${pipelineResult.needsAttentionItems.length} booking(s) have incomplete fields. Please review.`, { duration: 6000 });
           }
 
-          // v3.9.26: APPEND new bookings with dedup, then derive dates from FULL merged set
+          // v3.9.26: APPEND new bookings with dedup, then derive ALL meta from FULL merged set
           let allMergedBookings: typeof parsedBookings = [];
           setParsedBookings(prev => {
             const merged = mergeBookings(prev, parsed.bookings);
@@ -336,37 +334,49 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
             return merged;
           });
 
-          // v3.9.26: Derive trip dates from ALL accumulated bookings (not just current parse batch)
-          // This ensures multi-email imports produce correct start/end spanning all legs
+          // v3.9.31: Single canonical meta resolver — dates, name, destination from ONE source
           const frameMode: TripFrameMode = travelMode === 'fly' ? 'fly' : travelMode === 'drive' ? 'drive' : 'train';
-          const alignment = validateConfirmationAlignment(allMergedBookings, frameMode);
+          const meta = buildSuggestedTripMeta(allMergedBookings, frameMode);
 
-          if (alignment.aligned && alignment.frame && isFrameResolved(alignment.frame)) {
-            try { setStartDate(parseISO(alignment.frame.startDate)); } catch {}
-            try { setEndDate(parseISO(alignment.frame.endDate)); } catch {}
-          } else if (!alignment.aligned) {
-            // Warn user about potential multi-trip confirmations
-            toast.warning('These confirmations may belong to separate trips. Please review the dates.');
-            // Fall back to suggested dates from ALL merged bookings
-            const suggestedDates = getSuggestedTripDates(allMergedBookings);
-            if (suggestedDates.start_date) {
-              try { setStartDate(parseISO(suggestedDates.start_date)); } catch {}
-            }
-            if (suggestedDates.end_date) {
-              try { setEndDate(parseISO(suggestedDates.end_date)); } catch {}
-            }
+          // Auto-fill ONLY empty fields — never overwrite user input
+          if (meta.suggestedStart && !startDate) {
+            setStartDate(meta.suggestedStart);
           }
-
-          // Surface warnings from resolver
-          if (alignment.warnings.length > 0) {
-            alignment.warnings.forEach(w => toast.info(w, { duration: 5000 }));
+          if (meta.suggestedEnd && !endDate) {
+            setEndDate(meta.suggestedEnd);
+          }
+          if (meta.suggestedTripName && !getValues('name')) {
+            setValue('name', meta.suggestedTripName);
+          }
+          if (meta.suggestedDestinationFields.city && !getValues('destination_city')) {
+            setValue('destination_city', meta.suggestedDestinationFields.city);
+          }
+          if (meta.suggestedDestinationFields.state && !getValues('destination_state')) {
+            setValue('destination_state', meta.suggestedDestinationFields.state);
+          }
+          if (meta.suggestedDestinationFields.country && !getValues('destination_country')) {
+            setValue('destination_country', meta.suggestedDestinationFields.country);
           }
         } else {
-          if (parsed.trip?.start_date) {
+          // No bookings parsed — fall back to per-email AI trip metadata for dates only
+          if (parsed.trip?.start_date && !startDate) {
             try { setStartDate(parseISO(parsed.trip.start_date)); } catch {}
           }
-          if (parsed.trip?.end_date) {
+          if (parsed.trip?.end_date && !endDate) {
             try { setEndDate(parseISO(parsed.trip.end_date)); } catch {}
+          }
+          // Also try name/destination from AI when no bookings exist
+          if (parsed.trip?.trip_name && !getValues('name')) {
+            setValue('name', parsed.trip.trip_name);
+          }
+          if (parsed.trip?.destination_city && !getValues('destination_city')) {
+            setValue('destination_city', parsed.trip.destination_city);
+          }
+          if (parsed.trip?.destination_state && !getValues('destination_state')) {
+            setValue('destination_state', parsed.trip.destination_state);
+          }
+          if (parsed.trip?.destination_country && !getValues('destination_country')) {
+            setValue('destination_country', parsed.trip.destination_country);
           }
         }
 
