@@ -31,6 +31,8 @@ import { evaluateTripComplexity, type TripComplexityResult } from '@/lib/canonic
 import type { CanonicalItem } from '@/lib/canonical/canonicalTypes';
 // v3.9.9: Canonical import pipeline — single entry point for all booking parsing
 import { runCanonicalImportPipeline } from '@/lib/ingestion/canonicalImportPipeline';
+// v3.9.28: Receipt cost extraction fallback
+import { enrichParsedBookingCost } from '@/lib/costAttribution';
 
 // ============================================================================
 // TYPES & HELPERS
@@ -309,6 +311,11 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
         }
 
         if (parsed.bookings && Array.isArray(parsed.bookings)) {
+          // v3.9.28: Enrich each booking's cost from raw text if AI parser missed it
+          for (const booking of parsed.bookings) {
+            enrichParsedBookingCost(booking, text);
+          }
+          
           // v3.9.9: Run canonical import pipeline on the batch
           const pipelineResult = runCanonicalImportPipeline(parsed.bookings, text);
           

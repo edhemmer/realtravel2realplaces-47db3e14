@@ -57,6 +57,8 @@ import { extractDatetimeLocalValue } from '@/lib/canonicalTimeNormalizer';
 import { normalizeDatetimeForStorage } from '@/lib/datetimeIntegrity';
 // v3.9.9: Canonical import pipeline — single entry point for all booking parsing
 import { runCanonicalImportPipelineSingle } from '@/lib/ingestion/canonicalImportPipeline';
+// v3.9.28: Receipt cost extraction fallback
+import { enrichParsedBookingCost } from '@/lib/costAttribution';
 
 // Helper to safely open external URLs in new tab
 const openExternalUrl = (url: string | null | undefined) => {
@@ -333,6 +335,8 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
       if (data?.success && data?.data) {
         const parsed = data.data;
         
+        // v3.9.28: Enrich cost from raw text if AI parser missed it
+        enrichParsedBookingCost(parsed, text);
         // v3.9.9: Run canonical import pipeline for unified classification + validation
         const pipelineResult = runCanonicalImportPipelineSingle(parsed, text);
         
