@@ -32,8 +32,9 @@ export interface ParseIssue {
 // REQUIRED FIELDS MAP (mirrors edge function)
 // ============================================================================
 
+// v3.9.29: Airport codes are NOT required for flights — names suffice for NEEDS_REVIEW flow
 export const REQUIRED_FIELDS_BY_ENTITY: Record<string, string[]> = {
-  flight: ['departure_airport_code', 'arrival_airport_code', 'start_datetime'],
+  flight: ['start_datetime'],
   stay: ['start_datetime', 'end_datetime', 'property_name'],
   car_rental: ['start_datetime', 'pickup_location', 'return_location'],
   transport: ['start_datetime'],

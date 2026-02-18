@@ -134,8 +134,12 @@ Also extract ALL BOOKINGS found in the document as an array. Each booking should
 - confirmation_number: If present (PNR for flights)
 - total_cost: Number only (for multi-leg flights: full fare on first leg, null on others)
 - address: If applicable
-- departure_airport_code: 3-letter IATA code (flights only)
-- arrival_airport_code: 3-letter IATA code (flights only)
+- departure_airport_code: 3-letter IATA code (flights only). If unknown, set null.
+- arrival_airport_code: 3-letter IATA code (flights only). If unknown, set null.
+- departure_airport_name: Full airport name as written in the confirmation (e.g., "London Heathrow", "Milan Malpensa"). ALWAYS extract this even if IATA code is known.
+- arrival_airport_name: Full airport name as written in the confirmation. ALWAYS extract this even if IATA code is known.
+- from_location: Origin city or location name (e.g., "London", "Atlanta"). Extract for all booking types.
+- to_location: Destination city or location name (e.g., "Milan", "New York"). Extract for all booking types.
 
 For flights also extract:
 - airline
@@ -154,7 +158,8 @@ For parking also extract:
 - parking_type: "airport", "hotel", "city_garage", "beach", "other"
 
 Return a JSON object with trip info and an array of bookings. Use null for any fields you cannot determine.
-IMPORTANT: Each flight leg MUST be a separate booking in the array.`;
+IMPORTANT: Each flight leg MUST be a separate booking in the array.
+IMPORTANT: For flights, ALWAYS populate departure_airport_name and arrival_airport_name with the full airport name text from the confirmation, even when IATA codes are also available.`;
 
     let response;
     try {
@@ -213,8 +218,12 @@ IMPORTANT: Each flight leg MUST be a separate booking in the array.`;
                           return_location: { type: "string" },
                           parking_type: { type: "string", enum: ["airport", "hotel", "city_garage", "beach", "other"] },
                           notes: { type: "string" },
-                          departure_airport_code: { type: "string", description: "3-letter IATA code for departure airport" },
-                          arrival_airport_code: { type: "string", description: "3-letter IATA code for arrival airport" },
+                          departure_airport_code: { type: "string", description: "3-letter IATA code for departure airport. Null if unknown." },
+                          arrival_airport_code: { type: "string", description: "3-letter IATA code for arrival airport. Null if unknown." },
+                          departure_airport_name: { type: "string", description: "Full departure airport name as written in confirmation (e.g., London Heathrow)" },
+                          arrival_airport_name: { type: "string", description: "Full arrival airport name as written in confirmation (e.g., Milan Malpensa)" },
+                          from_location: { type: "string", description: "Origin city or location name" },
+                          to_location: { type: "string", description: "Destination city or location name" },
                           location_summary: { type: "string" },
                         },
                         required: ["booking_type", "vendor_name", "start_datetime"],
