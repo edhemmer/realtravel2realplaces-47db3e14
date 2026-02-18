@@ -523,23 +523,17 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
     [bookings]
   );
 
-  // Calculate totals using shared utility with normalized booking costs (v2.1.21)
-  const allExpenseTotals = useMemo(
-    () => calculateNormalizedExpenseTotals(expenses, bookings),
+  // v3.9.25: Use canonical cost summary (single source of truth) for summary cards
+  // This ensures Trip Total and Expenses Tab always agree.
+  const canonicalCosts = useMemo(
+    () => calculateTripCostSummary(expenses, bookings, []),
     [expenses, bookings]
   );
-  const filteredTotals = useMemo(
-    () => calculateNormalizedExpenseTotals(filteredExpenses, bookings),
-    [filteredExpenses, bookings]
-  );
   
-  // Use filtered totals for display when filtering, all totals when showing all
-  const displayTotalAmount = activeCategory === 'all' 
-    ? allExpenseTotals.totalAmount 
-    : filteredTotals.totalAmount;
-  const displayTotalMyShare = activeCategory === 'all' 
-    ? allExpenseTotals.totalMyShare 
-    : filteredTotals.totalMyShare;
+  // v3.9.25: Total = bookingsTotal + out-of-pocket expensesTotal (canonical formula)
+  // This matches TripHeaderWidgets / Trip Total card exactly.
+  const displayTotalAmount = canonicalCosts.totalCost;
+  const displayTotalMyShare = canonicalCosts.totalMyShare;
 
   // Group by category for summary (always from all expenses)
   const byCategory = calculateCategorySummary(expenses);
@@ -623,8 +617,12 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
 
         <Card>
           <CardHeader className="pb-3">
-            <CardDescription>Total Expenses</CardDescription>
+            <CardDescription>Trip Total</CardDescription>
             <CardTitle className="text-2xl">{formatCurrency(displayTotalAmount)}</CardTitle>
+            {/* v3.9.25: Show breakdown matching Trip Total card */}
+            <p className="text-[11px] text-muted-foreground tabular-nums mt-1">
+              Bookings: {formatCurrency(canonicalCosts.bookingsTotal)} • Out-of-pocket: {formatCurrency(canonicalCosts.expensesTotal)}
+            </p>
           </CardHeader>
         </Card>
         <Card>

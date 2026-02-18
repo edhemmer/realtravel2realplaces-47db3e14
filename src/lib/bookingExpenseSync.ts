@@ -150,12 +150,17 @@ export function getBookingExpenseCost(booking: Booking): number {
  *   a) Number of legs/segments
  *   b) Number of passengers
  *   c) How the data was parsed
+ *
+ * v3.9.25: Guard — never creates $0 placeholder expenses.
+ * If totalCost is null/0/undefined, no expense is created and any existing
+ * linked expense is left unchanged (not zeroed out).
  */
 export async function syncExpenseFromBooking(booking: Booking): Promise<string | null> {
   // Get normalized booking cost (handles edge cases)
   const totalCost = getBookingExpenseCost(booking);
   
-  // Only sync if booking has a valid cost > 0
+  // v3.9.25: Only sync if booking has a valid cost > 0
+  // Never create $0 placeholder expenses — keep amount null internally
   if (totalCost <= 0) return null;
   
   const bookingLinkMarker = createBookingLinkMarker(booking.id);

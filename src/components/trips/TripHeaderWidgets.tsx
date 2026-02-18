@@ -1,5 +1,6 @@
 /**
- * v3.10.7: TripHeaderWidgets — Weather card never blank. Uses WeatherEngine.
+ * v3.9.25: TripHeaderWidgets — Uses canonical costs from DesktopTripShell when available.
+ * Falls back to own calculation on mobile path.
  */
 import { useWeatherEngine } from '@/hooks/useWeatherEngine';
 import { useProfileTemperatureUnit } from '@/hooks/useProfileTemperatureUnit';
@@ -8,6 +9,7 @@ import { useExpenses } from '@/hooks/useExpenses';
 import { useBookings } from '@/hooks/useBookings';
 import { calculateTripCostSummary } from '@/lib/expenseCalculations';
 import { formatCurrency, TRIP_TOTAL_LABEL } from '@/lib/displayFormats';
+import { useDesktopTripShell } from '@/containers/DesktopTripShell';
 import { Trip, Parking } from '@/types/database';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -29,20 +31,29 @@ const getWeatherIcon = (precipType: string, cloudCover: string) => {
 
 export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
   const { formatTemp } = useProfileTemperatureUnit();
+  
+  // v3.9.25: Consume shell context first (desktop path) to avoid redundant computation
+  const shell = useDesktopTripShell();
+  
+  // Fallback hooks — only needed on mobile path (React Query deduplicates anyway)
   const { data: bookings = [] } = useBookings(trip.id);
   const { data: parkingList = [] } = useParking(trip.id);
   const { data: expenses = [] } = useExpenses(trip.id);
   const { weather, isLoading: weatherLoading } = useWeatherEngine(trip, bookings);
 
-  // Calculate costs with defensive guards (v2.1.30)
-  const costSummary = calculateTripCostSummary(expenses, bookings, parkingList);
+  // v3.9.25: Use shell costs when available, otherwise compute locally
+  const costSummary = shell
+    ? shell.canonicalState?.costs ?? calculateTripCostSummary(expenses, bookings, parkingList)
+    : calculateTripCostSummary(expenses, bookings, parkingList);
+  
   const totalCost = Number.isFinite(costSummary.totalCost) ? costSummary.totalCost : 0;
   const bookingsTotal = Number.isFinite(costSummary.bookingsTotal) ? costSummary.bookingsTotal : 0;
   const expensesTotal = Number.isFinite(costSummary.expensesTotal) ? costSummary.expensesTotal : 0;
 
-  // Parking status
+  // Parking status — use shell data when available
+  const effectiveParkingList = shell ? shell.parkingList : parkingList;
   const now = new Date();
-  const upcomingParking = parkingList
+  const upcomingParking = effectiveParkingList
     .filter((p: Parking) => p.end_datetime && isAfter(parseISO(p.end_datetime), now))
     .sort((a: Parking, b: Parking) => parseISO(a.end_datetime!).getTime() - parseISO(b.end_datetime!).getTime())[0];
 
@@ -58,7 +69,6 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
     const { weatherMode, summary, envelope } = weather;
 
     if (weatherMode === 'SEASONAL_NORMALS') {
-      // Seasonal fallback — always has data from bundled normals
       const monthName = envelope.length > 0
         ? new Date(envelope[0].dateISO + 'T12:00:00').toLocaleDateString('en-US', { month: 'long' })
         : '';
@@ -85,8 +95,6 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
       );
     }
 
-    // FORECAST_PRIMARY or FORECAST_BLEND — live data
-    // v3.10.8: If envelope is empty (provider error), fall through to seasonal display
     if (envelope.length === 0) {
       const fallbackMonth = new Date(weather.windowStart + 'T12:00:00').toLocaleDateString('en-US', { month: 'long' });
       return (
@@ -200,9 +208,9 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
                 </p>
               )}
             </div>
-          ) : parkingList.length > 0 ? (
+          ) : effectiveParkingList.length > 0 ? (
             <p className="text-sm text-muted-foreground">
-              {parkingList.length} parking location{parkingList.length !== 1 ? 's' : ''} tracked
+              {effectiveParkingList.length} parking location{effectiveParkingList.length !== 1 ? 's' : ''} tracked
             </p>
           ) : (
             <p className="text-sm text-muted-foreground">No active parking</p>
