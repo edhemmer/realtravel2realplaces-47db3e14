@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { ImportBuildProgressOverlay, type BuildStatus } from '@/components/import/ImportBuildProgressOverlay';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -99,6 +100,14 @@ interface ParsedBooking {
   pickup_location?: string;
   return_location?: string;
   notes?: string;
+  // v3.9.49: Airport and location fields required for SuggestedTripMeta
+  departure_airport_code?: string | null;
+  arrival_airport_code?: string | null;
+  departure_airport_name?: string | null;
+  arrival_airport_name?: string | null;
+  from_location?: string | null;
+  to_location?: string | null;
+  my_share?: number | null;
 }
 
 interface CreateTripDialogProps {
@@ -189,6 +198,12 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
   const [showPasteInput, setShowPasteInput] = useState(false);
   const [complexityResult, setComplexityResult] = useState<TripComplexityResult | null>(null);
 
+  // v3.9.49: Canonical build status for progress overlay
+  const [buildStatus, setBuildStatus] = useState<BuildStatus>('idle');
+
+  // v3.9.49: Ref to track latest travelMode for use in async callbacks (prevents stale closure)
+  const travelModeRef = useRef<TravelMode>(null);
+
   // Drive flow extra state
   const [driveDestination, setDriveDestination] = useState('');
   const [driveOrigin, setDriveOrigin] = useState('');
@@ -229,6 +244,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
     });
     setStep('mode');
     setTravelMode(null);
+    travelModeRef.current = null;
     setStartDate(undefined);
     setEndDate(undefined);
     setParsedBookings([]);
@@ -240,6 +256,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
     setDriveOriginLocation(null);
     setDriveDestLocation(null);
     setComplexityResult(null);
+    setBuildStatus('idle');
     clearWizardBatch();
   }, [reset]);
 
@@ -251,15 +268,18 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
         // Resume: load persisted batch, skip to manual-form review
         setParsedBookings(savedBatch);
         setTravelMode('fly');
+        travelModeRef.current = 'fly';
         setValue('transportation_mode', 'flight');
         setStep('manual-form');
         
-        // v3.9.31: Restore ALL meta from batch using canonical resolver
+        // v3.9.49: Restore ALL meta from batch using canonical resolver
         const meta = buildSuggestedTripMeta(savedBatch, 'fly');
         if (meta.suggestedStart) setStartDate(meta.suggestedStart);
         if (meta.suggestedEnd) setEndDate(meta.suggestedEnd);
         if (meta.suggestedTripName) setValue('name', meta.suggestedTripName);
+        else if (meta.suggestedDestination) setValue('name', `${meta.suggestedDestination} Trip`);
         if (meta.suggestedDestinationFields.city) setValue('destination_city', meta.suggestedDestinationFields.city);
+        else if (meta.suggestedDestination) setValue('destination_city', meta.suggestedDestination);
         if (meta.suggestedDestinationFields.state) setValue('destination_state', meta.suggestedDestinationFields.state || '');
         if (meta.suggestedDestinationFields.country) setValue('destination_country', meta.suggestedDestinationFields.country || '');
         
@@ -282,6 +302,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
     }
 
     setIsParsing(true);
+    setBuildStatus('parsing');
     setParseError(null);
     toast.info('Parsing itinerary...');
 
@@ -294,6 +315,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
         console.error('Network error:', error);
         setParseError('Unable to connect. Please check your connection and try again.');
         toast.error('Connection error');
+        setBuildStatus('idle');
         return;
       }
 
@@ -309,6 +331,8 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
         }
 
         if (parsed.bookings && Array.isArray(parsed.bookings)) {
+          setBuildStatus('merging');
+
           // v3.9.28: Enrich each booking's cost from raw text if AI parser missed it
           for (const booking of parsed.bookings) {
             enrichParsedBookingCost(booking, text);
@@ -325,8 +349,8 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
             toast.warning(`${pipelineResult.needsAttentionItems.length} booking(s) have incomplete fields. Please review.`, { duration: 6000 });
           }
 
-          // v3.9.26: APPEND new bookings with dedup, then derive ALL meta from FULL merged set
-          let allMergedBookings: typeof parsedBookings = [];
+          // v3.9.49: APPEND new bookings with dedup, compute meta from full merged set
+          let allMergedBookings: ParsedBooking[] = [];
           setParsedBookings(prev => {
             const merged = mergeBookings(prev, parsed.bookings);
             saveWizardBatch(merged);
@@ -334,16 +358,18 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
             return merged;
           });
 
-          // v3.9.31: Single canonical meta resolver — dates, name, destination from ONE source
-          const frameMode: TripFrameMode = travelMode === 'fly' ? 'fly' : travelMode === 'drive' ? 'drive' : 'train';
+          // v3.9.49: Use ref for travelMode to avoid stale closure
+          setBuildStatus('computing_meta');
+          const currentMode = travelModeRef.current;
+          const frameMode: TripFrameMode = currentMode === 'fly' ? 'fly' : currentMode === 'drive' ? 'drive' : 'fly';
           const meta = buildSuggestedTripMeta(allMergedBookings, frameMode);
 
           // Auto-fill ONLY empty fields — never overwrite user input
-          if (meta.suggestedStart && !startDate) {
-            setStartDate(meta.suggestedStart);
+          if (meta.suggestedStart) {
+            setStartDate(prev => prev || meta.suggestedStart!);
           }
-          if (meta.suggestedEnd && !endDate) {
-            setEndDate(meta.suggestedEnd);
+          if (meta.suggestedEnd) {
+            setEndDate(prev => prev || meta.suggestedEnd!);
           }
           if (meta.suggestedTripName && !getValues('name')) {
             setValue('name', meta.suggestedTripName);
@@ -357,13 +383,23 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
           if (meta.suggestedDestinationFields.country && !getValues('destination_country')) {
             setValue('destination_country', meta.suggestedDestinationFields.country);
           }
+
+          // v3.9.49: Also fill trip name from suggestedDestination when city-only (no airport match)
+          if (!getValues('name') && meta.suggestedDestination) {
+            setValue('name', `${meta.suggestedDestination} Trip`);
+          }
+          if (!getValues('destination_city') && meta.suggestedDestination) {
+            setValue('destination_city', meta.suggestedDestination);
+          }
+
+          setBuildStatus(meta.suggestedDestinationFields.city ? 'ready' : 'needs_input');
         } else {
           // No bookings parsed — fall back to per-email AI trip metadata for dates only
-          if (parsed.trip?.start_date && !startDate) {
-            try { setStartDate(parseISO(parsed.trip.start_date)); } catch {}
+          if (parsed.trip?.start_date) {
+            try { setStartDate(prev => prev || parseISO(parsed.trip.start_date)); } catch {}
           }
-          if (parsed.trip?.end_date && !endDate) {
-            try { setEndDate(parseISO(parsed.trip.end_date)); } catch {}
+          if (parsed.trip?.end_date) {
+            try { setEndDate(prev => prev || parseISO(parsed.trip.end_date)); } catch {}
           }
           // Also try name/destination from AI when no bookings exist
           if (parsed.trip?.trip_name && !getValues('name')) {
@@ -378,6 +414,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
           if (parsed.trip?.destination_country && !getValues('destination_country')) {
             setValue('destination_country', parsed.trip.destination_country);
           }
+          setBuildStatus('ready');
         }
 
         setPastedText('');
@@ -390,15 +427,17 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
         const message = data?.message || 'We couldn\'t parse this text. Please fill in the details manually.';
         setParseError(message);
         toast.warning(message);
+        setBuildStatus('idle');
       }
     } catch (err) {
       console.error('Parse error:', err);
       setParseError('An unexpected error occurred. Please try again or enter details manually.');
       toast.error('Something went wrong');
+      setBuildStatus('idle');
     } finally {
       setIsParsing(false);
     }
-  }, [setValue]);
+  }, [setValue, getValues]);
 
   // ── Dropzone text handler (fed by DropzoneIntake) ──────
   const handleDropzoneText = useCallback(async (text: string) => {
@@ -527,6 +566,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
 
   const onSubmit = async (data: TripFormData) => {
     if (!startDate || !endDate) return;
+    setBuildStatus('creating_trip');
 
     try {
       const trip = await createTrip.mutateAsync({
@@ -567,6 +607,14 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
             return_location: booking.return_location,
             notes: booking.notes,
             link_url: vendorUrl || undefined,
+            // v3.9.49: Persist airport + location fields for downstream engines
+            departure_airport_code: booking.departure_airport_code || undefined,
+            arrival_airport_code: booking.arrival_airport_code || undefined,
+            departure_airport_name: booking.departure_airport_name || undefined,
+            arrival_airport_name: booking.arrival_airport_name || undefined,
+            from_location: booking.from_location || undefined,
+            to_location: booking.to_location || undefined,
+            my_share: booking.my_share ?? undefined,
           });
 
           if (booking.passenger_name && booking.booking_type === 'flight') {
@@ -781,6 +829,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
 
   const handleModeSelect = (mode: TravelMode) => {
     setTravelMode(mode);
+    travelModeRef.current = mode;
     switch (mode) {
       case 'fly':
         setValue('transportation_mode', 'flight');
@@ -804,7 +853,16 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className={`${dialogMaxWidth} max-h-[90vh] overflow-y-auto`}>
+      <DialogContent className={`${dialogMaxWidth} max-h-[90vh] overflow-y-auto relative`}>
+
+        {/* v3.9.49: Canonical build progress overlay */}
+        <ImportBuildProgressOverlay
+          buildStatus={buildStatus}
+          onCancel={() => {
+            setBuildStatus('idle');
+            setIsParsing(false);
+          }}
+        />
 
         {/* ── STEP: Mode Chooser ───────────────────────────────── */}
         {step === 'mode' && (
