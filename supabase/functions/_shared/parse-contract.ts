@@ -29,10 +29,9 @@ export type DocClassification =
  * Canonical required fields map. Only entities meeting ALL required fields
  * become timeline-driving bookings. Missing fields → ParseIssue.
  */
+// v3.9.29: Airport codes NOT required — names suffice for NEEDS_REVIEW flow
 export const REQUIRED_FIELDS_BY_ENTITY: Record<string, string[]> = {
   flight: [
-    'departure_airport_code',
-    'arrival_airport_code',
     'start_datetime',
   ],
   stay: [
