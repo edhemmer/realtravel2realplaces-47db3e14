@@ -29,6 +29,8 @@ import { LocationInput } from '@/components/LocationInput';
 import { LocationStructured, isLocationComplete, locationLabel } from '@/lib/location/types';
 import { evaluateTripComplexity, type TripComplexityResult } from '@/lib/canonical/tripComplexity';
 import type { CanonicalItem } from '@/lib/canonical/canonicalTypes';
+// v3.9.9: Canonical import pipeline — single entry point for all booking parsing
+import { runCanonicalImportPipeline } from '@/lib/ingestion/canonicalImportPipeline';
 
 // ============================================================================
 // TYPES & HELPERS
@@ -307,6 +309,17 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
         }
 
         if (parsed.bookings && Array.isArray(parsed.bookings)) {
+          // v3.9.9: Run canonical import pipeline on the batch
+          const pipelineResult = runCanonicalImportPipeline(parsed.bookings, text);
+          
+          // Surface pipeline issues to user
+          if (pipelineResult.hasReceipts && pipelineResult.receiptItems.length > 0) {
+            toast.info(`${pipelineResult.receiptItems.length} receipt(s) detected and excluded from bookings.`, { duration: 5000 });
+          }
+          if (pipelineResult.needsAttentionItems.length > 0) {
+            toast.warning(`${pipelineResult.needsAttentionItems.length} booking(s) have incomplete fields. Please review.`, { duration: 6000 });
+          }
+
           // v3.8.23-fix: APPEND new bookings with dedup — never replace the batch
           setParsedBookings(prev => {
             const merged = mergeBookings(prev, parsed.bookings);
