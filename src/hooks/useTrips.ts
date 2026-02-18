@@ -72,9 +72,9 @@ export function useTrip(tripId: string) {
 
 interface CreateTripData {
   name: string;
-  destination_city: string;
-  destination_state?: string;
-  destination_country: string;
+  destination_city?: string | null;
+  destination_state?: string | null;
+  destination_country?: string | null;
   start_date: string;
   end_date: string;
   trip_type: TripType;

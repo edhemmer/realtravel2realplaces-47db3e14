@@ -614,7 +614,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
     
     // v3.9.46: Fallback trip name and city for import-driven creation
     const effectiveName = data.name?.trim() || (hasBookings ? 'New Trip (Imported)' : 'New Trip');
-    const effectiveCity = data.destination_city?.trim() || (hasBookings ? 'TBD' : '');
+    const effectiveCity = data.destination_city?.trim() || null;
     if (!effectiveCity && !hasBookings) return; // Manual mode still requires city
     
     setBuildStatus('creating_trip');
