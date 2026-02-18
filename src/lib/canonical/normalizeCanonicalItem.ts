@@ -194,6 +194,7 @@ export function normalizeParkingRecord(parking: Parking): CanonicalParking {
 
   const address = guardLocationField('address', parking.address, evidence, warnings);
 
+  const totalCost = parking.total_cost ?? 0;
   return {
     type: 'parking',
     sourceId: parking.id,
@@ -201,7 +202,7 @@ export function normalizeParkingRecord(parking: Parking): CanonicalParking {
     vendorName: parking.label,
     confirmationNumber: null,
     confirmationNumbers: [],
-    totalCost: parking.total_cost ?? 0,
+    totalCost,
     myShare: parking.my_share ?? 0,
     notes: null,
     linkUrl: null,
@@ -209,6 +210,10 @@ export function normalizeParkingRecord(parking: Parking): CanonicalParking {
     warnings,
     rawStartTime: extractRawTimeFields(parking.start_local_datetime || parking.start_datetime),
     rawEndTime: extractRawTimeFields(parking.end_local_datetime || parking.end_datetime),
+    // v3.9.21: Cost attribution defaults
+    costAttributionMode: (totalCost > 0 ? 'BOOKING_TOTAL' : 'NONE') as 'BOOKING_TOTAL' | 'PER_LEG' | 'NONE' | 'MIXED_NEEDS_REVIEW',
+    bookingCostTotal: totalCost > 0 ? { amount: totalCost, currency: 'USD', source: 'email', confidence: 'MED' } : null,
+    bookingCostBreakdown: [],
     parkingType: parking.parking_type || 'other',
     label: parking.label,
     billingType: parking.billing_type || 'other',
@@ -326,12 +331,13 @@ export function computeFlightLocalDatetimes(
 
 function baseFields(booking: Booking, evidence: RawEvidence[], warnings: CanonicalWarning[]) {
   const confNum = booking.confirmation_number || null;
+  const totalCost = booking.total_cost ?? 0;
   return {
     sourceId: booking.id,
     vendorName: booking.vendor_name,
     confirmationNumber: confNum,
     confirmationNumbers: confNum ? [confNum] : [],
-    totalCost: booking.total_cost ?? 0,
+    totalCost,
     myShare: booking.my_share ?? 0,
     notes: booking.notes || null,
     linkUrl: booking.link_url || null,
@@ -339,6 +345,10 @@ function baseFields(booking: Booking, evidence: RawEvidence[], warnings: Canonic
     warnings,
     rawStartTime: extractRawTimeFields(booking.start_datetime),
     rawEndTime: extractRawTimeFields(booking.end_datetime),
+    // v3.9.21: Default cost attribution — BOOKING_TOTAL if cost present, else NONE
+    costAttributionMode: (totalCost > 0 ? 'BOOKING_TOTAL' : 'NONE') as 'BOOKING_TOTAL' | 'PER_LEG' | 'NONE' | 'MIXED_NEEDS_REVIEW',
+    bookingCostTotal: totalCost > 0 ? { amount: totalCost, currency: 'USD', source: 'email', confidence: 'MED' } : null,
+    bookingCostBreakdown: [] as Array<{ label: string; amount: number; currency: string }>,
   };
 }
 
@@ -445,6 +455,9 @@ function normalizeFlight(booking: Booking): CanonicalFlight {
     departLocalKey,
     arriveLocalKey,
     arrivalDateDerived,
+    // v3.9.21: Per-leg cost fields (null = not explicitly per-leg)
+    legCost: null,
+    legCostSourceRef: null,
   };
 }
 

@@ -95,6 +95,14 @@ export interface CanonicalItemBase {
   rawStartTime: RawTimeFields;
   /** Raw "as-issued" end time fields — no math applied */
   rawEndTime: RawTimeFields;
+
+  // v3.9.21: Canonical cost attribution
+  /** How costs are attributed across legs/segments */
+  costAttributionMode: 'BOOKING_TOTAL' | 'PER_LEG' | 'NONE' | 'MIXED_NEEDS_REVIEW';
+  /** Booking-level total cost (set when costAttributionMode = BOOKING_TOTAL) */
+  bookingCostTotal: { amount: number; currency: string; source: string; confidence: string } | null;
+  /** Breakdown of extracted cost items for review */
+  bookingCostBreakdown: Array<{ label: string; amount: number; currency: string }>;
 }
 
 // ============================================================================
@@ -142,6 +150,12 @@ export interface CanonicalFlight extends CanonicalItemBase {
   arriveLocalKey: string | null;
   /** True if arrival date was derived via rollover (not explicit in confirmation) */
   arrivalDateDerived: boolean;
+
+  // v3.9.21: Per-leg cost (only set when costAttributionMode = PER_LEG)
+  /** Per-leg cost when explicitly provided by confirmation */
+  legCost: { amount: number; currency: string; source: string; confidence: string } | null;
+  /** Reference to source of the leg cost */
+  legCostSourceRef: { confirmationId: string; extractedFrom: string } | null;
 }
 
 // ============================================================================

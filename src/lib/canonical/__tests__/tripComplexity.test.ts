@@ -16,6 +16,9 @@ const baseFields = {
   warnings: [],
   rawStartTime: { dateText: null, timeText: null, datetimeText: null, timezoneText: null },
   rawEndTime: { dateText: null, timeText: null, datetimeText: null, timezoneText: null },
+  costAttributionMode: 'NONE' as const,
+  bookingCostTotal: null,
+  bookingCostBreakdown: [],
 };
 
 function makeFlight(overrides: Partial<CanonicalFlight> = {}): CanonicalFlight {
@@ -42,6 +45,8 @@ function makeFlight(overrides: Partial<CanonicalFlight> = {}): CanonicalFlight {
     departLocalKey: '2025-06-01T08:00',
     arriveLocalKey: '2025-06-01T11:00',
     arrivalDateDerived: false,
+    legCost: null,
+    legCostSourceRef: null,
     ...overrides,
   };
 }
