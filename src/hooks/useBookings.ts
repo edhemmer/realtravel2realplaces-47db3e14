@@ -48,6 +48,11 @@ interface CreateBookingData {
   from_location?: string | null;
   to_location?: string | null;
   operator?: string | null;
+  // v3.9.49: Airport fields for flight bookings
+  departure_airport_code?: string | null;
+  arrival_airport_code?: string | null;
+  departure_airport_name?: string | null;
+  arrival_airport_name?: string | null;
 }
 
 export function useCreateBooking() {
