@@ -1,14 +1,15 @@
 /**
- * v3.13.2: Flight Display & Navigation Utilities
+ * v3.9.17: Flight Display & Navigation Utilities
  *
  * Centralizes IATA code validation, flight subtitle formatting,
  * and safe navigation fallbacks for flight bookings.
  *
+ * v3.9.17: Delegates to canonical FlightDisplayModel for subtitle generation.
+ *
  * NO Date objects. NO timezone math. String-only operations.
  */
 
-import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
-import { formatLocalTimeDirect } from '@/lib/canonicalTimeNormalizer';
+import { buildFlightDisplayModel, buildFlightSubtitleLine } from '@/lib/flightDisplayModel';
 
 // ============================================================================
 // IATA VALIDATION
@@ -35,12 +36,12 @@ export function sanitizeAirportCodeForStorage(value: string | null | undefined):
 }
 
 // ============================================================================
-// FLIGHT DISPLAY FORMAT
+// FLIGHT DISPLAY FORMAT (v3.9.17: delegates to FlightDisplayModel)
 // ============================================================================
 
 /**
  * Build the required flight subtitle line.
- * v3.10.0: Shows IATA codes prominently. Falls back to airport name. Never blank.
+ * v3.9.17: Delegates to canonical FlightDisplayModel for consistent rendering.
  */
 export function buildFlightDisplayLine(opts: {
   departureAirportCode?: string | null;
@@ -50,70 +51,27 @@ export function buildFlightDisplayLine(opts: {
   confirmationNumber?: string | null;
   startDatetime?: string | null;
   endDatetime?: string | null;
-  /** Whether to use 24h format */
   use24h?: boolean;
-  /** Pre-resolved departure local time string (for timeline events) */
   departureLocalTime?: string | null;
-  /** Pre-resolved arrival local time string (for timeline events) */
   arrivalLocalTime?: string | null;
-  /** Whether departure has explicit time */
   hasDepartureTime?: boolean;
-  /** Whether arrival has explicit time */
   hasArrivalTime?: boolean;
 }): string {
-  const parts: string[] = [];
-
-  // Airport route — show code if valid, else airport name, never "—"
-  const depCode = validateIATA(opts.departureAirportCode);
-  const arrCode = validateIATA(opts.arrivalAirportCode);
-  const depDisplay = depCode || (opts.departureAirportName?.trim() || null);
-  const arrDisplay = arrCode || (opts.arrivalAirportName?.trim() || null);
-
-  if (depDisplay || arrDisplay) {
-    parts.push(`${depDisplay || '—'} → ${arrDisplay || '—'}`);
-  }
-
-  // Confirmation number (only if present)
-  if (opts.confirmationNumber) {
-    parts.push(`Conf ${opts.confirmationNumber}`);
-  }
-
-  // Departure time — only show if there's actual time data
-  const depTimeResolved = resolveTimeDisplay(
-    opts.departureLocalTime ?? opts.startDatetime,
-    opts.hasDepartureTime ?? (opts.startDatetime ? hasExplicitTime(opts.startDatetime) : false),
-    opts.use24h,
-  );
-  if (depTimeResolved !== UNKNOWN_TIME_PLACEHOLDER) {
-    parts.push(`Dep ${depTimeResolved}`);
-  }
-
-  // Arrival time — only show if there's actual time data
-  const arrTimeResolved = resolveTimeDisplay(
-    opts.arrivalLocalTime ?? opts.endDatetime,
-    opts.hasArrivalTime ?? (opts.endDatetime ? hasExplicitTime(opts.endDatetime) : false),
-    opts.use24h,
-  );
-  if (arrTimeResolved !== UNKNOWN_TIME_PLACEHOLDER) {
-    parts.push(`Arr ${arrTimeResolved}`);
-  }
-
-  // If no parts at all, return a minimal fallback
-  if (parts.length === 0) {
-    return 'Flight details pending';
-  }
-
-  return parts.join(' • ');
-}
-
-function resolveTimeDisplay(
-  datetime: string | null | undefined,
-  hasTime: boolean,
-  use24h?: boolean,
-): string {
-  if (!hasTime || !datetime) return UNKNOWN_TIME_PLACEHOLDER;
-  const formatted = formatLocalTimeDirect(datetime, use24h);
-  return formatted || UNKNOWN_TIME_PLACEHOLDER;
+  const model = buildFlightDisplayModel({
+    departureAirportCode: opts.departureAirportCode,
+    arrivalAirportCode: opts.arrivalAirportCode,
+    departureAirportName: opts.departureAirportName,
+    arrivalAirportName: opts.arrivalAirportName,
+    confirmationNumber: opts.confirmationNumber,
+    startDatetime: opts.startDatetime,
+    endDatetime: opts.endDatetime,
+    departureLocalTime: opts.departureLocalTime,
+    arrivalLocalTime: opts.arrivalLocalTime,
+    hasDepartureTime: opts.hasDepartureTime,
+    hasArrivalTime: opts.hasArrivalTime,
+    use24h: opts.use24h,
+  });
+  return buildFlightSubtitleLine(model);
 }
 
 // ============================================================================
