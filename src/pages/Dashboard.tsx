@@ -443,13 +443,13 @@ const TripCard = React.memo(function TripCard({
           </CardContent>
         </div>
 
-        {/* Right: Large mode action button */}
-        <div className="flex items-center pr-4 pl-1">
+        {/* Right: CTA rail with mode action button */}
+        <div className={`flex items-center justify-center shrink-0 w-[84px] sm:w-24 ${modeTheme.palette.subtle} border-l ${modeTheme.palette.border} border-opacity-15`}>
           <button
             onClick={handleCardClick}
             aria-label={`Open trip: ${trip.name}`}
             className={`
-              w-14 h-14 sm:w-[60px] sm:h-[60px] rounded-full shrink-0
+              w-[52px] h-[52px] sm:w-[60px] sm:h-[60px] rounded-2xl shrink-0
               flex items-center justify-center
               ${modeTheme.gradients.buttonBg} ${modeTheme.palette.border} border
               shadow-md
