@@ -21,6 +21,7 @@
 import { getAirportByCode, type Airport } from '@/lib/airportData';
 import { resolveIata } from '@/lib/airports/resolveIata';
 import { parseISO } from 'date-fns';
+import { deriveTripDateRange } from '@/lib/canonicalTripDates';
 
 // ============================================================================
 // TYPES
@@ -73,13 +74,12 @@ interface MetaBooking {
 
 /**
  * Extract YYYY-MM-DD date portion from a datetime string.
- * Works with ISO, "YYYY-MM-DD", "YYYY-MM-DDTHH:mm", etc.
- * Returns null if not extractable.
+ * @deprecated Use extractDateToken from canonicalTripDates.ts instead.
+ * Kept for any non-date-range usage within this file.
  */
 function extractDateOnly(dt: string | null | undefined): string | null {
   if (!dt) return null;
   const trimmed = dt.trim();
-  // Match YYYY-MM-DD at start
   const match = trimmed.match(/^(\d{4}-\d{2}-\d{2})/);
   return match ? match[1] : null;
 }
@@ -171,32 +171,17 @@ export function buildSuggestedTripMeta(
 
   if (bookings.length === 0) return empty;
 
-  // ── 1. Derive dates — DIRECT min/max on raw date strings ──────────
-  // No complex frame resolver. Just find earliest start and latest end.
-  let earliestDate: string | null = null;
-  let latestDate: string | null = null;
-
-  for (const b of bookings) {
-    const startD = extractDateOnly(b.start_datetime);
-    if (startD) {
-      if (!earliestDate || startD < earliestDate) earliestDate = startD;
-      if (!latestDate || startD > latestDate) latestDate = startD;
-    }
-    const endD = extractDateOnly(b.end_datetime);
-    if (endD) {
-      if (!latestDate || endD > latestDate) latestDate = endD;
-      // Also consider end_datetime as potential earliest (e.g., single stay with only end_datetime)
-    }
-  }
+  // ── 1. Derive dates — via canonical helper (v3.9.34) ────────────
+  const dateRange = deriveTripDateRange(bookings);
 
   let suggestedStart: Date | null = null;
   let suggestedEnd: Date | null = null;
 
-  if (earliestDate) {
-    try { suggestedStart = parseISO(earliestDate); } catch {}
+  if (dateRange.startDate) {
+    try { suggestedStart = parseISO(dateRange.startDate); } catch {}
   }
-  if (latestDate) {
-    try { suggestedEnd = parseISO(latestDate); } catch {}
+  if (dateRange.endDate) {
+    try { suggestedEnd = parseISO(dateRange.endDate); } catch {}
   }
 
   // ── 2. Destination resolution — deterministic fallback chain ───────
