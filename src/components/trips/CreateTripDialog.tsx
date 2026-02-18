@@ -71,9 +71,10 @@ function parsePassengers(passengerString: string | undefined, airline: string | 
   }).filter(p => p.name.length > 0);
 }
 
+// v3.9.46: Schema allows empty name/city — import mode fills defaults at submit time
 const tripSchema = z.object({
-  name: z.string().min(1, 'Trip name is required').max(100),
-  destination_city: z.string().min(1, 'City is required').max(100),
+  name: z.string().max(100).optional().default(''),
+  destination_city: z.string().max(100).optional().default(''),
   destination_state: z.string().max(100).optional(),
   destination_country: z.string().max(100).optional(),
   trip_type: z.enum(['business', 'personal', 'mixed']),
@@ -400,7 +401,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
             setValue('destination_city', meta.suggestedDestination);
           }
 
-          // v3.9.45: Determine autofill status
+          // v3.9.46: Determine autofill status (informational only — never blocks Continue)
           const hasName = !!getValues('name');
           const hasCity = !!getValues('destination_city');
           const hasStart = !!meta.suggestedStart;
@@ -409,16 +410,14 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
 
           if (allFilled) {
             setAutofillStatus('filled');
-            setBuildStatus('ready');
           } else {
-            // Start 2-second safety fallback timer
+            // Start 2-second timer for user notification (does not block Continue)
             if (autofillTimerRef.current) clearTimeout(autofillTimerRef.current);
             autofillTimerRef.current = setTimeout(() => {
               setAutofillStatus('needs_user');
-              setBuildStatus('needs_input');
             }, 2000);
-            setBuildStatus(meta.suggestedDestinationFields.city ? 'ready' : 'needs_input');
           }
+          setBuildStatus('ready');
         } else {
           // No bookings parsed — fall back to per-email AI trip metadata for dates only
           if (parsed.trip?.start_date) {
@@ -591,22 +590,32 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
   });
 
   const onSubmit = async (data: TripFormData) => {
-    if (!startDate || !endDate) return;
+    // v3.9.46: For import mode, allow missing dates/fields — use fallbacks
+    const hasBookings = parsedBookings.length > 0;
+    const effectiveStartDate = startDate || (hasBookings ? new Date() : null);
+    const effectiveEndDate = endDate || (hasBookings ? new Date(Date.now() + 7 * 86400000) : null);
+    if (!effectiveStartDate || !effectiveEndDate) return;
+    
+    // v3.9.46: Fallback trip name and city for import-driven creation
+    const effectiveName = data.name?.trim() || (hasBookings ? 'New Trip (Imported)' : 'New Trip');
+    const effectiveCity = data.destination_city?.trim() || (hasBookings ? 'TBD' : '');
+    if (!effectiveCity && !hasBookings) return; // Manual mode still requires city
+    
     setBuildStatus('creating_trip');
 
     try {
       const trip = await createTrip.mutateAsync({
-        name: data.name,
-        destination_city: data.destination_city,
+        name: effectiveName,
+        destination_city: effectiveCity,
         destination_state: data.destination_state || undefined,
-        destination_country: data.destination_country,
+        destination_country: data.destination_country || undefined,
         trip_type: data.trip_type,
         transportation_mode: data.transportation_mode,
         destination_type: data.destination_type,
         origin_address: data.origin_address || undefined,
         destination_address: data.destination_address || undefined,
-        start_date: format(startDate, 'yyyy-MM-dd'),
-        end_date: format(endDate, 'yyyy-MM-dd'),
+        start_date: format(effectiveStartDate, 'yyyy-MM-dd'),
+        end_date: format(effectiveEndDate, 'yyyy-MM-dd'),
       } as any);
 
       if (parsedBookings.length > 0 && trip?.id) {
@@ -1293,11 +1302,11 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
 
             {/* v3.10.1: Removed onboarding-only paste input — confirmations handled via fly-parse step */}
 
-            {/* v3.9.45: Manual confirm banner when autofill couldn't resolve everything */}
+            {/* v3.9.46: Informational banner — does NOT block Continue */}
             {(autofillStatus === 'needs_user' || autofillStatus === 'failed_timeout') && parsedBookings.length > 0 && (
               <div className="flex items-start gap-2 p-3 rounded-lg bg-accent/50 border border-accent text-sm text-foreground">
                 <Info className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
-                <span>We couldn't auto-fill everything from these confirmations. Please confirm the trip name, destination, and dates.</span>
+                <span>Some details couldn't be auto-filled. You can review them now or after creating the trip.</span>
               </div>
             )}
 
@@ -1473,19 +1482,36 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
                 </div>
               </div>
 
-              {/* v3.9.45: Missing fields helper */}
+              {/* v3.9.46: Import mode = zero-typing; manual mode = require fields */}
               {(() => {
-                const missing: string[] = [];
-                if (!watch('name')) missing.push('Trip name');
-                if (!watch('destination_city')) missing.push('City');
-                if (!startDate) missing.push('Start date');
-                if (!endDate) missing.push('End date');
-                const canContinue = missing.length === 0;
+                const hasImportedBookings = parsedBookings.length > 0;
+                const isParsingActive = isParsing || buildStatus === 'parsing' || buildStatus === 'merging' || buildStatus === 'computing_meta';
+                
+                // Import mode: Continue enabled when parsing done + bookings exist
+                // Manual mode: require name, city, dates
+                let canContinue: boolean;
+                let missing: string[] = [];
+                
+                if (hasImportedBookings) {
+                  canContinue = !isParsingActive;
+                } else {
+                  if (!watch('name')) missing.push('Trip name');
+                  if (!watch('destination_city')) missing.push('City');
+                  if (!startDate) missing.push('Start date');
+                  if (!endDate) missing.push('End date');
+                  canContinue = missing.length === 0;
+                }
+                
                 return (
                   <div className="space-y-2 pt-4">
-                    {!canContinue && missing.length > 0 && (
+                    {!hasImportedBookings && !canContinue && missing.length > 0 && (
                       <p className="text-xs text-muted-foreground text-center">
                         Missing: {missing.join(', ')}
+                      </p>
+                    )}
+                    {hasImportedBookings && (
+                      <p className="text-xs text-muted-foreground text-center">
+                        {isParsingActive ? 'Building from confirmations…' : 'Ready — tap Continue to create your trip.'}
                       </p>
                     )}
                     <div className="flex gap-3">
@@ -1497,7 +1523,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
                         className="flex-1 bg-gradient-ocean hover:opacity-90"
                         disabled={createTrip.isPending || !canContinue}
                       >
-                        {createTrip.isPending ? 'Creating...' : parsedBookings.length > 0
+                        {createTrip.isPending ? 'Creating...' : hasImportedBookings
                           ? 'Continue'
                           : 'Create Trip'}
                       </Button>

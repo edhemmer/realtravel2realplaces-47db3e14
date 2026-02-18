@@ -312,16 +312,18 @@ export function buildSuggestedTripMeta(
     destFields.city = suggestedDestination;
   }
 
-  // ── 3. Build trip name ─────────────────────────────────────────────
+  // ── 3. Build trip name (NEVER empty when bookings exist) ─────────
   let suggestedTripName: string | null = null;
   if (suggestedOrigin && suggestedDestination) {
     suggestedTripName = `${suggestedOrigin} → ${suggestedDestination} Trip`;
   } else if (suggestedDestination) {
-    suggestedTripName = `${suggestedDestination} Trip`;
+    suggestedTripName = `Trip to ${suggestedDestination}`;
   } else if (destFields.country) {
     suggestedTripName = `Trip to ${destFields.country}`;
+  } else if (bookings.length > 0) {
+    suggestedTripName = 'New Trip (Imported)';
   }
-  // Never generate placeholder text — return null if nothing resolved
+  // v3.9.46: suggestedTripName is never null when bookings exist
 
   // ── 4. Build destination fields ────────────────────────────────────
   const suggestedDestinationFields = {
