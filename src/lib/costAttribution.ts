@@ -1,5 +1,5 @@
 /**
- * v3.9.29: Canonical Booking Cost Attribution
+ * v3.9.30: Canonical Booking Cost Attribution
  *
  * Determines how costs from confirmations are attributed:
  * - BOOKING_TOTAL: One total covers all legs (e.g., BA "Payment Total USD 924.00")
@@ -73,6 +73,12 @@ const BOOKING_TOTAL_PATTERNS = [
   /total\s+([A-Z]{3})\s+([\d,]+(?:\.\d{2})?)/i,
   // Dollar-sign-first: "Total: $924.00"
   /total\s*[:=]?\s*\$\s*()([\d,]+(?:\.\d{2})?)/i,
+  // Wizz Air: tab-separated payment row "confirmed\t146.44 EUR\t196.32 USD"
+  // Captures the last amount+currency on the confirmed row (USD shown to user)
+  // Does NOT match declined rows — "confirmed" keyword required
+  /confirmed[^\n]+\t([\d,]+(?:\.\d{2})?)\s+(USD|EUR|GBP)/i,
+  // Ryanair: "Total price of your trip purchased via PayPal...\n262.40 USD"
+  /total\s+price\s+of\s+your\s+trip[\s\S]{0,200}?([\d,]+(?:\.\d{2})?)\s+(USD|EUR|GBP)/i,
 ];
 
 /** Patterns for per-leg/segment pricing */
@@ -107,8 +113,18 @@ export function extractMonetaryTotalsFromConfirmation(text: string): MonetaryCan
   for (const pattern of BOOKING_TOTAL_PATTERNS) {
     const match = text.match(pattern);
     if (match) {
-      const currency = match[1] || 'USD';
-      const amountStr = match[2]?.replace(/,/g, '');
+      // Detect (currency, amount) vs (amount, currency) by checking if match[1] starts with a digit
+      let currency: string;
+      let amountStr: string;
+      if (match[1] && /^\d/.test(match[1])) {
+        // Amount-first pattern (Wizz Air, Ryanair)
+        amountStr = match[1].replace(/,/g, '');
+        currency = match[2] || 'USD';
+      } else {
+        // Currency-first pattern (BA, standard)
+        currency = match[1] || 'USD';
+        amountStr = match[2]?.replace(/,/g, '') || '';
+      }
       const amount = parseFloat(amountStr || '0');
       if (amount > 0 && Number.isFinite(amount)) {
         candidates.push({
