@@ -38,6 +38,10 @@ import { runCanonicalImportPipeline } from '@/lib/ingestion/canonicalImportPipel
 import { enrichParsedBookingCost } from '@/lib/costAttribution';
 // v3.9.35: Canonical import staging — single source for trip creation inputs
 import { buildImportStaging, buildStagingSnapshot, extractDateTokensFromParsedItems, deriveTripFrameFromDateTokens, type ParsedImportStaging, type StagingSnapshot } from '@/lib/ingestion/importStaging';
+// v3.9.26: TripBuildModel — deterministic builder + integrity assertions
+import { buildTripModel, type TripBuildModel } from '@/lib/ingestion/tripBuildModel';
+// v3.9.26: Booking-expense sync
+import { syncExpenseFromBooking } from '@/lib/bookingExpenseSync';
 
 // ============================================================================
 // TYPES & HELPERS
@@ -626,24 +630,35 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
       return;
     }
 
-    // v3.9.40: Use immutable snapshot if available (import mode), else fall back
+    // v3.9.26: Use immutable snapshot if available (import mode)
     const snapshot = stagingSnapshotRef.current;
     const hasBookings = snapshot ? snapshot.canonicalItems.length > 0 : parsedBookings.length > 0;
 
-    // v3.9.40: Dates come ONLY from snapshot when available
-    const snapshotStart = snapshot?.derivedTripRange.startDate || null;
-    const snapshotEnd = snapshot?.derivedTripRange.endDate || null;
+    // v3.9.26: Build TripBuildModel from snapshot (CHANGE 1 + 2 + 3 + 5)
+    let buildModel: TripBuildModel | null = null;
+    if (snapshot && hasBookings) {
+      buildModel = buildTripModel(snapshot);
 
-    // Priority: snapshot → UI-selected dates → fallback
-    const effectiveStartDateStr = snapshotStart || (startDate ? format(startDate, 'yyyy-MM-dd') : null) || (hasBookings ? format(new Date(), 'yyyy-MM-dd') : null);
-    const effectiveEndDateStr = snapshotEnd || (endDate ? format(endDate, 'yyyy-MM-dd') : null) || (hasBookings ? format(new Date(Date.now() + 7 * 86400000), 'yyyy-MM-dd') : null);
+      // v3.9.26: If build model has errors, abort (CHANGE 2/3/5 enforcement)
+      if (buildModel.status === 'ERROR') {
+        console.error('[CreateTrip] BUILD_MODEL_ERRORS', buildModel.errors);
+        setBuildStatus('build_failed');
+        const errorMessages = buildModel.errors.map(e => e.message).join('; ');
+        toast.error(`Build validation failed: ${errorMessages}`);
+        return;
+      }
+    }
+
+    // Dates from build model (CHANGE 1: canonical-only) or UI
+    const effectiveStartDateStr = buildModel?.startDate || (startDate ? format(startDate, 'yyyy-MM-dd') : null) || (hasBookings ? format(new Date(), 'yyyy-MM-dd') : null);
+    const effectiveEndDateStr = buildModel?.endDate || (endDate ? format(endDate, 'yyyy-MM-dd') : null) || (hasBookings ? format(new Date(Date.now() + 7 * 86400000), 'yyyy-MM-dd') : null);
     if (!effectiveStartDateStr || !effectiveEndDateStr) return;
-    
+
     // v3.9.46: Fallback trip name and city for import-driven creation
     const effectiveName = data.name?.trim() || (hasBookings ? 'New Trip (Imported)' : 'New Trip');
     const effectiveCity = data.destination_city?.trim() || null;
     if (!effectiveCity && !hasBookings) return; // Manual mode still requires city
-    
+
     setBuildStatus('creating_trip');
 
     // v3.9.26: 60-second hard timeout
@@ -655,6 +670,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
     }, 60000);
 
     try {
+      // ── CHANGE 4: Atomic commit — create trip first ──
       const trip = await createTrip.mutateAsync({
         name: effectiveName,
         destination_city: effectiveCity,
@@ -669,26 +685,26 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
         end_date: effectiveEndDateStr,
       } as any);
 
-      // v3.9.26: If timed out while awaiting, mark completed and bail
       if (timedOut) {
         buildCompletedSessionsRef.current.add(sessionId);
         return;
       }
 
-      // v3.9.40: Use snapshot items for timeline writes (atomic — same set used for dates)
-      const bookingsToWrite = snapshot ? snapshot.canonicalItems as unknown as ParsedBooking[] : parsedBookings;
+      // ── CHANGE 4 continued: Write timeline items from build model (atomic set) ──
+      const legsToWrite = buildModel ? buildModel.legs : (parsedBookings.length > 0 ? parsedBookings.map(b => ({ source: b as unknown as Record<string, unknown>, dedupKey: '', bookingType: (b as any).booking_type || 'other' })) : []);
 
-      if (bookingsToWrite.length > 0 && trip?.id) {
+      if (legsToWrite.length > 0 && trip?.id) {
         const createdCompanions: Map<string, string> = new Map();
         let totalCompanionsCreated = 0;
+        const createdBookingIds: string[] = [];
 
-        for (const booking of bookingsToWrite) {
-          // v3.9.26: Bail if timed out mid-booking-creation
+        for (const leg of legsToWrite) {
           if (timedOut) {
             buildCompletedSessionsRef.current.add(sessionId);
             return;
           }
 
+          const booking = leg.source as unknown as ParsedBooking;
           const vendorUrl = booking.booking_type !== 'transport' ? getVendorUrl(booking.vendor_name, booking.booking_type) : null;
           const createdBooking = await createBooking.mutateAsync({
             trip_id: trip.id,
@@ -717,6 +733,32 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
             my_share: booking.my_share ?? undefined,
           });
 
+          if (createdBooking?.id) {
+            createdBookingIds.push(createdBooking.id);
+
+            // ── CHANGE 3 + 6: Create expense from booking (idempotent) ──
+            const totalCost = Number(booking.total_cost || 0);
+            if (totalCost > 0) {
+              try {
+                await syncExpenseFromBooking({
+                  ...createdBooking,
+                  trip_id: trip.id,
+                  booking_type: booking.booking_type,
+                  vendor_name: booking.vendor_name,
+                  start_datetime: booking.start_datetime,
+                  total_cost: totalCost,
+                  my_share: booking.my_share ?? totalCost,
+                  airline: booking.airline,
+                  property_name: booking.property_name,
+                  rental_company: booking.rental_company,
+                } as any);
+              } catch (expenseErr) {
+                console.error('[CreateTrip] Expense sync failed (non-blocking):', expenseErr);
+              }
+            }
+          }
+
+          // Companion creation for flights
           if (booking.passenger_name && booking.booking_type === 'flight') {
             const passengers = parsePassengers(booking.passenger_name, booking.airline);
             for (const passenger of passengers) {
@@ -752,7 +794,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
           }
         }
 
-        // v3.9.40: Post-create auto-heal — verify trip dates match derived range
+        // ── CHANGE 5: Post-commit verification + auto-heal ──
         if (trip?.id && !timedOut) {
           try {
             const { data: savedBookings } = await supabase
@@ -761,6 +803,14 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
               .eq('trip_id', trip.id);
 
             if (savedBookings && savedBookings.length > 0) {
+              // Verify leg count matches
+              if (buildModel && savedBookings.length !== buildModel.legs.length) {
+                console.warn('[CreateTrip] LEG_COUNT_MISMATCH', {
+                  expected: buildModel.legs.length,
+                  actual: savedBookings.length,
+                });
+              }
+
               const savedTokens = extractDateTokensFromParsedItems(
                 savedBookings.map(b => ({
                   start_datetime: b.start_datetime,
@@ -795,14 +845,13 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
         const companionMsg = totalCompanionsCreated > 0
           ? ` and ${totalCompanionsCreated} companion(s)`
           : '';
-        toast.success(`Created trip with ${bookingsToWrite.length} booking(s)${companionMsg}!`);
+        toast.success(`Created trip with ${legsToWrite.length} booking(s)${companionMsg}!`);
       }
 
       // v3.9.26: Mark session completed, clear timeout
       buildCompletedSessionsRef.current.add(sessionId);
       if (buildTimeoutRef.current) clearTimeout(buildTimeoutRef.current);
 
-      // v3.9.26: If timed out during final steps, don't navigate
       if (timedOut) return;
 
       resetAll();
@@ -840,7 +889,6 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
       }
     } catch (err) {
       console.error('Failed to create trip:', err);
-      // v3.9.26: Clear timeout and show error state
       if (buildTimeoutRef.current) clearTimeout(buildTimeoutRef.current);
       if (!timedOut) {
         setBuildStatus('build_failed');
