@@ -10,7 +10,8 @@
  */
 
 import { extractDateOnly, extractTimeHHMM, formatDateOnly } from './canonicalTimePolicy';
-import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER } from './datetimeIntegrity';
+import { UNKNOWN_TIME_PLACEHOLDER } from './datetimeIntegrity';
+import { hasFlightTime } from './timeDisplay';
 
 // ============================================================================
 // TYPES
@@ -137,7 +138,8 @@ export function buildFlightDisplayModel(input: BuildFlightDisplayInput): FlightD
   const depDateRaw = extractDateOnly(input.startDatetime);
   const depDate = depDateRaw ? formatDateOnly(depDateRaw, { includeDayOfWeek: true }) : null;
 
-  const depHasTime = input.hasDepartureTime ?? (input.startDatetime ? hasExplicitTime(input.startDatetime) : false);
+  // v3.9.39: Use hasFlightTime (does not suppress midnight) instead of hasExplicitTime
+  const depHasTime = input.hasDepartureTime ?? hasFlightTime(input.departureLocalTime, input.startDatetime);
   let depTimeStr: string | null = null;
   if (depHasTime) {
     if (input.departureLocalTime) {
@@ -152,7 +154,8 @@ export function buildFlightDisplayModel(input: BuildFlightDisplayInput): FlightD
   const arrDateRaw = extractDateOnly(input.endDatetime);
   const arrDate = arrDateRaw ? formatDateOnly(arrDateRaw, { includeDayOfWeek: true }) : null;
 
-  const arrHasTime = input.hasArrivalTime ?? (input.endDatetime ? hasExplicitTime(input.endDatetime) : false);
+  // v3.9.39: Use hasFlightTime (does not suppress midnight) instead of hasExplicitTime
+  const arrHasTime = input.hasArrivalTime ?? hasFlightTime(input.arrivalLocalTime, input.endDatetime);
   let arrTimeStr: string | null = null;
   if (arrHasTime) {
     if (input.arrivalLocalTime) {

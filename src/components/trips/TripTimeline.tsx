@@ -14,6 +14,7 @@ import { CanonicalTimelineEvent } from '@/lib/canonicalTripState';
 import { DatetimeFormatPreference } from '@/lib/displayFormats';
 import { formatLocalTimeDirect, formatLocalDateDirect } from '@/lib/canonicalTimeNormalizer';
 import { UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
+import { hasFlightTime, getDepartureTimeLabel } from '@/lib/timeDisplay';
 import { resolveMapsFromTimelineEvent, openMapsDestination } from '@/lib/mapsDestination';
 import { buildFlightDisplayModel, buildFlightSubtitleLine } from '@/lib/flightDisplayModel';
 import { 
@@ -245,14 +246,24 @@ export function TripTimeline({ events, datetimeFormat, onEventClick, onExploreNe
                             </div>
                           )}
                         </div>
-                        {/* v3.6.1: time - reduced size, medium gray, aligned to title */}
+                        {/* v3.9.39: Flight time uses canonical string helper; others use legacy path */}
                         <div className="text-right shrink-0 tabular-nums pt-px">
-                          <p className={`text-[10px] ${event.hasExplicitTime ? 'text-muted-foreground/70' : 'text-destructive font-medium'}`}>
-                            {event.hasExplicitTime
-                              ? (formatLocalTimeDirect(event.eventLocalDateTime, use24h) || UNKNOWN_TIME_PLACEHOLDER)
-                              : UNKNOWN_TIME_PLACEHOLDER
-                            }
-                          </p>
+                          {event.bookingType === 'flight' ? (() => {
+                            const flightTime = getDepartureTimeLabel(event.departureLocalTime, event.eventLocalDateTime);
+                            const flightHasTime = hasFlightTime(event.departureLocalTime, event.eventLocalDateTime);
+                            return (
+                              <p className={`text-[10px] ${flightHasTime ? 'text-muted-foreground/70' : 'text-destructive font-medium'}`}>
+                                {flightTime}
+                              </p>
+                            );
+                          })() : (
+                            <p className={`text-[10px] ${event.hasExplicitTime ? 'text-muted-foreground/70' : 'text-destructive font-medium'}`}>
+                              {event.hasExplicitTime
+                                ? (formatLocalTimeDirect(event.eventLocalDateTime, use24h) || UNKNOWN_TIME_PLACEHOLDER)
+                                : UNKNOWN_TIME_PLACEHOLDER
+                              }
+                            </p>
+                          )}
                         </div>
                       </div>
                       {/* v3.6.1: Navigate + v3.12.4: Explore nearby buttons */}

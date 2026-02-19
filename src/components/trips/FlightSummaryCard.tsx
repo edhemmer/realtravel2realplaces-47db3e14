@@ -3,8 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Plane, Users, Clock, ExternalLink, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { hasExplicitTime, UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
-import { formatLocalTimeDirect, formatLocalDateDirect } from '@/lib/canonicalTimeNormalizer';
+import { UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
+import { formatLocalDateDirect } from '@/lib/canonicalTimeNormalizer';
+import { getDepartureTimeLabel, getArrivalTimeLabel, hasFlightTime } from '@/lib/timeDisplay';
 import { extractAirportCodes } from '@/lib/airportData';
 import { validateIATA, buildFlightDisplayLine } from '@/lib/flightDisplayUtils';
 import { AirportInfoPill } from './AirportInfoPill';
@@ -147,18 +148,17 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                         <Clock className="w-3.5 h-3.5" />
                         {(() => {
                           const dateDisplay = formatLocalDateDirect(flight.start_datetime);
-                          const timeDisplay = hasExplicitTime(flight.start_datetime)
-                            ? (formatLocalTimeDirect(flight.start_datetime) || UNKNOWN_TIME_PLACEHOLDER)
-                            : UNKNOWN_TIME_PLACEHOLDER;
+                          const depTime = getDepartureTimeLabel(null, flight.start_datetime);
+                          const depHasTime = hasFlightTime(null, flight.start_datetime);
                           
                           return dateDisplay ? (
                             <>
                               <span className="font-medium text-foreground tabular-nums">
                                 {dateDisplay}
                               </span>
-                              {hasExplicitTime(flight.start_datetime) ? (
+                              {depHasTime ? (
                                 <span className="text-muted-foreground tabular-nums">
-                                  {timeDisplay}
+                                  {depTime}
                                 </span>
                               ) : (
                                 <span className="text-destructive font-medium">
@@ -170,8 +170,9 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                         })()}
                       </span>
                       {flight.end_datetime && (() => {
-                        if (hasExplicitTime(flight.end_datetime)) {
-                          const arrTime = formatLocalTimeDirect(flight.end_datetime!) || UNKNOWN_TIME_PLACEHOLDER;
+                        const arrTime = getArrivalTimeLabel(null, flight.end_datetime);
+                        const arrHasTime = hasFlightTime(null, flight.end_datetime);
+                        if (arrHasTime) {
                           return (
                             <span className="text-xs tabular-nums">
                               → {arrTime}
