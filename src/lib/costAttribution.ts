@@ -1,5 +1,5 @@
 /**
- * v3.9.21: Canonical Booking Cost Attribution
+ * v3.9.29: Canonical Booking Cost Attribution
  *
  * Determines how costs from confirmations are attributed:
  * - BOOKING_TOTAL: One total covers all legs (e.g., BA "Payment Total USD 924.00")
@@ -398,6 +398,17 @@ export function enrichParsedBookingCost(
   }
 
   if (!rawText || typeof rawText !== 'string') return parsed;
+
+  // v3.9.29: Only enrich from raw text if this booking's confirmation number appears in it.
+  // When multiple confirmations are pasted together, the combined rawText contains
+  // all of them — we must not assign one confirmation's cost to another booking.
+  const confNum = (parsed.confirmation_number as string | null)?.trim().toUpperCase();
+  if (confNum && confNum.length >= 4) {
+    const textUpper = rawText.toUpperCase();
+    if (!textUpper.includes(confNum)) {
+      return parsed; // This confirmation's text isn't in rawText — skip enrichment
+    }
+  }
 
   const candidates = extractMonetaryTotalsFromConfirmation(rawText);
   const bookingTotals = candidates.filter(c => c.isBookingTotal);
