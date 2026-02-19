@@ -42,6 +42,8 @@ import { buildImportStaging, buildStagingSnapshot, extractDateTokensFromParsedIt
 import { buildTripModel, type TripBuildModel } from '@/lib/ingestion/tripBuildModel';
 // v3.9.26: Booking-expense sync
 import { syncExpenseFromBooking } from '@/lib/bookingExpenseSync';
+// v3.9.28: Pipeline diagnostics
+import { logFlightCostDiagnostics, countCanonicalFlightLegs, countCanonicalCostItems } from '@/lib/debug/flightPipelineDiagnostics';
 
 // ============================================================================
 // TYPES & HELPERS
@@ -649,6 +651,20 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
     // v3.9.27: ALL bookings go through TripBuildModel — single entry point, no exceptions
     let buildModel: TripBuildModel | null = null;
     if (snapshot && hasBookings) {
+      // v3.9.28: POST_CANONICAL diagnostics
+      if (import.meta.env.DEV) {
+        logFlightCostDiagnostics({
+          sessionId,
+          sourceSummary: `${snapshot.canonicalItems.length} items from wizard`,
+          phase: 'POST_CANONICAL',
+          rawParsedLegCount: parsedBookings.length,
+          canonicalLegCount: snapshot.canonicalItems.length,
+          tripBuildModelLegCount: 0, // not built yet
+          canonicalCostItemCount: countCanonicalCostItems(snapshot.canonicalItems),
+          tripBuildModelCostCount: 0,
+        });
+      }
+
       buildModel = buildTripModel(snapshot);
 
       // v3.9.26: If build model has errors, abort (integrity enforcement)
@@ -853,6 +869,22 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
           } catch (healErr) {
             console.error('[CreateTrip] Auto-heal failed (non-blocking):', healErr);
           }
+        }
+
+        // v3.9.28: POST_COMMIT diagnostics
+        if (import.meta.env.DEV && buildModel) {
+          logFlightCostDiagnostics({
+            sessionId,
+            sourceSummary: `post-commit for trip ${trip.id}`,
+            phase: 'POST_COMMIT',
+            rawParsedLegCount: parsedBookings.length,
+            canonicalLegCount: snapshot?.canonicalItems.length || 0,
+            tripBuildModelLegCount: buildModel.legs.length,
+            dbTimelineLegCount: createdBookingIds.length,
+            canonicalCostItemCount: countCanonicalCostItems(snapshot?.canonicalItems || []),
+            tripBuildModelCostCount: buildModel.costItems.length,
+            dbExpenseCount: createdBookingIds.length, // approximate; actual count may differ for $0 items
+          });
         }
 
         const companionMsg = totalCompanionsCreated > 0
