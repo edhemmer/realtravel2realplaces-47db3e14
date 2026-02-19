@@ -188,6 +188,7 @@ export async function syncExpenseFromBooking(booking: Booking, currency: string 
         description,
         amount: safeAmount,
         my_share: safeMyShare,
+        currency: currency || 'USD',
         notes: existingExpense.notes, // Preserve existing notes with marker
       })
       .eq('id', existingExpense.id);

@@ -58,18 +58,22 @@ export function isBookingLinkedExpense(expense: Expense): boolean {
  * Check if an expense is in a non-default (foreign) currency.
  * Foreign-currency expenses are shown in the list but excluded from totals
  * until the user manually converts them.
+ * 
+ * v4.4.1: Compares against user's preferred home currency (from profile),
+ * not hardcoded USD. Falls back to 'USD' only if no home currency provided.
  */
-export function isForeignCurrencyExpense(expense: Expense): boolean {
+export function isForeignCurrencyExpense(expense: Expense, homeCurrency: string = 'USD'): boolean {
   const currency = (expense as any).currency;
-  return !!currency && currency !== 'USD';
+  if (!currency) return false;
+  return currency.toUpperCase() !== homeCurrency.toUpperCase();
 }
 
 /**
  * Filter expenses to only include true out-of-pocket expenses (not booking-linked)
- * v4.4.0: Also excludes foreign-currency expenses from totals
+ * v4.4.1: Also excludes foreign-currency expenses from totals (compared to user's home currency)
  */
-export function getOutOfPocketExpenses(expenses: Expense[]): Expense[] {
-  return expenses.filter(e => !isBookingLinkedExpense(e) && !isForeignCurrencyExpense(e));
+export function getOutOfPocketExpenses(expenses: Expense[], homeCurrency: string = 'USD'): Expense[] {
+  return expenses.filter(e => !isBookingLinkedExpense(e) && !isForeignCurrencyExpense(e, homeCurrency));
 }
 
 /**
@@ -146,9 +150,9 @@ export interface ExpensePurposeBreakdown {
  * 
  * v2.1.3: Added for mixed trip expense categorization
  */
-export function calculateExpensePurposeBreakdown(expenses: Expense[]): ExpensePurposeBreakdown {
+export function calculateExpensePurposeBreakdown(expenses: Expense[], homeCurrency: string = 'USD'): ExpensePurposeBreakdown {
   // Filter to only out-of-pocket expenses (exclude booking-linked to prevent double counting)
-  const outOfPocketExpenses = getOutOfPocketExpenses(expenses);
+  const outOfPocketExpenses = getOutOfPocketExpenses(expenses, homeCurrency);
   
   const breakdown: ExpensePurposeBreakdown = {
     businessTotal: 0,
@@ -551,10 +555,12 @@ export function calculateCategorySummary(expenses: Expense[]): CategorySummary {
 export function calculateTripCostSummary(
   expenses: Expense[],
   bookings: Booking[],
-  parkingList: Parking[]
+  parkingList: Parking[],
+  homeCurrency: string = 'USD'
 ): TripCostSummary {
   // Filter to only out-of-pocket expenses (exclude booking-linked to prevent double counting)
-  const outOfPocketExpenses = getOutOfPocketExpenses(expenses);
+  // v4.4.1: Uses user's home currency for foreign expense detection
+  const outOfPocketExpenses = getOutOfPocketExpenses(expenses, homeCurrency);
   
   // Expenses (out-of-pocket only)
   const expensesTotal = outOfPocketExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);

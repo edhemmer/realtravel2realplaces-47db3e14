@@ -10,6 +10,7 @@ import { useBookings } from '@/hooks/useBookings';
 import { calculateTripCostSummary } from '@/lib/expenseCalculations';
 import { formatCurrency, TRIP_TOTAL_LABEL } from '@/lib/displayFormats';
 import { useDesktopTripShell } from '@/containers/DesktopTripShell';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { Trip, Parking } from '@/types/database';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +32,8 @@ const getWeatherIcon = (precipType: string, cloudCover: string) => {
 
 export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
   const { formatTemp } = useProfileTemperatureUnit();
+  const { data: userProfile } = useUserProfile();
+  const homeCurrency = userProfile?.preferred_currency || 'USD';
   
   // v3.9.25: Consume shell context first (desktop path) to avoid redundant computation
   const shell = useDesktopTripShell();
@@ -43,8 +46,8 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
 
   // v3.9.25: Use shell costs when available, otherwise compute locally
   const costSummary = shell
-    ? shell.canonicalState?.costs ?? calculateTripCostSummary(expenses, bookings, parkingList)
-    : calculateTripCostSummary(expenses, bookings, parkingList);
+    ? shell.canonicalState?.costs ?? calculateTripCostSummary(expenses, bookings, parkingList, homeCurrency)
+    : calculateTripCostSummary(expenses, bookings, parkingList, homeCurrency);
   
   const totalCost = Number.isFinite(costSummary.totalCost) ? costSummary.totalCost : 0;
   const bookingsTotal = Number.isFinite(costSummary.bookingsTotal) ? costSummary.bookingsTotal : 0;
