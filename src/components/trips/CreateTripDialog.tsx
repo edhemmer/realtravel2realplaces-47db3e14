@@ -746,6 +746,8 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
         let totalCompanionsCreated = 0;
         const createdBookingIds: string[] = [];
 
+        let costAnomalyCount = 0;
+
         for (const leg of legsToWrite) {
           if (timedOut) {
             buildCompletedSessionsRef.current.add(sessionId);
@@ -754,73 +756,80 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
 
           const booking = leg.source as unknown as ParsedBooking;
           const vendorUrl = booking.booking_type !== 'transport' ? getVendorUrl(booking.vendor_name, booking.booking_type) : null;
-          const createdBooking = await createBooking.mutateAsync({
-            trip_id: trip.id,
-            booking_type: booking.booking_type,
-            vendor_name: booking.vendor_name,
-            start_datetime: booking.start_datetime,
-            end_datetime: booking.end_datetime,
-            confirmation_number: booking.confirmation_number,
-            total_cost: booking.total_cost,
-            address: booking.address,
-            airline: booking.airline,
-            passenger_name: booking.passenger_name,
-            property_name: booking.property_name,
-            stay_type: booking.stay_type,
-            rental_company: booking.rental_company,
-            pickup_location: booking.pickup_location,
-            return_location: booking.return_location,
-            notes: booking.notes,
-            link_url: vendorUrl || undefined,
-            departure_airport_code: booking.departure_airport_code || undefined,
-            arrival_airport_code: booking.arrival_airport_code || undefined,
-            departure_airport_name: booking.departure_airport_name || undefined,
-            arrival_airport_name: booking.arrival_airport_name || undefined,
-            from_location: booking.from_location || undefined,
-            to_location: booking.to_location || undefined,
-            my_share: booking.my_share ?? undefined,
-          });
 
-          if (createdBooking?.id) {
-            createdBookingIds.push(createdBooking.id);
-            // v3.9.30: Expense sync is handled by useCreateBooking.mutationFn.
-            // Removed duplicate syncExpenseFromBooking call that was here —
-            // it caused redundant DB queries and risked race conditions.
-          }
+          // v3.9.36: Wrap each booking creation in try/catch so one failure
+          // (e.g. residual numeric overflow) doesn't abort the entire loop.
+          try {
+            const createdBooking = await createBooking.mutateAsync({
+              trip_id: trip.id,
+              booking_type: booking.booking_type,
+              vendor_name: booking.vendor_name,
+              start_datetime: booking.start_datetime,
+              end_datetime: booking.end_datetime,
+              confirmation_number: booking.confirmation_number,
+              total_cost: booking.total_cost,
+              address: booking.address,
+              airline: booking.airline,
+              passenger_name: booking.passenger_name,
+              property_name: booking.property_name,
+              stay_type: booking.stay_type,
+              rental_company: booking.rental_company,
+              pickup_location: booking.pickup_location,
+              return_location: booking.return_location,
+              notes: booking.notes,
+              link_url: vendorUrl || undefined,
+              departure_airport_code: booking.departure_airport_code || undefined,
+              arrival_airport_code: booking.arrival_airport_code || undefined,
+              departure_airport_name: booking.departure_airport_name || undefined,
+              arrival_airport_name: booking.arrival_airport_name || undefined,
+              from_location: booking.from_location || undefined,
+              to_location: booking.to_location || undefined,
+              my_share: booking.my_share ?? undefined,
+            });
 
-          // Companion creation for flights
-          if (booking.passenger_name && booking.booking_type === 'flight') {
-            const passengers = parsePassengers(booking.passenger_name, booking.airline);
-            for (const passenger of passengers) {
-              const normalizedName = passenger.name.toLowerCase().trim();
-              if (!createdCompanions.has(normalizedName)) {
-                try {
-                  const companion = await createCompanion.mutateAsync({
-                    trip_id: trip.id,
-                    name: passenger.name,
-                    frequent_flyer_number: passenger.frequent_flyer_number,
-                    airline: passenger.airline,
-                  });
-                  if (companion?.id) {
-                    createdCompanions.set(normalizedName, companion.id);
-                    totalCompanionsCreated++;
+            if (createdBooking?.id) {
+              createdBookingIds.push(createdBooking.id);
+            }
+
+            // Companion creation for flights
+            if (booking.passenger_name && booking.booking_type === 'flight') {
+              const passengers = parsePassengers(booking.passenger_name, booking.airline);
+              for (const passenger of passengers) {
+                const normalizedName = passenger.name.toLowerCase().trim();
+                if (!createdCompanions.has(normalizedName)) {
+                  try {
+                    const companion = await createCompanion.mutateAsync({
+                      trip_id: trip.id,
+                      name: passenger.name,
+                      frequent_flyer_number: passenger.frequent_flyer_number,
+                      airline: passenger.airline,
+                    });
+                    if (companion?.id) {
+                      createdCompanions.set(normalizedName, companion.id);
+                      totalCompanionsCreated++;
+                    }
+                  } catch (err) {
+                    console.error('Failed to create companion:', err);
                   }
-                } catch (err) {
-                  console.error('Failed to create companion:', err);
                 }
-              }
-              const companionId = createdCompanions.get(normalizedName);
-              if (companionId && createdBooking?.id) {
-                try {
-                  await supabase.from('booking_companions').insert({
-                    booking_id: createdBooking.id,
-                    companion_id: companionId,
-                  });
-                } catch (err) {
-                  console.error('Failed to link companion to booking:', err);
+                const companionId = createdCompanions.get(normalizedName);
+                if (companionId && createdBooking?.id) {
+                  try {
+                    await supabase.from('booking_companions').insert({
+                      booking_id: createdBooking.id,
+                      companion_id: companionId,
+                    });
+                  } catch (err) {
+                    console.error('Failed to link companion to booking:', err);
+                  }
                 }
               }
             }
+          } catch (bookingErr) {
+            // v3.9.36: Log but don't abort — trip is already created,
+            // remaining legs should still be attempted
+            console.error('[CreateTrip] Booking creation failed (non-blocking):', bookingErr);
+            costAnomalyCount++;
           }
         }
 
@@ -891,7 +900,12 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
         const companionMsg = totalCompanionsCreated > 0
           ? ` and ${totalCompanionsCreated} companion(s)`
           : '';
-        toast.success(`Created trip with ${legsToWrite.length} booking(s)${companionMsg}!`);
+        // v3.9.36: Show success with optional cost review notice
+        if (costAnomalyCount > 0) {
+          toast.success(`Created trip with ${createdBookingIds.length} booking(s)${companionMsg}. ${costAnomalyCount} cost(s) need review.`, { duration: 6000 });
+        } else {
+          toast.success(`Created trip with ${createdBookingIds.length} booking(s)${companionMsg}!`);
+        }
       }
 
       // v3.9.26: Mark session completed, clear timeout
