@@ -98,10 +98,10 @@ export function getBookingMyShare(booking: Booking): number {
     return totalCost;
   }
   
-  // v3.9.43: Treat my_share=0 as "unset" when total_cost > 0.
+  // v3.9.62 (STEP 2): Treat my_share <= 0 as "unset" when total_cost > 0.
   // Parser defaults and DB column default (0) cause my_share=0 even when
-  // the booking has a valid cost. In that case, fall back to total_cost.
-  if (myShare === 0 && totalCost > 0) {
+  // the booking has a valid cost. Return total_cost to prevent $0 propagation.
+  if (myShare <= 0 && totalCost > 0) {
     return totalCost;
   }
   
