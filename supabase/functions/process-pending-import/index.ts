@@ -186,8 +186,18 @@ Deno.serve(async (req: Request) => {
   if (Array.isArray(extracted.flight_legs) && (extracted.flight_legs as unknown[]).length > 0) {
     const legs = extracted.flight_legs as Record<string, unknown>[];
     legs.forEach(leg => {
-      leg.departure_datetime = normalizeDatetime(leg.departure_datetime as string | null);
-      leg.arrival_datetime = normalizeDatetime(leg.arrival_datetime as string | null);
+      const rawDep = leg.departure_datetime as string | null;
+      const rawArr = leg.arrival_datetime as string | null;
+
+      // If the value already contains a date portion, normalize normally
+      // If it looks like a bare time (HH:MM) without a date, do not normalize — it will be lost
+      leg.departure_datetime = rawDep && rawDep.length >= 10
+        ? normalizeDatetime(rawDep)
+        : rawDep || null;
+
+      leg.arrival_datetime = rawArr && rawArr.length >= 10
+        ? normalizeDatetime(rawArr)
+        : rawArr || null;
     });
     legs.sort((a, b) => ((a.departure_datetime as string) || '').localeCompare((b.departure_datetime as string) || ''));
     legs.forEach((leg, i) => { leg.is_outbound = i === 0; });
