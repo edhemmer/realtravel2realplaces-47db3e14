@@ -93,6 +93,8 @@ export interface Expense {
   amount: number;
   my_share: number;
   currency?: string; // v4.4.0: Multi-currency support (default 'USD')
+  converted_amount?: number | null; // v4.4.2: User-entered converted amount in home currency
+  converted_currency?: string | null; // v4.4.2: The home currency it was converted to
   notes?: string;
   receipt_url?: string;
   expense_purpose?: ExpensePurpose; // v1.3.0: For mixed trips only
