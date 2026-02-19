@@ -68,9 +68,16 @@ export function useCreateBooking() {
       
       if (error) throw error;
       
-      // v1.2.5: Sync expense from booking
+      // v3.9.30: Wrapped in try/catch — expense sync failure must not
+      // abort the booking creation (booking is already persisted above).
+      // Previously, an unhandled throw here would reject mutateAsync,
+      // causing the CreateTripDialog loop to stop and lose remaining legs.
       if (booking && Number(booking.total_cost || 0) > 0) {
-        await syncExpenseFromBooking(booking as Booking);
+        try {
+          await syncExpenseFromBooking(booking as Booking);
+        } catch (err) {
+          console.error('[useCreateBooking] Expense sync failed (non-blocking):', err);
+        }
       }
       
       return booking;

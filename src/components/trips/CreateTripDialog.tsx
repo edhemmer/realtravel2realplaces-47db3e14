@@ -41,7 +41,7 @@ import { buildImportStaging, buildStagingSnapshot, extractDateTokensFromParsedIt
 // v3.9.26: TripBuildModel — deterministic builder + integrity assertions
 import { buildTripModel, type TripBuildModel } from '@/lib/ingestion/tripBuildModel';
 // v3.9.26: Booking-expense sync
-import { syncExpenseFromBooking } from '@/lib/bookingExpenseSync';
+// v3.9.30: syncExpenseFromBooking removed — handled by useCreateBooking internally
 // v3.9.28: Pipeline diagnostics
 import { logFlightCostDiagnostics, countCanonicalFlightLegs, countCanonicalCostItems } from '@/lib/debug/flightPipelineDiagnostics';
 
@@ -155,15 +155,23 @@ function clearWizardBatch() {
 
 /**
  * Deterministic booking fingerprint for deduplication.
- * Uses confirmation_number + vendor_name + booking_type + start_datetime.
+ * v3.9.30: Includes airport codes for flights to prevent multi-leg same-PNR collisions.
  */
 function bookingFingerprint(b: ParsedBooking): string {
-  return [
+  const base = [
     (b.confirmation_number || '').trim().toUpperCase(),
     (b.vendor_name || '').trim().toUpperCase(),
     b.booking_type,
     (b.start_datetime || '').substring(0, 16),
-  ].join('|');
+  ];
+  // For flights, include airport codes so different legs of the same PNR aren't collapsed
+  if (b.booking_type === 'flight') {
+    base.push(
+      (b.departure_airport_code || '').trim().toUpperCase(),
+      (b.arrival_airport_code || '').trim().toUpperCase(),
+    );
+  }
+  return base.join('|');
 }
 
 /**
@@ -203,6 +211,8 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
   const [endDate, setEndDate] = useState<Date>();
   const [isParsing, setIsParsing] = useState(false);
   const [parsedBookings, setParsedBookings] = useState<ParsedBooking[]>([]);
+  // v3.9.30: Ref mirror of parsedBookings — prevents stale closure in parseItineraryText
+  const parsedBookingsRef = useRef<ParsedBooking[]>([]);
   const [parseError, setParseError] = useState<string | null>(null);
   const [pastedText, setPastedText] = useState('');
   const [showPasteInput, setShowPasteInput] = useState(false);
@@ -270,7 +280,8 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
     travelModeRef.current = null;
     setStartDate(undefined);
     setEndDate(undefined);
-    setParsedBookings([]);
+     setParsedBookings([]);
+    parsedBookingsRef.current = [];
     setParseError(null);
     setPastedText('');
     setShowPasteInput(false);
@@ -295,7 +306,8 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
       const savedBatch = loadWizardBatch();
       if (savedBatch && savedBatch.length > 0) {
         // Resume: load persisted batch, skip to manual-form review
-        setParsedBookings(savedBatch);
+         setParsedBookings(savedBatch);
+        parsedBookingsRef.current = savedBatch;
         setTravelMode('fly');
         travelModeRef.current = 'fly';
         setValue('transportation_mode', 'flight');
@@ -380,11 +392,13 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
             toast.warning(`${pipelineResult.needsAttentionItems.length} booking(s) have incomplete fields. Please review.`, { duration: 6000 });
           }
 
-          // v3.9.49: APPEND new bookings with dedup, compute meta from full merged set
-          // IMPORTANT: Compute merged set synchronously OUTSIDE setState to avoid
-          // React 18 batching deferral — updater functions run during render, not inline.
-          const prevBookings = parsedBookings;
+          // v3.9.30: Use ref for latest bookings — prevents stale closure when
+          // multiple confirmations are pasted sequentially. The ref is always
+          // current; the old closure-based read of `parsedBookings` was stale
+          // because parseItineraryText's useCallback deps didn't include it.
+          const prevBookings = parsedBookingsRef.current;
           const allMergedBookings = mergeBookings(prevBookings, parsed.bookings);
+          parsedBookingsRef.current = allMergedBookings;
           saveWizardBatch(allMergedBookings);
           setParsedBookings(allMergedBookings);
 
@@ -764,27 +778,9 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
 
           if (createdBooking?.id) {
             createdBookingIds.push(createdBooking.id);
-
-            // ── CHANGE 3 + 6: Create expense from booking (idempotent) ──
-            const totalCost = Number(booking.total_cost || 0);
-            if (totalCost > 0) {
-              try {
-                await syncExpenseFromBooking({
-                  ...createdBooking,
-                  trip_id: trip.id,
-                  booking_type: booking.booking_type,
-                  vendor_name: booking.vendor_name,
-                  start_datetime: booking.start_datetime,
-                  total_cost: totalCost,
-                  my_share: booking.my_share ?? totalCost,
-                  airline: booking.airline,
-                  property_name: booking.property_name,
-                  rental_company: booking.rental_company,
-                } as any);
-              } catch (expenseErr) {
-                console.error('[CreateTrip] Expense sync failed (non-blocking):', expenseErr);
-              }
-            }
+            // v3.9.30: Expense sync is handled by useCreateBooking.mutationFn.
+            // Removed duplicate syncExpenseFromBooking call that was here —
+            // it caused redundant DB queries and risked race conditions.
           }
 
           // Companion creation for flights
@@ -1038,7 +1034,8 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
     setTravelMode(null);
     setStartDate(undefined);
     setEndDate(undefined);
-    setParsedBookings([]);
+     setParsedBookings([]);
+    parsedBookingsRef.current = [];
     setParseError(null);
     setPastedText('');
     setShowPasteInput(false);
@@ -1074,6 +1071,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
   const removeBooking = (index: number) => {
     setParsedBookings(prev => {
       const updated = prev.filter((_, i) => i !== index);
+      parsedBookingsRef.current = updated;
       saveWizardBatch(updated); // Persist removal
       return updated;
     });
