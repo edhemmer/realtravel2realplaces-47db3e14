@@ -1,6 +1,6 @@
 /**
  * Booking-Expense Synchronization Utilities
- * v3.9.21 - Links expenses to bookings for accurate financial tracking
+ * v3.9.22 - Links expenses to bookings for accurate financial tracking
  * 
  * Since we cannot add a booking_id column, we use a marker in the notes field:
  * Format: [linked_booking:booking_uuid]
@@ -148,20 +148,27 @@ export function getBookingExpenseCost(booking: Booking): number {
  * linked expense is left unchanged (not zeroed out).
  */
 export async function syncExpenseFromBooking(booking: Booking): Promise<string | null> {
-  // Get normalized booking cost (handles edge cases)
-  const totalCost = getBookingExpenseCost(booking);
-  
-  // v3.9.25: Only sync if booking has a valid cost > 0
-  // Never create $0 placeholder expenses — keep amount null internally
+  // Get normalized booking cost — coerce string to number defensively
+  // DB may return total_cost as string "924" rather than number 924
+  const rawCost = booking.total_cost;
+  const totalCost = (rawCost === null || rawCost === undefined)
+    ? 0
+    : (() => {
+        const n = Number(rawCost);
+        return Number.isFinite(n) && n > 0 ? n : 0;
+      })();
+
+  // Only sync if booking has a valid cost > 0
   if (totalCost <= 0) return null;
   
   const bookingLinkMarker = createBookingLinkMarker(booking.id);
   const category = mapBookingTypeToExpenseCategory(booking.booking_type);
   const description = getExpenseDescriptionForBooking(booking);
   
-  // Extract date from booking start_datetime
-  const expenseDate = booking.start_datetime 
-    ? new Date(booking.start_datetime).toISOString().split('T')[0]
+  // Extract date — string slice only, no Date construction, no timezone risk
+  const rawStart = booking.start_datetime || '';
+  const expenseDate = rawStart.length >= 10
+    ? rawStart.substring(0, 10)
     : new Date().toISOString().split('T')[0];
   
   // Check for existing linked expense
