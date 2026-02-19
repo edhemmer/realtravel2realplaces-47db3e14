@@ -240,6 +240,14 @@ export function buildImportStaging(
 
   // v3.9.37: Dev-only verification logs
   if (import.meta.env.DEV) {
+    console.log('[IMPORT_STAGING] PARSED_ITEMS_COUNT', parsedItems.length);
+    console.log('[IMPORT_STAGING] PARSED_ITEMS_DATES', parsedItems.map((item, i) => ({
+      index: i,
+      booking_type: item.booking_type,
+      vendor_name: item.vendor_name,
+      start_datetime: item.start_datetime,
+      end_datetime: item.end_datetime,
+    })));
     console.log('[IMPORT_STAGING] DATE_TOKENS_EXTRACTED', {
       count: dateTokens.length,
       uniqueTokens: dateTokens,
