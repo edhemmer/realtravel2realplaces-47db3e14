@@ -333,10 +333,7 @@ export type Database = {
         Row: {
           amount: number
           category: Database["public"]["Enums"]["expense_category"]
-          converted_amount: number | null
-          converted_currency: string | null
           created_at: string
-          currency: string
           date: string
           description: string | null
           engagement_id: string | null
@@ -354,10 +351,7 @@ export type Database = {
         Insert: {
           amount?: number
           category: Database["public"]["Enums"]["expense_category"]
-          converted_amount?: number | null
-          converted_currency?: string | null
           created_at?: string
-          currency?: string
           date: string
           description?: string | null
           engagement_id?: string | null
@@ -375,10 +369,7 @@ export type Database = {
         Update: {
           amount?: number
           category?: Database["public"]["Enums"]["expense_category"]
-          converted_amount?: number | null
-          converted_currency?: string | null
           created_at?: string
-          currency?: string
           date?: string
           description?: string | null
           engagement_id?: string | null

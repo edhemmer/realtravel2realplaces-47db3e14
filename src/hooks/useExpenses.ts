@@ -53,9 +53,6 @@ interface CreateExpenseData {
   receipt_url?: string;
   expense_purpose?: ExpensePurpose; // v1.3.0: For mixed trips only
   engagement_id?: string; // Patch 2.3.8: Optional Stop assignment
-  currency?: string; // v4.4.0: Multi-currency support
-  converted_amount?: number | null; // v4.4.2: Manual conversion amount
-  converted_currency?: string | null; // v4.4.2: Target currency for conversion
 }
 
 export function useCreateExpense() {
@@ -77,9 +74,6 @@ export function useCreateExpense() {
       if (data.receipt_url) insertData.receipt_url = data.receipt_url;
       if (data.expense_purpose) insertData.expense_purpose = data.expense_purpose;
       if (data.engagement_id) insertData.engagement_id = data.engagement_id;
-      if (data.currency) insertData.currency = data.currency;
-      if (data.converted_amount !== undefined && data.converted_amount !== null) insertData.converted_amount = data.converted_amount;
-      if (data.converted_currency) insertData.converted_currency = data.converted_currency;
 
       const { data: expense, error } = await supabase
         .from('expenses')

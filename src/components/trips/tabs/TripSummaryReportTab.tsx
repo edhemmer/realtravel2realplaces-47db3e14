@@ -103,7 +103,6 @@ export function TripSummaryReportTab({ tripId }: TripSummaryReportTabProps) {
   const costSummary = useMemo(() => {
     return calculateTripCostSummary(expenses, bookings, parking);
   }, [expenses, bookings, parking]);
-  // Note: TripSummaryReportTab uses default USD for now — report currency TBD
 
   // Calculate category breakdown
   const categorySummary = useMemo(() => {

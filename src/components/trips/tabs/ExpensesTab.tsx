@@ -3,7 +3,6 @@ import { useExpenses, useCreateExpense, useUpdateExpense, useDeleteExpense } fro
 import { useBookings } from '@/hooks/useBookings';
 import { useTrip } from '@/hooks/useTrips';
 import { useEngagements } from '@/hooks/useEngagements';
-import { useUserProfile } from '@/hooks/useUserProfile';
 import { Expense, ExpenseCategory, ExpenseSubCategory, ExpensePurpose } from '@/types/database';
 import { BusinessOnly } from '@/components/access';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,8 +16,6 @@ import {
   calculateNormalizedExpenseTotals,
   getNormalizedExpenseAmount,
   getNormalizedExpenseMyShare,
-  isForeignCurrencyExpense,
-  isConvertedExpense,
 } from '@/lib/expenseCalculations';
 import { formatCurrency, MY_SHARE_LABEL } from '@/lib/displayFormats';
 import { BusinessPersonalSummary } from '@/components/trips/BusinessPersonalSummary';
@@ -112,8 +109,6 @@ export function ExpensesTab({ tripId, autoOpenAdd, onAutoOpenConsumed }: Expense
   const { data: bookings = [], isLoading: bookingsLoading } = useBookings(tripId);
   const { data: trip } = useTrip(tripId);
   const { data: engagements = [] } = useEngagements(tripId); // Patch 2.3.8: Fetch Stops for selector
-  const { data: userProfile } = useUserProfile();
-  const homeCurrency = userProfile?.preferred_currency || 'USD';
   const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
   const deleteExpense = useDeleteExpense();
@@ -143,9 +138,7 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
     notes: '',
     receipt_url: '',
     expense_purpose: '' as ExpensePurpose | '',
-    engagement_id: '' as string,
-    currency: homeCurrency, // v4.4.2: Currency for the expense
-    converted_amount: '', // v4.4.2: Manual conversion amount in home currency
+    engagement_id: '' as string, // Patch 2.3.8: Optional Stop assignment
   });
 
   const resetForm = () => {
@@ -160,8 +153,6 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
       receipt_url: '',
       expense_purpose: '',
       engagement_id: '',
-      currency: homeCurrency,
-      converted_amount: '',
     });
     setPreviewImage(null);
     setParseError(null);
@@ -191,8 +182,6 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
       receipt_url: '',
       expense_purpose: '',
       engagement_id: '',
-      currency: homeCurrency,
-      converted_amount: '',
     });
     setPreviewImage(null);
     setParseError(null);
@@ -213,9 +202,7 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
       notes: getCleanNotesForDisplay(expense.notes) || '',
       receipt_url: expense.receipt_url || '',
       expense_purpose: (expense.expense_purpose || '') as ExpensePurpose | '',
-      engagement_id: expense.engagement_id || '',
-      currency: (expense as any).currency || homeCurrency,
-      converted_amount: expense.converted_amount?.toString() || '',
+      engagement_id: expense.engagement_id || '', // Patch 2.3.8: Load existing Stop assignment
     });
     setPreviewImage(expense.receipt_url || null);
     setParseError(null);
@@ -238,12 +225,6 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
     const myShare = formData.my_share && formData.my_share.trim() !== '' 
       ? parseFloat(formData.my_share) 
       : amount;
-
-    // v4.4.2: Determine converted amount for foreign currency expenses
-    const isForeign = formData.currency.toUpperCase() !== homeCurrency.toUpperCase();
-    const parsedConverted = formData.converted_amount ? parseFloat(formData.converted_amount) : null;
-    const convertedAmount = isForeign && parsedConverted && parsedConverted > 0 ? parsedConverted : null;
-    const convertedCurrency = convertedAmount ? homeCurrency : null;
     
     // v1.3.1: Handle edit vs create
     if (editingExpense) {
@@ -259,11 +240,8 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
         notes: formData.notes || undefined,
         receipt_url: formData.receipt_url || undefined,
         expense_purpose: isMixedTrip && formData.expense_purpose ? formData.expense_purpose : undefined,
-        engagement_id: formData.engagement_id || null,
-        currency: formData.currency || homeCurrency,
-        converted_amount: convertedAmount,
-        converted_currency: convertedCurrency,
-      } as any);
+        engagement_id: formData.engagement_id || null, // Patch 2.3.8: Save Stop assignment
+      });
     } else {
       await createExpense.mutateAsync({
         trip_id: tripId,
@@ -276,11 +254,8 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
         notes: formData.notes || undefined,
         receipt_url: formData.receipt_url || undefined,
         expense_purpose: isMixedTrip && formData.expense_purpose ? formData.expense_purpose : undefined,
-        engagement_id: formData.engagement_id || undefined,
-        currency: formData.currency || homeCurrency,
-        converted_amount: convertedAmount,
-        converted_currency: convertedCurrency,
-      } as any);
+        engagement_id: formData.engagement_id || undefined, // Patch 2.3.8: Save Stop assignment
+      });
     }
     
     resetForm();
@@ -551,8 +526,8 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
   // v3.9.25: Use canonical cost summary (single source of truth) for summary cards
   // This ensures Trip Total and Expenses Tab always agree.
   const canonicalCosts = useMemo(
-    () => calculateTripCostSummary(expenses, bookings, [], homeCurrency),
-    [expenses, bookings, homeCurrency]
+    () => calculateTripCostSummary(expenses, bookings, []),
+    [expenses, bookings]
   );
   
   // v3.9.25: Total = bookingsTotal + out-of-pocket expensesTotal (canonical formula)
@@ -564,12 +539,12 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
   const byCategory = calculateCategorySummary(expenses);
 
   // v2.1.3: Calculate business/personal breakdown for mixed trips
-  const purposeBreakdown = isMixedTrip ? calculateExpensePurposeBreakdown(expenses, homeCurrency) : null;
+  const purposeBreakdown = isMixedTrip ? calculateExpensePurposeBreakdown(expenses) : null;
 
   // Debug logging - runs on every render when expenses change
   useEffect(() => {
     if (expenses.length > 0) {
-      const summary = calculateTripCostSummary(expenses, bookings, [], homeCurrency);
+      const summary = calculateTripCostSummary(expenses, bookings, []);
       logExpenseDebug(tripId, expenses, summary);
     }
   }, [tripId, expenses, bookings]);
@@ -716,6 +691,7 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
             </ToggleGroup>
           </div>
         )}
+
         <TabsContent value={activeCategory} className="mt-4">
           {filteredExpenses.length > 0 ? (
             <Card>
@@ -723,8 +699,6 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
                 <div className="divide-y">
                   {filteredExpenses.map((expense: Expense) => {
                     const isFromBooking = isAutoGeneratedExpense(expense);
-                    const isForeignCurrency = isForeignCurrencyExpense(expense, homeCurrency);
-                    const expenseCurrency = (expense as any).currency || homeCurrency;
                     // v1.3.1: Handle click on row for editing (except delete icon)
                     const handleRowClick = (e: React.MouseEvent) => {
                       // Don't open edit if clicking delete button or if user can't edit
@@ -737,7 +711,7 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
                         key={expense.id} 
                         className={`flex items-center justify-between p-4 hover:bg-muted/50 transition-colors ${
                           canEdit && !isFromBooking ? 'cursor-pointer' : ''
-                        } ${isForeignCurrency ? 'bg-amber-50/60 dark:bg-amber-950/20 border-l-2 border-l-amber-400' : ''}`}
+                        }`}
                         onClick={handleRowClick}
                       >
                         <div className="flex items-center gap-3">
@@ -768,17 +742,6 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
                                   {expense.expense_purpose === 'business' ? '💼 Business' : '🏠 Personal'}
                                 </span>
                               )}
-                              {/* v4.4.0: Foreign currency indicator */}
-                              {isForeignCurrency && !isConvertedExpense(expense) && (
-                                 <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 rounded-full font-semibold">
-                                  {expenseCurrency} · Convert to {homeCurrency}
-                                </span>
-                              )}
-                              {isForeignCurrency && isConvertedExpense(expense) && (
-                                 <span className="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 rounded-full font-semibold">
-                                  {expenseCurrency} → {formatCurrency(Number(expense.converted_amount))} {homeCurrency}
-                                </span>
-                              )}
                               {/* Patch 2.3.8: Show Stop name when assigned (Business only) */}
                               <BusinessOnly>
                                 {expense.engagement_id && (() => {
@@ -801,21 +764,10 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
                         </div>
                         <div className="flex items-center gap-4">
                           <div className="text-right">
-                            {/* v4.4.0: Show amount in original currency for foreign expenses */}
-                            <p className={`font-semibold ${isForeignCurrency ? 'text-amber-700 dark:text-amber-400' : ''}`}>
-                              {isForeignCurrency 
-                                ? formatCurrency(Number(expense.amount || 0), expenseCurrency)
-                                : formatCurrency(getNormalizedExpenseAmount(expense, perBookingCost))
-                              }
-                            </p>
-                            {!isForeignCurrency && getNormalizedExpenseMyShare(expense, perBookingMyShare) > 0 && (
+                            {/* v2.0.8: Use unified currency formatting */}
+                            <p className="font-semibold">{formatCurrency(getNormalizedExpenseAmount(expense, perBookingCost))}</p>
+                            {getNormalizedExpenseMyShare(expense, perBookingMyShare) > 0 && (
                               <p className="text-sm text-muted-foreground">{MY_SHARE_LABEL}: {formatCurrency(getNormalizedExpenseMyShare(expense, perBookingMyShare))}</p>
-                            )}
-                            {isForeignCurrency && !isConvertedExpense(expense) && (
-                              <p className="text-[11px] text-amber-600 dark:text-amber-500 italic">Not in totals</p>
-                            )}
-                            {isForeignCurrency && isConvertedExpense(expense) && (
-                              <p className="text-[11px] text-green-600 dark:text-green-500">Converted · In totals</p>
                             )}
                           </div>
                           {canEdit && !isFromBooking && (
@@ -1123,49 +1075,9 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
               />
             </div>
 
-            {/* v4.4.2: Currency selector */}
-            <div className="space-y-2">
-              <Label>Currency</Label>
-              <Select 
-                value={formData.currency} 
-                onValueChange={(v) => setFormData({ ...formData, currency: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="USD">USD – US Dollar</SelectItem>
-                  <SelectItem value="EUR">EUR – Euro</SelectItem>
-                  <SelectItem value="GBP">GBP – British Pound</SelectItem>
-                  <SelectItem value="CAD">CAD – Canadian Dollar</SelectItem>
-                  <SelectItem value="AUD">AUD – Australian Dollar</SelectItem>
-                  <SelectItem value="JPY">JPY – Japanese Yen</SelectItem>
-                  <SelectItem value="CHF">CHF – Swiss Franc</SelectItem>
-                  <SelectItem value="MXN">MXN – Mexican Peso</SelectItem>
-                  <SelectItem value="BRL">BRL – Brazilian Real</SelectItem>
-                  <SelectItem value="INR">INR – Indian Rupee</SelectItem>
-                  <SelectItem value="SEK">SEK – Swedish Krona</SelectItem>
-                  <SelectItem value="NOK">NOK – Norwegian Krone</SelectItem>
-                  <SelectItem value="DKK">DKK – Danish Krone</SelectItem>
-                  <SelectItem value="NZD">NZD – New Zealand Dollar</SelectItem>
-                  <SelectItem value="ZAR">ZAR – South African Rand</SelectItem>
-                  <SelectItem value="SGD">SGD – Singapore Dollar</SelectItem>
-                  <SelectItem value="HKD">HKD – Hong Kong Dollar</SelectItem>
-                  <SelectItem value="KRW">KRW – South Korean Won</SelectItem>
-                  <SelectItem value="THB">THB – Thai Baht</SelectItem>
-                  <SelectItem value="PLN">PLN – Polish Zloty</SelectItem>
-                  <SelectItem value="CZK">CZK – Czech Koruna</SelectItem>
-                  <SelectItem value="HUF">HUF – Hungarian Forint</SelectItem>
-                  <SelectItem value="ILS">ILS – Israeli Shekel</SelectItem>
-                  <SelectItem value="TRY">TRY – Turkish Lira</SelectItem>
-                  <SelectItem value="AED">AED – UAE Dirham</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Amount ({formData.currency}) *</Label>
+                <Label>Amount *</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -1186,38 +1098,6 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
                 />
               </div>
             </div>
-
-            {/* v4.4.2: Manual conversion section — shown when currency differs from home currency */}
-            {formData.currency.toUpperCase() !== homeCurrency.toUpperCase() && (
-              <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-3 space-y-2">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-amber-600" />
-                  <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
-                    Convert to {homeCurrency}
-                  </p>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  This expense is in {formData.currency}. Enter the equivalent in {homeCurrency} so it's included in your trip totals. 
-                  The original {formData.currency} amount is kept for your records.
-                </p>
-                <div className="space-y-1">
-                  <Label className="text-xs">Converted Amount ({homeCurrency})</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={formData.converted_amount}
-                    onChange={(e) => setFormData({ ...formData, converted_amount: e.target.value })}
-                    placeholder={`Amount in ${homeCurrency}`}
-                    className="h-10"
-                  />
-                </div>
-                {!formData.converted_amount && (
-                  <p className="text-[11px] text-amber-600 dark:text-amber-500 italic">
-                    Without conversion, this expense won't be included in trip totals.
-                  </p>
-                )}
-              </div>
-            )}
 
             <div className="space-y-2">
               <Label>Notes</Label>

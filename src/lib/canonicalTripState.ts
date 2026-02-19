@@ -842,7 +842,7 @@ export function calculateCanonicalCosts(
     ...baseSummary,
     perBookingCost,
     perBookingMyShare,
-    primaryCurrency: 'USD', // v4.4.1: TODO — pass user's homeCurrency when available
+    primaryCurrency: 'USD', // No FX conversion in this patch
   };
 }
 
