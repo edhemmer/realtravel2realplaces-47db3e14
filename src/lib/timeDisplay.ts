@@ -1,21 +1,22 @@
 /**
- * v3.9.39: Canonical Flight Time Display Helper
+ * v3.9.42: Canonical Flight Time Display Helper
  *
  * SINGLE SOURCE OF TRUTH for rendering flight departure/arrival times.
  *
- * RULES:
- * - No Date() construction
- * - No formatting or conversion (12h↔24h)
- * - No timezone logic
- * - No locale logic
- * - Returns the stored time string exactly, or "--:--"
+ * RAW STRING ENFORCEMENT CONTRACT:
+ * - When rawTime is provided and non-empty, it is returned EXACTLY as-is.
+ *   No Date() construction, no formatting, no 12h↔24h conversion,
+ *   no timezone logic, no locale logic.
+ * - rawTime is "trusted display text" originating from confirmation parsing.
+ * - Only when rawTime is absent does the fallback extract HH:mm digits
+ *   from an ISO datetime string.
+ * - Midnight (00:00) IS a valid flight time and is NOT suppressed.
  *
  * Accepts either:
  * - A raw time string (HH:mm, "11:10 PM", "23:05") from canonical fields
  * - An ISO datetime string (YYYY-MM-DDTHH:mm:ss) from DB booking fields
  *
  * When given an ISO string, extracts the HH:mm digits and returns them.
- * Midnight (00:00) IS a valid flight time and is NOT suppressed.
  */
 
 const FALLBACK = '--:--';

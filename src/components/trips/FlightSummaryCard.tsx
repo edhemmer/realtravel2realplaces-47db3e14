@@ -148,20 +148,25 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                       <span className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5" />
                         {(() => {
-                          // v3.9.41: Compute canonical local times for defensible display
+                          // v3.9.42: Raw time enforcement — extract once, pass as trusted display text
                           const flightLocal = computeFlightLocalDatetimes(flight.start_datetime, flight.end_datetime);
-                          const depRawTime = flightLocal.departLocalTime;
-                          const arrRawTime = flightLocal.arriveLocalTime;
+                          const depRawTime = flightLocal.departLocalTime; // HH:mm string, no formatting
+                          const arrRawTime = flightLocal.arriveLocalTime; // HH:mm string, no formatting
 
                           const dateDisplay = formatLocalDateDirect(flight.start_datetime);
+                          // getDepartureTimeLabel returns depRawTime verbatim when non-empty
                           const depTime = getDepartureTimeLabel(depRawTime, flight.start_datetime);
                           const depHasTime = hasFlightTime(depRawTime, flight.start_datetime);
+                          const arrTime = getArrivalTimeLabel(arrRawTime, flight.end_datetime);
+                          const arrHasTime = hasFlightTime(arrRawTime, flight.end_datetime);
                           
-                          return dateDisplay ? (
+                          return (
                             <>
-                              <span className="font-medium text-foreground tabular-nums">
-                                {dateDisplay}
-                              </span>
+                              {dateDisplay && (
+                                <span className="font-medium text-foreground tabular-nums">
+                                  {dateDisplay}
+                                </span>
+                              )}
                               {depHasTime ? (
                                 <span className="text-muted-foreground tabular-nums">
                                   {depTime}
@@ -171,28 +176,21 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                                   {UNKNOWN_TIME_PLACEHOLDER}
                                 </span>
                               )}
+                              {flight.end_datetime && (
+                                arrHasTime ? (
+                                  <span className="text-xs tabular-nums">
+                                    → {arrTime}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-destructive font-medium">
+                                    → {UNKNOWN_TIME_PLACEHOLDER}
+                                  </span>
+                                )
+                              )}
                             </>
-                          ) : null;
+                          );
                         })()}
                       </span>
-                      {flight.end_datetime && (() => {
-                        const flightLocal = computeFlightLocalDatetimes(flight.start_datetime, flight.end_datetime);
-                        const arrRawTime = flightLocal.arriveLocalTime;
-                        const arrTime = getArrivalTimeLabel(arrRawTime, flight.end_datetime);
-                        const arrHasTime = hasFlightTime(arrRawTime, flight.end_datetime);
-                        if (arrHasTime) {
-                          return (
-                            <span className="text-xs tabular-nums">
-                              → {arrTime}
-                            </span>
-                          );
-                        }
-                        return (
-                          <span className="text-xs text-destructive font-medium">
-                            → {UNKNOWN_TIME_PLACEHOLDER}
-                          </span>
-                        );
-                      })()}
                     </div>
                     
                     {flight.passenger_name && (
