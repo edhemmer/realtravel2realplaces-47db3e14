@@ -230,7 +230,7 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
         <Input
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          placeholder="Search attractions, trails, museums..."
+          placeholder="Search attractions, restaurants, trails..."
           className="pl-9 pr-9 h-10"
         />
         {searchInput && (

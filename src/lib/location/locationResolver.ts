@@ -61,6 +61,30 @@ const AIRPORT_COORDS: Record<string, { lat: number; lng: number }> = {
   EZE: { lat: -34.8222, lng: -58.5358 }, BOG: { lat: 4.7016, lng: -74.1469 },
   LIM: { lat: -12.0219, lng: -77.1143 }, SCL: { lat: -33.3930, lng: -70.7858 },
   TLV: { lat: 32.0114, lng: 34.8867 },
+  // v3.9.41: Additional international airports
+  TFS: { lat: 28.0445, lng: -16.5725 }, // Tenerife South
+  TFN: { lat: 28.4827, lng: -16.3415 }, // Tenerife North
+  LPA: { lat: 27.9319, lng: -15.3866 }, // Gran Canaria
+  ACE: { lat: 28.9455, lng: -13.6052 }, // Lanzarote
+  FUE: { lat: 28.4527, lng: -13.8638 }, // Fuerteventura
+  PMI: { lat: 39.5517, lng: 2.7388 },   // Palma de Mallorca
+  AGP: { lat: 36.6749, lng: -4.4991 },  // Malaga
+  VCE: { lat: 45.5053, lng: 12.3519 },  // Venice
+  NAP: { lat: 40.8860, lng: 14.2908 },  // Naples
+  ATH: { lat: 37.9364, lng: 23.9445 },  // Athens
+  CPH: { lat: 55.6181, lng: 12.6560 },  // Copenhagen
+  OSL: { lat: 60.1939, lng: 11.1004 },  // Oslo
+  ARN: { lat: 59.6519, lng: 17.9186 },  // Stockholm
+  HEL: { lat: 60.3172, lng: 24.9633 },  // Helsinki
+  WAW: { lat: 52.1657, lng: 20.9671 },  // Warsaw
+  PRG: { lat: 50.1008, lng: 14.2632 },  // Prague
+  BUD: { lat: 47.4369, lng: 19.2556 },  // Budapest
+  VIE: { lat: 48.1103, lng: 16.5697 },  // Vienna
+  EDI: { lat: 55.9508, lng: -3.3615 },  // Edinburgh
+  MAN: { lat: 53.3537, lng: -2.2750 },  // Manchester
+  STN: { lat: 51.8860, lng: 0.2389 },   // London Stansted
+  ORY: { lat: 48.7262, lng: 2.3652 },   // Paris Orly
+  CIA: { lat: 41.7994, lng: 12.5949 },   // Rome Ciampino
 };
 
 /**

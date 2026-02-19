@@ -256,6 +256,17 @@ function generateGenericAttractions(): { name: string; category: string; locatio
     { name: 'Train Depot Museum', category: 'Museum', location: 'Downtown', desc: 'Restored railroad station with vintage trains and exhibits.' },
     { name: 'Farmers\' Market', category: 'Tourist Attraction', location: 'Downtown', desc: 'Fresh local produce, baked goods, and handmade crafts.' },
     { name: 'Evening Ghost Tour', category: 'Tour', location: 'Downtown', desc: 'Guided walking tour of haunted sites and local legends.' },
+    // v3.9.41: Dining lane — restaurants, cafes, bars
+    { name: 'Local Seafood Restaurant', category: 'Restaurant', location: 'Downtown', desc: 'Fresh catch of the day with waterfront or city views.' },
+    { name: 'Farm-to-Table Bistro', category: 'Restaurant', location: 'Nearby', desc: 'Seasonal menu featuring locally sourced ingredients.' },
+    { name: 'Traditional Regional Kitchen', category: 'Restaurant', location: 'Downtown', desc: 'Authentic local cuisine in a cozy, welcoming atmosphere.' },
+    { name: 'Rooftop Bar & Lounge', category: 'Bar', location: 'Downtown', desc: 'Craft cocktails with panoramic views of the city skyline.' },
+    { name: 'Artisan Coffee House', category: 'Cafe', location: 'Downtown', desc: 'Specialty coffee, pastries, and a relaxed atmosphere.' },
+    { name: 'Wine & Tapas Bar', category: 'Bar', location: 'Nearby', desc: 'Curated wine list with small plates and charcuterie.' },
+    { name: 'Brunch Spot', category: 'Cafe', location: 'Downtown', desc: 'Popular weekend brunch destination with creative dishes.' },
+    { name: 'Pizzeria & Trattoria', category: 'Restaurant', location: 'Nearby', desc: 'Wood-fired pizza and classic pasta in a family-friendly setting.' },
+    { name: 'Street Food Market', category: 'Restaurant', location: 'Downtown', desc: 'Open-air market with diverse food stalls and live music.' },
+    { name: 'Craft Brewery & Kitchen', category: 'Bar', location: 'Nearby', desc: 'Locally brewed beers paired with pub-style food.' },
   ];
 }
 
