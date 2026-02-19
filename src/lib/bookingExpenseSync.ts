@@ -169,11 +169,10 @@ export async function syncExpenseFromBooking(booking: Booking): Promise<string |
   
   if (existingExpense) {
     // Update existing expense
-    // v3.9.38: totalCost is already a safe number from getBookingExpenseCost.
-    // booking.my_share from DB is already numeric — just guard finitely.
+    // v3.9.43: Treat my_share=0 as "unset" — fall back to totalCost.
     const safeAmount = totalCost;
     const rawMyShare = booking.my_share != null ? Number(booking.my_share) : null;
-    const safeMyShare = (rawMyShare != null && Number.isFinite(rawMyShare) && rawMyShare >= 0) ? rawMyShare : safeAmount;
+    const safeMyShare = (rawMyShare != null && Number.isFinite(rawMyShare) && rawMyShare > 0) ? rawMyShare : safeAmount;
     const { error } = await supabase
       .from('expenses')
       .update({
@@ -193,10 +192,10 @@ export async function syncExpenseFromBooking(booking: Booking): Promise<string |
     return existingExpense.id;
   } else {
     // Create new expense
-    // v3.9.38: No re-normalization — totalCost already validated above.
+    // v3.9.43: Treat my_share=0 as "unset" — fall back to totalCost.
     const safeAmount = totalCost;
     const rawMyShare = booking.my_share != null ? Number(booking.my_share) : null;
-    const safeMyShare = (rawMyShare != null && Number.isFinite(rawMyShare) && rawMyShare >= 0) ? rawMyShare : safeAmount;
+    const safeMyShare = (rawMyShare != null && Number.isFinite(rawMyShare) && rawMyShare > 0) ? rawMyShare : safeAmount;
     const { data: newExpense, error } = await supabase
       .from('expenses')
       .insert({
