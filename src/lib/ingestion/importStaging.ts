@@ -60,6 +60,40 @@ export interface StagingSnapshot {
   legTokenAudit: LegTokenAuditEntry[];
 }
 
+/**
+ * v3.9.31: Derive trip start/end dates from the full set of parsed bookings.
+ * Reuses the canonical deriveTripDateRange (YYYY-MM-DD string comparison)
+ * and converts to Date objects for form consumption.
+ *
+ * This is the SINGLE helper both buildSuggestedTripMeta and CreateTripDialog
+ * should use to determine trip dates from parsed bookings.
+ */
+export function deriveTripDatesFromParsedBookings(
+  bookings: Array<Record<string, unknown>>,
+): { startDate: Date | null; endDate: Date | null } {
+  if (bookings.length === 0) return { startDate: null, endDate: null };
+
+  const asDateRange = bookings.map(b => ({
+    booking_type: (b.booking_type as string) || 'other',
+    start_datetime: b.start_datetime as string | null | undefined,
+    end_datetime: b.end_datetime as string | null | undefined,
+  }));
+
+  const range = deriveTripDateRange(asDateRange);
+
+  let startDate: Date | null = null;
+  let endDate: Date | null = null;
+
+  if (range.startDate) {
+    try { startDate = new Date(range.startDate + 'T00:00:00'); } catch {}
+  }
+  if (range.endDate) {
+    try { endDate = new Date(range.endDate + 'T00:00:00'); } catch {}
+  }
+
+  return { startDate, endDate };
+}
+
 /** v3.9.40: Dev-only per-leg token audit */
 export interface LegTokenAuditEntry {
   airline: string | null;

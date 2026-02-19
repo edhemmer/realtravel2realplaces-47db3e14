@@ -17,7 +17,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { buildTripModel, type TripBuildModel } from '@/lib/ingestion/tripBuildModel';
-import { buildStagingSnapshot, type StagingSnapshot } from '@/lib/ingestion/importStaging';
+import { buildStagingSnapshot, deriveTripDatesFromParsedBookings, type StagingSnapshot } from '@/lib/ingestion/importStaging';
 
 // ── Test helpers ──
 
@@ -432,5 +432,62 @@ describe('v3.9.28: Airline-Agnostic Multi-Confirmation', () => {
       expect(model.status).toBe('ERROR');
       // No trip should be created
     });
+  });
+});
+
+// ============================================================================
+// v3.9.31: Wizard Date Prefill From Canonical Flight Window
+// ============================================================================
+
+describe('v3.9.31: Wizard Date Prefill', () => {
+  it('derives correct date range from multi-confirmation flights spanning Mar 11–24', () => {
+    const bookings = [
+      { booking_type: 'flight', start_datetime: '2026-03-20T10:00:00', end_datetime: '2026-03-20T14:00:00', vendor_name: 'BA' },
+      { booking_type: 'flight', start_datetime: '2026-03-11T08:00:00', end_datetime: '2026-03-11T18:00:00', vendor_name: 'BA' },
+      { booking_type: 'flight', start_datetime: '2026-03-24T06:00:00', end_datetime: '2026-03-24T16:00:00', vendor_name: 'BA' },
+    ];
+    const result = deriveTripDatesFromParsedBookings(bookings as any[]);
+    expect(result.startDate).toBeTruthy();
+    expect(result.endDate).toBeTruthy();
+    expect(result.startDate!.toISOString().substring(0, 10)).toBe('2026-03-11');
+    expect(result.endDate!.toISOString().substring(0, 10)).toBe('2026-03-24');
+  });
+
+  it('updates dates when a later confirmation widens the range', () => {
+    // Simulate first paste: only March 20
+    const firstPaste = [
+      { booking_type: 'flight', start_datetime: '2026-03-20T10:00:00', end_datetime: '2026-03-20T14:00:00', vendor_name: 'BA' },
+    ];
+    const firstResult = deriveTripDatesFromParsedBookings(firstPaste as any[]);
+    expect(firstResult.startDate!.toISOString().substring(0, 10)).toBe('2026-03-20');
+    expect(firstResult.endDate!.toISOString().substring(0, 10)).toBe('2026-03-20');
+
+    // Simulate second paste: merged set now spans March 11–24
+    const mergedSet = [
+      ...firstPaste,
+      { booking_type: 'flight', start_datetime: '2026-03-11T08:00:00', end_datetime: '2026-03-11T18:00:00', vendor_name: 'BA' },
+      { booking_type: 'flight', start_datetime: '2026-03-24T06:00:00', end_datetime: '2026-03-24T16:00:00', vendor_name: 'BA' },
+    ];
+    const mergedResult = deriveTripDatesFromParsedBookings(mergedSet as any[]);
+    expect(mergedResult.startDate!.toISOString().substring(0, 10)).toBe('2026-03-11');
+    expect(mergedResult.endDate!.toISOString().substring(0, 10)).toBe('2026-03-24');
+  });
+
+  it('returns null for empty bookings (non-flight trips unaffected)', () => {
+    const result = deriveTripDatesFromParsedBookings([]);
+    expect(result.startDate).toBeNull();
+    expect(result.endDate).toBeNull();
+  });
+
+  it('handles mixed booking types (flight + stay)', () => {
+    const bookings = [
+      { booking_type: 'flight', start_datetime: '2026-03-11T08:00:00', end_datetime: '2026-03-11T18:00:00', vendor_name: 'BA' },
+      { booking_type: 'stay', start_datetime: '2026-03-11', end_datetime: '2026-03-25', vendor_name: 'Marriott' },
+      { booking_type: 'flight', start_datetime: '2026-03-24T06:00:00', end_datetime: '2026-03-24T16:00:00', vendor_name: 'BA' },
+    ];
+    const result = deriveTripDatesFromParsedBookings(bookings as any[]);
+    // Stay checkout (Mar 25) should extend end date
+    expect(result.startDate!.toISOString().substring(0, 10)).toBe('2026-03-11');
+    expect(result.endDate!.toISOString().substring(0, 10)).toBe('2026-03-25');
   });
 });
