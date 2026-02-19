@@ -55,10 +55,21 @@ export function isBookingLinkedExpense(expense: Expense): boolean {
 }
 
 /**
+ * Check if an expense is in a non-default (foreign) currency.
+ * Foreign-currency expenses are shown in the list but excluded from totals
+ * until the user manually converts them.
+ */
+export function isForeignCurrencyExpense(expense: Expense): boolean {
+  const currency = (expense as any).currency;
+  return !!currency && currency !== 'USD';
+}
+
+/**
  * Filter expenses to only include true out-of-pocket expenses (not booking-linked)
+ * v4.4.0: Also excludes foreign-currency expenses from totals
  */
 export function getOutOfPocketExpenses(expenses: Expense[]): Expense[] {
-  return expenses.filter(e => !isBookingLinkedExpense(e));
+  return expenses.filter(e => !isBookingLinkedExpense(e) && !isForeignCurrencyExpense(e));
 }
 
 /**

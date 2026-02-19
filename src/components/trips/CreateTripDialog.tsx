@@ -843,6 +843,8 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
               from_location: booking.from_location || undefined,
               to_location: booking.to_location || undefined,
               my_share: booking.my_share ?? undefined,
+              // v4.4.0: Pass extracted currency for expense sync
+              _extracted_currency: (booking as any)._extracted_currency || undefined,
             });
 
             if (createdBooking?.id) {

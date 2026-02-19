@@ -147,7 +147,7 @@ export function getBookingExpenseCost(booking: Booking): number {
  * If totalCost is null/0/undefined, no expense is created and any existing
  * linked expense is left unchanged (not zeroed out).
  */
-export async function syncExpenseFromBooking(booking: Booking): Promise<string | null> {
+export async function syncExpenseFromBooking(booking: Booking, currency: string = 'USD'): Promise<string | null> {
   // Get normalized booking cost — coerce string to number defensively
   // DB may return total_cost as string "924" rather than number 924
   const rawCost = booking.total_cost;
@@ -212,6 +212,7 @@ export async function syncExpenseFromBooking(booking: Booking): Promise<string |
         description,
         amount: safeAmount,
         my_share: safeMyShare,
+        currency: currency || 'USD',
         notes: bookingLinkMarker,
       })
       .select()

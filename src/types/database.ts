@@ -92,6 +92,7 @@ export interface Expense {
   description?: string;
   amount: number;
   my_share: number;
+  currency?: string; // v4.4.0: Multi-currency support (default 'USD')
   notes?: string;
   receipt_url?: string;
   expense_purpose?: ExpensePurpose; // v1.3.0: For mixed trips only
