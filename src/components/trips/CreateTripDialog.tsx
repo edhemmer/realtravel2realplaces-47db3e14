@@ -37,7 +37,8 @@ import { runCanonicalImportPipeline } from '@/lib/ingestion/canonicalImportPipel
 // v3.9.28: Receipt cost extraction fallback
 import { enrichParsedBookingCost } from '@/lib/costAttribution';
 // v3.9.35: Canonical import staging — single source for trip creation inputs
-import { buildImportStaging, buildStagingSnapshot, extractDateTokensFromParsedItems, deriveTripFrameFromDateTokens, deriveTripDatesFromParsedBookings, type ParsedImportStaging, type StagingSnapshot } from '@/lib/ingestion/importStaging';
+import { buildImportStaging, buildStagingSnapshot, extractDateTokensFromParsedItems, deriveTripFrameFromDateTokens, type ParsedImportStaging, type StagingSnapshot } from '@/lib/ingestion/importStaging';
+import { extractDateToken } from '@/lib/canonicalTripDates';
 // v3.9.26: TripBuildModel — deterministic builder + integrity assertions
 import { buildTripModel, type TripBuildModel } from '@/lib/ingestion/tripBuildModel';
 // v3.9.26: Booking-expense sync
@@ -52,6 +53,29 @@ import { logFlightCostDiagnostics, countCanonicalFlightLegs, countCanonicalCostI
 type TravelMode = 'fly' | 'drive' | 'train' | null;
 type WizardStep = 'mode' | 'fly-parse' | 'drive-form' | 'train-manual' | 'manual-form' | 'review-confirm';
 type AutofillStatus = 'idle' | 'running' | 'filled' | 'needs_user' | 'failed_timeout';
+
+/**
+ * v3.9.63: Deterministic wizard trip window helper.
+ * Collects all non-empty YYYY-MM-DD date tokens from wizard booking objects
+ * and returns the lexicographic min/max. No Date objects, no timezone math.
+ */
+function computeWizardTripWindow(
+  bookings: ParsedBooking[],
+): { startDate: string | null; endDate: string | null } {
+  const tokens: string[] = [];
+  for (const b of bookings) {
+    const startToken = extractDateToken(b.start_datetime);
+    const endToken = extractDateToken(b.end_datetime);
+    if (startToken) tokens.push(startToken);
+    if (endToken) tokens.push(endToken);
+  }
+  if (tokens.length === 0) return { startDate: null, endDate: null };
+  tokens.sort();
+  return {
+    startDate: tokens[0],
+    endDate: tokens[tokens.length - 1],
+  };
+}
 
 function parsePassengers(passengerString: string | undefined, airline: string | undefined): Array<{
   name: string;
@@ -316,9 +340,14 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
         // v3.9.31: Rebuild staging + use shared canonical helper for date derivation
         const staging = buildImportStaging(savedBatch as any[], 'fly');
         setImportStaging(staging);
-        const derivedDates = deriveTripDatesFromParsedBookings(savedBatch as any[]);
-        if (derivedDates.startDate) setStartDate(derivedDates.startDate);
-        if (derivedDates.endDate) setEndDate(derivedDates.endDate);
+        // v3.9.63: Use deterministic wizard window helper — no Date construction
+        const wizardWindow = computeWizardTripWindow(savedBatch);
+        if (wizardWindow.startDate) {
+          try { setStartDate(new Date(wizardWindow.startDate + 'T00:00:00')); } catch {}
+        }
+        if (wizardWindow.endDate) {
+          try { setEndDate(new Date(wizardWindow.endDate + 'T00:00:00')); } catch {}
+        }
         const meta = staging.meta;
         if (meta.suggestedTripName) setValue('name', meta.suggestedTripName);
         else if (meta.suggestedDestination) setValue('name', `${meta.suggestedDestination} Trip`);
@@ -417,12 +446,13 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
           // the shared canonical helper. Previous `prev ||` guard caused the
           // first confirmation's dates to lock in, ignoring wider ranges
           // from subsequent confirmations.
-          const derivedDates = deriveTripDatesFromParsedBookings(allMergedBookings as any[]);
-          if (derivedDates.startDate) {
-            setStartDate(derivedDates.startDate);
+          // v3.9.63: Use deterministic wizard window helper — no Date construction from canonical helpers
+          const wizardWindow = computeWizardTripWindow(allMergedBookings);
+          if (wizardWindow.startDate) {
+            try { setStartDate(new Date(wizardWindow.startDate + 'T00:00:00')); } catch {}
           }
-          if (derivedDates.endDate) {
-            setEndDate(derivedDates.endDate);
+          if (wizardWindow.endDate) {
+            try { setEndDate(new Date(wizardWindow.endDate + 'T00:00:00')); } catch {}
           }
           if (meta.suggestedTripName && !getValues('name')) {
             setValue('name', meta.suggestedTripName);
