@@ -6,6 +6,7 @@ import {
   syncExpenseFromBooking, 
   deleteLinkedExpense 
 } from '@/lib/bookingExpenseSync';
+import { safeMonetaryForDb } from '@/lib/monetaryNormalization';
 
 export function useBookings(tripId: string) {
   return useQuery({
@@ -60,9 +61,18 @@ export function useCreateBooking() {
 
   return useMutation({
     mutationFn: async (data: CreateBookingData) => {
+      // v3.9.36: Normalize monetary fields before DB write to prevent numeric overflow
+      const safeTotalCost = safeMonetaryForDb(data.total_cost);
+      const safeMyShare = safeMonetaryForDb(data.my_share);
+      const sanitizedData = {
+        ...data,
+        total_cost: safeTotalCost,
+        my_share: safeMyShare ?? safeTotalCost,
+      };
+
       const { data: booking, error } = await supabase
         .from('bookings')
-        .insert(data)
+        .insert(sanitizedData)
         .select()
         .single();
       

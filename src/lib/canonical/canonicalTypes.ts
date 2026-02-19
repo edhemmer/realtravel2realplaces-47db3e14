@@ -109,6 +109,19 @@ export interface CanonicalItemBase {
 // FLIGHT
 // ============================================================================
 
+/**
+ * v3.9.36: STRING-ONLY DATE/TIME CONTRACT
+ *
+ * All date and time fields on CanonicalFlight are raw strings extracted
+ * from the airline's itinerary segment row. They MUST:
+ * - Originate from the segment row (same row as route/airports)
+ * - NEVER originate from ticket/issue metadata ("Ticketed on", "Issued on", etc.)
+ * - NEVER be derived, parsed, reformatted, or converted via Date objects
+ * - Be stored and displayed exactly as found in the confirmation
+ *
+ * Timeline components display dep_time / arr_time strings verbatim.
+ * "--:--" is only shown when the source truly has no time for that segment.
+ */
 export interface CanonicalFlight extends CanonicalItemBase {
   type: 'flight';
   airline: string | null;

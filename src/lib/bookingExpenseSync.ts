@@ -18,6 +18,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { Expense, ExpenseCategory, Booking } from '@/types/database';
+import { safeMonetaryForDb } from '@/lib/monetaryNormalization';
 
 // Marker format for linking expenses to bookings
 const BOOKING_LINK_PREFIX = '[linked_booking:';
@@ -125,16 +126,12 @@ export async function findLinkedExpense(tripId: string, bookingId: string): Prom
  * No other code should access booking.total_cost directly for expense purposes.
  */
 export function getBookingExpenseCost(booking: Booking): number {
-  // Use booking.total_cost as the ONLY source of truth
-  // Never calculate from segments, legs, or any other source
-  const totalCost = Number(booking.total_cost || 0);
-  
-  // Guard against NaN, Infinity, negative, or invalid values
-  if (!Number.isFinite(totalCost) || totalCost < 0) {
+  // v3.9.36: Use central monetary normalization to prevent overflow
+  const normalized = safeMonetaryForDb(booking.total_cost);
+  if (normalized === null || normalized <= 0) {
     return 0;
   }
-  
-  return totalCost;
+  return normalized;
 }
 
 /**
@@ -177,14 +174,16 @@ export async function syncExpenseFromBooking(booking: Booking): Promise<string |
   
   if (existingExpense) {
     // Update existing expense
+    const safeAmount = safeMonetaryForDb(totalCost) ?? 0;
+    const safeMyShare = safeMonetaryForDb(booking.my_share) ?? safeAmount;
     const { error } = await supabase
       .from('expenses')
       .update({
         date: expenseDate,
         category,
         description,
-        amount: totalCost,
-        my_share: Number(booking.my_share || totalCost),
+        amount: safeAmount,
+        my_share: safeMyShare,
         notes: existingExpense.notes, // Preserve existing notes with marker
       })
       .eq('id', existingExpense.id);
@@ -196,6 +195,8 @@ export async function syncExpenseFromBooking(booking: Booking): Promise<string |
     return existingExpense.id;
   } else {
     // Create new expense
+    const safeAmount = safeMonetaryForDb(totalCost) ?? 0;
+    const safeMyShare = safeMonetaryForDb(booking.my_share) ?? safeAmount;
     const { data: newExpense, error } = await supabase
       .from('expenses')
       .insert({
@@ -203,8 +204,8 @@ export async function syncExpenseFromBooking(booking: Booking): Promise<string |
         date: expenseDate,
         category,
         description,
-        amount: totalCost,
-        my_share: Number(booking.my_share || totalCost),
+        amount: safeAmount,
+        my_share: safeMyShare,
         notes: bookingLinkMarker,
       })
       .select()
