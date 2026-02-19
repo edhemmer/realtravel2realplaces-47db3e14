@@ -60,4 +60,29 @@ describe('safeMonetaryForDb', () => {
     expect(safeMonetaryForDb(null)).toBeNull();
     expect(safeMonetaryForDb(undefined)).toBeNull();
   });
+
+  // v3.9.38: Regression-prevention tests
+  it('preserves valid number passthrough (regression v3.9.38)', () => {
+    expect(safeMonetaryForDb(1211.74)).toBe(1211.74);
+    expect(safeMonetaryForDb(0)).toBe(0);
+    expect(safeMonetaryForDb(0.01)).toBe(0.01);
+    expect(safeMonetaryForDb(9_999_999_999.99)).toBe(9_999_999_999.99);
+  });
+
+  it('parses comma-separated string costs (regression v3.9.38)', () => {
+    expect(safeMonetaryForDb('1,211.74')).toBe(1211.74);
+    expect(safeMonetaryForDb('$924.00')).toBe(924);
+    expect(safeMonetaryForDb('£2,500.50')).toBe(2500.5);
+    expect(safeMonetaryForDb('€150')).toBe(150);
+  });
+
+  it('rejects negative values', () => {
+    expect(safeMonetaryForDb(-10)).toBeNull();
+    expect(safeMonetaryForDb(-0.01)).toBeNull();
+  });
+
+  it('rejects over-max values', () => {
+    expect(safeMonetaryForDb(9_999_999_999.99 + 1)).toBeNull();
+    expect(safeMonetaryForDb(10_000_000_000)).toBeNull();
+  });
 });

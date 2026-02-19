@@ -31,8 +31,8 @@ interface CreateBookingData {
   end_datetime?: string | null;
   address?: string | null;
   confirmation_number?: string | null;
-  total_cost?: number;
-  my_share?: number;
+  total_cost?: number | string;
+  my_share?: number | string;
   link_url?: string | null;
   notes?: string | null;
   passenger_name?: string | null;

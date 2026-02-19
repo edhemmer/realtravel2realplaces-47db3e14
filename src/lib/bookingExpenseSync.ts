@@ -18,7 +18,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { Expense, ExpenseCategory, Booking } from '@/types/database';
-import { safeMonetaryForDb } from '@/lib/monetaryNormalization';
+// v3.9.38: safeMonetaryForDb removed — booking.total_cost from DB is already normalized at insert time
 
 // Marker format for linking expenses to bookings
 const BOOKING_LINK_PREFIX = '[linked_booking:';
@@ -117,21 +117,16 @@ export async function findLinkedExpense(tripId: string, bookingId: string): Prom
  * - Per-segment/per-leg costs are NOT tracked separately
  * - If total_cost is null/undefined/0, return 0 (no expense will be created)
  * 
- * This prevents double-counting when:
- * - A multi-leg flight shows one total fare for all legs
- * - Each segment appears as a timeline event without its own cost
- * - The same total was incorrectly copied to each leg (legacy data issue)
- * 
- * v2.1.9 GUARD: This function is the ONLY path to calculate booking expense costs.
- * No other code should access booking.total_cost directly for expense purposes.
+ * v3.9.38: booking.total_cost from DB is already a safe numeric (or null).
+ * We only guard for NaN/Infinity/negative — no re-normalization needed since
+ * safeMonetaryForDb was already applied at insert time.
  */
 export function getBookingExpenseCost(booking: Booking): number {
-  // v3.9.36: Use central monetary normalization to prevent overflow
-  const normalized = safeMonetaryForDb(booking.total_cost);
-  if (normalized === null || normalized <= 0) {
-    return 0;
-  }
-  return normalized;
+  const raw = booking.total_cost;
+  if (raw === null || raw === undefined) return 0;
+  const num = Number(raw);
+  if (!Number.isFinite(num) || num <= 0) return 0;
+  return num;
 }
 
 /**
@@ -174,8 +169,11 @@ export async function syncExpenseFromBooking(booking: Booking): Promise<string |
   
   if (existingExpense) {
     // Update existing expense
-    const safeAmount = safeMonetaryForDb(totalCost) ?? 0;
-    const safeMyShare = safeMonetaryForDb(booking.my_share) ?? safeAmount;
+    // v3.9.38: totalCost is already a safe number from getBookingExpenseCost.
+    // booking.my_share from DB is already numeric — just guard finitely.
+    const safeAmount = totalCost;
+    const rawMyShare = booking.my_share != null ? Number(booking.my_share) : null;
+    const safeMyShare = (rawMyShare != null && Number.isFinite(rawMyShare) && rawMyShare >= 0) ? rawMyShare : safeAmount;
     const { error } = await supabase
       .from('expenses')
       .update({
@@ -195,8 +193,10 @@ export async function syncExpenseFromBooking(booking: Booking): Promise<string |
     return existingExpense.id;
   } else {
     // Create new expense
-    const safeAmount = safeMonetaryForDb(totalCost) ?? 0;
-    const safeMyShare = safeMonetaryForDb(booking.my_share) ?? safeAmount;
+    // v3.9.38: No re-normalization — totalCost already validated above.
+    const safeAmount = totalCost;
+    const rawMyShare = booking.my_share != null ? Number(booking.my_share) : null;
+    const safeMyShare = (rawMyShare != null && Number.isFinite(rawMyShare) && rawMyShare >= 0) ? rawMyShare : safeAmount;
     const { data: newExpense, error } = await supabase
       .from('expenses')
       .insert({
