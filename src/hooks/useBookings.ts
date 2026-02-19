@@ -64,10 +64,15 @@ export function useCreateBooking() {
       // v3.9.36: Normalize monetary fields before DB write to prevent numeric overflow
       const safeTotalCost = safeMonetaryForDb(data.total_cost);
       const safeMyShare = safeMonetaryForDb(data.my_share);
+      // v3.9.43: Treat my_share=0 as "unset" when total_cost > 0.
+      // Parser defaults often produce my_share=0 which the ?? operator doesn't catch.
+      const effectiveMyShare = (safeMyShare != null && safeMyShare > 0)
+        ? safeMyShare
+        : safeTotalCost;
       const sanitizedData = {
         ...data,
         total_cost: safeTotalCost,
-        my_share: safeMyShare ?? safeTotalCost,
+        my_share: effectiveMyShare,
       };
 
       const { data: booking, error } = await supabase
