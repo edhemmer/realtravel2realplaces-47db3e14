@@ -1,5 +1,5 @@
 /**
- * v4.2.0: process-pending-import — Async worker that parses inbound email body
+ * v4.3.0: process-pending-import — Async worker that parses inbound email body
  *
  * Uses the canonical parse contract for universal classification
  * and required field enforcement across ALL entity types.
@@ -133,6 +133,21 @@ Deno.serve(async (req: Request) => {
               location_summary: { type: "string" },
               notes: { type: "string" },
               receipt_date: { type: "string", description: "Payment date YYYY-MM-DD for receipts" },
+              flight_legs: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    departure_airport_code: { type: "string" },
+                    arrival_airport_code: { type: "string" },
+                    departure_datetime: { type: "string" },
+                    arrival_datetime: { type: "string" },
+                    flight_number: { type: "string" },
+                  },
+                },
+              },
+              is_payment_declined: { type: "boolean" },
+              currency_code: { type: "string" },
             },
             required: ["vendor_name"],
           },
@@ -167,6 +182,28 @@ Deno.serve(async (req: Request) => {
     extracted.receipt_date = normalizeReceiptDate(extracted.receipt_date as string | null);
   }
 
+  // v4.3.0: Normalize and sort flight legs
+  if (Array.isArray(extracted.flight_legs) && (extracted.flight_legs as unknown[]).length > 0) {
+    const legs = extracted.flight_legs as Record<string, unknown>[];
+    legs.forEach(leg => {
+      leg.departure_datetime = normalizeDatetime(leg.departure_datetime as string | null);
+      leg.arrival_datetime = normalizeDatetime(leg.arrival_datetime as string | null);
+    });
+    legs.sort((a, b) => ((a.departure_datetime as string) || '').localeCompare((b.departure_datetime as string) || ''));
+    legs.forEach((leg, i) => { leg.is_outbound = i === 0; });
+    extracted.flight_legs = legs;
+  }
+
+  // v4.3.0: Flag declined payments
+  if (extracted.is_payment_declined === true) {
+    extracted._payment_declined = true;
+  }
+
+  // v4.3.0: Normalize currency code
+  if (extracted.currency_code) {
+    extracted.currency_code = String(extracted.currency_code).toUpperCase().trim();
+  }
+
   // ── 4b. CANONICAL CLASSIFICATION ──────────────────────────────
   const entityType = (extracted.booking_type as string) || 'other';
   const hasDates = hasServiceDates(extracted);
@@ -187,6 +224,9 @@ Deno.serve(async (req: Request) => {
   // ── 5. Validate extracted fields against raw body ──────────────
   const validationResult = validateAgainstSource(extracted, cleanBody);
 
+  // v4.3.0: Check if multi-leg flight provides dates via flight_legs
+  const hasFlightLegs = Array.isArray(extracted.flight_legs) && (extracted.flight_legs as unknown[]).length > 0;
+
   // Compute confidence
   let confidence = 0.8;
   if (validationResult.hardFails.length > 0) confidence = 0.3;
@@ -194,16 +234,28 @@ Deno.serve(async (req: Request) => {
 
   // Lower confidence for issues
   if (extracted._parse_issues && (extracted._parse_issues as unknown[]).length > 0) {
-    confidence = Math.min(confidence, 0.4);
+    // v4.3.0: If multi-leg flight has legs, don't penalize for missing start_datetime
+    if (hasFlightLegs) {
+      const issues = extracted._parse_issues as string[];
+      const nonDateIssues = issues.filter(i => !String(i).toLowerCase().includes('start_datetime'));
+      if (nonDateIssues.length > 0) {
+        confidence = Math.min(confidence, 0.4);
+      }
+      extracted._parse_issues = nonDateIssues.length > 0 ? nonDateIssues : undefined;
+    } else {
+      confidence = Math.min(confidence, 0.4);
+    }
   }
   if (extracted._is_receipt_only) {
     confidence = Math.min(confidence, 0.5);
   }
 
+  // v4.3.0: For status, don't flag needs_review solely for missing start_datetime when flight_legs exist
+  const hasParseIssues = extracted._parse_issues && (extracted._parse_issues as unknown[]).length > 0;
   const status = (
     validationResult.hardFails.length > 0 ||
     extracted._is_receipt_only ||
-    (extracted._parse_issues && (extracted._parse_issues as unknown[]).length > 0)
+    hasParseIssues
   ) ? "needs_review" : "ready_for_review";
 
   const summary = buildSummary(extracted);
@@ -301,6 +353,18 @@ DATETIME RULES:
 - If no explicit time, use date-only format (YYYY-MM-DD)
 - For flights: start_datetime = departure, end_datetime = arrival
 - For stays: start_datetime = check-in, end_datetime = check-out
+
+MULTI-LEG FLIGHT RULES:
+- If the email contains more than one flight segment, populate flight_legs with one object per segment in chronological order.
+- Each leg needs departure_airport_code, arrival_airport_code, departure_datetime, arrival_datetime.
+- All datetimes must be YYYY-MM-DD or YYYY-MM-DDTHH:mm exactly as written in the email. No timezone conversion.
+- Single-leg flights: leave flight_legs empty and use start_datetime/end_datetime as normal.
+
+PAYMENT STATUS:
+- If the email shows a declined, failed, or rejected payment, set is_payment_declined to true. Default false.
+
+CURRENCY:
+- Set currency_code to the 3-letter ISO code of the total_cost amount (USD, EUR, GBP). Null if unknown.
 
 AIRPORT CODES:
 - Extract 3-letter IATA codes (e.g., ATL, DEN)
