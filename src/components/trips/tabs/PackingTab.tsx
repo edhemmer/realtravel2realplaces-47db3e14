@@ -174,6 +174,18 @@ export function PackingTab({ tripId }: PackingTabProps) {
 
   const generatePackingList = async () => {
     if (!trip) return;
+
+    // v3.9.40: Validate inputs before calling edge function
+    const city = trip.destination_city?.trim();
+    const country = trip.destination_country?.trim();
+    if (!city) {
+      toast.error('We need a destination city to build your packing list. Please set your trip destination first.');
+      return;
+    }
+    if (!trip.start_date || !trip.end_date) {
+      toast.error('We need trip dates to build your packing list. Please set your start and end dates first.');
+      return;
+    }
     
     setIsGenerating(true);
     try {
@@ -182,9 +194,9 @@ export function PackingTab({ tripId }: PackingTabProps) {
       
       const { data, error } = await supabase.functions.invoke<{ success: boolean; data: AIPackingResponse; error?: string }>('generate-packing-list', {
         body: {
-          destination_city: trip.destination_city.trim(),
+          destination_city: city,
           destination_state: trip.destination_state || null,
-          destination_country: trip.destination_country,
+          destination_country: country || null,
           start_date: trip.start_date,
           end_date: trip.end_date,
           trip_type: trip.trip_type,
@@ -201,7 +213,14 @@ export function PackingTab({ tripId }: PackingTabProps) {
       if (error) throw error;
 
       if (data?.success && data.data?.items) {
-        await bulkCreate.mutateAsync({ trip_id: tripId, items: data.data.items, is_custom: false });
+        // v3.9.40: Normalize items before bulk insert — ensure no undefined category
+        const normalizedItems = data.data.items.map(item => ({
+          ...item,
+          category: item.category || 'General',
+          item_name: item.item_name || 'Unknown item',
+          quantity: typeof item.quantity === 'number' && item.quantity >= 1 ? item.quantity : 1,
+        }));
+        await bulkCreate.mutateAsync({ trip_id: tripId, items: normalizedItems, is_custom: false });
         
         if (data.data.special_notes) {
           setSpecialNotes(data.data.special_notes);
@@ -211,7 +230,15 @@ export function PackingTab({ tripId }: PackingTabProps) {
       }
     } catch (err) {
       console.error('Error generating packing list:', err);
-      toast.error(err instanceof Error ? err.message : 'Failed to generate packing list');
+      // v3.9.40: Friendly, retryable error messages
+      const message = err instanceof Error ? err.message : '';
+      if (message.includes('Rate limit')) {
+        toast.error('Too many requests. Please wait a moment and try again.');
+      } else if (message.includes('credits')) {
+        toast.error('AI credits are temporarily unavailable. Please try again later.');
+      } else {
+        toast.error('We had trouble generating your packing list. Please try again in a moment.');
+      }
     } finally {
       setIsGenerating(false);
     }
