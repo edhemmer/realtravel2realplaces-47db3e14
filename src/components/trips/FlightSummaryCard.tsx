@@ -10,6 +10,7 @@ import { extractAirportCodes } from '@/lib/airportData';
 import { validateIATA, buildFlightDisplayLine } from '@/lib/flightDisplayUtils';
 import { AirportInfoPill } from './AirportInfoPill';
 import { useAccess } from '@/hooks/useAccess';
+import { computeFlightLocalDatetimes } from '@/lib/canonical/normalizeCanonicalItem';
 
 interface BookingCompanion {
   id: string;
@@ -147,9 +148,14 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                       <span className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5" />
                         {(() => {
+                          // v3.9.41: Compute canonical local times for defensible display
+                          const flightLocal = computeFlightLocalDatetimes(flight.start_datetime, flight.end_datetime);
+                          const depRawTime = flightLocal.departLocalTime;
+                          const arrRawTime = flightLocal.arriveLocalTime;
+
                           const dateDisplay = formatLocalDateDirect(flight.start_datetime);
-                          const depTime = getDepartureTimeLabel(null, flight.start_datetime);
-                          const depHasTime = hasFlightTime(null, flight.start_datetime);
+                          const depTime = getDepartureTimeLabel(depRawTime, flight.start_datetime);
+                          const depHasTime = hasFlightTime(depRawTime, flight.start_datetime);
                           
                           return dateDisplay ? (
                             <>
@@ -170,8 +176,10 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                         })()}
                       </span>
                       {flight.end_datetime && (() => {
-                        const arrTime = getArrivalTimeLabel(null, flight.end_datetime);
-                        const arrHasTime = hasFlightTime(null, flight.end_datetime);
+                        const flightLocal = computeFlightLocalDatetimes(flight.start_datetime, flight.end_datetime);
+                        const arrRawTime = flightLocal.arriveLocalTime;
+                        const arrTime = getArrivalTimeLabel(arrRawTime, flight.end_datetime);
+                        const arrHasTime = hasFlightTime(arrRawTime, flight.end_datetime);
                         if (arrHasTime) {
                           return (
                             <span className="text-xs tabular-nums">
