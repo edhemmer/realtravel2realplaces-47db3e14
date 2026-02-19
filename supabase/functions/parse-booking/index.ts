@@ -220,7 +220,7 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
+          model: "google/gemini-2.5-flash",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: text },
