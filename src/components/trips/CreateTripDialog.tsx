@@ -630,16 +630,28 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
       return;
     }
 
-    // v3.9.26: Use immutable snapshot if available (import mode)
-    const snapshot = stagingSnapshotRef.current;
-    const hasBookings = snapshot ? snapshot.canonicalItems.length > 0 : parsedBookings.length > 0;
+    // v3.9.27: ALWAYS build snapshot when bookings exist — no raw fallback path
+    // If handlePreSubmit already built it, reuse. Otherwise build defensively.
+    if (!stagingSnapshotRef.current && parsedBookings.length > 0) {
+      const currentMode = travelModeRef.current || 'fly';
+      stagingSnapshotRef.current = buildStagingSnapshot(parsedBookings as any[], currentMode);
+      if (import.meta.env.DEV) {
+        console.log('[CreateTrip] DEFENSIVE_SNAPSHOT_BUILT', {
+          itemCount: stagingSnapshotRef.current.canonicalItems.length,
+          range: stagingSnapshotRef.current.derivedTripRange,
+        });
+      }
+    }
 
-    // v3.9.26: Build TripBuildModel from snapshot (CHANGE 1 + 2 + 3 + 5)
+    const snapshot = stagingSnapshotRef.current;
+    const hasBookings = snapshot ? snapshot.canonicalItems.length > 0 : false;
+
+    // v3.9.27: ALL bookings go through TripBuildModel — single entry point, no exceptions
     let buildModel: TripBuildModel | null = null;
     if (snapshot && hasBookings) {
       buildModel = buildTripModel(snapshot);
 
-      // v3.9.26: If build model has errors, abort (CHANGE 2/3/5 enforcement)
+      // v3.9.26: If build model has errors, abort (integrity enforcement)
       if (buildModel.status === 'ERROR') {
         console.error('[CreateTrip] BUILD_MODEL_ERRORS', buildModel.errors);
         setBuildStatus('build_failed');
@@ -691,7 +703,8 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
       }
 
       // ── CHANGE 4 continued: Write timeline items from build model (atomic set) ──
-      const legsToWrite = buildModel ? buildModel.legs : (parsedBookings.length > 0 ? parsedBookings.map(b => ({ source: b as unknown as Record<string, unknown>, dedupKey: '', bookingType: (b as any).booking_type || 'other' })) : []);
+      // v3.9.27: UNIFIED PATH — all legs come from buildModel only (no raw fallback)
+      const legsToWrite = buildModel ? buildModel.legs : [];
 
       if (legsToWrite.length > 0 && trip?.id) {
         const createdCompanions: Map<string, string> = new Map();
