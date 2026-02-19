@@ -107,39 +107,109 @@ export function useFileImportToTrip() {
         
         if (expenseError) throw expenseError;
       } else {
-        // Standard booking creation
+        // Standard booking creation with multi-leg flight support
         const bookingType = parsedData.booking_type as string || 'activity';
         const validTypes = ['flight', 'stay', 'car_rental', 'activity', 'transport'];
         const finalType = validTypes.includes(bookingType) ? bookingType : 'activity';
+        const isPaymentDeclined = parsedData._payment_declined === true;
+        const currencyCode = (parsedData.currency_code as string) || 'USD';
+        const flightLegs = Array.isArray(parsedData.flight_legs)
+          ? (parsedData.flight_legs as Record<string, unknown>[])
+          : [];
+        const isMultiLeg = finalType === 'flight' && flightLegs.length > 1;
 
-        // Build booking record from parsed data
-        const booking: Record<string, unknown> = {
-          trip_id: tripId,
-          booking_type: finalType,
-          vendor_name: parsedData.vendor_name || 'Imported Booking',
-          start_datetime: parsedData.start_datetime || new Date().toISOString(),
-          end_datetime: parsedData.end_datetime || null,
-          confirmation_number: parsedData.confirmation_number || null,
-          total_cost: parsedData.total_cost || null,
-          address: parsedData.address || null,
-          airline: parsedData.airline || null,
-          passenger_name: parsedData.passenger_name || null,
-          property_name: parsedData.property_name || null,
-          stay_type: parsedData.stay_type || null,
-          rental_company: parsedData.rental_company || null,
-          pickup_location: parsedData.pickup_location || null,
-          return_location: parsedData.return_location || null,
-          departure_airport_code: parsedData.departure_airport_code || null,
-          arrival_airport_code: parsedData.arrival_airport_code || null,
-          location_summary: parsedData.location_summary || null,
-          notes: parsedData.notes || null,
-        };
+        if (isMultiLeg) {
+          for (let i = 0; i < flightLegs.length; i++) {
+            const leg = flightLegs[i];
+            const isOutbound = i === 0;
+            const legCost = isOutbound && !isPaymentDeclined
+              ? ((parsedData.total_cost as number) || null)
+              : null;
 
-        const { error: bookingError } = await supabase
-          .from('bookings')
-          .insert(booking as any);
+            const legBooking = {
+              trip_id: tripId,
+              booking_type: 'flight' as const,
+              vendor_name: (parsedData.vendor_name as string) || 'Imported Flight',
+              start_datetime: (leg.departure_datetime as string) || new Date().toISOString(),
+              end_datetime: (leg.arrival_datetime as string) || null,
+              confirmation_number: (parsedData.confirmation_number as string) || null,
+              total_cost: legCost,
+              airline: (parsedData.airline as string) || (parsedData.vendor_name as string) || null,
+              passenger_name: (parsedData.passenger_name as string) || null,
+              notes: [
+                leg.flight_number ? `Flight: ${leg.flight_number}` : null,
+                leg.departure_airport_code && leg.arrival_airport_code
+                  ? `${leg.departure_airport_code} → ${leg.arrival_airport_code}`
+                  : null,
+                !isOutbound ? 'Return leg — cost tracked on outbound' : null,
+                isPaymentDeclined ? 'PAYMENT DECLINED — verify before travel' : null,
+              ].filter(Boolean).join(' | ') || null,
+            };
 
-        if (bookingError) throw bookingError;
+            const { error: legError } = await supabase.from('bookings').insert(legBooking as any);
+            if (legError) throw legError;
+
+            // Expense only on outbound leg with confirmed payment
+            if (isOutbound && legCost) {
+              const lastLeg = flightLegs[flightLegs.length - 1];
+              const { error: expErr } = await supabase.from('expenses').insert({
+                trip_id: tripId,
+                date: (leg.departure_datetime as string)?.substring(0, 10)
+                  || new Date().toISOString().split('T')[0],
+                category: 'transport' as const,
+                description: `${parsedData.vendor_name || 'Flight'} — ${leg.departure_airport_code || ''} → ${(lastLeg?.arrival_airport_code as string) || ''} (${parsedData.confirmation_number || 'ref unknown'})`,
+                amount: legCost,
+                notes: `Currency: ${currencyCode}. Covers all legs on this confirmation.`,
+              });
+              if (expErr) throw expErr;
+            }
+          }
+        } else {
+          // Single booking — handles both simple domestic and single-leg international
+          const singleCost = !isPaymentDeclined
+            ? ((parsedData.total_cost as number) || null)
+            : null;
+
+          const booking = {
+            trip_id: tripId,
+            booking_type: finalType as any,
+            vendor_name: (parsedData.vendor_name as string) || 'Imported Booking',
+            start_datetime: (parsedData.start_datetime as string) || new Date().toISOString(),
+            end_datetime: (parsedData.end_datetime as string) || null,
+            confirmation_number: (parsedData.confirmation_number as string) || null,
+            total_cost: singleCost,
+            address: (parsedData.address as string) || null,
+            airline: (parsedData.airline as string) || null,
+            passenger_name: (parsedData.passenger_name as string) || null,
+            property_name: (parsedData.property_name as string) || null,
+            stay_type: (parsedData.stay_type as string) || null,
+            rental_company: (parsedData.rental_company as string) || null,
+            pickup_location: (parsedData.pickup_location as string) || null,
+            return_location: (parsedData.return_location as string) || null,
+            notes: isPaymentDeclined
+              ? 'PAYMENT DECLINED — verify booking before travel'
+              : ((parsedData.notes as string) || null),
+          };
+
+          const { error: bookingError } = await supabase
+            .from('bookings')
+            .insert(booking as any);
+          if (bookingError) throw bookingError;
+
+          // Expense for single flight with confirmed payment
+          if (finalType === 'flight' && singleCost) {
+            const { error: expErr } = await supabase.from('expenses').insert({
+              trip_id: tripId,
+              date: (parsedData.start_datetime as string)?.substring(0, 10)
+                || new Date().toISOString().split('T')[0],
+              category: 'transport' as const,
+              description: `${parsedData.vendor_name || 'Flight'} (${parsedData.confirmation_number || 'ref unknown'})`,
+              amount: singleCost,
+              notes: `Currency: ${currencyCode}.`,
+            });
+            if (expErr) throw expErr;
+          }
+        }
       }
 
       // Mark import as filed
