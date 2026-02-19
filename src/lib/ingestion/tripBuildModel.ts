@@ -17,6 +17,11 @@
  */
 
 import type { StagingSnapshot } from './importStaging';
+import {
+  logFlightCostDiagnostics,
+  countCanonicalFlightLegs,
+  countCanonicalCostItems,
+} from '@/lib/debug/flightPipelineDiagnostics';
 
 // ============================================================================
 // TYPES
@@ -75,6 +80,15 @@ export interface TripBuildModel {
  *
  * For non-flight types: confirmation_number + vendor_name + booking_type + start_datetime
  */
+/**
+ * Build strict dedup key for a leg.
+ *
+ * v3.9.28: Flight key uses ALL identifying fields to prevent over-dedup:
+ *   confirmation + airline + dep_code + arr_code + start_datetime + end_datetime
+ *
+ * Only exact key collisions are merged. No route-only or date-only dedup.
+ * No airline-specific conditions — generic for all carriers.
+ */
 function buildLegDedupKey(item: Record<string, unknown>): string {
   const bookingType = (item.booking_type as string) || '';
   const confNum = ((item.confirmation_number as string) || '').trim().toUpperCase();
@@ -83,7 +97,9 @@ function buildLegDedupKey(item: Record<string, unknown>): string {
   const endDt = ((item.end_datetime as string) || '').substring(0, 19);
 
   if (bookingType === 'flight') {
-    // Flight-specific: use confirmation + flight-identifying fields
+    // v3.9.28: Strict flight dedup — all fields must match for collision.
+    // Includes airline, both airport codes, AND both datetimes.
+    // Different days / different routes / different airlines = different legs.
     const airline = ((item.airline as string) || '').trim().toUpperCase();
     const depCode = ((item.departure_airport_code as string) || '').trim().toUpperCase();
     const arrCode = ((item.arrival_airport_code as string) || '').trim().toUpperCase();
@@ -253,6 +269,18 @@ export function buildTripModel(snapshot: StagingSnapshot): TripBuildModel {
   const status: BuildModelStatus = errors.length > 0 ? 'ERROR' : 'VALID';
 
   if (import.meta.env.DEV) {
+    // v3.9.28: Structured diagnostics
+    logFlightCostDiagnostics({
+      sessionId: `build_${Date.now()}`,
+      sourceSummary: `${snapshot.canonicalItems.length} canonical items`,
+      phase: 'POST_BUILD',
+      rawParsedLegCount: snapshot.canonicalItems.length,
+      canonicalLegCount: snapshot.canonicalItems.length,
+      tripBuildModelLegCount: legs.length,
+      canonicalCostItemCount: countCanonicalCostItems(snapshot.canonicalItems),
+      tripBuildModelCostCount: costItems.length,
+    });
+
     console.log('[TripBuildModel] BUILD_RESULT', {
       status,
       legCount: legs.length,
