@@ -55,7 +55,7 @@ type WizardStep = 'mode' | 'fly-parse' | 'drive-form' | 'train-manual' | 'manual
 type AutofillStatus = 'idle' | 'running' | 'filled' | 'needs_user' | 'failed_timeout';
 
 /**
- * v3.9.63: Deterministic wizard trip window helper.
+ * v3.10.2: Trip date window now expands correctly across sequential confirmation drops — end date always takes the latest, start date always takes the earliest
  * Collects all non-empty YYYY-MM-DD date tokens from wizard booking objects
  * and returns the lexicographic min/max. No Date objects, no timezone math.
  */
@@ -343,10 +343,22 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
         // v3.9.63: Use deterministic wizard window helper — no Date construction
         const wizardWindow = computeWizardTripWindow(savedBatch);
         if (wizardWindow.startDate) {
-          try { setStartDate(new Date(wizardWindow.startDate + 'T00:00:00')); } catch {}
+          try {
+            setStartDate(prev => {
+              const candidate = new Date(wizardWindow.startDate + 'T00:00:00');
+              if (!prev) return candidate;
+              return candidate < prev ? candidate : prev;
+            });
+          } catch {}
         }
         if (wizardWindow.endDate) {
-          try { setEndDate(new Date(wizardWindow.endDate + 'T00:00:00')); } catch {}
+          try {
+            setEndDate(prev => {
+              const candidate = new Date(wizardWindow.endDate + 'T00:00:00');
+              if (!prev) return candidate;
+              return candidate > prev ? candidate : prev;
+            });
+          } catch {}
         }
         const meta = staging.meta;
         if (meta.suggestedTripName) setValue('name', meta.suggestedTripName);
@@ -449,10 +461,22 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
           // v3.9.63: Use deterministic wizard window helper — no Date construction from canonical helpers
           const wizardWindow = computeWizardTripWindow(allMergedBookings);
           if (wizardWindow.startDate) {
-            try { setStartDate(new Date(wizardWindow.startDate + 'T00:00:00')); } catch {}
+            try {
+              setStartDate(prev => {
+                const candidate = new Date(wizardWindow.startDate + 'T00:00:00');
+                if (!prev) return candidate;
+                return candidate < prev ? candidate : prev;
+              });
+            } catch {}
           }
           if (wizardWindow.endDate) {
-            try { setEndDate(new Date(wizardWindow.endDate + 'T00:00:00')); } catch {}
+            try {
+              setEndDate(prev => {
+                const candidate = new Date(wizardWindow.endDate + 'T00:00:00');
+                if (!prev) return candidate;
+                return candidate > prev ? candidate : prev;
+              });
+            } catch {}
           }
           if (meta.suggestedTripName && !getValues('name')) {
             setValue('name', meta.suggestedTripName);
