@@ -37,7 +37,7 @@ import { runCanonicalImportPipeline } from '@/lib/ingestion/canonicalImportPipel
 // v3.9.28: Receipt cost extraction fallback
 import { enrichParsedBookingCost } from '@/lib/costAttribution';
 // v3.9.35: Canonical import staging — single source for trip creation inputs
-import { buildImportStaging, buildStagingSnapshot, extractDateTokensFromParsedItems, deriveTripFrameFromDateTokens, type ParsedImportStaging, type StagingSnapshot } from '@/lib/ingestion/importStaging';
+import { buildImportStaging, buildStagingSnapshot, extractDateTokensFromParsedItems, deriveTripFrameFromDateTokens, deriveTripDatesFromParsedBookings, type ParsedImportStaging, type StagingSnapshot } from '@/lib/ingestion/importStaging';
 // v3.9.26: TripBuildModel — deterministic builder + integrity assertions
 import { buildTripModel, type TripBuildModel } from '@/lib/ingestion/tripBuildModel';
 // v3.9.26: Booking-expense sync
@@ -313,12 +313,13 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
         setValue('transportation_mode', 'flight');
         setStep('manual-form');
         
-        // v3.9.35: Rebuild staging from persisted batch (canonical source)
+        // v3.9.31: Rebuild staging + use shared canonical helper for date derivation
         const staging = buildImportStaging(savedBatch as any[], 'fly');
         setImportStaging(staging);
+        const derivedDates = deriveTripDatesFromParsedBookings(savedBatch as any[]);
+        if (derivedDates.startDate) setStartDate(derivedDates.startDate);
+        if (derivedDates.endDate) setEndDate(derivedDates.endDate);
         const meta = staging.meta;
-        if (meta.suggestedStart) setStartDate(meta.suggestedStart);
-        if (meta.suggestedEnd) setEndDate(meta.suggestedEnd);
         if (meta.suggestedTripName) setValue('name', meta.suggestedTripName);
         else if (meta.suggestedDestination) setValue('name', `${meta.suggestedDestination} Trip`);
         if (meta.suggestedDestinationFields.city) setValue('destination_city', meta.suggestedDestinationFields.city);
@@ -412,12 +413,16 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
           setImportStaging(staging);
           const meta = staging.meta;
 
-          // Auto-fill ONLY empty fields — never overwrite user input
-          if (meta.suggestedStart) {
-            setStartDate(prev => prev || meta.suggestedStart!);
+          // v3.9.31: Always recalculate dates from the FULL merged set using
+          // the shared canonical helper. Previous `prev ||` guard caused the
+          // first confirmation's dates to lock in, ignoring wider ranges
+          // from subsequent confirmations.
+          const derivedDates = deriveTripDatesFromParsedBookings(allMergedBookings as any[]);
+          if (derivedDates.startDate) {
+            setStartDate(derivedDates.startDate);
           }
-          if (meta.suggestedEnd) {
-            setEndDate(prev => prev || meta.suggestedEnd!);
+          if (derivedDates.endDate) {
+            setEndDate(derivedDates.endDate);
           }
           if (meta.suggestedTripName && !getValues('name')) {
             setValue('name', meta.suggestedTripName);
