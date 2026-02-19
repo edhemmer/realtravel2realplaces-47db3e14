@@ -41,6 +41,12 @@ const SECTION_DEFS: { id: string; title: string; categories: string[] }[] = [
     categories: ['Tourist Attraction', 'Theme Park', 'Entertainment', 'Tour'],
   },
   {
+    // v3.9.41: Dining lane
+    id: 'dining',
+    title: 'Dining & Drinks',
+    categories: ['Restaurant', 'Cafe', 'Bar'],
+  },
+  {
     id: 'nature',
     title: 'Nature & Trails',
     categories: ['Hike', 'Nature Reserve', 'Park'],
@@ -84,11 +90,13 @@ function timeBoost(category: string, bucket: TimeBucket): number {
   if (bucket === 'afternoon') {
     // Museums, indoor activities good for afternoon
     if (['Museum', 'Art Gallery', 'Visitor Center', 'Tourist Attraction'].includes(category)) return 0.2;
+    if (['Cafe'].includes(category)) return 0.15; // v3.9.41: afternoon coffee
   }
   if (bucket === 'evening') {
     // Entertainment, dining-adjacent
     if (['Entertainment', 'Tour'].includes(category)) return 0.3;
     if (['Viewpoint'].includes(category)) return 0.15; // sunset viewpoints
+    if (['Restaurant', 'Bar'].includes(category)) return 0.35; // v3.9.41: dinner/drinks
   }
   return 0;
 }
@@ -103,6 +111,7 @@ const OUTDOOR_CATEGORIES = new Set([
 
 const INDOOR_CATEGORIES = new Set([
   'Museum', 'Art Gallery', 'Visitor Center', 'Entertainment', 'Theme Park',
+  'Restaurant', 'Cafe', 'Bar', // v3.9.41
 ]);
 
 function weatherBias(

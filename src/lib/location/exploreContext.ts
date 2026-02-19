@@ -160,14 +160,8 @@ function isArrived(
     }
   }
 
-  // Check if trip is active (date-based) as a secondary signal
-  const now = new Date();
-  const start = new Date(trip.start_date + 'T00:00:00');
-  if (now >= start) {
-    // Active trip with device location implies potential arrival
-    return true;
-  }
-
+  // v3.9.41: Removed blanket "active trip = arrived" assumption.
+  // User must be within 15mi of destination or stay to count as arrived.
   return false;
 }
 
