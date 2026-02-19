@@ -245,6 +245,7 @@ export function useFileImportToTrip() {
             // Non-blocking: booking was created successfully, expense failure is logged but not thrown
           }
         }
+        }
       }
 
       // Mark import as filed
