@@ -54,6 +54,8 @@ interface CreateBookingData {
   arrival_airport_code?: string | null;
   departure_airport_name?: string | null;
   arrival_airport_name?: string | null;
+  // v4.4.0: Currency for expense sync
+  _extracted_currency?: string;
 }
 
 export function useCreateBooking() {
@@ -61,16 +63,19 @@ export function useCreateBooking() {
 
   return useMutation({
     mutationFn: async (data: CreateBookingData) => {
+      // v4.4.0: Extract currency before sanitizing (not a DB column on bookings)
+      const expenseCurrency = data._extracted_currency || 'USD';
       // v3.9.36: Normalize monetary fields before DB write to prevent numeric overflow
       const safeTotalCost = safeMonetaryForDb(data.total_cost);
       const safeMyShare = safeMonetaryForDb(data.my_share);
       // v3.9.43: Treat my_share=0 as "unset" when total_cost > 0.
-      // Parser defaults often produce my_share=0 which the ?? operator doesn't catch.
       const effectiveMyShare = (safeMyShare != null && safeMyShare > 0)
         ? safeMyShare
         : safeTotalCost;
+      // Remove _extracted_currency before DB insert (not a bookings column)
+      const { _extracted_currency, ...dbFields } = data;
       const sanitizedData = {
-        ...data,
+        ...dbFields,
         total_cost: safeTotalCost,
         my_share: effectiveMyShare,
       };
@@ -85,11 +90,9 @@ export function useCreateBooking() {
       
       // v3.9.30: Wrapped in try/catch — expense sync failure must not
       // abort the booking creation (booking is already persisted above).
-      // Previously, an unhandled throw here would reject mutateAsync,
-      // causing the CreateTripDialog loop to stop and lose remaining legs.
       if (booking && Number(booking.total_cost || 0) > 0) {
         try {
-          await syncExpenseFromBooking(booking as Booking);
+          await syncExpenseFromBooking(booking as Booking, expenseCurrency);
         } catch (err) {
           console.error('[useCreateBooking] Expense sync failed (non-blocking):', err);
         }
