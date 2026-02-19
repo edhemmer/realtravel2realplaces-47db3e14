@@ -150,18 +150,25 @@ export function useFileImportToTrip() {
             if (legError) throw legError;
 
             // Expense only on outbound leg with confirmed payment
-            if (isOutbound && legCost) {
+            if (isOutbound && !isPaymentDeclined && legCost) {
               const lastLeg = flightLegs[flightLegs.length - 1];
+              const expenseDate =
+                typeof leg.departure_datetime === 'string' && leg.departure_datetime.length >= 10
+                  ? leg.departure_datetime.substring(0, 10)
+                  : new Date().toISOString().split('T')[0];
+
               const { error: expErr } = await supabase.from('expenses').insert({
                 trip_id: tripId,
-                date: (leg.departure_datetime as string)?.substring(0, 10)
-                  || new Date().toISOString().split('T')[0],
+                date: expenseDate,
                 category: 'transport' as const,
-                description: `${parsedData.vendor_name || 'Flight'} — ${leg.departure_airport_code || ''} → ${(lastLeg?.arrival_airport_code as string) || ''} (${parsedData.confirmation_number || 'ref unknown'})`,
+                description: `${String(parsedData.vendor_name || 'Flight')} — ${String(leg.departure_airport_code || '')} → ${String(lastLeg?.arrival_airport_code || '')} (${String(parsedData.confirmation_number || 'ref unknown')})`,
                 amount: legCost,
                 notes: `Currency: ${currencyCode}. Covers all legs on this confirmation.`,
               });
-              if (expErr) throw expErr;
+              if (expErr) {
+                console.error('Expense insert error:', expErr);
+                throw expErr;
+              }
             }
           }
         } else {
@@ -197,17 +204,24 @@ export function useFileImportToTrip() {
           if (bookingError) throw bookingError;
 
           // Expense for single flight with confirmed payment
-          if (finalType === 'flight' && singleCost) {
+          if (finalType === 'flight' && singleCost && !isPaymentDeclined) {
+            const expenseDate =
+              typeof parsedData.start_datetime === 'string' && (parsedData.start_datetime as string).length >= 10
+                ? (parsedData.start_datetime as string).substring(0, 10)
+                : new Date().toISOString().split('T')[0];
+
             const { error: expErr } = await supabase.from('expenses').insert({
               trip_id: tripId,
-              date: (parsedData.start_datetime as string)?.substring(0, 10)
-                || new Date().toISOString().split('T')[0],
+              date: expenseDate,
               category: 'transport' as const,
-              description: `${parsedData.vendor_name || 'Flight'} (${parsedData.confirmation_number || 'ref unknown'})`,
+              description: `${String(parsedData.vendor_name || 'Flight')} (${String(parsedData.confirmation_number || 'ref unknown')})`,
               amount: singleCost,
               notes: `Currency: ${currencyCode}.`,
             });
-            if (expErr) throw expErr;
+            if (expErr) {
+              console.error('Expense insert error:', expErr);
+              throw expErr;
+            }
           }
         }
       }
