@@ -38,11 +38,26 @@ serve(async (req) => {
       });
     }
 
+    const body = await req.json();
     const { 
       destination_city, destination_state, destination_country, 
       start_date, end_date, trip_type, destination_type,
       weather_forecast, weather_envelope 
-    } = await req.json();
+    } = body;
+
+    // v3.9.40: Validate required inputs before proceeding
+    if (!destination_city || typeof destination_city !== 'string' || !destination_city.trim()) {
+      return new Response(JSON.stringify({ success: false, error: "Destination city is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (!start_date || !end_date) {
+      return new Response(JSON.stringify({ success: false, error: "Trip dates are required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
@@ -53,7 +68,7 @@ serve(async (req) => {
     // Calculate trip nights and days
     const startD = new Date(start_date);
     const endD = new Date(end_date);
-    const tripNights = Math.ceil((endD.getTime() - startD.getTime()) / (1000 * 60 * 60 * 24));
+    const tripNights = Math.max(1, Math.ceil((endD.getTime() - startD.getTime()) / (1000 * 60 * 60 * 24)));
     const tripDays = tripNights + 1;
 
     // Get month for seasonality
