@@ -150,8 +150,15 @@ CRITICAL v2.0.6 - STRICT DATETIME INTEGRITY:
 - If a document shows a date but NO explicit time, set the time to null
 - DO NOT infer, guess, or default times to midnight, morning, or any placeholder
 - For start_datetime and end_datetime: if no explicit time exists, use date-only format (YYYY-MM-DD) NOT a datetime with 00:00:00
-- Examples of EXPLICIT times: "Departs 6:00 AM", "Check-in 3:00 PM", "Pickup at 10:30 AM"
+- Examples of EXPLICIT times: "Departs 6:00 AM", "Check-in 3:00 PM", "Pickup at 10:30 AM", "23:05", "14:30"
 - Examples of NON-EXPLICIT times: "Check-in after 3 PM", "Checkout by 11 AM", "Arrives evening", no time mentioned
+- Both 12-hour (6:00 AM, 11:10 PM) and 24-hour (23:05, 14:30) formats are valid explicit times — extract them as-is
+
+CRITICAL v3.9.33 - SEGMENT-ONLY DATES FOR FLIGHTS:
+- For each flight leg, the start_datetime and end_datetime MUST come from that leg's ITINERARY SEGMENT (the row showing origin, destination, date, and time)
+- NEVER use dates from ticket metadata sections like "Ticketed on", "Issued on", "Issue date", "Booking date", "Date of issue", "Purchase date", "Date of booking", "Transaction date"
+- Each leg has its own departure date and arrival date — extract from the segment line for THAT specific leg
+- If a return leg departs on March 26, use March 26 — do NOT use the ticket issue date (e.g., March 12)
 
 For RECEIPT ONLY documents (is_receipt_only: true), extract:
 - vendor_name
