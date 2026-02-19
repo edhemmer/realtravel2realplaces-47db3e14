@@ -26,6 +26,7 @@ import {
   NormalizedAirfareResult,
 } from './expenseCalculations';
 import { hasExplicitTime } from './datetimeIntegrity';
+import { hasFlightTime } from './timeDisplay';
 import { getAirportTimeZone } from './airportTimezones';
 import { WeatherSnapshot } from './canonicalWeather';
 import { resolveBookingTimezone, resolveDestinationTimezone, convertUtcToLocalString } from './canonicalTimeNormalizer';
@@ -456,15 +457,16 @@ export function buildCanonicalTimeline(
           title: booking.airline || booking.vendor_name,
           subtitle: '', // v3.13.2: Flight subtitle built by buildFlightDisplayLine
           datetime: startDate,
-          hasExplicitTime: hasExplicitTime(booking.start_datetime),
+          hasExplicitTime: hasFlightTime(departureLocalTimeStr, booking.start_datetime),
           address: booking.address,
           linkUrl: booking.link_url,
           departureAirportCode: showRoute ? depIata : undefined,
           arrivalAirportCode: showRoute ? arrIata : undefined,
           departureTime: startDate,
           arrivalTime: arrivalDate || undefined,
-          hasDepartureTime: hasExplicitTime(booking.start_datetime),
-          hasArrivalTime: booking.end_datetime ? hasExplicitTime(booking.end_datetime) : false,
+          // v3.9.41: Use hasFlightTime (does not suppress midnight) for flight defensibility
+          hasDepartureTime: hasFlightTime(departureLocalTimeStr, booking.start_datetime),
+          hasArrivalTime: hasFlightTime(arrivalLocalTimeStr, booking.end_datetime),
           confirmationNumber: booking.confirmation_number || undefined,
           // v3.10.5: Local wall-clock time strings for display
           departureLocalTime: departureLocalTimeStr,
