@@ -174,11 +174,11 @@ export interface CanonicalTripState {
   /** v2.2.6: Canonical weather data keyed by "${dateISO}::${locationId}" */
   weatherByKey: Record<string, WeatherSnapshot>;
   /** v2.2.13: True if trip frame has unresolved time validation issues */
-  framePendingValidation?: boolean;
+  framePendingValidation: boolean;
   /** v3.8.12: Canonical ingestion result with guardrail warnings */
-  ingestionResult?: IngestionResult;
+  ingestionResult: IngestionResult | null;
   /** v3.8.12: Normalized canonical items */
-  canonicalItems?: CanonicalItem[];
+  canonicalItems: CanonicalItem[];
   /** Quick accessors */
   hasFlights: boolean;
   hasStays: boolean;
@@ -448,6 +448,11 @@ export function buildCanonicalTimeline(
           || preserveTimeString(booking.end_datetime) || undefined;
 
         // v2.1.22: Combined flight entry (departure + arrival on one row)
+        // v3.9.62: Normalize time fields to string | null — never undefined, never empty string
+        const safeDepartureLocalTime = departureLocalTimeStr || null;
+        const safeArrivalLocalTime = arrivalLocalTimeStr || null;
+        const safeEventLocalDateTime = (flightLocal.departLocalKey || preserveTimeString(booking.start_datetime)) || null;
+
         events.push({
           id: `${booking.id}-flight`,
           sourceId: booking.id,
@@ -457,24 +462,24 @@ export function buildCanonicalTimeline(
           title: booking.airline || booking.vendor_name,
           subtitle: '', // v3.13.2: Flight subtitle built by buildFlightDisplayLine
           datetime: startDate,
-          hasExplicitTime: hasFlightTime(departureLocalTimeStr, booking.start_datetime),
-          address: booking.address,
-          linkUrl: booking.link_url,
-          departureAirportCode: showRoute ? depIata : undefined,
-          arrivalAirportCode: showRoute ? arrIata : undefined,
+          hasExplicitTime: hasFlightTime(safeDepartureLocalTime, booking.start_datetime),
+          address: booking.address || null,
+          linkUrl: booking.link_url || null,
+          departureAirportCode: showRoute ? depIata : null,
+          arrivalAirportCode: showRoute ? arrIata : null,
           departureTime: startDate,
-          arrivalTime: arrivalDate || undefined,
+          arrivalTime: arrivalDate || null,
           // v3.9.41: Use hasFlightTime (does not suppress midnight) for flight defensibility
-          hasDepartureTime: hasFlightTime(departureLocalTimeStr, booking.start_datetime),
-          hasArrivalTime: hasFlightTime(arrivalLocalTimeStr, booking.end_datetime),
-          confirmationNumber: booking.confirmation_number || undefined,
+          hasDepartureTime: hasFlightTime(safeDepartureLocalTime, booking.start_datetime),
+          hasArrivalTime: hasFlightTime(safeArrivalLocalTime, booking.end_datetime),
+          confirmationNumber: booking.confirmation_number || null,
           // v3.10.5: Local wall-clock time strings for display
-          departureLocalTime: departureLocalTimeStr,
-          departureTimeZone: depTz,
-          arrivalLocalTime: arrivalLocalTimeStr,
-          arrivalTimeZone: arrTz,
+          departureLocalTime: safeDepartureLocalTime,
+          departureTimeZone: depTz || null,
+          arrivalLocalTime: safeArrivalLocalTime,
+          arrivalTimeZone: arrTz || null,
           // v3.10.5: Event local datetime uses departure local key
-          eventLocalDateTime: (flightLocal.departLocalKey || preserveTimeString(booking.start_datetime)) || undefined,
+          eventLocalDateTime: safeEventLocalDateTime,
           eventTimeZone: depTz || null,
         });
         break;
@@ -888,14 +893,16 @@ export function getCanonicalTripState(
   const hasActivities = bookings.some(b => b.booking_type === 'activity');
   const hasParking = parkingList.length > 0;
   
+  // v3.9.62: STEP 4 — Defensive null guards. No property undefined.
   return {
     trip,
     dateRange,
-    timelineEvents,
+    timelineEvents: timelineEvents ?? [],
     costs,
     weatherByKey: {}, // v2.2.6: Populated by consumer hooks via forecastToSnapshots
-    ingestionResult,
-    canonicalItems: ingestionResult.items,
+    framePendingValidation: false,
+    ingestionResult: ingestionResult ?? null,
+    canonicalItems: ingestionResult?.items ?? [],
     hasFlights,
     hasStays,
     hasRentals,
