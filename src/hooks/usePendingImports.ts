@@ -1,6 +1,6 @@
 /**
  * Hook to fetch and manage user's pending email imports.
- * Returns pending imports with statuses: ready_for_review, needs_review
+ * v4.3.1: Expense creation added to standard booking path — every filed booking with a cost now creates a linked expense
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -198,30 +198,51 @@ export function useFileImportToTrip() {
               : ((parsedData.notes as string) || null),
           };
 
-          const { error: bookingError } = await supabase
-            .from('bookings')
-            .insert(booking as any);
-          if (bookingError) throw bookingError;
+        const { error: bookingError } = await supabase
+          .from('bookings')
+          .insert(booking as any);
+        if (bookingError) throw bookingError;
 
-          // Expense for single flight with confirmed payment
-          if (finalType === 'flight' && singleCost && !isPaymentDeclined) {
-            const expenseDate =
-              typeof parsedData.start_datetime === 'string' && (parsedData.start_datetime as string).length >= 10
-                ? (parsedData.start_datetime as string).substring(0, 10)
-                : new Date().toISOString().split('T')[0];
+        // Create linked expense if this booking has a cost
+        const totalCost = parsedData.total_cost as number | null;
+        const paymentDeclined = !!(parsedData.is_payment_declined);
 
-            const { error: expErr } = await supabase.from('expenses').insert({
+        if (typeof totalCost === 'number' && totalCost > 0 && !paymentDeclined) {
+          const categoryMap: Record<string, string> = {
+            flight: 'transport',
+            car_rental: 'transport',
+            transport: 'transport',
+            parking: 'parking',
+            stay: 'other',
+            activity: 'activity',
+          };
+          const expenseCategory = categoryMap[finalType] || 'other';
+
+          const rawStart = parsedData.start_datetime as string | null;
+          const expenseDate = rawStart && rawStart.length >= 10
+            ? rawStart.substring(0, 10)
+            : new Date().toISOString().split('T')[0];
+
+          const currencyCode = (parsedData.currency_code as string) || 'USD';
+          const vendorName = String(parsedData.vendor_name || 'Imported Booking');
+          const confNum = parsedData.confirmation_number
+            ? ` (${String(parsedData.confirmation_number)})`
+            : '';
+
+          const { error: expenseError } = await supabase
+            .from('expenses')
+            .insert({
               trip_id: tripId,
               date: expenseDate,
-              category: 'transport' as const,
-              description: `${String(parsedData.vendor_name || 'Flight')} (${String(parsedData.confirmation_number || 'ref unknown')})`,
-              amount: singleCost,
-              notes: `Currency: ${currencyCode}.`,
+              category: expenseCategory as 'meals' | 'transport' | 'activity' | 'shopping' | 'parking' | 'other',
+              description: `${vendorName}${confNum}`,
+              amount: totalCost,
+              notes: `Currency: ${currencyCode}. Filed from import.`,
             });
-            if (expErr) {
-              console.error('Expense insert error:', expErr);
-              throw expErr;
-            }
+
+          if (expenseError) {
+            console.error('Expense insert error (non-blocking):', expenseError);
+            // Non-blocking: booking was created successfully, expense failure is logged but not thrown
           }
         }
       }
