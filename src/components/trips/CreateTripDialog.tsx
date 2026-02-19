@@ -304,7 +304,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
     travelModeRef.current = null;
     setStartDate(undefined);
     setEndDate(undefined);
-     setParsedBookings([]);
+    setParsedBookings([]);
     parsedBookingsRef.current = [];
     setParseError(null);
     setPastedText('');
@@ -320,6 +320,8 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
     if (autofillTimerRef.current) clearTimeout(autofillTimerRef.current);
     if (buildTimeoutRef.current) clearTimeout(buildTimeoutRef.current);
     buildSessionIdRef.current = null;
+    // v3.9.64: Clear completed sessions to prevent stale idempotency blocks on next wizard open
+    buildCompletedSessionsRef.current = new Set();
     stagingSnapshotRef.current = null;
     clearWizardBatch();
   }, [reset]);
@@ -344,20 +346,12 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
         const wizardWindow = computeWizardTripWindow(savedBatch);
         if (wizardWindow.startDate) {
           try {
-            setStartDate(prev => {
-              const candidate = new Date(wizardWindow.startDate + 'T00:00:00');
-              if (!prev) return candidate;
-              return candidate < prev ? candidate : prev;
-            });
+            setStartDate(new Date(wizardWindow.startDate + 'T00:00:00'));
           } catch {}
         }
         if (wizardWindow.endDate) {
           try {
-            setEndDate(prev => {
-              const candidate = new Date(wizardWindow.endDate + 'T00:00:00');
-              if (!prev) return candidate;
-              return candidate > prev ? candidate : prev;
-            });
+            setEndDate(new Date(wizardWindow.endDate + 'T00:00:00'));
           } catch {}
         }
         const meta = staging.meta;
@@ -423,6 +417,13 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
             enrichParsedBookingCost(booking, text);
           }
           
+          if (import.meta.env.DEV) {
+            console.log('[CreateTrip] POST_ENRICH_COSTS', parsed.bookings.map((b: any) => ({
+              vendor: b.vendor_name,
+              total_cost: b.total_cost,
+              costType: typeof b.total_cost,
+            })));
+          }
           // v3.9.9: Run canonical import pipeline on the batch
           const pipelineResult = runCanonicalImportPipeline(parsed.bookings, text);
           
@@ -458,24 +459,18 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
           // the shared canonical helper. Previous `prev ||` guard caused the
           // first confirmation's dates to lock in, ignoring wider ranges
           // from subsequent confirmations.
-          // v3.9.63: Use deterministic wizard window helper — no Date construction from canonical helpers
+          // v3.9.64: Always set dates from the FULL merged set — no prev comparison.
+          // The prev guard caused stale dates from a prior wizard session to persist
+          // when the component wasn't unmounted between trips.
           const wizardWindow = computeWizardTripWindow(allMergedBookings);
           if (wizardWindow.startDate) {
             try {
-              setStartDate(prev => {
-                const candidate = new Date(wizardWindow.startDate + 'T00:00:00');
-                if (!prev) return candidate;
-                return candidate < prev ? candidate : prev;
-              });
+              setStartDate(new Date(wizardWindow.startDate + 'T00:00:00'));
             } catch {}
           }
           if (wizardWindow.endDate) {
             try {
-              setEndDate(prev => {
-                const candidate = new Date(wizardWindow.endDate + 'T00:00:00');
-                if (!prev) return candidate;
-                return candidate > prev ? candidate : prev;
-              });
+              setEndDate(new Date(wizardWindow.endDate + 'T00:00:00'));
             } catch {}
           }
           if (meta.suggestedTripName && !getValues('name')) {
@@ -814,6 +809,15 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
           // v3.9.36: Wrap each booking creation in try/catch so one failure
           // (e.g. residual numeric overflow) doesn't abort the entire loop.
           try {
+            if (import.meta.env.DEV) {
+              console.log('[CreateTrip] BOOKING_COST_TRACE', {
+                vendor: booking.vendor_name,
+                type: booking.booking_type,
+                total_cost: booking.total_cost,
+                my_share: booking.my_share,
+                totalCostType: typeof booking.total_cost,
+              });
+            }
             const createdBooking = await createBooking.mutateAsync({
               trip_id: trip.id,
               booking_type: booking.booking_type,
@@ -839,6 +843,8 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
               from_location: booking.from_location || undefined,
               to_location: booking.to_location || undefined,
               my_share: booking.my_share ?? undefined,
+              // v4.4.0: Pass extracted currency for expense sync
+              _extracted_currency: (booking as any)._extracted_currency || undefined,
             });
 
             if (createdBooking?.id) {

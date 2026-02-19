@@ -19,9 +19,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
 import { useCreateExpense, useExpenses } from '@/hooks/useExpenses';
 import { useTrip } from '@/hooks/useTrips';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { ExpenseCategory, ExpensePurpose } from '@/types/database';
 import { format } from 'date-fns';
 import { useTripPermission } from '@/pages/TripDetail';
@@ -45,6 +46,8 @@ export function QuickExpenseDialog({ tripId, open, onOpenChange }: QuickExpenseD
   const createExpense = useCreateExpense();
   const { data: expenses = [] } = useExpenses(tripId);
   const { data: trip } = useTrip(tripId);
+  const { data: userProfile } = useUserProfile();
+  const homeCurrency = userProfile?.preferred_currency || 'USD';
   const { canEdit, canAddExpenses } = useTripPermission();
   const canWrite = canAddExpenses || canEdit;
 
@@ -59,12 +62,16 @@ export function QuickExpenseDialog({ tripId, open, onOpenChange }: QuickExpenseD
   const [category, setCategory] = useState<ExpenseCategory>(lastUsedCategory);
   const [notes, setNotes] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [currency, setCurrency] = useState(homeCurrency);
+  const [convertedAmount, setConvertedAmount] = useState('');
 
   // Advanced fields
   const [description, setDescription] = useState('');
   const [myShare, setMyShare] = useState('');
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [expensePurpose, setExpensePurpose] = useState<ExpensePurpose | ''>('');
+
+  const isForeignCurrency = currency.toUpperCase() !== homeCurrency.toUpperCase();
 
   // Reset form when opening
   useEffect(() => {
@@ -77,8 +84,10 @@ export function QuickExpenseDialog({ tripId, open, onOpenChange }: QuickExpenseD
       setMyShare('');
       setDate(format(new Date(), 'yyyy-MM-dd'));
       setExpensePurpose('');
+      setCurrency(homeCurrency);
+      setConvertedAmount('');
     }
-  }, [open, lastUsedCategory]);
+  }, [open, lastUsedCategory, homeCurrency]);
 
   const isMixedTrip = trip?.trip_type === 'mixed';
 
@@ -93,6 +102,9 @@ export function QuickExpenseDialog({ tripId, open, onOpenChange }: QuickExpenseD
       ? parseFloat(myShare)
       : parsedAmount;
 
+    const parsedConverted = convertedAmount ? parseFloat(convertedAmount) : null;
+    const finalConverted = isForeignCurrency && parsedConverted && parsedConverted > 0 ? parsedConverted : null;
+
     await createExpense.mutateAsync({
       trip_id: tripId,
       date,
@@ -102,6 +114,9 @@ export function QuickExpenseDialog({ tripId, open, onOpenChange }: QuickExpenseD
       notes: notes || undefined,
       description: description || undefined,
       expense_purpose: isMixedTrip && expensePurpose ? expensePurpose : undefined,
+      currency: currency || homeCurrency,
+      converted_amount: finalConverted,
+      converted_currency: finalConverted ? homeCurrency : undefined,
     });
 
     // Close dialog — stay on current screen. Toast handled by useCreateExpense.
@@ -158,7 +173,52 @@ export function QuickExpenseDialog({ tripId, open, onOpenChange }: QuickExpenseD
             />
           </div>
 
-          {/* Advanced toggle */}
+          {/* v4.4.2: Currency selector */}
+          <div className="space-y-2">
+            <Label>Currency</Label>
+            <Select value={currency} onValueChange={setCurrency}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="USD">USD</SelectItem>
+                <SelectItem value="EUR">EUR</SelectItem>
+                <SelectItem value="GBP">GBP</SelectItem>
+                <SelectItem value="CAD">CAD</SelectItem>
+                <SelectItem value="AUD">AUD</SelectItem>
+                <SelectItem value="JPY">JPY</SelectItem>
+                <SelectItem value="CHF">CHF</SelectItem>
+                <SelectItem value="MXN">MXN</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* v4.4.2: Manual conversion for foreign currency */}
+          {isForeignCurrency && (
+            <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600" />
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                  Convert to {homeCurrency}
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Enter the {homeCurrency} equivalent to include in trip totals.
+              </p>
+              <Input
+                type="number"
+                step="0.01"
+                value={convertedAmount}
+                onChange={(e) => setConvertedAmount(e.target.value)}
+                placeholder={`Amount in ${homeCurrency}`}
+              />
+              {!convertedAmount && (
+                <p className="text-[11px] text-amber-600 italic">
+                  Without conversion, this won't be in trip totals.
+                </p>
+              )}
+            </div>
+          )}
           <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
             <CollapsibleTrigger asChild>
               <Button type="button" variant="ghost" size="sm" className="w-full text-xs text-muted-foreground gap-1">

@@ -55,22 +55,75 @@ export function isBookingLinkedExpense(expense: Expense): boolean {
 }
 
 /**
- * Filter expenses to only include true out-of-pocket expenses (not booking-linked)
+ * Check if an expense is in a non-default (foreign) currency.
+ * Foreign-currency expenses are shown in the list but excluded from totals
+ * until the user manually converts them.
+ * 
+ * v4.4.1: Compares against user's preferred home currency (from profile),
+ * not hardcoded USD. Falls back to 'USD' only if no home currency provided.
  */
-export function getOutOfPocketExpenses(expenses: Expense[]): Expense[] {
-  return expenses.filter(e => !isBookingLinkedExpense(e));
+export function isForeignCurrencyExpense(expense: Expense, homeCurrency: string = 'USD'): boolean {
+  const currency = (expense as any).currency;
+  if (!currency) return false;
+  return currency.toUpperCase() !== homeCurrency.toUpperCase();
+}
+
+/**
+ * v4.4.2: Check if a foreign currency expense has been manually converted.
+ * Returns true when converted_amount is set (user entered their home currency equivalent).
+ */
+export function isConvertedExpense(expense: Expense): boolean {
+  return (
+    expense.converted_amount !== null &&
+    expense.converted_amount !== undefined &&
+    Number.isFinite(Number(expense.converted_amount)) &&
+    Number(expense.converted_amount) > 0
+  );
+}
+
+/**
+ * Filter expenses to only include true out-of-pocket expenses (not booking-linked)
+ * v4.4.2: Foreign currency expenses are included IF they have a converted_amount.
+ * Unconverted foreign expenses are still excluded from totals.
+ */
+export function getOutOfPocketExpenses(expenses: Expense[], homeCurrency: string = 'USD'): Expense[] {
+  return expenses.filter(e => {
+    if (isBookingLinkedExpense(e)) return false;
+    if (isForeignCurrencyExpense(e, homeCurrency)) {
+      // Include converted foreign expenses using their converted amount
+      return isConvertedExpense(e);
+    }
+    return true;
+  });
 }
 
 /**
  * Calculate My Share for a single expense
  * If my_share is defined, use it; otherwise fallback to full amount
+ * v4.4.2: For converted foreign expenses, use converted_amount as the base
  */
 export function getExpenseMyShare(expense: Expense): number {
+  // For converted foreign expenses, the converted_amount IS the amount in home currency
+  if (isConvertedExpense(expense)) {
+    return Number(expense.converted_amount);
+  }
   const amount = Number(expense.amount || 0);
   const myShare = expense.my_share !== undefined && expense.my_share !== null
     ? Number(expense.my_share)
     : amount;
   return myShare;
+}
+
+/**
+ * v4.4.2: Get the effective amount for an expense in the home currency.
+ * For converted foreign expenses, returns converted_amount.
+ * For regular expenses, returns the original amount.
+ */
+export function getEffectiveExpenseAmount(expense: Expense): number {
+  if (isConvertedExpense(expense)) {
+    return Number(expense.converted_amount);
+  }
+  return Number(expense.amount || 0);
 }
 
 /**
@@ -135,9 +188,9 @@ export interface ExpensePurposeBreakdown {
  * 
  * v2.1.3: Added for mixed trip expense categorization
  */
-export function calculateExpensePurposeBreakdown(expenses: Expense[]): ExpensePurposeBreakdown {
+export function calculateExpensePurposeBreakdown(expenses: Expense[], homeCurrency: string = 'USD'): ExpensePurposeBreakdown {
   // Filter to only out-of-pocket expenses (exclude booking-linked to prevent double counting)
-  const outOfPocketExpenses = getOutOfPocketExpenses(expenses);
+  const outOfPocketExpenses = getOutOfPocketExpenses(expenses, homeCurrency);
   
   const breakdown: ExpensePurposeBreakdown = {
     businessTotal: 0,
@@ -540,13 +593,16 @@ export function calculateCategorySummary(expenses: Expense[]): CategorySummary {
 export function calculateTripCostSummary(
   expenses: Expense[],
   bookings: Booking[],
-  parkingList: Parking[]
+  parkingList: Parking[],
+  homeCurrency: string = 'USD'
 ): TripCostSummary {
   // Filter to only out-of-pocket expenses (exclude booking-linked to prevent double counting)
-  const outOfPocketExpenses = getOutOfPocketExpenses(expenses);
+  // v4.4.1: Uses user's home currency for foreign expense detection
+  const outOfPocketExpenses = getOutOfPocketExpenses(expenses, homeCurrency);
   
   // Expenses (out-of-pocket only)
-  const expensesTotal = outOfPocketExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+  // v4.4.2: Use getEffectiveExpenseAmount for converted foreign expenses
+  const expensesTotal = outOfPocketExpenses.reduce((sum, e) => sum + getEffectiveExpenseAmount(e), 0);
   const expensesMyShare = outOfPocketExpenses.reduce((sum, e) => sum + getExpenseMyShare(e), 0);
   
   // Bookings - use normalizeFlightBookingCosts() to handle legacy duplicated flights
