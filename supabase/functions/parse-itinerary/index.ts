@@ -107,15 +107,22 @@ CRITICAL - GLOBAL DATETIME INTEGRITY RULES:
    - NEVER apply timezone conversions that change the calendar date
 
 2. TIMES ARE EXPLICIT ONLY
-   - Only extract times that are EXPLICITLY stated (e.g., "Departs 6:00 PM", "Check-in 3:00 PM")
+   - Only extract times that are EXPLICITLY stated (e.g., "Departs 6:00 PM", "Check-in 3:00 PM", "23:05", "14:30")
+   - Both 12-hour (6:00 AM, 11:10 PM) and 24-hour (23:05, 14:30) formats are valid explicit times
    - If no explicit time is shown, leave time portion empty - use date-only format (YYYY-MM-DD)
    - NEVER infer or guess times
    - NEVER default to midnight (00:00) when time is unknown
 
 3. FORMAT RULES
-   - If EXPLICIT time exists: use ISO 8601 format (e.g., "2026-01-30T18:13:00")
+   - If EXPLICIT time exists: use ISO 8601 format (e.g., "2026-01-30T18:13:00" or "2026-01-30T23:05:00")
    - If NO explicit time: use date-only format (e.g., "2026-01-30")
    - For trips: start_date and end_date are always date-only (YYYY-MM-DD)
+
+4. SEGMENT-ONLY DATES FOR FLIGHTS (v3.9.33)
+   - For each flight leg, start_datetime and end_datetime MUST come from that leg's ITINERARY SEGMENT (the row showing origin, destination, date, and time)
+   - NEVER use dates from ticket metadata: "Ticketed on", "Issued on", "Issue date", "Booking date", "Date of issue", "Purchase date", "Transaction date"
+   - Each leg has its own departure date — extract from the segment line for THAT specific leg
+   - If a return leg departs on March 26, use March 26 — do NOT use the ticket issue date
 
 Extract the following TRIP information:
 - trip_name: A descriptive name for the trip (e.g., "Orlando Family Vacation", "NYC Business Trip")
