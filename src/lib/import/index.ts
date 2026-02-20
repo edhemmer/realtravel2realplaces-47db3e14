@@ -1,10 +1,11 @@
 /**
- * v3.9.70: Import Batch Engine barrel export
+ * v3.9.80: Import Batch Engine barrel export
  */
 export * from './types';
 export * from './importBatchStore';
 export * from './confirmationAdapter';
 export * from './tripFrame';
+export * from './tripWindow';
 export * from './itineraryEngine';
 export * from './createTimelineFromConfirmations';
 export * from './buildExpensesFromConfirmations';
