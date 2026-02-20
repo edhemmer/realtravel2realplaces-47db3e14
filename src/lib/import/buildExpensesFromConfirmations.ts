@@ -1,5 +1,5 @@
 /**
- * v4.1.0: Expense Builder from Full Confirmation Batch
+ * v3.9.70: Expense Builder from Full Confirmation Batch
  *
  * Creates expense records from ALL parsed confirmations in a batch.
  * No drops, no duplicates, multi-currency safe.
@@ -12,6 +12,9 @@
  * - Multi-currency: keep original currency, never convert
  * - If no conversion logic → store as-is, mark needsReview if non-USD
  * - Dedup by confirmationId to prevent re-import duplicates
+ *
+ * v3.9.70: Lodging expenses now correctly use 'lodging' category.
+ * Car rental expenses use 'transport'. Activity uses 'activity'.
  */
 
 import type { ParsedConfirmation, ExpenseRecord } from './types';
@@ -222,7 +225,7 @@ function mapTypeToExpenseCategory(type: string): string {
     case 'TRANSPORT':
       return 'transport';
     case 'LODGING':
-      return 'other';
+      return 'lodging';
     case 'ACTIVITY':
       return 'activity';
     default:
