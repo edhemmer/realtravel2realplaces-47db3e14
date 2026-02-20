@@ -1,5 +1,5 @@
 /**
- * v4.1.0: Trip Frame Computation from Import Batch
+ * v3.9.60: Trip Frame Computation from Import Batch
  *
  * Computes the trip start/end dates from ALL confirmations in a batch.
  * Uses toOrderingDate for internal comparison — never for display.

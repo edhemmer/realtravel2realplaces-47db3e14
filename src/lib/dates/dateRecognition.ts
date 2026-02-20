@@ -1,5 +1,5 @@
 /**
- * v4.1.0: Date Format Recognition for Import Ordering
+ * v3.9.60: Date Format Recognition for Import Ordering
  *
  * Recognizes common date formats from airline/hotel confirmations
  * and converts them to a ParsedDate for INTERNAL ORDERING ONLY.
@@ -9,6 +9,13 @@
  * - parsedDateToOrderingDate uses Date.UTC so environment TZ doesn't shift
  * - The ordering Date is NEVER used for display — raw strings are preserved
  * - If format is unrecognized → return null (never crash)
+ *
+ * v3.9.60: EU CARRIER DATE HARDENING
+ * - Full weekday prefix stripping (Mon, Monday, Thu, Thursday, etc.)
+ * - Trailing timezone annotations stripped (CET, CEST, UTC, GMT, +01:00, etc.)
+ * - Parenthesized annotations stripped ((local time), etc.)
+ * - Full month name support (March, September, etc.)
+ * - Day/month/year numeric with optional seconds (11/03/2026 06:10:30)
  */
 
 // ============================================================================
@@ -43,20 +50,75 @@ const MONTH_MAP: Record<string, number> = {
 };
 
 // ============================================================================
+// PREPROCESSING (v3.9.60)
+// ============================================================================
+
+/**
+ * Strip leading weekday tokens: "Mon, ", "Monday, ", "Thu ", "Thursday, " etc.
+ * Handles both abbreviated and full weekday names with optional comma.
+ */
+const WEEKDAY_PREFIX_RE = /^(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun),?\s+/i;
+
+/**
+ * Strip trailing timezone abbreviations and offset annotations:
+ * CET, CEST, UTC, GMT, EST, PST, +01:00, +0100, -05:00, (local time), etc.
+ */
+/**
+ * Strip trailing timezone abbreviations (3+ uppercase letters to avoid stripping AM/PM).
+ * Also strip offset annotations like +01:00, +0100.
+ */
+const TRAILING_TZ_RE = /\s+(?:[A-Z]{3,5}|[+-]\d{2}:?\d{2})$/;
+const TRAILING_PAREN_RE = /\s*\([^)]*\)\s*$/;
+const ISO_OFFSET_RE = /[+-]\d{2}:?\d{2}$/;
+
+/**
+ * Preprocess a raw datetime string before pattern matching.
+ * Strips weekday prefixes, timezone suffixes, and parenthesized annotations.
+ */
+function preprocess(raw: string): string {
+  let s = raw.trim();
+
+  // Strip leading weekday
+  s = s.replace(WEEKDAY_PREFIX_RE, '');
+
+  // Strip trailing parenthesized annotation (e.g. "(local time)")
+  s = s.replace(TRAILING_PAREN_RE, '');
+
+  // Strip trailing timezone offset from ISO strings (+01:00)
+  s = s.replace(ISO_OFFSET_RE, '');
+
+  // Strip trailing timezone abbreviation (CET, CEST, UTC, etc.)
+  s = s.replace(TRAILING_TZ_RE, '');
+
+  // Strip trailing comma if leftover
+  s = s.replace(/,\s*$/, '');
+
+  return s.trim();
+}
+
+// ============================================================================
 // FORMAT RECOGNITION
 // ============================================================================
 
 /**
  * Recognize a date format from a raw string and extract components.
  *
- * Supported formats:
+ * Supported formats (after preprocessing):
  * - "2026-03-26T12:45" or "2026-03-26T12:45:00"  (ISO)
  * - "2026-03-26"                                  (ISO date only)
  * - "26 Mar 2026 12:45"                           (day-first named month)
+ * - "26 March 2026 12:45"                         (day-first full month)
  * - "March 26, 2026 12:45 PM"                     (US named month)
  * - "03/26/2026 12:45 PM"                         (US numeric)
  * - "26/03/2026 12:45"                            (day-first numeric)
+ * - "11/03/2026 06:10:30"                         (day-first numeric with seconds)
  * - "03-26-2026 12:45"                            (US dashes)
+ *
+ * With optional prefixes/suffixes (stripped in preprocessing):
+ * - "Thu, 11 Mar 2026 06:10 CET"
+ * - "Monday, 24 March 2026, 21:45 CEST"
+ * - "11/03/2026 06:10 (local time)"
+ * - "2026-03-11T06:10+01:00"
  *
  * Returns null if no pattern matches.
  */
@@ -65,30 +127,30 @@ export function recognizeDateFormat(raw: string | undefined | null): ParsedDate 
   const s = raw.trim();
   if (!s) return null;
 
-  // Strip leading day-of-week (Mon, Tue, Wed, etc.)
-  const stripped = s.replace(/^[A-Za-z]{2,3},?\s+/, '');
+  // v3.9.60: Preprocess to strip weekday, TZ, annotations
+  const cleaned = preprocess(s);
 
   let parsed: ParsedDate | null = null;
 
   // 1. ISO: "2026-03-26T12:45:00" or "2026-03-26T12:45" or "2026-03-26"
-  parsed = tryISO(stripped);
+  parsed = tryISO(cleaned);
   if (parsed) return parsed;
 
-  // 2. Named month day-first: "26 Mar 2026 12:45" / "26th March 2026"
-  parsed = tryNamedDMY(stripped);
+  // 2. Named month day-first: "26 Mar 2026 12:45" / "26th March 2026 14:30" / "26 March 2026"
+  parsed = tryNamedDMY(cleaned);
   if (parsed) return parsed;
 
   // 3. Named month US: "March 26, 2026 12:45 PM" / "Mar 26 2026"
-  parsed = tryNamedMDY(stripped);
+  parsed = tryNamedMDY(cleaned);
   if (parsed) return parsed;
 
   // 4. US numeric: "03/26/2026 12:45 PM" or "03-26-2026 12:45"
-  parsed = tryNumericMDY(stripped);
+  parsed = tryNumericMDY(cleaned);
   if (parsed) return parsed;
 
-  // 5. Day-first numeric: "26/03/2026 12:45"
+  // 5. Day-first numeric: "26/03/2026 12:45" or "11/03/2026 06:10:30"
   // Heuristic: if first number > 12, it's day-first
-  parsed = tryNumericDMY(stripped);
+  parsed = tryNumericDMY(cleaned);
   if (parsed) return parsed;
 
   return null;
@@ -131,7 +193,7 @@ function tryISO(s: string): ParsedDate | null {
 function tryNamedDMY(s: string): ParsedDate | null {
   // "26 Mar 2026 12:45" / "26th March 2026 14:30" / "26 March 2026"
   const m = s.match(
-    /^(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]+)\s+(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/
+    /^(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]+)\s+(\d{4})(?:,?\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/
   );
   if (!m) return null;
   const monthNum = MONTH_MAP[m[2].toLowerCase()];
@@ -149,7 +211,7 @@ function tryNamedDMY(s: string): ParsedDate | null {
 function tryNamedMDY(s: string): ParsedDate | null {
   // "March 26, 2026 12:45 PM" / "Mar 26 2026" / "March 26th, 2026"
   const m = s.match(
-    /^([A-Za-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/
+    /^([A-Za-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/
   );
   if (!m) return null;
   const monthNum = MONTH_MAP[m[1].toLowerCase()];
@@ -166,7 +228,7 @@ function tryNamedMDY(s: string): ParsedDate | null {
 
 function tryNumericMDY(s: string): ParsedDate | null {
   // "03/26/2026 12:45 PM" or "03-26-2026 12:45"
-  const m = s.match(/^(\d{1,2})[/\-](\d{1,2})[/\-](\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+  const m = s.match(/^(\d{1,2})[/\-](\d{1,2})[/\-](\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
   if (!m) return null;
   const a = parseInt(m[1], 10);
   const b = parseInt(m[2], 10);
@@ -183,8 +245,8 @@ function tryNumericMDY(s: string): ParsedDate | null {
 }
 
 function tryNumericDMY(s: string): ParsedDate | null {
-  // "26/03/2026 12:45" — only if first number > 12
-  const m = s.match(/^(\d{1,2})[/\-](\d{1,2})[/\-](\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+  // "26/03/2026 12:45" or "11/03/2026 06:10:30" — only if first number > 12
+  const m = s.match(/^(\d{1,2})[/\-](\d{1,2})[/\-](\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
   if (!m) return null;
   const a = parseInt(m[1], 10);
   const b = parseInt(m[2], 10);
