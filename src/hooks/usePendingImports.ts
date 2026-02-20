@@ -146,6 +146,36 @@ export function useFileImportToTrip() {
             }
           }
         }
+
+        // v4.4.0D: Expand trip dates if canonical bounds extend beyond current trip window
+        if (canonicalResult.tripBounds.start_date && canonicalResult.tripBounds.end_date) {
+          const { data: trip } = await supabase
+            .from('trips')
+            .select('start_date, end_date')
+            .eq('id', tripId)
+            .single();
+
+          if (trip) {
+            const needsUpdate =
+              canonicalResult.tripBounds.start_date < trip.start_date ||
+              canonicalResult.tripBounds.end_date > trip.end_date;
+
+            if (needsUpdate) {
+              const newStart = canonicalResult.tripBounds.start_date < trip.start_date
+                ? canonicalResult.tripBounds.start_date
+                : trip.start_date;
+              const newEnd = canonicalResult.tripBounds.end_date > trip.end_date
+                ? canonicalResult.tripBounds.end_date
+                : trip.end_date;
+
+              await supabase.rpc('update_trip_dates', {
+                p_trip_id: tripId,
+                p_start_date: newStart,
+                p_end_date: newEnd,
+              });
+            }
+          }
+        }
       } else {
         // ── LEGACY PATH — no canonical batch, use old single-booking logic ──
         const isReceipt = isReceiptClassification(parsedData);

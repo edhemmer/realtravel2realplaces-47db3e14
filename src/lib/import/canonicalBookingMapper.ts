@@ -69,6 +69,43 @@ function deriveTripDates(bookings: CanonicalBooking[]): TripBounds {
   return { start_date: parts[0], end_date: parts[parts.length - 1] };
 }
 
+// ============================================================================
+// v4.4.0D: Canonical trip date derivation — single source of truth
+// ============================================================================
+
+export type CanonicalBookingLike = {
+  start_datetime?: string | null;
+  end_datetime?: string | null;
+  _is_receipt_only?: boolean;
+};
+
+/**
+ * Derive trip start/end dates from canonical bookings.
+ * Uses ONLY service datetimes (no timezone math, no ticket issue dates).
+ * Ignores receipt-only rows.
+ */
+export function deriveTripDatesFromCanonical(
+  bookings: CanonicalBookingLike[] | undefined | null
+): { start_date: string | null; end_date: string | null } {
+  if (!bookings || bookings.length === 0) return { start_date: null, end_date: null };
+
+  const dates: string[] = [];
+
+  for (const b of bookings) {
+    if ((b as any)._is_receipt_only) continue;
+    const start = b.start_datetime?.toString().substring(0, 10);
+    const end = b.end_datetime?.toString().substring(0, 10);
+
+    if (start && /^\d{4}-\d{2}-\d{2}$/.test(start)) dates.push(start);
+    if (end && /^\d{4}-\d{2}-\d{2}$/.test(end)) dates.push(end);
+  }
+
+  if (dates.length === 0) return { start_date: null, end_date: null };
+
+  dates.sort(); // lexicographic works for YYYY-MM-DD
+  return { start_date: dates[0]!, end_date: dates[dates.length - 1]! };
+}
+
 /**
  * Map a single CanonicalBooking to a BookingInput for a given trip.
  */

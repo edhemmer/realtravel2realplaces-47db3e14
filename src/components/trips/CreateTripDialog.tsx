@@ -41,6 +41,9 @@ import { buildImportStaging, buildStagingSnapshot, extractDateTokensFromParsedIt
 // v3.9.80: extractDateToken removed — wizard now delegates to canonical tripWindow
 // v3.9.80: Canonical trip window — single source of truth for wizard start/end
 import { computeTripWindowFromParsedBookings } from '@/lib/import/tripWindow';
+// v4.4.0D: Canonical trip date derivation — prefer canonical bookings when available
+import { deriveTripDatesFromCanonical } from '@/lib/import/canonicalBookingMapper';
+import { extractCanonicalBatch } from '@/lib/import/canonicalBookingMapper';
 // v3.9.26: TripBuildModel — deterministic builder + integrity assertions
 import { buildTripModel, type TripBuildModel } from '@/lib/ingestion/tripBuildModel';
 // v3.9.26: Booking-expense sync
@@ -70,6 +73,26 @@ type AutofillStatus = 'idle' | 'running' | 'filled' | 'needs_user' | 'failed_tim
 export function computeWizardTripWindow(
   bookings: ParsedBooking[],
 ): { startDate: string | null; endDate: string | null } {
+  // v4.4.0D: Try canonical derivation first — works when all dates are normalized ISO.
+  // If canonical produces valid dates AND covers all bookings that have dates,
+  // use it (handles multi-leg canonical imports). Otherwise fall back to legacy
+  // which handles EU date formats, mixed formats, etc.
+  const canonicalDates = deriveTripDatesFromCanonical(bookings as any[]);
+  if (canonicalDates.start_date && canonicalDates.end_date) {
+    // Verify canonical didn't miss any bookings that have dates in non-ISO format
+    const hasNonIsoDates = bookings.some((b: any) => {
+      const s = b.start_datetime?.toString();
+      const e = b.end_datetime?.toString();
+      const sIsIso = !s || /^\d{4}-\d{2}-\d{2}/.test(s);
+      const eIsIso = !e || /^\d{4}-\d{2}-\d{2}/.test(e);
+      return !sIsIso || !eIsIso;
+    });
+    if (!hasNonIsoDates) {
+      return { startDate: canonicalDates.start_date, endDate: canonicalDates.end_date };
+    }
+  }
+
+  // Legacy fallback — handles EU dates, mixed formats, flight_legs, etc.
   const window = computeTripWindowFromParsedBookings(bookings as any[]);
   return { startDate: window.startDate, endDate: window.endDate };
 }
