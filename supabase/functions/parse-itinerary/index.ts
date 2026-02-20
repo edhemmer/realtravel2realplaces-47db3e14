@@ -120,6 +120,20 @@ CRITICAL - UNIVERSAL FLIGHT SEGMENT EXTRACTION (applies to ALL airlines, all for
 - The arrival date MAY differ from departure (overnight/red-eye flights). Do NOT assume same-day.
 - NEVER leave end_datetime empty or null for flights. If arrival info exists anywhere in the segment block, extract it.
 - NEVER default times to 00:00 — if a time is shown (e.g., 23:10, 11:15, 2:30 PM), use it exactly.
+
+CRITICAL - DATE INDEPENDENCE FOR MULTI-LEG ITINERARIES:
+- EACH flight segment has its OWN departure date — read it directly from THAT segment's text.
+- Do NOT assume legs are on consecutive days. Outbound legs may be in March and return legs in April.
+- Round-trip itineraries commonly have a GAP of days or weeks between outbound and return legs.
+- Read the EXACT date printed next to each flight segment. If the text says "26 Mar 2026", use 2026-03-26.
+- NEVER infer or calculate dates from other legs. NEVER assume "next day" for subsequent legs.
+- Example: A 4-leg round trip might be:
+  * Leg 1: 11 Mar 2026 (outbound)
+  * Leg 2: 12 Mar 2026 (outbound connection)
+  * Leg 3: 26 Mar 2026 (return — 14 days later!)
+  * Leg 4: 26 Mar 2026 (return connection)
+  Each date MUST be read independently from the document text for that specific leg.
+
 - Examples of correct extraction:
   * "11 Mar 2026 23:10 ATL → 12 Mar 2026 11:15 LHR"
     → start_datetime="2026-03-11T23:10:00", end_datetime="2026-03-12T11:15:00"
@@ -207,7 +221,7 @@ IMPORTANT: Count ALL flight header blocks in the itinerary. If there are 4 fligh
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: "google/gemini-2.5-pro",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: text },
@@ -311,6 +325,15 @@ IMPORTANT: Count ALL flight header blocks in the itinerary. If there are 4 fligh
     if (toolCall?.function?.arguments) {
       try {
         const parsed = JSON.parse(toolCall.function.arguments);
+        
+        // v4.4.3: Diagnostic logging for flight date extraction
+        if (Array.isArray(parsed.bookings)) {
+          for (const b of parsed.bookings) {
+            if ((b.booking_type as string) === 'flight') {
+              console.log(`FLIGHT_DIAG: ${b.airline || b.vendor_name} ${b.flight_number || '?'} | dep=${b.departure_airport_code}→arr=${b.arrival_airport_code} | start=${b.start_datetime} | end=${b.end_datetime} | cost=${b.total_cost}`);
+            }
+          }
+        }
         
         // Normalize trip dates (always date-only)
         if (parsed.trip?.start_date) {
