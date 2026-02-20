@@ -117,6 +117,11 @@ function mapCanonicalToBookingInput(
   const validTypes = ['flight', 'stay', 'car_rental', 'activity', 'transport'];
   const bookingType = validTypes.includes(cb.booking_type) ? cb.booking_type : 'activity';
 
+  // v4.4.2: Attach _parse_issues for missing IATA codes on flights — never drop the leg
+  if (bookingType === 'flight') {
+    attachMissingAirportCodeIssues(cb);
+  }
+
   return {
     trip_id: tripId,
     booking_type: bookingType,
@@ -140,6 +145,46 @@ function mapCanonicalToBookingInput(
     notes: null,
     _extracted_currency: currencyCode,
   };
+}
+
+// ============================================================================
+// v4.4.2: Parse-issue attachment for missing IATA codes
+// ============================================================================
+
+/**
+ * Attach MISSING_AIRPORT_CODE parse issues to a flight CanonicalBooking
+ * when departure or arrival IATA codes are absent but airport/city names exist.
+ * Issues are additive — merged into any existing _parse_issues array.
+ * This ensures legs are NEVER dropped due to missing codes.
+ */
+function attachMissingAirportCodeIssues(cb: CanonicalBooking): void {
+  const issues: unknown[] = Array.isArray(cb._parse_issues) ? [...cb._parse_issues] : [];
+
+  if (!cb.departure_airport_code || !/^[A-Z]{3}$/i.test(cb.departure_airport_code)) {
+    issues.push({
+      issueType: 'MISSING_AIRPORT_CODE',
+      entityType: 'flight',
+      fieldPath: 'departure_airport_code',
+      missingFields: ['departure_airport_code'],
+      actionHint: 'Airport code missing – verify city/airport name and add code if needed.',
+      rawValue: cb.from_location || cb.address || null,
+    });
+  }
+
+  if (!cb.arrival_airport_code || !/^[A-Z]{3}$/i.test(cb.arrival_airport_code)) {
+    issues.push({
+      issueType: 'MISSING_AIRPORT_CODE',
+      entityType: 'flight',
+      fieldPath: 'arrival_airport_code',
+      missingFields: ['arrival_airport_code'],
+      actionHint: 'Airport code missing – verify city/airport name and add code if needed.',
+      rawValue: cb.to_location || cb.address || null,
+    });
+  }
+
+  if (issues.length > 0) {
+    cb._parse_issues = issues;
+  }
 }
 
 /**
