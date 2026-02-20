@@ -1,23 +1,27 @@
 /**
- * v3.9.60: Timeline Creation from Full Confirmation Batch
+ * v3.9.70: Timeline Creation from Full Confirmation Batch
  *
  * Creates timeline items (bookings) from ALL parsed confirmations.
  * Uses raw datetime strings for storage — never reformats for display.
  *
+ * v3.9.70: Uses buildCanonicalItinerary for structured aggregation.
+ * Ensures flights, lodgings, and car rentals all produce timeline items.
+ *
  * RULES:
  * - Every FLIGHT leg creates a separate booking record
+ * - Every LODGING creates a stay booking record
+ * - Every CAR_RENTAL creates a car_rental booking record
  * - Never drop a leg because an IATA code is missing — use airport name instead
- * - Missing IATA → attempt resolution via airport directory, else keep as-is
- * - LODGING / CAR_RENTAL / other → one booking per confirmation
+ * - ACTIVITY / TRANSPORT / OTHER → one booking per confirmation
  * - Raw strings preserved for display; ordering dates used only for sequencing
  * - No timezone math
- *
- * v3.9.60: NEVER DROP LEGS DUE TO PARTIAL DATE PARSING
- * - Legs with null orderingDate still produce timeline items
- * - Such legs are marked with needsReview notes rather than being silently discarded
+ * - NEVER DROP LEGS DUE TO PARTIAL DATE PARSING
+ *   Legs with null orderingDate still produce timeline items
+ *   Such legs are marked with needsReview notes rather than being silently discarded
  */
 
 import type { ParsedConfirmation, FlightLeg } from './types';
+import { buildCanonicalItinerary } from './itineraryEngine';
 import { toOrderingDate } from '@/lib/dates/dateRecognition';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
@@ -33,8 +37,8 @@ type BookingType = Database['public']['Enums']['booking_type'];
  * Create timeline (booking) records from a set of parsed confirmations.
  * Inserts directly into the bookings table.
  *
- * v3.9.60: NEVER drops legs. Legs with unresolvable dates are marked
- * with needsReview instead of being silently discarded.
+ * v3.9.70: Uses buildCanonicalItinerary so flights, lodgings, and car
+ * rentals are all processed through canonical paths.
  *
  * @param tripId - The trip to attach bookings to
  * @param confirmations - All parsed confirmations from the batch
@@ -45,24 +49,51 @@ export async function createTimelineFromConfirmations(
   confirmations: ParsedConfirmation[],
 ): Promise<string[]> {
   const inserts: BookingInsert[] = [];
+  const itinerary = buildCanonicalItinerary(confirmations);
 
+  // --- Flights: one booking per leg ---
+  // Group canonical flight legs by confirmationId to handle cost attribution
+  const confMap = new Map<string, ParsedConfirmation>();
   for (const conf of confirmations) {
-    if (conf.type === 'FLIGHT') {
-      // Create one booking per leg
-      if (conf.legs.length === 0) {
-        // No legs parsed — create a single booking from confirmation-level data
-        inserts.push(buildFlightBooking(tripId, conf, null));
-      } else {
-        for (const leg of conf.legs) {
-          // v3.9.60: ALWAYS create timeline item for every leg, regardless
-          // of whether orderingDate can be derived. Never silently drop.
-          inserts.push(buildFlightBooking(tripId, conf, leg));
-        }
-      }
-    } else {
-      // Non-flight: one booking per confirmation
-      inserts.push(buildNonFlightBooking(tripId, conf));
+    confMap.set(conf.confirmationId, conf);
+  }
+
+  // Track which confirmation's first leg we've seen (for cost attribution)
+  const seenFirstLeg = new Set<string>();
+
+  for (const cf of itinerary.flights) {
+    const conf = confMap.get(cf.confirmationId);
+    if (!conf) continue;
+
+    const isFirstLeg = !seenFirstLeg.has(cf.confirmationId);
+    if (isFirstLeg) seenFirstLeg.add(cf.confirmationId);
+
+    inserts.push(buildFlightBooking(tripId, conf, cf.leg, isFirstLeg));
+  }
+
+  // Handle FLIGHT confirmations with no legs (edge case)
+  for (const conf of confirmations) {
+    if (conf.type === 'FLIGHT' && conf.legs.length === 0) {
+      inserts.push(buildFlightBooking(tripId, conf, null, true));
     }
+  }
+
+  // --- Lodging stays ---
+  for (const stay of itinerary.lodgings) {
+    const conf = confMap.get(stay.confirmationId);
+    inserts.push(buildLodgingBooking(tripId, stay, conf));
+  }
+
+  // --- Car rentals ---
+  for (const car of itinerary.cars) {
+    const conf = confMap.get(car.confirmationId);
+    inserts.push(buildCarRentalBooking(tripId, car, conf));
+  }
+
+  // --- Other types (ACTIVITY, TRANSPORT, OTHER) ---
+  for (const conf of confirmations) {
+    if (conf.type === 'FLIGHT' || conf.type === 'LODGING' || conf.type === 'CAR_RENTAL') continue;
+    inserts.push(buildNonFlightBooking(tripId, conf));
   }
 
   if (inserts.length === 0) return [];
@@ -99,6 +130,7 @@ function buildFlightBooking(
   tripId: string,
   conf: ParsedConfirmation,
   leg: FlightLeg | null,
+  isFirstLeg: boolean,
 ): BookingInsert {
   const depCode = leg?.originCode || null;
   const depName = leg?.originName || null;
@@ -113,8 +145,7 @@ function buildFlightBooking(
   const hasResolvableDate = !!(startDt && toOrderingDate(startDt));
   const legHasDateIssue = leg && !hasResolvableDate && !!startDt;
 
-  // For multi-leg flights, cost goes on first leg only
-  const isFirstLeg = !leg || conf.legs.indexOf(leg) === 0;
+  // For multi-leg flights, cost goes on first leg only (v3.9.70)
   const legCost = leg?.legCostAmount ?? null;
   const totalCost = isFirstLeg && !legCost ? conf.totalCost : legCost;
 
@@ -135,6 +166,58 @@ function buildFlightBooking(
   };
 }
 
+import type { CanonicalLodgingStay, CanonicalCarRental } from './itineraryEngine';
+
+function buildLodgingBooking(
+  tripId: string,
+  stay: CanonicalLodgingStay,
+  conf: ParsedConfirmation | undefined,
+): BookingInsert {
+  const startDt = stay.rawCheckInString || '';
+  const endDt = stay.rawCheckOutString || null;
+
+  const hasResolvableDate = !!(startDt && toOrderingDate(startDt));
+  const hasDateIssue = !hasResolvableDate && !!startDt;
+
+  return {
+    trip_id: tripId,
+    booking_type: 'stay' as BookingType,
+    vendor_name: stay.vendorName || stay.propertyName || 'Unknown',
+    property_name: stay.propertyName || undefined,
+    confirmation_number: stay.confirmationNumber || null,
+    address: stay.address || undefined,
+    start_datetime: startDt,
+    end_datetime: endDt || undefined,
+    total_cost: stay.totalCost,
+    notes: buildLodgingCarNotes(stay.needsReview, hasDateIssue, stay.costCurrency),
+  };
+}
+
+function buildCarRentalBooking(
+  tripId: string,
+  car: CanonicalCarRental,
+  conf: ParsedConfirmation | undefined,
+): BookingInsert {
+  const startDt = car.rawPickupString || '';
+  const endDt = car.rawDropoffString || null;
+
+  const hasResolvableDate = !!(startDt && toOrderingDate(startDt));
+  const hasDateIssue = !hasResolvableDate && !!startDt;
+
+  return {
+    trip_id: tripId,
+    booking_type: 'car_rental' as BookingType,
+    vendor_name: car.vendorName || 'Unknown',
+    confirmation_number: car.confirmationNumber || null,
+    pickup_location: car.pickupLocation || undefined,
+    return_location: car.dropoffLocation || undefined,
+    start_datetime: startDt,
+    end_datetime: endDt || undefined,
+    total_cost: car.totalCost,
+    notes: buildLodgingCarNotes(car.needsReview, hasDateIssue, car.costCurrency),
+  };
+}
+
 function buildNonFlightBooking(
   tripId: string,
   conf: ParsedConfirmation,
@@ -143,7 +226,6 @@ function buildNonFlightBooking(
   const startDt = conf.rawStartString || '';
   const endDt = conf.rawEndString || null;
 
-  // v3.9.60: Check if ordering date is resolvable
   const hasResolvableDate = !!(startDt && toOrderingDate(startDt));
   const hasDateIssue = !hasResolvableDate && !!startDt;
 
@@ -187,7 +269,6 @@ function buildNotes(
     parts.push(`⚠️ Needs review: ${conf.reviewReason || 'Incomplete data'}`);
   }
 
-  // v3.9.60: Flag legs with unresolvable dates
   if (legHasDateIssue) {
     parts.push('⚠️ Date format not recognized — needs review');
   }
@@ -206,6 +287,18 @@ function buildNotes(
   return parts.length > 0 ? parts.join(' | ') : null;
 }
 
+function buildLodgingCarNotes(
+  needsReview: boolean,
+  hasDateIssue: boolean,
+  costCurrency: string | null,
+): string | null {
+  const parts: string[] = [];
+  if (needsReview) parts.push('⚠️ Needs review');
+  if (hasDateIssue) parts.push('⚠️ Date format not recognized — needs review');
+  if (costCurrency && costCurrency !== 'USD') parts.push(`Original currency: ${costCurrency}`);
+  return parts.length > 0 ? parts.join(' | ') : null;
+}
+
 function buildNonFlightNotes(
   conf: ParsedConfirmation,
   hasDateIssue: boolean,
@@ -216,7 +309,6 @@ function buildNonFlightNotes(
     parts.push(`⚠️ Needs review: ${conf.reviewReason || 'Incomplete data'}`);
   }
 
-  // v3.9.60: Flag bookings with unresolvable dates
   if (hasDateIssue) {
     parts.push('⚠️ Date format not recognized — needs review');
   }

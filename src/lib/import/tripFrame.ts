@@ -1,11 +1,15 @@
 /**
- * v3.9.60: Trip Frame Computation from Import Batch
+ * v3.9.70: Trip Frame Computation from Import Batch
  *
  * Computes the trip start/end dates from ALL confirmations in a batch.
  * Uses toOrderingDate for internal comparison — never for display.
  *
+ * v3.9.70: Now uses buildCanonicalItinerary to aggregate flights, lodging,
+ * and car rentals for frame computation. Ensures all booking types contribute
+ * to the trip frame.
+ *
  * RULES:
- * - Iterate over EVERY confirmation + EVERY flight leg
+ * - Iterate over EVERY flight leg, lodging stay, and car rental
  * - Trip start = earliest valid ordering Date
  * - Trip end = latest valid ordering Date
  * - If no valid dates → return null
@@ -13,6 +17,7 @@
  */
 
 import type { ImportBatch, ParsedConfirmation } from './types';
+import { buildCanonicalItinerary } from './itineraryEngine';
 import { toOrderingDate } from '@/lib/dates/dateRecognition';
 
 // ============================================================================
@@ -30,12 +35,6 @@ export interface TripFrameResult {
 
 /**
  * Compute the trip frame (start/end) from an entire ImportBatch.
- *
- * Examines:
- * - Each confirmation's startDate/endDate (pre-parsed ordering dates)
- * - Each confirmation's rawStartString/rawEndString (fallback via toOrderingDate)
- * - For FLIGHT confirmations, each leg's departureDate/arrivalDate and raw strings
- *
  * Returns null if no valid dates are found across the entire batch.
  */
 export function computeTripFrame(batch: ImportBatch): TripFrameResult | null {
@@ -44,7 +43,8 @@ export function computeTripFrame(batch: ImportBatch): TripFrameResult | null {
 
 /**
  * Compute trip frame from an array of parsed confirmations.
- * Extracted as a separate function for testability.
+ * v3.9.70: Uses buildCanonicalItinerary for structured aggregation of
+ * flights, lodgings, and car rentals, plus fallback for other types.
  */
 export function computeTripFrameFromConfirmations(
   confirmations: ParsedConfirmation[],
@@ -58,32 +58,42 @@ export function computeTripFrameFromConfirmations(
     if (!latest || d.getTime() > latest.getTime()) latest = d;
   }
 
+  function considerRaw(raw: string | null | undefined): void {
+    if (!raw) return;
+    consider(toOrderingDate(raw));
+  }
+
+  // v3.9.70: Use canonical itinerary for structured aggregation
+  const itinerary = buildCanonicalItinerary(confirmations);
+
+  // Flight legs
+  for (const cf of itinerary.flights) {
+    const leg = cf.leg;
+    consider(leg.departureDate);
+    consider(leg.arrivalDate);
+    if (!leg.departureDate) considerRaw(leg.rawDepartureString);
+    if (!leg.arrivalDate) considerRaw(leg.rawArrivalString);
+  }
+
+  // Lodging stays
+  for (const stay of itinerary.lodgings) {
+    considerRaw(stay.rawCheckInString);
+    considerRaw(stay.rawCheckOutString);
+  }
+
+  // Car rentals
+  for (const car of itinerary.cars) {
+    considerRaw(car.rawPickupString);
+    considerRaw(car.rawDropoffString);
+  }
+
+  // Fallback: confirmation-level pre-parsed ordering dates for ALL types
+  // These may be set by the adapter even when raw strings are also present
   for (const conf of confirmations) {
-    // Confirmation-level dates
     consider(conf.startDate);
     consider(conf.endDate);
-
-    // Fallback: try raw strings
-    if (!conf.startDate && conf.rawStartString) {
-      consider(toOrderingDate(conf.rawStartString));
-    }
-    if (!conf.endDate && conf.rawEndString) {
-      consider(toOrderingDate(conf.rawEndString));
-    }
-
-    // Flight legs
-    for (const leg of conf.legs) {
-      consider(leg.departureDate);
-      consider(leg.arrivalDate);
-
-      // Fallback: try raw strings for legs
-      if (!leg.departureDate && leg.rawDepartureString) {
-        consider(toOrderingDate(leg.rawDepartureString));
-      }
-      if (!leg.arrivalDate && leg.rawArrivalString) {
-        consider(toOrderingDate(leg.rawArrivalString));
-      }
-    }
+    if (!conf.startDate) considerRaw(conf.rawStartString);
+    if (!conf.endDate) considerRaw(conf.rawEndString);
   }
 
   if (!earliest || !latest) return null;
