@@ -1,15 +1,21 @@
 /**
- * v4.3.0: process-pending-import — Async worker that parses inbound email body
+ * v4.4.0A: process-pending-import — Async worker that parses inbound email body
  *
  * Uses the canonical parse contract for universal classification
  * and required field enforcement across ALL entity types.
+ *
+ * v4.4.0A changes:
+ * - Each flight leg becomes its own CanonicalBooking (no more flight_legs array in output).
+ * - parsed_data is stored as a CanonicalImportBatch.
+ * - Trip start/end derived from service dates across ALL bookings.
  *
  * 1. Read pending_import by ID (service role)
  * 2. Extract clean plain-text body, strip quoted threads
  * 3. Send to AI extraction
  * 4. Apply canonical classification + required field enforcement
- * 5. Update pending_import with structured data + status
- * 6. PURGE raw email content from the record (non-negotiable)
+ * 5. Build CanonicalBooking[] (one per bookable unit)
+ * 6. Derive trip window from service dates
+ * 7. Store CanonicalImportBatch in parsed_data, PURGE raw email content
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -26,6 +32,11 @@ import {
   type DocClassification,
   ENTITY_TYPE_LABELS,
 } from "../_shared/parse-contract.ts";
+import {
+  type CanonicalBooking,
+  type CanonicalImportBatch,
+  deriveTripDatesFromBookings,
+} from "../_shared/import-contract.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -270,18 +281,88 @@ Deno.serve(async (req: Request) => {
 
   const summary = buildSummary(extracted);
 
-  // ── 6. Purge raw content and update with structured data ───────
-  await purgeAndSetStatus(supabase, importId, status, null, {
-    ...extracted,
-    _validation: {
-      hard_fails: validationResult.hardFails,
-      soft_issues: validationResult.softIssues,
-    },
-    _summary: summary,
-  }, confidence, extracted.vendor_name as string || null);
+  // ── 6. v4.4.0A: Build CanonicalBooking[] from extracted ────────
+  const bookings: CanonicalBooking[] = [];
+  const vendorName = (extracted.vendor_name as string) || (extracted.airline as string) || "Unknown";
+  const confNum = (extracted.confirmation_number as string) || null;
+  const docClassStr = String(docClass);
 
-  console.log(`process-pending-import: ${importId} → ${status} (confidence: ${confidence}, classification: ${docClass})`);
-  return jsonOk({ status, confidence, import_id: importId, doc_classification: docClass });
+  if (
+    (extracted.booking_type as string) === "flight" &&
+    Array.isArray(extracted.flight_legs) &&
+    (extracted.flight_legs as unknown[]).length > 0
+  ) {
+    // Multi-leg or single-leg flight: one CanonicalBooking per leg
+    const legs = extracted.flight_legs as Record<string, unknown>[];
+    for (const leg of legs) {
+      bookings.push({
+        booking_type: "flight",
+        vendor_name: vendorName,
+        start_datetime: (leg.departure_datetime as string) || null,
+        end_datetime: (leg.arrival_datetime as string) || null,
+        confirmation_number: confNum,
+        departure_airport_code: (leg.departure_airport_code as string) || null,
+        arrival_airport_code: (leg.arrival_airport_code as string) || null,
+        airline: (extracted.airline as string) || null,
+        passenger_name: (extracted.passenger_name as string) || null,
+        flight_number: (leg.flight_number as string) || null,
+        total_cost: null, // cost lives at booking level, not per-leg
+        currency_code: (extracted.currency_code as string) || null,
+        _source: "email",
+        _import_id: importId,
+        _doc_classification: docClassStr,
+      });
+    }
+  } else {
+    // Non-flight or single-leg flight without flight_legs array
+    const bt = (extracted.booking_type as string) || "other";
+    bookings.push({
+      booking_type: bt as CanonicalBooking["booking_type"],
+      vendor_name: vendorName,
+      start_datetime: (extracted.start_datetime as string) || null,
+      end_datetime: (extracted.end_datetime as string) || null,
+      confirmation_number: confNum,
+      departure_airport_code: (extracted.departure_airport_code as string) || null,
+      arrival_airport_code: (extracted.arrival_airport_code as string) || null,
+      airline: (extracted.airline as string) || null,
+      passenger_name: (extracted.passenger_name as string) || null,
+      property_name: (extracted.property_name as string) || null,
+      stay_type: (extracted.stay_type as CanonicalBooking["stay_type"]) || null,
+      rental_company: (extracted.rental_company as string) || null,
+      pickup_location: (extracted.pickup_location as string) || null,
+      return_location: (extracted.return_location as string) || null,
+      parking_type: (extracted.parking_type as CanonicalBooking["parking_type"]) || null,
+      address: (extracted.address as string) || null,
+      total_cost: (extracted.total_cost as number) || null,
+      currency_code: (extracted.currency_code as string) || null,
+      _source: "email",
+      _import_id: importId,
+      _doc_classification: docClassStr,
+    });
+  }
+
+  // ── 7. Derive trip dates from service dates ────────────────────
+  const tripDates = deriveTripDatesFromBookings(bookings);
+
+  const batch: CanonicalImportBatch = {
+    trip: {
+      start_date: tripDates.start_date,
+      end_date: tripDates.end_date,
+    },
+    bookings,
+    _batch_summary: {
+      booking_count: bookings.length,
+      validation_hard_fails: validationResult.hardFails,
+      validation_soft_issues: validationResult.softIssues,
+      summary,
+    },
+  };
+
+  // ── 8. Purge raw content and store canonical batch ─────────────
+  await purgeAndSetStatus(supabase, importId, status, null, batch as unknown as Record<string, unknown>, confidence, vendorName);
+
+  console.log(`process-pending-import: v4.4.0A ${importId} → ${status} (confidence: ${confidence}, classification: ${docClass}, bookings: ${bookings.length})`);
+  return jsonOk({ status, confidence, import_id: importId, doc_classification: docClass, booking_count: bookings.length });
 });
 
 // ═════════════════════════════════════════════════════════════════
