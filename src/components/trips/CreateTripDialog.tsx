@@ -38,11 +38,9 @@ import { runCanonicalImportPipeline } from '@/lib/ingestion/canonicalImportPipel
 import { enrichParsedBookingCost } from '@/lib/costAttribution';
 // v3.9.35: Canonical import staging — single source for trip creation inputs
 import { buildImportStaging, buildStagingSnapshot, extractDateTokensFromParsedItems, deriveTripFrameFromDateTokens, type ParsedImportStaging, type StagingSnapshot } from '@/lib/ingestion/importStaging';
-// v3.9.80: extractDateToken removed — wizard now delegates to canonical tripWindow
-// v3.9.80: Canonical trip window — single source of truth for wizard start/end
-import { computeTripWindowFromParsedBookings } from '@/lib/import/tripWindow';
-// v4.4.0D: Canonical trip date derivation — prefer canonical bookings when available
-import { deriveTripDatesFromCanonical } from '@/lib/import/canonicalBookingMapper';
+// v4.4.2: Single canonical date derivation — no legacy Date-object fallback
+import { extractDateToken, deriveTripDateRange } from '@/lib/canonicalTripDates';
+import { toDateTokenFromString } from '@/lib/dateTokenExtractor';
 import { extractCanonicalBatch } from '@/lib/import/canonicalBookingMapper';
 // v3.9.26: TripBuildModel — deterministic builder + integrity assertions
 import { buildTripModel, type TripBuildModel } from '@/lib/ingestion/tripBuildModel';
@@ -73,28 +71,21 @@ type AutofillStatus = 'idle' | 'running' | 'filled' | 'needs_user' | 'failed_tim
 export function computeWizardTripWindow(
   bookings: ParsedBooking[],
 ): { startDate: string | null; endDate: string | null } {
-  // v4.4.0D: Try canonical derivation first — works when all dates are normalized ISO.
-  // If canonical produces valid dates AND covers all bookings that have dates,
-  // use it (handles multi-leg canonical imports). Otherwise fall back to legacy
-  // which handles EU date formats, mixed formats, etc.
-  const canonicalDates = deriveTripDatesFromCanonical(bookings as any[]);
-  if (canonicalDates.start_date && canonicalDates.end_date) {
-    // Verify canonical didn't miss any bookings that have dates in non-ISO format
-    const hasNonIsoDates = bookings.some((b: any) => {
-      const s = b.start_datetime?.toString();
-      const e = b.end_datetime?.toString();
-      const sIsIso = !s || /^\d{4}-\d{2}-\d{2}/.test(s);
-      const eIsIso = !e || /^\d{4}-\d{2}-\d{2}/.test(e);
-      return !sIsIso || !eIsIso;
-    });
-    if (!hasNonIsoDates) {
-      return { startDate: canonicalDates.start_date, endDate: canonicalDates.end_date };
-    }
-  }
-
-  // Legacy fallback — handles EU dates, mixed formats, flight_legs, etc.
-  const window = computeTripWindowFromParsedBookings(bookings as any[]);
-  return { startDate: window.startDate, endDate: window.endDate };
+  // v4.4.2: SINGLE canonical path — string-only date comparison.
+  // Handles both ISO (YYYY-MM-DD...) and EU formats (11 Mar 2026, 25/03/2026)
+  // via extractDateToken (ISO) + toDateTokenFromString (non-ISO) fallback.
+  // No Date objects, no UTC conversion, no timezone shifts.
+  const mapped = bookings.map(b => {
+    const rawStart = (b as any).start_datetime as string | null | undefined;
+    const rawEnd = (b as any).end_datetime as string | null | undefined;
+    return {
+      booking_type: (b as any).booking_type || 'other',
+      start_datetime: extractDateToken(rawStart) || toDateTokenFromString(rawStart) || rawStart,
+      end_datetime: extractDateToken(rawEnd) || toDateTokenFromString(rawEnd) || rawEnd,
+    };
+  });
+  const range = deriveTripDateRange(mapped);
+  return { startDate: range.startDate, endDate: range.endDate };
 }
 
 function parsePassengers(passengerString: string | undefined, airline: string | undefined): Array<{

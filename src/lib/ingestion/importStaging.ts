@@ -289,8 +289,17 @@ export function buildStagingSnapshot(
   // Extract date tokens
   const dateTokens = extractDateTokensFromParsedItems(canonicalItems);
 
-  // Derive trip range
-  const derivedTripRange = deriveTripFrameFromDateTokens(dateTokens);
+  // v4.4.2: Derive trip range using canonical helper (same as wizard)
+  // This ensures buildModel dates match wizard UI dates exactly.
+  const canonicalRange = deriveTripDateRange(canonicalItems.map(item => ({
+    booking_type: (item.booking_type as string) || 'other',
+    start_datetime: item.start_datetime as string | null | undefined,
+    end_datetime: item.end_datetime as string | null | undefined,
+  })));
+  const derivedTripRange: TripFrame = {
+    startDate: canonicalRange.startDate,
+    endDate: canonicalRange.endDate,
+  };
 
   // Build meta
   const metaBookings = canonicalItems.map(item => ({
