@@ -57,16 +57,26 @@ function extractDatePart(dt: string | null | undefined): string | null {
  * Derive trip start/end from an array of CanonicalBookings.
  */
 function deriveTripDates(bookings: CanonicalBooking[]): TripBounds {
-  const parts: string[] = [];
+  let earliest: string | null = null;
+  let latest: string | null = null;
+
   for (const b of bookings) {
     const s = extractDatePart(b.start_datetime);
     const e = extractDatePart(b.end_datetime);
-    if (s) parts.push(s);
-    if (e) parts.push(e);
+
+    if (s) {
+      if (!earliest || s < earliest) earliest = s;
+      if (!latest || s > latest) latest = s;
+    }
+    if (e) {
+      if (!latest || e > latest) latest = e;
+      if (!earliest || e < earliest) {
+        if (!s) earliest = e;
+      }
+    }
   }
-  if (parts.length === 0) return { start_date: null, end_date: null };
-  parts.sort();
-  return { start_date: parts[0], end_date: parts[parts.length - 1] };
+
+  return { start_date: earliest, end_date: latest };
 }
 
 // ============================================================================
@@ -89,21 +99,28 @@ export function deriveTripDatesFromCanonical(
 ): { start_date: string | null; end_date: string | null } {
   if (!bookings || bookings.length === 0) return { start_date: null, end_date: null };
 
-  const dates: string[] = [];
+  let earliest: string | null = null;
+  let latest: string | null = null;
 
   for (const b of bookings) {
     if ((b as any)._is_receipt_only) continue;
     const start = b.start_datetime?.toString().substring(0, 10);
     const end = b.end_datetime?.toString().substring(0, 10);
 
-    if (start && /^\d{4}-\d{2}-\d{2}$/.test(start)) dates.push(start);
-    if (end && /^\d{4}-\d{2}-\d{2}$/.test(end)) dates.push(end);
+    if (start && /^\d{4}-\d{2}-\d{2}$/.test(start)) {
+      if (!earliest || start < earliest) earliest = start;
+      if (!latest || start > latest) latest = start;
+    }
+
+    if (end && /^\d{4}-\d{2}-\d{2}$/.test(end)) {
+      if (!latest || end > latest) latest = end;
+      if (!earliest || end < earliest) {
+        if (!start) earliest = end;
+      }
+    }
   }
 
-  if (dates.length === 0) return { start_date: null, end_date: null };
-
-  dates.sort(); // lexicographic works for YYYY-MM-DD
-  return { start_date: dates[0]!, end_date: dates[dates.length - 1]! };
+  return { start_date: earliest, end_date: latest };
 }
 
 /**
