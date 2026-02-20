@@ -107,6 +107,21 @@ CRITICAL v4.4.1 - MULTI-SEGMENT FLIGHT PRESERVATION:
 - Do NOT stop scanning when you encounter "Extra baggage", "Payment Information", "Taxes", or "Terms".
 - There is NO maximum number of flight legs. Extract every single one.
 
+CRITICAL - E-TICKET / ITINERARY FLIGHT BLOCK STRUCTURE:
+- Each flight segment block contains BOTH departure AND arrival info in a paired layout:
+  * DEPARTURE side: departure date, departure time, departure airport, terminal
+  * ARRIVAL side: arrival date, arrival time, arrival airport, terminal
+- Example BA e-ticket block:
+  "BA0226 | British Airways | Confirmed
+   11 Mar 2026  23:10  Hartsfield-Jackson Int  Terminal I
+   12 Mar 2026  11:15  Heathrow (London)  Terminal 3"
+  → start_datetime = "2026-03-11T23:10:00", end_datetime = "2026-03-12T11:15:00"
+- The FIRST date+time pair is ALWAYS the departure (start_datetime)
+- The SECOND date+time pair is ALWAYS the arrival (end_datetime)
+- BOTH start_datetime AND end_datetime MUST be extracted for EVERY flight leg
+- The arrival date may differ from the departure date (overnight flights)
+- NEVER leave end_datetime empty for flights — the arrival date+time is ALWAYS shown in the itinerary block
+
 CRITICAL - GLOBAL DATETIME INTEGRITY RULES:
 1. DATES ARE ABSOLUTE AUTHORITY
    - Extract dates EXACTLY as they appear in the confirmation
@@ -143,8 +158,8 @@ Extract the following TRIP information:
 Also extract ALL BOOKINGS found in the document as an array. Each booking should include:
 - booking_type: "flight", "stay", "car_rental", "activity", "parking", "transport"
 - vendor_name: The company name (airline, hotel, rental company, etc.)
-- start_datetime: With explicit time: ISO 8601 format; Without explicit time: date-only
-- end_datetime: Same rules as start_datetime
+- start_datetime: With explicit time: ISO 8601 format (YYYY-MM-DDTHH:mm:ss); Without explicit time: date-only (YYYY-MM-DD)
+- end_datetime: Same format rules as start_datetime. For flights this is the ARRIVAL date+time — MUST be extracted from the arrival block of each flight segment. NEVER omit for flights.
 - confirmation_number: If present (PNR for flights)
 - total_cost: Number only (for multi-leg flights: full fare on first leg, null on others)
 - address: If applicable
