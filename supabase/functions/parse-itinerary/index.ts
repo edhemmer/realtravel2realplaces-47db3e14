@@ -107,20 +107,26 @@ CRITICAL v4.4.1 - MULTI-SEGMENT FLIGHT PRESERVATION:
 - Do NOT stop scanning when you encounter "Extra baggage", "Payment Information", "Taxes", or "Terms".
 - There is NO maximum number of flight legs. Extract every single one.
 
-CRITICAL - E-TICKET / ITINERARY FLIGHT BLOCK STRUCTURE:
-- Each flight segment block contains BOTH departure AND arrival info in a paired layout:
-  * DEPARTURE side: departure date, departure time, departure airport, terminal
-  * ARRIVAL side: arrival date, arrival time, arrival airport, terminal
-- Example BA e-ticket block:
-  "BA0226 | British Airways | Confirmed
-   11 Mar 2026  23:10  Hartsfield-Jackson Int  Terminal I
-   12 Mar 2026  11:15  Heathrow (London)  Terminal 3"
-  → start_datetime = "2026-03-11T23:10:00", end_datetime = "2026-03-12T11:15:00"
-- The FIRST date+time pair is ALWAYS the departure (start_datetime)
-- The SECOND date+time pair is ALWAYS the arrival (end_datetime)
-- BOTH start_datetime AND end_datetime MUST be extracted for EVERY flight leg
-- The arrival date may differ from the departure date (overnight flights)
-- NEVER leave end_datetime empty for flights — the arrival date+time is ALWAYS shown in the itinerary block
+CRITICAL - UNIVERSAL FLIGHT SEGMENT EXTRACTION (applies to ALL airlines, all formats):
+- Every flight segment contains BOTH a departure block AND an arrival block with date+time+airport info.
+- These may be laid out as:
+  * Paired rows (departure on one line/side, arrival on the next line/side)
+  * Table columns (Depart | Arrive)
+  * Labeled fields ("Departing: ... Arriving: ...")
+  * Side-by-side blocks in e-ticket receipts
+- ALWAYS extract BOTH start_datetime (departure) AND end_datetime (arrival) for EVERY flight leg.
+- The departure date+time is the FIRST date+time associated with the segment.
+- The arrival date+time is the SECOND date+time associated with the segment.
+- The arrival date MAY differ from departure (overnight/red-eye flights). Do NOT assume same-day.
+- NEVER leave end_datetime empty or null for flights. If arrival info exists anywhere in the segment block, extract it.
+- NEVER default times to 00:00 — if a time is shown (e.g., 23:10, 11:15, 2:30 PM), use it exactly.
+- Examples of correct extraction:
+  * "11 Mar 2026 23:10 ATL → 12 Mar 2026 11:15 LHR"
+    → start_datetime="2026-03-11T23:10:00", end_datetime="2026-03-12T11:15:00"
+  * "Departs: 03/26/2026 12:40 PM  Arrives: 03/26/2026 1:45 PM"
+    → start_datetime="2026-03-26T12:40:00", end_datetime="2026-03-26T13:45:00"
+  * "Jun 15 08:00 JFK | Jun 15 20:30 CDG"
+    → start_datetime="2025-06-15T08:00:00", end_datetime="2025-06-15T20:30:00"
 
 CRITICAL - GLOBAL DATETIME INTEGRITY RULES:
 1. DATES ARE ABSOLUTE AUTHORITY
