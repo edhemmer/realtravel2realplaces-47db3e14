@@ -1,6 +1,6 @@
 /**
  * Hook to fetch and manage user's pending email imports.
- * v4.3.1: Expense creation added to standard booking path — every filed booking with a cost now creates a linked expense
+ * v4.4.0C: Canonical import path — prefer CanonicalImportBatch.bookings for multi-leg support
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { isReceiptClassification, getEntityLabel } from '@/lib/parseContract';
+import { buildBookingsFromCanonicalImport, extractCanonicalBatch } from '@/lib/import/canonicalBookingMapper';
 
 export interface PendingImport {
   id: string;
@@ -81,170 +82,234 @@ export function useFileImportToTrip() {
       tripId: string;
       parsedData: Record<string, unknown>;
     }) => {
-      const isReceipt = isReceiptClassification(parsedData);
-      
-      if (isReceipt) {
-        // v4.2.0: Receipt items → create expense, not a booking (all entity types)
-        const entityType = (parsedData.booking_type as string) || 'other';
-        const categoryMap: Record<string, string> = {
-          flight: 'transport', car_rental: 'transport', transport: 'transport',
-          parking: 'parking', activity: 'activity',
-        };
-        const category = categoryMap[entityType] || 'other';
-        const expenseDate = (parsedData.receipt_date as string) || (parsedData.start_datetime as string)?.substring(0, 10) || new Date().toISOString().split('T')[0];
-        const entityLabel = getEntityLabel(entityType);
-        
-        const { error: expenseError } = await supabase
-          .from('expenses')
-          .insert([{
-            trip_id: tripId,
-            date: expenseDate,
-            category: category as 'meals' | 'transport' | 'activity' | 'shopping' | 'parking' | 'other',
-            description: `${parsedData.vendor_name || entityLabel} (receipt)`,
-            amount: (parsedData.total_cost as number) || 0,
-            notes: `Created from ${entityLabel.toLowerCase()} receipt import. Not an itinerary — no timeline entry.`,
-          }]);
-        
-        if (expenseError) throw expenseError;
-      } else {
-        // Standard booking creation with multi-leg flight support
-        const bookingType = parsedData.booking_type as string || 'activity';
-        const validTypes = ['flight', 'stay', 'car_rental', 'activity', 'transport'];
-        const finalType = validTypes.includes(bookingType) ? bookingType : 'activity';
-        const isPaymentDeclined = parsedData._payment_declined === true;
-        const currencyCode = (parsedData.currency_code as string) || 'USD';
-        const flightLegs = Array.isArray(parsedData.flight_legs)
-          ? (parsedData.flight_legs as Record<string, unknown>[])
-          : [];
-        const isMultiLeg = finalType === 'flight' && flightLegs.length > 1;
+      // ── v4.4.0C: CANONICAL PATH — prefer CanonicalImportBatch when present ──
+      const canonicalResult = buildBookingsFromCanonicalImport(parsedData, tripId,
+        (parsedData.currency_code as string) || 'USD');
 
-        if (isMultiLeg) {
-          for (let i = 0; i < flightLegs.length; i++) {
-            const leg = flightLegs[i];
-            const isOutbound = i === 0;
-            const legCost = isOutbound && !isPaymentDeclined
+      if (canonicalResult && canonicalResult.bookings.length > 0) {
+        // Canonical path: one booking row per CanonicalBooking (one per leg/stay/rental)
+        for (const bookingInput of canonicalResult.bookings) {
+          const isPaymentDeclined = !!(parsedData._payment_declined);
+          const effectiveCost = isPaymentDeclined ? null : bookingInput.total_cost;
+
+          const row = {
+            trip_id: tripId,
+            booking_type: bookingInput.booking_type as any,
+            vendor_name: bookingInput.vendor_name,
+            start_datetime: bookingInput.start_datetime,
+            end_datetime: bookingInput.end_datetime || null,
+            confirmation_number: bookingInput.confirmation_number || null,
+            total_cost: effectiveCost,
+            airline: bookingInput.airline || null,
+            passenger_name: bookingInput.passenger_name || null,
+            departure_airport_code: bookingInput.departure_airport_code || null,
+            arrival_airport_code: bookingInput.arrival_airport_code || null,
+            property_name: bookingInput.property_name || null,
+            stay_type: bookingInput.stay_type || null,
+            rental_company: bookingInput.rental_company || null,
+            pickup_location: bookingInput.pickup_location || null,
+            return_location: bookingInput.return_location || null,
+            address: bookingInput.address || null,
+            from_location: bookingInput.from_location || null,
+            to_location: bookingInput.to_location || null,
+            notes: isPaymentDeclined ? 'PAYMENT DECLINED — verify before travel' : null,
+          };
+
+          const { error: bookingError } = await supabase
+            .from('bookings')
+            .insert(row as any);
+          if (bookingError) throw bookingError;
+
+          // Create linked expense if cost is present and payment not declined
+          if (typeof effectiveCost === 'number' && effectiveCost > 0) {
+            const categoryMap: Record<string, string> = {
+              flight: 'transport', car_rental: 'transport', transport: 'transport',
+              parking: 'parking', stay: 'other', activity: 'activity',
+            };
+            const expenseCategory = categoryMap[bookingInput.booking_type] || 'other';
+            const rawStart = bookingInput.start_datetime;
+            const expenseDate = rawStart && rawStart.length >= 10
+              ? rawStart.substring(0, 10)
+              : new Date().toISOString().split('T')[0];
+            const currencyCode = bookingInput._extracted_currency || 'USD';
+
+            const { error: expErr } = await supabase.from('expenses').insert({
+              trip_id: tripId,
+              date: expenseDate,
+              category: expenseCategory as any,
+              description: `${bookingInput.vendor_name}${bookingInput.confirmation_number ? ` (${bookingInput.confirmation_number})` : ''}`,
+              amount: effectiveCost,
+              notes: `Currency: ${currencyCode}. Filed from import.`,
+            });
+            if (expErr) {
+              console.error('Expense insert error (non-blocking):', expErr);
+            }
+          }
+        }
+      } else {
+        // ── LEGACY PATH — no canonical batch, use old single-booking logic ──
+        const isReceipt = isReceiptClassification(parsedData);
+      
+        if (isReceipt) {
+          // v4.2.0: Receipt items → create expense, not a booking (all entity types)
+          const entityType = (parsedData.booking_type as string) || 'other';
+          const categoryMap: Record<string, string> = {
+            flight: 'transport', car_rental: 'transport', transport: 'transport',
+            parking: 'parking', activity: 'activity',
+          };
+          const category = categoryMap[entityType] || 'other';
+          const expenseDate = (parsedData.receipt_date as string) || (parsedData.start_datetime as string)?.substring(0, 10) || new Date().toISOString().split('T')[0];
+          const entityLabel = getEntityLabel(entityType);
+          
+          const { error: expenseError } = await supabase
+            .from('expenses')
+            .insert([{
+              trip_id: tripId,
+              date: expenseDate,
+              category: category as 'meals' | 'transport' | 'activity' | 'shopping' | 'parking' | 'other',
+              description: `${parsedData.vendor_name || entityLabel} (receipt)`,
+              amount: (parsedData.total_cost as number) || 0,
+              notes: `Created from ${entityLabel.toLowerCase()} receipt import. Not an itinerary — no timeline entry.`,
+            }]);
+          
+          if (expenseError) throw expenseError;
+        } else {
+          // Standard booking creation with multi-leg flight support
+          const bookingType = parsedData.booking_type as string || 'activity';
+          const validTypes = ['flight', 'stay', 'car_rental', 'activity', 'transport'];
+          const finalType = validTypes.includes(bookingType) ? bookingType : 'activity';
+          const isPaymentDeclined = parsedData._payment_declined === true;
+          const currencyCode = (parsedData.currency_code as string) || 'USD';
+          const flightLegs = Array.isArray(parsedData.flight_legs)
+            ? (parsedData.flight_legs as Record<string, unknown>[])
+            : [];
+          const isMultiLeg = finalType === 'flight' && flightLegs.length > 1;
+
+          if (isMultiLeg) {
+            for (let i = 0; i < flightLegs.length; i++) {
+              const leg = flightLegs[i];
+              const isOutbound = i === 0;
+              const legCost = isOutbound && !isPaymentDeclined
+                ? ((parsedData.total_cost as number) || null)
+                : null;
+
+              const legBooking = {
+                trip_id: tripId,
+                booking_type: 'flight' as const,
+                vendor_name: (parsedData.vendor_name as string) || 'Imported Flight',
+                start_datetime: (leg.departure_datetime as string) || new Date().toISOString(),
+                end_datetime: (leg.arrival_datetime as string) || null,
+                confirmation_number: (parsedData.confirmation_number as string) || null,
+                total_cost: legCost,
+                airline: (parsedData.airline as string) || (parsedData.vendor_name as string) || null,
+                passenger_name: (parsedData.passenger_name as string) || null,
+                notes: [
+                  leg.flight_number ? `Flight: ${leg.flight_number}` : null,
+                  leg.departure_airport_code && leg.arrival_airport_code
+                    ? `${leg.departure_airport_code} → ${leg.arrival_airport_code}`
+                    : null,
+                  !isOutbound ? 'Return leg — cost tracked on outbound' : null,
+                  isPaymentDeclined ? 'PAYMENT DECLINED — verify before travel' : null,
+                ].filter(Boolean).join(' | ') || null,
+              };
+
+              const { error: legError } = await supabase.from('bookings').insert(legBooking as any);
+              if (legError) throw legError;
+
+              if (isOutbound && !isPaymentDeclined && legCost) {
+                const lastLeg = flightLegs[flightLegs.length - 1];
+                const expenseDate =
+                  typeof leg.departure_datetime === 'string' && leg.departure_datetime.length >= 10
+                    ? leg.departure_datetime.substring(0, 10)
+                    : new Date().toISOString().split('T')[0];
+
+                const { error: expErr } = await supabase.from('expenses').insert({
+                  trip_id: tripId,
+                  date: expenseDate,
+                  category: 'transport' as const,
+                  description: `${String(parsedData.vendor_name || 'Flight')} — ${String(leg.departure_airport_code || '')} → ${String(lastLeg?.arrival_airport_code || '')} (${String(parsedData.confirmation_number || 'ref unknown')})`,
+                  amount: legCost,
+                  notes: `Currency: ${currencyCode}. Covers all legs on this confirmation.`,
+                });
+                if (expErr) {
+                  console.error('Expense insert error:', expErr);
+                  throw expErr;
+                }
+              }
+            }
+          } else {
+            // Single booking
+            const singleCost = !isPaymentDeclined
               ? ((parsedData.total_cost as number) || null)
               : null;
 
-            const legBooking = {
+            const booking = {
               trip_id: tripId,
-              booking_type: 'flight' as const,
-              vendor_name: (parsedData.vendor_name as string) || 'Imported Flight',
-              start_datetime: (leg.departure_datetime as string) || new Date().toISOString(),
-              end_datetime: (leg.arrival_datetime as string) || null,
+              booking_type: finalType as any,
+              vendor_name: (parsedData.vendor_name as string) || 'Imported Booking',
+              start_datetime: (parsedData.start_datetime as string) || new Date().toISOString(),
+              end_datetime: (parsedData.end_datetime as string) || null,
               confirmation_number: (parsedData.confirmation_number as string) || null,
-              total_cost: legCost,
-              airline: (parsedData.airline as string) || (parsedData.vendor_name as string) || null,
+              total_cost: singleCost,
+              address: (parsedData.address as string) || null,
+              airline: (parsedData.airline as string) || null,
               passenger_name: (parsedData.passenger_name as string) || null,
-              notes: [
-                leg.flight_number ? `Flight: ${leg.flight_number}` : null,
-                leg.departure_airport_code && leg.arrival_airport_code
-                  ? `${leg.departure_airport_code} → ${leg.arrival_airport_code}`
-                  : null,
-                !isOutbound ? 'Return leg — cost tracked on outbound' : null,
-                isPaymentDeclined ? 'PAYMENT DECLINED — verify before travel' : null,
-              ].filter(Boolean).join(' | ') || null,
+              property_name: (parsedData.property_name as string) || null,
+              stay_type: (parsedData.stay_type as string) || null,
+              rental_company: (parsedData.rental_company as string) || null,
+              pickup_location: (parsedData.pickup_location as string) || null,
+              return_location: (parsedData.return_location as string) || null,
+              notes: isPaymentDeclined
+                ? 'PAYMENT DECLINED — verify booking before travel'
+                : ((parsedData.notes as string) || null),
             };
 
-            const { error: legError } = await supabase.from('bookings').insert(legBooking as any);
-            if (legError) throw legError;
+            const { error: bookingError } = await supabase
+              .from('bookings')
+              .insert(booking as any);
+            if (bookingError) throw bookingError;
 
-            // Expense only on outbound leg with confirmed payment
-            if (isOutbound && !isPaymentDeclined && legCost) {
-              const lastLeg = flightLegs[flightLegs.length - 1];
-              const expenseDate =
-                typeof leg.departure_datetime === 'string' && leg.departure_datetime.length >= 10
-                  ? leg.departure_datetime.substring(0, 10)
-                  : new Date().toISOString().split('T')[0];
+            const totalCost = parsedData.total_cost as number | null;
+            const paymentDeclined = !!(parsedData.is_payment_declined);
 
-              const { error: expErr } = await supabase.from('expenses').insert({
-                trip_id: tripId,
-                date: expenseDate,
-                category: 'transport' as const,
-                description: `${String(parsedData.vendor_name || 'Flight')} — ${String(leg.departure_airport_code || '')} → ${String(lastLeg?.arrival_airport_code || '')} (${String(parsedData.confirmation_number || 'ref unknown')})`,
-                amount: legCost,
-                notes: `Currency: ${currencyCode}. Covers all legs on this confirmation.`,
-              });
-              if (expErr) {
-                console.error('Expense insert error:', expErr);
-                throw expErr;
+            if (typeof totalCost === 'number' && totalCost > 0 && !paymentDeclined) {
+              const categoryMap: Record<string, string> = {
+                flight: 'transport',
+                car_rental: 'transport',
+                transport: 'transport',
+                parking: 'parking',
+                stay: 'other',
+                activity: 'activity',
+              };
+              const expenseCategory = categoryMap[finalType] || 'other';
+
+              const rawStart = parsedData.start_datetime as string | null;
+              const expenseDate = rawStart && rawStart.length >= 10
+                ? rawStart.substring(0, 10)
+                : new Date().toISOString().split('T')[0];
+
+              const currencyCode = (parsedData.currency_code as string) || 'USD';
+              const vendorName = String(parsedData.vendor_name || 'Imported Booking');
+              const confNum = parsedData.confirmation_number
+                ? ` (${String(parsedData.confirmation_number)})`
+                : '';
+
+              const { error: expenseError } = await supabase
+                .from('expenses')
+                .insert({
+                  trip_id: tripId,
+                  date: expenseDate,
+                  category: expenseCategory as 'meals' | 'transport' | 'activity' | 'shopping' | 'parking' | 'other',
+                  description: `${vendorName}${confNum}`,
+                  amount: totalCost,
+                  notes: `Currency: ${currencyCode}. Filed from import.`,
+                });
+
+              if (expenseError) {
+                console.error('Expense insert error (non-blocking):', expenseError);
               }
             }
           }
-        } else {
-          // Single booking — handles both simple domestic and single-leg international
-          const singleCost = !isPaymentDeclined
-            ? ((parsedData.total_cost as number) || null)
-            : null;
-
-          const booking = {
-            trip_id: tripId,
-            booking_type: finalType as any,
-            vendor_name: (parsedData.vendor_name as string) || 'Imported Booking',
-            start_datetime: (parsedData.start_datetime as string) || new Date().toISOString(),
-            end_datetime: (parsedData.end_datetime as string) || null,
-            confirmation_number: (parsedData.confirmation_number as string) || null,
-            total_cost: singleCost,
-            address: (parsedData.address as string) || null,
-            airline: (parsedData.airline as string) || null,
-            passenger_name: (parsedData.passenger_name as string) || null,
-            property_name: (parsedData.property_name as string) || null,
-            stay_type: (parsedData.stay_type as string) || null,
-            rental_company: (parsedData.rental_company as string) || null,
-            pickup_location: (parsedData.pickup_location as string) || null,
-            return_location: (parsedData.return_location as string) || null,
-            notes: isPaymentDeclined
-              ? 'PAYMENT DECLINED — verify booking before travel'
-              : ((parsedData.notes as string) || null),
-          };
-
-        const { error: bookingError } = await supabase
-          .from('bookings')
-          .insert(booking as any);
-        if (bookingError) throw bookingError;
-
-        // Create linked expense if this booking has a cost
-        const totalCost = parsedData.total_cost as number | null;
-        const paymentDeclined = !!(parsedData.is_payment_declined);
-
-        if (typeof totalCost === 'number' && totalCost > 0 && !paymentDeclined) {
-          const categoryMap: Record<string, string> = {
-            flight: 'transport',
-            car_rental: 'transport',
-            transport: 'transport',
-            parking: 'parking',
-            stay: 'other',
-            activity: 'activity',
-          };
-          const expenseCategory = categoryMap[finalType] || 'other';
-
-          const rawStart = parsedData.start_datetime as string | null;
-          const expenseDate = rawStart && rawStart.length >= 10
-            ? rawStart.substring(0, 10)
-            : new Date().toISOString().split('T')[0];
-
-          const currencyCode = (parsedData.currency_code as string) || 'USD';
-          const vendorName = String(parsedData.vendor_name || 'Imported Booking');
-          const confNum = parsedData.confirmation_number
-            ? ` (${String(parsedData.confirmation_number)})`
-            : '';
-
-          const { error: expenseError } = await supabase
-            .from('expenses')
-            .insert({
-              trip_id: tripId,
-              date: expenseDate,
-              category: expenseCategory as 'meals' | 'transport' | 'activity' | 'shopping' | 'parking' | 'other',
-              description: `${vendorName}${confNum}`,
-              amount: totalCost,
-              notes: `Currency: ${currencyCode}. Filed from import.`,
-            });
-
-          if (expenseError) {
-            console.error('Expense insert error (non-blocking):', expenseError);
-            // Non-blocking: booking was created successfully, expense failure is logged but not thrown
-          }
-        }
         }
       }
 
