@@ -31,6 +31,11 @@ import {
   type ParseIssue,
   ENTITY_TYPE_LABELS,
 } from "../_shared/parse-contract.ts";
+import {
+  type CanonicalBooking,
+  type CanonicalImportBatch,
+  deriveTripDatesFromBookings,
+} from "../_shared/import-contract.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -379,6 +384,37 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
         if (parseIssues.length > 0) {
           parsed._parse_issues = [...(parsed._parse_issues || []), ...parseIssues];
         }
+        // ── v4.4.0B: BUILD CANONICAL IMPORT BATCH ─────────────────
+        const canonicalBooking: CanonicalBooking = {
+          booking_type: (parsed.booking_type as CanonicalBooking["booking_type"]) || "other",
+          vendor_name: (parsed.vendor_name as string) || "Unknown",
+          start_datetime: parsed.start_datetime || null,
+          end_datetime: parsed.end_datetime || null,
+          confirmation_number: parsed.confirmation_number || null,
+          departure_airport_code: parsed.departure_airport_code || null,
+          arrival_airport_code: parsed.arrival_airport_code || null,
+          airline: parsed.airline || null,
+          passenger_name: parsed.passenger_name || null,
+          property_name: parsed.property_name || null,
+          stay_type: parsed.stay_type || null,
+          rental_company: parsed.rental_company || null,
+          pickup_location: parsed.pickup_location || null,
+          return_location: parsed.return_location || null,
+          parking_type: parsed.parking_type || null,
+          address: parsed.address || null,
+          from_location: parsed.from_location || null,
+          to_location: parsed.to_location || null,
+          _source: "clipboard",
+          _doc_classification: parsed._doc_classification || null,
+          _parse_issues: parsed._parse_issues,
+        };
+        const canonicalBookings: CanonicalBooking[] = [canonicalBooking];
+        const tripDates = deriveTripDatesFromBookings(canonicalBookings);
+        const canonicalBatch: CanonicalImportBatch = {
+          trip: { start_date: tripDates.start_date, end_date: tripDates.end_date },
+          bookings: canonicalBookings,
+        };
+
         // ── v4.2.0: CANONICAL CLASSIFICATION ────────────────────────
         const entityType = parsed.booking_type as string || 'other';
         const hasDates = hasServiceDates(parsed);
@@ -392,9 +428,11 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
           parsed._is_receipt_only = true;
           const entityLabel = ENTITY_TYPE_LABELS[entityType] || 'Booking';
           
+          canonicalBooking._doc_classification = 'RECEIPT';
           return new Response(JSON.stringify({ 
             success: true, 
             data: parsed,
+            canonical_import: canonicalBatch,
             is_receipt_only: true,
             doc_classification: 'RECEIPT',
             message: `This appears to be a ${entityLabel.toLowerCase()} receipt without service dates. An expense will be created instead.`
@@ -413,6 +451,7 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
             return new Response(JSON.stringify({ 
               success: true, 
               data: parsed,
+              canonical_import: canonicalBatch,
               is_receipt_only: false,
               doc_classification: docClass,
               has_issues: true,
@@ -425,6 +464,7 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
           return new Response(JSON.stringify({ 
             success: true, 
             data: parsed,
+            canonical_import: canonicalBatch,
             is_receipt_only: false,
             doc_classification: docClass,
             message: "Successfully parsed booking details."
@@ -436,6 +476,7 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
           return new Response(JSON.stringify({ 
             success: true, 
             data: parsed,
+            canonical_import: canonicalBatch,
             is_receipt_only: false,
             doc_classification: 'CHANGE_OR_CANCEL',
             message: "This appears to be a change or cancellation notice. Please review your existing bookings."
@@ -444,7 +485,7 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
         
         // Fallback
         return new Response(JSON.stringify({ 
-          success: true, data: parsed, is_receipt_only: false, doc_classification: 'UNKNOWN',
+          success: true, data: parsed, canonical_import: canonicalBatch, is_receipt_only: false, doc_classification: 'UNKNOWN',
           message: "Successfully parsed booking details."
         }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         
