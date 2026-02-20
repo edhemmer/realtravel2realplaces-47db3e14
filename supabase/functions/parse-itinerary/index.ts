@@ -354,6 +354,10 @@ IMPORTANT: Count ALL flight header blocks in the itinerary. If there are 4 fligh
           // v4.3.0: Multi-leg safe dedupe — do NOT collapse by PNR alone
           parsed.bookings = deduplicateBookings(parsed.bookings);
           
+          // v4.4.2: Enforce first-leg-only cost attribution for multi-leg flights
+          // AI models often duplicate the total fare across all legs — this corrects it.
+          enforceFirstLegCostAttribution(parsed.bookings);
+          
           // v4.3.0: Classify each booking and enforce required fields
           const validBookings: Record<string, unknown>[] = [];
           const parseIssues: ParseIssue[] = [];
@@ -554,4 +558,48 @@ function buildSegmentFingerprint(booking: Record<string, unknown>): string {
   // Default: vendor + type + start_datetime
   const vendor = (booking.vendor_name as string) || '';
   return `${type}::${vendor}::${startDt}`;
+}
+
+// ============================================================================
+// FIRST-LEG COST ATTRIBUTION (v4.4.2)
+// ============================================================================
+
+/**
+ * For multi-leg flights sharing the same confirmation_number (PNR),
+ * ensure only the FIRST leg (chronologically) carries the total_cost.
+ * All subsequent legs get total_cost = null.
+ *
+ * This prevents expense duplication when the AI model duplicates the
+ * fare across all legs (a common behavior).
+ *
+ * Non-flight bookings and flights without confirmation numbers are unaffected.
+ */
+function enforceFirstLegCostAttribution(bookings: Record<string, unknown>[]): void {
+  // Group flight bookings by confirmation_number
+  const pnrFirstSeen = new Set<string>();
+
+  // Sort flights by start_datetime to ensure chronological first-leg attribution
+  const flights = bookings
+    .map((b, idx) => ({ booking: b, idx }))
+    .filter(({ booking }) => (booking.booking_type as string) === 'flight' && !!(booking.confirmation_number as string)?.trim());
+
+  // Sort by start_datetime (string comparison is safe for ISO dates)
+  flights.sort((a, b) => {
+    const aStart = (a.booking.start_datetime as string) || '';
+    const bStart = (b.booking.start_datetime as string) || '';
+    return aStart.localeCompare(bStart);
+  });
+
+  for (const { booking } of flights) {
+    const pnr = ((booking.confirmation_number as string) || '').trim().toUpperCase();
+    if (!pnr) continue;
+
+    if (pnrFirstSeen.has(pnr)) {
+      // Subsequent leg — clear cost to prevent duplication
+      booking.total_cost = null;
+    } else {
+      // First leg — keep cost
+      pnrFirstSeen.add(pnr);
+    }
+  }
 }
