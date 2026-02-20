@@ -28,6 +28,7 @@ import {
   type ParseIssue,
   ENTITY_TYPE_LABELS,
 } from "../_shared/parse-contract.ts";
+import { deriveTripDatesFromBookings, type CanonicalBooking } from "../_shared/import-contract.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -412,31 +413,16 @@ IMPORTANT: Count ALL flight header blocks in the itinerary. If there are 4 fligh
           };
         }
         
-        // v4.3.0: Derive trip dates from valid confirmations (not anchor date)
+        // v4.4.1: Derive trip dates from canonical helper (service dates only, no receipts)
         if (Array.isArray(parsed.bookings) && parsed.bookings.length > 0) {
-          const validDates: string[] = [];
-          for (const b of parsed.bookings) {
-            if (b._is_receipt_only) continue;
-            if (b.start_datetime) {
-              const dateStr = String(b.start_datetime).substring(0, 10);
-              if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) validDates.push(dateStr);
-            }
-            if (b.end_datetime) {
-              const dateStr = String(b.end_datetime).substring(0, 10);
-              if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) validDates.push(dateStr);
-            }
-          }
-          if (validDates.length > 0) {
-            validDates.sort();
-            const minDate = validDates[0];
-            const maxDate = validDates[validDates.length - 1];
-            // Only override if valid entity dates produce a wider range
-            if (!parsed.trip.start_date || minDate < parsed.trip.start_date) {
-              parsed.trip.start_date = minDate;
-            }
-            if (!parsed.trip.end_date || maxDate > parsed.trip.end_date) {
-              parsed.trip.end_date = maxDate;
-            }
+          const nonReceiptBookings = (parsed.bookings as CanonicalBooking[]).filter(
+            (b) => !(b as any)._is_receipt_only
+          );
+
+          if (nonReceiptBookings.length > 0) {
+            const { start_date, end_date } = deriveTripDatesFromBookings(nonReceiptBookings);
+            if (start_date) parsed.trip.start_date = start_date;
+            if (end_date) parsed.trip.end_date = end_date;
           }
         }
         

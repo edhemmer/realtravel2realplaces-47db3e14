@@ -252,7 +252,7 @@ export function buildBookingsFromCanonicalImport(
 
   const tripBounds = batch.trip?.start_date && batch.trip?.end_date
     ? { start_date: batch.trip.start_date, end_date: batch.trip.end_date }
-    : deriveTripDates(batch.bookings);
+    : deriveTripDatesFromCanonical(batch.bookings);
 
   return { bookings, tripBounds };
 }
