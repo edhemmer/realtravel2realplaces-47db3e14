@@ -92,13 +92,19 @@ serve(async (req) => {
 
     const systemPrompt = `You are a travel itinerary and booking confirmation parser. Your job is to extract TRIP-LEVEL information from booking confirmations, itineraries, or travel documents.
 
-CRITICAL v4.3.0 - MULTI-LEG FLIGHT PRESERVATION:
+CRITICAL v4.4.1 - MULTI-SEGMENT FLIGHT PRESERVATION:
 - For round-trip or multi-city flights: create a SEPARATE booking record for EACH LEG
 - Each leg must have its own departure_airport_code, arrival_airport_code, start_datetime, and end_datetime
 - The confirmation_number (PNR) may be the same across legs — that is expected
 - Example: DEN→LAX and LAX→DEN should be TWO separate flight bookings
 - For total_cost: assign the FULL fare to the FIRST leg only, set other legs to null
 - NEVER collapse multiple legs into a single booking record
+- CRITICAL: Scan the ENTIRE itinerary section for ALL flight segments. Do NOT stop after 2 legs.
+- Multi-segment itineraries (e.g. 4 legs: outbound connecting + return connecting) are common.
+- Each flight header block (identified by a flight number pattern like BA0226, AA1234, etc.) is a SEPARATE leg.
+- Continue scanning past ALL text sections until no more flight segments remain.
+- Do NOT stop scanning when you encounter "Extra baggage", "Payment Information", "Taxes", or "Terms".
+- There is NO maximum number of flight legs. Extract every single one.
 
 CRITICAL - GLOBAL DATETIME INTEGRITY RULES:
 1. DATES ARE ABSOLUTE AUTHORITY
@@ -151,6 +157,7 @@ Also extract ALL BOOKINGS found in the document as an array. Each booking should
 For flights also extract:
 - airline
 - passenger_name
+- flight_number: The airline flight number (e.g., "BA0226", "AA1234")
 
 For stays also extract:
 - property_name
@@ -166,7 +173,8 @@ For parking also extract:
 
 Return a JSON object with trip info and an array of bookings. Use null for any fields you cannot determine.
 IMPORTANT: Each flight leg MUST be a separate booking in the array.
-IMPORTANT: For flights, ALWAYS populate departure_airport_name and arrival_airport_name with the full airport name text from the confirmation, even when IATA codes are also available.`;
+IMPORTANT: For flights, ALWAYS populate departure_airport_name and arrival_airport_name with the full airport name text from the confirmation, even when IATA codes are also available.
+IMPORTANT: Count ALL flight header blocks in the itinerary. If there are 4 flight segments, return exactly 4 flight bookings.`;
 
     let response;
     try {
@@ -231,6 +239,7 @@ IMPORTANT: For flights, ALWAYS populate departure_airport_name and arrival_airpo
                           arrival_airport_name: { type: "string", description: "Full arrival airport name as written in confirmation (e.g., Milan Malpensa)" },
                           from_location: { type: "string", description: "Origin city or location name" },
                           to_location: { type: "string", description: "Destination city or location name" },
+                          flight_number: { type: "string", description: "Airline flight number (e.g., BA0226, AA1234)" },
                           location_summary: { type: "string" },
                         },
                         required: ["booking_type", "vendor_name", "start_datetime"],
@@ -516,9 +525,10 @@ function buildSegmentFingerprint(booking: Record<string, unknown>): string {
   
   if (type === 'flight') {
     const carrier = (booking.airline as string) || (booking.vendor_name as string) || '';
-    const dep = (booking.departure_airport_code as string) || '';
-    const arr = (booking.arrival_airport_code as string) || '';
-    return `flight::${carrier}::${dep}::${arr}::${startDate}::${rawTime}`;
+    const flightNum = (booking.flight_number as string) || '';
+    const dep = (booking.departure_airport_code as string) || (booking.departure_airport_name as string) || (booking.from_location as string) || '';
+    const arr = (booking.arrival_airport_code as string) || (booking.arrival_airport_name as string) || (booking.to_location as string) || '';
+    return `flight::${carrier}::${flightNum}::${dep}::${arr}::${startDate}::${rawTime}`;
   }
   
   if (type === 'stay') {
