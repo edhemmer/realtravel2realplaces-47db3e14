@@ -38,9 +38,9 @@ import { runCanonicalImportPipeline } from '@/lib/ingestion/canonicalImportPipel
 import { enrichParsedBookingCost } from '@/lib/costAttribution';
 // v3.9.35: Canonical import staging — single source for trip creation inputs
 import { buildImportStaging, buildStagingSnapshot, extractDateTokensFromParsedItems, deriveTripFrameFromDateTokens, type ParsedImportStaging, type StagingSnapshot } from '@/lib/ingestion/importStaging';
-import { extractDateToken } from '@/lib/canonicalTripDates';
-// v3.9.61: Import canonical date recognition for wizard trip window (handles EU formats)
-import { toOrderingDate } from '@/lib/dates/dateRecognition';
+// v3.9.80: extractDateToken removed — wizard now delegates to canonical tripWindow
+// v3.9.80: Canonical trip window — single source of truth for wizard start/end
+import { computeTripWindowFromParsedBookings } from '@/lib/import/tripWindow';
 // v3.9.26: TripBuildModel — deterministic builder + integrity assertions
 import { buildTripModel, type TripBuildModel } from '@/lib/ingestion/tripBuildModel';
 // v3.9.26: Booking-expense sync
@@ -57,57 +57,21 @@ type WizardStep = 'mode' | 'fly-parse' | 'drive-form' | 'train-manual' | 'manual
 type AutofillStatus = 'idle' | 'running' | 'filled' | 'needs_user' | 'failed_timeout';
 
 /**
- * v3.9.61: Wizard trip window now uses canonical toOrderingDate from the
- * Import Engine's dateRecognition module, which handles EU carrier formats
- * (Wizz Air, Ryanair, etc.) in addition to ISO dates.
+ * v3.9.80: Wizard trip window now delegates to the canonical Import Engine
+ * via computeTripWindowFromParsedBookings. This ensures the wizard uses
+ * the SAME trip frame logic as the engine (including all flight legs,
+ * lodging check-in/out, car rental pickup/dropoff).
  *
- * Previous versions used extractDateToken (ISO-only regex) which silently
- * dropped non-ISO date strings, causing "last confirmation wins" behavior
- * when the batch contained EU-format dates.
+ * Previous versions (v3.9.61) operated on top-level start_datetime/end_datetime
+ * only, missing individual flight leg dates and causing "last confirmation wins".
  *
- * This helper is the ONLY source of initial Start/End in the wizard.
- * Uses Date.UTC internally for ordering — no timezone math.
+ * This is now a thin wrapper for backward compatibility with existing tests.
  */
 export function computeWizardTripWindow(
   bookings: ParsedBooking[],
 ): { startDate: string | null; endDate: string | null } {
-  let earliest: Date | null = null;
-  let latest: Date | null = null;
-
-  function consider(raw: string | undefined | null): void {
-    // Try ISO token first (fast path for most bookings)
-    const isoToken = extractDateToken(raw ?? undefined);
-    let d: Date | null = null;
-    if (isoToken) {
-      d = new Date(isoToken + 'T00:00:00Z');
-    } else {
-      // v3.9.61: Fallback to canonical date recognition for EU formats
-      d = toOrderingDate(raw);
-    }
-    if (!d || isNaN(d.getTime())) return;
-    if (!earliest || d.getTime() < earliest.getTime()) earliest = d;
-    if (!latest || d.getTime() > latest.getTime()) latest = d;
-  }
-
-  for (const b of bookings) {
-    consider(b.start_datetime);
-    consider(b.end_datetime);
-  }
-
-  if (!earliest || !latest) return { startDate: null, endDate: null };
-
-  // Convert ordering Dates back to YYYY-MM-DD tokens for the wizard form
-  const toToken = (d: Date): string => {
-    const y = d.getUTCFullYear();
-    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(d.getUTCDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  };
-
-  return {
-    startDate: toToken(earliest),
-    endDate: toToken(latest),
-  };
+  const window = computeTripWindowFromParsedBookings(bookings as any[]);
+  return { startDate: window.startDate, endDate: window.endDate };
 }
 
 function parsePassengers(passengerString: string | undefined, airline: string | undefined): Array<{
