@@ -97,7 +97,7 @@ export function toDateTokenFromString(s: string | null | undefined): string | nu
   }
 
   // 3. Numeric: MM/DD/YYYY or MM-DD-YYYY (US default)
-  const numericSlash = trimmed.match(/^(\d{1,2})[/\-](\d{1,2})[/\-](\d{4})$/);
+  const numericSlash = trimmed.match(/^(\d{1,2})[/\-](\d{1,2})[/\-](\d{4})/);
   if (numericSlash) {
     const a = parseInt(numericSlash[1], 10);
     const b = parseInt(numericSlash[2], 10);
