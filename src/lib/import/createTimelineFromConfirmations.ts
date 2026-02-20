@@ -1,5 +1,5 @@
 /**
- * v4.1.0: Timeline Creation from Full Confirmation Batch
+ * v3.9.60: Timeline Creation from Full Confirmation Batch
  *
  * Creates timeline items (bookings) from ALL parsed confirmations.
  * Uses raw datetime strings for storage — never reformats for display.
@@ -11,9 +11,14 @@
  * - LODGING / CAR_RENTAL / other → one booking per confirmation
  * - Raw strings preserved for display; ordering dates used only for sequencing
  * - No timezone math
+ *
+ * v3.9.60: NEVER DROP LEGS DUE TO PARTIAL DATE PARSING
+ * - Legs with null orderingDate still produce timeline items
+ * - Such legs are marked with needsReview notes rather than being silently discarded
  */
 
 import type { ParsedConfirmation, FlightLeg } from './types';
+import { toOrderingDate } from '@/lib/dates/dateRecognition';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -27,6 +32,9 @@ type BookingType = Database['public']['Enums']['booking_type'];
 /**
  * Create timeline (booking) records from a set of parsed confirmations.
  * Inserts directly into the bookings table.
+ *
+ * v3.9.60: NEVER drops legs. Legs with unresolvable dates are marked
+ * with needsReview instead of being silently discarded.
  *
  * @param tripId - The trip to attach bookings to
  * @param confirmations - All parsed confirmations from the batch
@@ -46,6 +54,8 @@ export async function createTimelineFromConfirmations(
         inserts.push(buildFlightBooking(tripId, conf, null));
       } else {
         for (const leg of conf.legs) {
+          // v3.9.60: ALWAYS create timeline item for every leg, regardless
+          // of whether orderingDate can be derived. Never silently drop.
           inserts.push(buildFlightBooking(tripId, conf, leg));
         }
       }
@@ -95,9 +105,13 @@ function buildFlightBooking(
   const arrCode = leg?.destinationCode || null;
   const arrName = leg?.destinationName || null;
 
-  // Use raw strings for datetimes
+  // Use raw strings for datetimes — NEVER reformatted
   const startDt = leg?.rawDepartureString || conf.rawStartString || '';
   const endDt = leg?.rawArrivalString || conf.rawEndString || null;
+
+  // v3.9.60: Check if ordering date is resolvable for this leg
+  const hasResolvableDate = !!(startDt && toOrderingDate(startDt));
+  const legHasDateIssue = leg && !hasResolvableDate && !!startDt;
 
   // For multi-leg flights, cost goes on first leg only
   const isFirstLeg = !leg || conf.legs.indexOf(leg) === 0;
@@ -117,7 +131,7 @@ function buildFlightBooking(
     start_datetime: startDt,
     end_datetime: endDt || undefined,
     total_cost: totalCost,
-    notes: buildNotes(conf, leg),
+    notes: buildNotes(conf, leg, legHasDateIssue),
   };
 }
 
@@ -129,6 +143,10 @@ function buildNonFlightBooking(
   const startDt = conf.rawStartString || '';
   const endDt = conf.rawEndString || null;
 
+  // v3.9.60: Check if ordering date is resolvable
+  const hasResolvableDate = !!(startDt && toOrderingDate(startDt));
+  const hasDateIssue = !hasResolvableDate && !!startDt;
+
   return {
     trip_id: tripId,
     booking_type: bookingType,
@@ -139,7 +157,7 @@ function buildNonFlightBooking(
     start_datetime: startDt,
     end_datetime: endDt || undefined,
     total_cost: conf.totalCost,
-    notes: conf.needsReview ? `⚠️ Needs review: ${conf.reviewReason || 'Incomplete data'}` : null,
+    notes: buildNonFlightNotes(conf, hasDateIssue),
   };
 }
 
@@ -158,11 +176,20 @@ function mapConfTypeToBookingType(type: string): BookingType {
   }
 }
 
-function buildNotes(conf: ParsedConfirmation, leg: FlightLeg | null): string | null {
+function buildNotes(
+  conf: ParsedConfirmation,
+  leg: FlightLeg | null,
+  legHasDateIssue?: boolean,
+): string | null {
   const parts: string[] = [];
 
   if (conf.needsReview) {
     parts.push(`⚠️ Needs review: ${conf.reviewReason || 'Incomplete data'}`);
+  }
+
+  // v3.9.60: Flag legs with unresolvable dates
+  if (legHasDateIssue) {
+    parts.push('⚠️ Date format not recognized — needs review');
   }
 
   if (leg && !leg.originCode && leg.originName) {
@@ -174,6 +201,24 @@ function buildNotes(conf: ParsedConfirmation, leg: FlightLeg | null): string | n
 
   if (conf.costCurrency && conf.costCurrency !== 'USD') {
     parts.push(`Original currency: ${conf.costCurrency}`);
+  }
+
+  return parts.length > 0 ? parts.join(' | ') : null;
+}
+
+function buildNonFlightNotes(
+  conf: ParsedConfirmation,
+  hasDateIssue: boolean,
+): string | null {
+  const parts: string[] = [];
+
+  if (conf.needsReview) {
+    parts.push(`⚠️ Needs review: ${conf.reviewReason || 'Incomplete data'}`);
+  }
+
+  // v3.9.60: Flag bookings with unresolvable dates
+  if (hasDateIssue) {
+    parts.push('⚠️ Date format not recognized — needs review');
   }
 
   return parts.length > 0 ? parts.join(' | ') : null;

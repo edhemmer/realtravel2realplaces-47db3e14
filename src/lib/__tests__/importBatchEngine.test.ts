@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import {
   createImportBatch,
   upsertImportBatch,
@@ -167,6 +167,138 @@ describe('Trip Frame from Confirmations', () => {
 
     const frame = computeTripFrameFromConfirmations(confs);
     expect(frame).toBeNull();
+  });
+
+  // ===== v3.9.60: Mixed formats in one batch =====
+
+  it('handles mixed date formats in one batch', () => {
+    const confs = [
+      makeConf({
+        startDate: null,
+        endDate: null,
+        rawStartString: '26 Mar 2026 12:45',
+        rawEndString: null,
+        legs: [],
+      }),
+      makeConf({
+        startDate: null,
+        endDate: null,
+        rawStartString: '03/27/2026 09:10 AM',
+        rawEndString: null,
+        legs: [],
+      }),
+      makeConf({
+        startDate: null,
+        endDate: null,
+        rawStartString: 'Thu, 11 Mar 2026 06:10 CET',
+        rawEndString: null,
+        legs: [],
+      }),
+    ];
+
+    const frame = computeTripFrameFromConfirmations(confs);
+    expect(frame).not.toBeNull();
+    // Earliest = 11 Mar 2026 06:10, Latest = 27 Mar 2026 09:10
+    expect(frame!.startDate.getUTCMonth()).toBe(2); // March (0-indexed)
+    expect(frame!.startDate.getUTCDate()).toBe(11);
+    expect(frame!.startDate.getUTCHours()).toBe(6);
+    expect(frame!.endDate.getUTCDate()).toBe(27);
+    expect(frame!.endDate.getUTCHours()).toBe(9);
+  });
+
+  // ===== v3.9.60: Rome → Tenerife multi-email scenario =====
+
+  it('computes correct frame for Rome → Tenerife multi-email batch', () => {
+    // Wizz Air: Rome FCO → Tenerife TFS outbound
+    const wizzOutbound = makeConf({
+      confirmationId: 'wizz_out',
+      confirmationNumber: 'WIZZ001',
+      vendorName: 'Wizz Air',
+      startDate: null,
+      endDate: null,
+      rawStartString: 'Thu, 11 Mar 2026 06:10 CET',
+      rawEndString: 'Thu, 11 Mar 2026 10:30 CET',
+      legs: [
+        makeLeg({
+          legId: 'wizz_out_leg1',
+          originCode: 'FCO',
+          originName: 'Rome Fiumicino',
+          destinationCode: 'TFS',
+          destinationName: 'Tenerife South',
+          rawDepartureString: 'Thu, 11 Mar 2026 06:10 CET',
+          rawArrivalString: 'Thu, 11 Mar 2026 10:30 CET',
+          departureDate: null,
+          arrivalDate: null,
+          airline: 'Wizz Air',
+          flightNumber: 'W6 1234',
+        }),
+      ],
+    });
+
+    // Ryanair: Tenerife TFS → Rome FCO return
+    const ryanairReturn = makeConf({
+      confirmationId: 'ryanair_ret',
+      confirmationNumber: 'RYAN001',
+      vendorName: 'Ryanair',
+      startDate: null,
+      endDate: null,
+      rawStartString: 'Mon, 24 March 2026, 21:45 CEST',
+      rawEndString: 'Tue, 25 March 2026, 01:30 CEST',
+      legs: [
+        makeLeg({
+          legId: 'ryanair_ret_leg1',
+          originCode: 'TFS',
+          originName: 'Tenerife South',
+          destinationCode: 'FCO',
+          destinationName: 'Rome Fiumicino',
+          rawDepartureString: 'Mon, 24 March 2026, 21:45 CEST',
+          rawArrivalString: 'Tue, 25 March 2026, 01:30 CEST',
+          departureDate: null,
+          arrivalDate: null,
+          airline: 'Ryanair',
+          flightNumber: 'FR 5678',
+        }),
+      ],
+    });
+
+    const frame = computeTripFrameFromConfirmations([wizzOutbound, ryanairReturn]);
+    expect(frame).not.toBeNull();
+    // Earliest = 11 Mar 2026 06:10
+    expect(frame!.startDate.getUTCDate()).toBe(11);
+    expect(frame!.startDate.getUTCHours()).toBe(6);
+    expect(frame!.startDate.getUTCMinutes()).toBe(10);
+    // Latest = 25 Mar 2026 01:30
+    expect(frame!.endDate.getUTCDate()).toBe(25);
+    expect(frame!.endDate.getUTCHours()).toBe(1);
+    expect(frame!.endDate.getUTCMinutes()).toBe(30);
+  });
+
+  // ===== v3.9.60: Unrecognized dates don't crash =====
+
+  it('skips unrecognized dates without crashing, uses others', () => {
+    const confs = [
+      makeConf({
+        confirmationId: 'good',
+        startDate: null,
+        endDate: null,
+        rawStartString: '11 Mar 2026 06:10',
+        rawEndString: '20 Mar 2026 18:00',
+        legs: [],
+      }),
+      makeConf({
+        confirmationId: 'bad',
+        startDate: null,
+        endDate: null,
+        rawStartString: 'Departing sometime next week',
+        rawEndString: 'TBD',
+        legs: [],
+      }),
+    ];
+
+    const frame = computeTripFrameFromConfirmations(confs);
+    expect(frame).not.toBeNull();
+    expect(frame!.startDate.getUTCDate()).toBe(11);
+    expect(frame!.endDate.getUTCDate()).toBe(20);
   });
 });
 
