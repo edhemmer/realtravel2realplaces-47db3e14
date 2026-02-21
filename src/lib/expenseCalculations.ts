@@ -238,6 +238,16 @@ export interface CategorySummary {
   other: number;
 }
 
+/**
+ * v4.4.x: Per-currency expense totals — no mixed-currency math.
+ */
+export interface MultiCurrencyTotals {
+  /** Sum of amount per currency_code */
+  totals_by_currency: Record<string, number>;
+  /** Ordered list of currency codes present */
+  currencies: string[];
+}
+
 export interface TripCostSummary {
   // Expenses (out-of-pocket only, excluding booking-linked)
   expensesTotal: number;
@@ -253,6 +263,10 @@ export interface TripCostSummary {
   totalMyShare: number;
   // Category breakdown for out-of-pocket expenses only
   byCategory: CategorySummary;
+  // v4.4.x: Multi-currency breakdown
+  multiCurrency: MultiCurrencyTotals;
+  /** True when expenses span more than one currency */
+  isMultiCurrency: boolean;
 }
 
 /**
@@ -570,6 +584,36 @@ export function calculateCategorySummary(expenses: Expense[]): CategorySummary {
 }
 
 /**
+ * v4.4.x: Compute per-currency expense totals — no mixed-currency math.
+ *
+ * Groups ALL expenses by their currency_code and sums amounts per group.
+ * Returns totals_by_currency map and ordered list of currencies.
+ *
+ * This is the ONLY correct way to aggregate trip expense totals when
+ * multiple currencies may be present. Do NOT compute a single combined total.
+ */
+export function computeTripExpenseTotals(expenses: Expense[]): MultiCurrencyTotals {
+  const totals: Record<string, number> = {};
+
+  for (const e of expenses) {
+    if (isBookingLinkedExpense(e)) continue;
+    const currency = ((e as any).currency || 'USD').toUpperCase();
+    const amount = Number(e.amount || 0);
+    if (!Number.isFinite(amount) || amount < 0) continue;
+    totals[currency] = (totals[currency] || 0) + amount;
+  }
+
+  // Sort: home currency first (USD fallback), then alphabetical
+  const currencies = Object.keys(totals).sort((a, b) => {
+    if (a === 'USD') return -1;
+    if (b === 'USD') return 1;
+    return a.localeCompare(b);
+  });
+
+  return { totals_by_currency: totals, currencies };
+}
+
+/**
  * Calculate complete trip cost summary from all sources
  * 
  * IMPORTANT (v2.1.10 - Legacy Airfare Normalizer):
@@ -597,19 +641,13 @@ export function calculateTripCostSummary(
   homeCurrency: string = 'USD'
 ): TripCostSummary {
   // Filter to only out-of-pocket expenses (exclude booking-linked to prevent double counting)
-  // v4.4.1: Uses user's home currency for foreign expense detection
   const outOfPocketExpenses = getOutOfPocketExpenses(expenses, homeCurrency);
   
   // Expenses (out-of-pocket only)
-  // v4.4.2: Use getEffectiveExpenseAmount for converted foreign expenses
   const expensesTotal = outOfPocketExpenses.reduce((sum, e) => sum + getEffectiveExpenseAmount(e), 0);
   const expensesMyShare = outOfPocketExpenses.reduce((sum, e) => sum + getExpenseMyShare(e), 0);
   
   // Bookings - use normalizeFlightBookingCosts() to handle legacy duplicated flights
-  // This function:
-  // 1. Detects legacy per-leg duplication patterns (same confirmation, same cost)
-  // 2. Counts duplicated flight costs only ONCE
-  // 3. Calculates non-flight bookings normally
   const { normalizedTotal: bookingsTotal, normalizedMyShare: bookingsMyShare } = 
     normalizeFlightBookingCosts(bookings);
   
@@ -623,6 +661,9 @@ export function calculateTripCostSummary(
   
   // Category breakdown (out-of-pocket expenses only)
   const byCategory = calculateCategorySummary(outOfPocketExpenses);
+
+  // v4.4.x: Multi-currency breakdown — group ALL expenses (not just OOP) by currency
+  const multiCurrency = computeTripExpenseTotals(expenses);
   
   // v2.1.30: Defensive guards - ensure all values are finite numbers, fallback to 0
   const safeNumber = (val: number): number => 
@@ -638,6 +679,8 @@ export function calculateTripCostSummary(
     totalCost: safeNumber(totalCost),
     totalMyShare: safeNumber(totalMyShare),
     byCategory,
+    multiCurrency,
+    isMultiCurrency: multiCurrency.currencies.length > 1,
   };
 }
 

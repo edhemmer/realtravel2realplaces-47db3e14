@@ -101,7 +101,8 @@ export function TripSummaryReportTab({ tripId }: TripSummaryReportTabProps) {
 
   // Calculate cost summary
   const costSummary = useMemo(() => {
-    return calculateTripCostSummary(expenses, bookings, parking);
+    const homeCurr = 'USD'; // Report uses USD for now
+    return calculateTripCostSummary(expenses, bookings, parking, homeCurr);
   }, [expenses, bookings, parking]);
   // Note: TripSummaryReportTab uses default USD for now — report currency TBD
 
@@ -212,12 +213,19 @@ export function TripSummaryReportTab({ tripId }: TripSummaryReportTabProps) {
       pdf.setFont('helvetica', 'bold');
       pdf.text('Cost Summary', margin + 5, y + 10);
 
-      // Total Trip Cost
+      // Total Trip Cost — v4.4.x: per-currency if multi-currency
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'normal');
       pdf.text(`${TRIP_TOTAL_LABEL}:`, margin + 5, y + 20);
       pdf.setFont('helvetica', 'bold');
-      pdf.text(formatCurrency(costSummary.totalCost), margin + 55, y + 20);
+      if (costSummary.isMultiCurrency) {
+        const perCurrencyStr = costSummary.multiCurrency.currencies
+          .map(c => formatCurrency(costSummary.multiCurrency.totals_by_currency[c], c))
+          .join(', ');
+        pdf.text(perCurrencyStr, margin + 55, y + 20);
+      } else {
+        pdf.text(formatCurrency(costSummary.totalCost), margin + 55, y + 20);
+      }
 
       // Individual Share
       pdf.setFont('helvetica', 'normal');
@@ -400,7 +408,7 @@ export function TripSummaryReportTab({ tripId }: TripSummaryReportTabProps) {
         </CardContent>
       </Card>
 
-      {/* Cost Summary Card - v2.0.8: Unified labels and formatting */}
+      {/* Cost Summary Card - v4.4.x: Multi-currency safe */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">{TRIP_TOTAL_LABEL}</CardTitle>
@@ -409,7 +417,17 @@ export function TripSummaryReportTab({ tripId }: TripSummaryReportTabProps) {
           <div className="grid grid-cols-2 gap-6">
             <div className="p-4 bg-muted/50 rounded-lg">
               <p className="text-sm text-muted-foreground">{TRIP_TOTAL_LABEL}</p>
-              <p className="text-2xl font-bold">{formatCurrency(costSummary.totalCost)}</p>
+              {costSummary.isMultiCurrency ? (
+                <div className="space-y-1 mt-1">
+                  {costSummary.multiCurrency.currencies.map(curr => (
+                    <p key={curr} className="text-lg font-bold tabular-nums">
+                      {formatCurrency(costSummary.multiCurrency.totals_by_currency[curr], curr)}
+                    </p>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-2xl font-bold">{formatCurrency(costSummary.totalCost)}</p>
+              )}
             </div>
             <div className="p-4 bg-primary/10 rounded-lg">
               <p className="text-sm text-muted-foreground">{MY_SHARE_LABEL}</p>

@@ -176,10 +176,22 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground">Total</span>
-              <span className="text-lg font-bold tabular-nums">{formatCurrency(totalCost)}</span>
-            </div>
+            {/* v4.4.x: Multi-currency safe display */}
+            {costSummary.isMultiCurrency ? (
+              <div className="space-y-1">
+                {costSummary.multiCurrency.currencies.map(curr => (
+                  <div key={curr} className="flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">{curr}</span>
+                    <span className="text-sm font-bold tabular-nums">{formatCurrency(costSummary.multiCurrency.totals_by_currency[curr], curr)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-muted-foreground">Total</span>
+                <span className="text-lg font-bold tabular-nums">{formatCurrency(totalCost)}</span>
+              </div>
+            )}
             <div className="flex justify-between items-center text-[11px] text-muted-foreground/80 tabular-nums">
               <span>Bookings: {formatCurrency(bookingsTotal)}</span>
               <span>Expenses: {formatCurrency(expensesTotal)}</span>

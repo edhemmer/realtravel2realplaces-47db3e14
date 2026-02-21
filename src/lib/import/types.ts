@@ -111,8 +111,12 @@ export interface ExpenseRecord {
   description: string;
   /** Amount in original currency */
   amount: number;
-  /** Original currency code */
+  /** Original currency code (3-letter ISO) */
   currency: string;
+  /** User's account/home currency */
+  account_currency?: string;
+  /** True when currency !== account_currency */
+  is_foreign?: boolean;
   /** Whether this needs manual review */
   needsReview: boolean;
   /** Notes / metadata */
