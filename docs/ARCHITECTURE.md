@@ -28,7 +28,7 @@ This document provides an overview of the application architecture for developer
 | State Management | TanStack Query (React Query v5) |
 | Routing | React Router v6 |
 | Backend | Lovable Cloud (PostgreSQL + Edge Functions) |
-| AI Services | Lovable AI (Gemini models) |
+| AI Services | Lovable AI (Gemini 2.5 Pro for itinerary parsing, Gemini Flash for other parsers) |
 | Auth | Email/password with session management |
 
 ---
@@ -343,6 +343,7 @@ Including: `user_owns_trip`, `user_has_trip_access`, `user_is_pro`, `trip_owner_
 | Bookings = money, Tours = stops | Tours have no cost fields |
 | Single source of truth for plan | `useAccess()` only |
 | Dates never shift by timezone | String-based No-Math policy |
+| Flight dates extracted independently | DATE INDEPENDENCE prompt rule (v4.4.3) |
 | Missing data stays blank | `hasExplicitTime()` guards |
 
 ---

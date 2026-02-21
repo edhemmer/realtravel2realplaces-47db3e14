@@ -73,7 +73,7 @@ Three-tier SaaS subscription:
 
 - **Canonical Data Architecture**: Single source of truth prevents data drift across views
 - **No-Math Time Policy**: All datetime logic uses string primitives — zero timezone bugs
-- **AI Parsing Pipeline**: Gemini-powered extraction of confirmations, receipts, and itineraries
+- **AI Parsing Pipeline**: Gemini 2.5 Pro for itinerary parsing (with DATE INDEPENDENCE rules for multi-leg accuracy), Gemini Flash for booking/receipt extraction
 - **250+ Unit Tests**: Commercial-grade test coverage for business logic
 - **Security-First**: RLS on all tables, PII masking, session idle logout, CRON auth
 
