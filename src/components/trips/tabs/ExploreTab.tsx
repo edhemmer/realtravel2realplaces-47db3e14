@@ -20,6 +20,7 @@ import { buildNavTarget, openNavTarget } from '@/lib/location/navigationTargets'
 import { ExploreCarousel } from '@/components/trips/explore/ExploreCarousel';
 import { ExploreSectionFeed } from '@/components/trips/explore/ExploreSectionFeed';
 import { AddToTimelineModal } from '@/components/trips/explore/AddToTimelineModal';
+import { useExplorePagination } from '@/hooks/useExplorePagination';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -121,10 +122,13 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
   });
 
   // v3.6.0: Ranking + sectioning
-  const { rightNow, sections } = useMemo(() => {
+  const { rightNow, sections: rawSections } = useMemo(() => {
     if (attractions.length === 0) return { rightNow: [], sections: [] };
     return buildExploreSections(attractions);
   }, [attractions]);
+
+  // v4.4.x: Per-category pagination
+  const { paginatedSections, loadMore } = useExplorePagination(rawSections, tripId);
 
   // Handlers
   const handleAdd = (attraction: AttractionSuggestion) => {
@@ -330,11 +334,12 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
             onAdd={canEdit ? handleAdd : undefined}
           />
 
-          {/* Sectioned feed */}
+          {/* Sectioned feed with pagination */}
           <ExploreSectionFeed
-            sections={sections}
+            sections={paginatedSections}
             onNavigate={handleNavigate}
             onAdd={handleAdd}
+            onLoadMore={loadMore}
           />
         </div>
       )}
