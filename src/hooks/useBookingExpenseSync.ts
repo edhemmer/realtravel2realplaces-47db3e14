@@ -254,9 +254,14 @@ export function useBookingExpenseSync({
 
     for (const booking of canonicalBookings) {
       const linkedExpenses = expensesByLinkedBooking.get(booking.id) || [];
+      const bookingCost = getValidCost(booking.total_cost);
 
       if (linkedExpenses.length === 0) {
-        toCreate.push(booking);
+        // v5.1.0: Only create expense if booking has a real cost.
+        // No more $0 placeholder expenses — they clutter the tab with no value.
+        if (bookingCost > 0) {
+          toCreate.push(booking);
+        }
       } else if (linkedExpenses.length === 1) {
         // Check if update needed (cost or currency drift)
         const existing = linkedExpenses[0];
@@ -368,12 +373,12 @@ function getValidCost(raw: unknown): number {
   return num;
 }
 
-/** Create a new canonical expense for a booking */
+/** Create a new canonical expense for a booking (only called when cost > 0) */
 async function createCanonicalExpense(booking: Booking, homeCurrency: string): Promise<void> {
   const cost = getValidCost(booking.total_cost);
-  const needsPricing = cost <= 0;
+  if (cost <= 0) return; // Safety guard — caller should have already filtered
   const marker = createBookingLinkMarker(booking.id);
-  const notes = needsPricing ? `${marker} ${NEEDS_PRICING_FLAG}` : marker;
+  const notes = marker;
   const category = mapBookingTypeToExpenseCategory(booking.booking_type);
   const description = getExpenseDescriptionForBooking(booking);
 
