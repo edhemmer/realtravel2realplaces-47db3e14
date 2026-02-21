@@ -31,46 +31,25 @@ interface PackingTabProps {
 
 // Icon mapping for categories
 const categoryIcons: Record<string, React.ReactNode> = {
-  'Clothing': <ShoppingBag className="w-4 h-4" />,
-  'Clothing Core': <ShoppingBag className="w-4 h-4" />,
-  'Layers & Outerwear': <Mountain className="w-4 h-4" />,
-  'Rain & Wet Weather': <Cloud className="w-4 h-4" />,
-  'Cold / Snow Gear': <Thermometer className="w-4 h-4" />,
-  'Footwear': <ShoppingBag className="w-4 h-4" />,
-  'Accessories': <Sun className="w-4 h-4" />,
-  'Swimwear & Beach': <Waves className="w-4 h-4" />,
-  'Hiking & Outdoor': <Mountain className="w-4 h-4" />,
-  'City Essentials': <Building2 className="w-4 h-4" />,
-  'Toiletries & Health': <Plus className="w-4 h-4" />,
-  'Electronics': <Sparkles className="w-4 h-4" />,
-  'Tech & Chargers': <Sparkles className="w-4 h-4" />,
-  'Documents': <Briefcase className="w-4 h-4" />,
-  'Documents & Critical Items': <Briefcase className="w-4 h-4" />,
-  'Essentials': <Check className="w-4 h-4" />,
-  'Weather Gear': <Cloud className="w-4 h-4" />,
-  'Business': <Briefcase className="w-4 h-4" />,
-};
-
-// Category colors for visual distinction
-const categoryColors: Record<string, string> = {
-  'Clothing': 'bg-blue-500/10 text-blue-600 border-blue-200',
-  'Clothing Core': 'bg-blue-500/10 text-blue-600 border-blue-200',
-  'Layers & Outerwear': 'bg-orange-500/10 text-orange-600 border-orange-200',
-  'Rain & Wet Weather': 'bg-sky-500/10 text-sky-600 border-sky-200',
-  'Cold / Snow Gear': 'bg-indigo-500/10 text-indigo-600 border-indigo-200',
-  'Footwear': 'bg-stone-500/10 text-stone-600 border-stone-200',
-  'Accessories': 'bg-yellow-500/10 text-yellow-600 border-yellow-200',
-  'Swimwear & Beach': 'bg-cyan-500/10 text-cyan-600 border-cyan-200',
-  'Hiking & Outdoor': 'bg-emerald-500/10 text-emerald-600 border-emerald-200',
-  'City Essentials': 'bg-slate-500/10 text-slate-600 border-slate-200',
-  'Toiletries & Health': 'bg-green-500/10 text-green-600 border-green-200',
-  'Electronics': 'bg-purple-500/10 text-purple-600 border-purple-200',
-  'Tech & Chargers': 'bg-purple-500/10 text-purple-600 border-purple-200',
-  'Documents': 'bg-amber-500/10 text-amber-600 border-amber-200',
-  'Documents & Critical Items': 'bg-amber-500/10 text-amber-600 border-amber-200',
-  'Essentials': 'bg-rose-500/10 text-rose-600 border-rose-200',
-  'Weather Gear': 'bg-sky-500/10 text-sky-600 border-sky-200',
-  'Business': 'bg-slate-500/10 text-slate-600 border-slate-200',
+  'Clothing': <ShoppingBag className="w-3.5 h-3.5" />,
+  'Clothing Core': <ShoppingBag className="w-3.5 h-3.5" />,
+  'Layers & Outerwear': <Mountain className="w-3.5 h-3.5" />,
+  'Rain & Wet Weather': <Cloud className="w-3.5 h-3.5" />,
+  'Cold / Snow Gear': <Thermometer className="w-3.5 h-3.5" />,
+  'Footwear': <Luggage className="w-3.5 h-3.5" />,
+  'Accessories': <Sun className="w-3.5 h-3.5" />,
+  'Swimwear & Beach': <Waves className="w-3.5 h-3.5" />,
+  'Hiking & Outdoor': <Mountain className="w-3.5 h-3.5" />,
+  'City Essentials': <Building2 className="w-3.5 h-3.5" />,
+  'Toiletries & Health': <Sparkles className="w-3.5 h-3.5" />,
+  'Electronics': <Sparkles className="w-3.5 h-3.5" />,
+  'Tech & Chargers': <Sparkles className="w-3.5 h-3.5" />,
+  'Documents': <Briefcase className="w-3.5 h-3.5" />,
+  'Documents & Critical Items': <Briefcase className="w-3.5 h-3.5" />,
+  'Cultural Essentials': <MapPin className="w-3.5 h-3.5" />,
+  'Essentials': <Check className="w-3.5 h-3.5" />,
+  'Weather Gear': <Cloud className="w-3.5 h-3.5" />,
+  'Business': <Briefcase className="w-3.5 h-3.5" />,
 };
 
 interface AIPackingResponse {
@@ -615,7 +594,7 @@ export function PackingTab({ tripId }: PackingTabProps) {
 
       {/* Category Grid — compact cards */}
       {Object.keys(groupedItems).length > 0 ? (
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
           {Object.entries(groupedItems).map(([category, items]) => {
             const categoryPacked = items.filter(i => i.is_packed).length;
             const allPacked = categoryPacked === items.length;

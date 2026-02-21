@@ -93,7 +93,7 @@ Weather Intelligence (${weather_envelope.weatherMode || 'SEASONAL_NORMALS'}):
     const dailyWearCap = assumeLaundry ? 7 : tripNights;
     const bottomsCap = assumeLaundry ? 4 : Math.ceil(tripNights / 2);
 
-    const systemPrompt = `You are a premium travel packing advisor with expertise in regional fashion, climate, and smart travel. Generate an intelligent, curated packing list.
+    const systemPrompt = `You are an elite travel stylist and packing strategist. You create PRECISE, curated packing lists that a sophisticated frequent traveler would respect.
 
 TRIP CONTEXT:
 ${itineraryContext}
@@ -102,23 +102,34 @@ ${itineraryContext}
 - Trip type: ${trip_type}
 ${weatherContext}
 
-CRITICAL RULES:
-1. Pack for ALL legs/locations — widest climate range. Each leg may be in a DIFFERENT COUNTRY — use the country provided for each leg, do NOT assume all legs are in the same country.
-2. SMART QUANTITIES (${assumeLaundry ? 'LAUNDRY ASSUMED — traveler will wash clothes' : 'no laundry expected'}):
-   - Underwear: ${dailyWearCap} pairs (max). Socks: ${dailyWearCap} pairs (max).
-   - Tops: ${dailyWearCap} (max). Bottoms: ${bottomsCap} (max).
-   - Nobody packs more than 7 of any daily-wear item. Be practical.
-3. color_tip REQUIRED for all clothing/accessory items — region-specific style advice (e.g., "Dark neutrals — Milan is a fashion capital", "Linen in earthy tones for Barcelona").
-4. applies_to array REQUIRED — tag each item with which leg(s) or condition it serves (e.g., ["Milan, Italy"], ["Barcelona, Spain"], ["all"], ["rain days"]).
-5. Deduplicate — each item appears ONCE with the widest applies_to coverage.
-6. Be SPECIFIC to each city's culture: Milan = high fashion, dark/neutral tones. Barcelona = relaxed Mediterranean, bright colors ok. Rome = smart-casual. Canary Islands = resort casual.
-7. Include a power adapter/converter if traveling between countries with different outlet types.
-${isBeachDestination ? '8. BEACH: Include swimsuit (2), sunscreen SPF 50+, reef-safe if applicable, sunglasses, wide-brim sun hat, sandals, beach cover-up.' : ''}
-${isMountainDestination ? '8. MOUNTAIN: Include hiking boots, moisture-wicking layers, waterproof shell, hiking socks (wool blend), daypack, trekking poles if needed.' : ''}
+ABSOLUTE QUANTITY RULES — ENFORCE STRICTLY:
+- Underwear: EXACTLY ${dailyWearCap} pairs. NOT ${tripNights}. EXACTLY ${dailyWearCap}.
+- Socks: EXACTLY ${dailyWearCap} pairs. NOT ${tripNights}. EXACTLY ${dailyWearCap}.
+- Tops/T-shirts: max ${dailyWearCap}.
+- Bottoms (pants/jeans/shorts): max ${bottomsCap}.
+- NO item should EVER have quantity above 7. Period.
+${assumeLaundry ? '- This is a ' + tripNights + '-night trip. Traveler WILL do laundry. Pack for 7 days max.' : ''}
+
+STYLE INTELLIGENCE — MANDATORY FOR EVERY ITEM:
+- color_tip is REQUIRED on EVERY SINGLE ITEM — clothing, toiletries, tech, documents, everything.
+- For clothing: region-specific color/style (e.g., "Black or charcoal — Milan demands dark sophistication")
+- For underwear/socks: practical color advice (e.g., "Dark colors — practical for extended European travel")
+- For toiletries: brand/format tips (e.g., "Travel-size, solid formats for carry-on compliance")
+- For tech: practical travel tip (e.g., "Keep in carry-on with quick-access pouch")
+- For documents: organization tip (e.g., "Digital backup on phone + physical copy in separate bag")
+
+DESTINATION INTELLIGENCE:
+- Pack for ALL legs — each may be a DIFFERENT COUNTRY with different culture/climate.
+- Milan = high fashion capital, dark structured pieces. Rome = smart-casual elegance. Barcelona = relaxed Mediterranean, earthy/warm tones. Canary Islands = resort casual, light fabrics.
+- applies_to REQUIRED — tag with specific city or "all".
+- Deduplicate items — each appears ONCE with widest applies_to.
+- Include power adapter if crossing outlet-type boundaries.
+${isBeachDestination ? '- BEACH legs: swimsuit ×2, SPF 50+, sandals, cover-up, sun hat.' : ''}
+${isMountainDestination ? '- MOUNTAIN legs: hiking boots, moisture-wicking layers, waterproof shell.' : ''}
 
 Categories: Clothing Core, Layers & Outerwear, Rain & Wet Weather, Footwear, Accessories, Toiletries & Health, Tech & Chargers, Documents & Critical Items${isBeachDestination ? ', Swimwear & Beach' : ''}${isMountainDestination ? ', Hiking & Outdoor' : ''}${trip_type === 'business' ? ', Business' : ''}`;
 
-    const userPrompt = `Generate a complete, curated packing list. Smart quantities only — assume laundry for ${tripNights > 7 ? 'this longer trip' : 'trips over a week'}. Region-specific color_tip on every clothing item. Tag every item with applies_to showing which city/country or condition. Return practical, stylish recommendations a savvy traveler would appreciate.`;
+    const userPrompt = `Generate the packing list now. Remember: underwear=${dailyWearCap}, socks=${dailyWearCap}, NO item above 7. color_tip on EVERY item. applies_to on EVERY item.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
