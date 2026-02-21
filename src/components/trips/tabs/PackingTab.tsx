@@ -726,23 +726,43 @@ export function PackingTab({ tripId }: PackingTabProps) {
       ) : (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <Luggage className="w-7 h-7 text-primary" />
-            </div>
-            <h4 className="text-base font-medium mb-1">No packing list yet</h4>
-            <p className="text-muted-foreground text-sm text-center max-w-sm mb-4">
-              {weather ? `Weather data is ready — generate your smart packing list based on ${packingRecs?.modeLabel?.toLowerCase() || 'conditions'}.` : 'Packing lists help you avoid last-minute stress.'}
-            </p>
-            {canEdit && (
-              <div className="flex gap-2">
-                <Button onClick={() => generatePackingList(false)} disabled={isGenerating} className="bg-gradient-ocean hover:opacity-90">
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  {isGenerating ? 'Generating...' : 'Generate packing list'}
-                </Button>
-                <Button onClick={() => setDialogOpen(true)} variant="outline">
-                  Add Manually
-                </Button>
-              </div>
+            {isGenerating ? (
+              <>
+                <div className="relative w-20 h-20 mb-4">
+                  {/* Spinning circle */}
+                  <div className="absolute inset-0 rounded-full border-2 border-primary/20" />
+                  <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary animate-spin" style={{ animationDuration: '2s' }} />
+                  {/* Centered suitcase icon rotating slowly clockwise */}
+                  <div className="absolute inset-0 flex items-center justify-center animate-spin" style={{ animationDuration: '6s' }}>
+                    <Luggage className="w-8 h-8 text-primary" />
+                  </div>
+                </div>
+                <h4 className="text-base font-medium mb-1">Generating your packing list…</h4>
+                <p className="text-muted-foreground text-sm text-center max-w-sm">
+                  Our AI is analyzing weather, culture, and your itinerary
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                  <Luggage className="w-7 h-7 text-primary" />
+                </div>
+                <h4 className="text-base font-medium mb-1">No packing list yet</h4>
+                <p className="text-muted-foreground text-sm text-center max-w-sm mb-4">
+                  {weather ? `Weather data is ready — generate your smart packing list based on ${packingRecs?.modeLabel?.toLowerCase() || 'conditions'}.` : 'Packing lists help you avoid last-minute stress.'}
+                </p>
+                {canEdit && (
+                  <div className="flex gap-2">
+                    <Button onClick={() => generatePackingList(false)} disabled={isGenerating} className="bg-gradient-ocean hover:opacity-90">
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Generate packing list
+                    </Button>
+                    <Button onClick={() => setDialogOpen(true)} variant="outline">
+                      Add Manually
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>

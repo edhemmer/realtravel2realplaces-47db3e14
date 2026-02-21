@@ -83,52 +83,27 @@ Weather Intelligence (${weather_envelope.weatherMode || 'SEASONAL_NORMALS'}):
 - Precipitation: ${s.precipTypeHint || 'unknown'} | Cloud cover: ${s.cloudCoverHint || 'unknown'}`;
     }
 
-    const systemPrompt = `You are an expert travel packing advisor with deep knowledge of global cultures, regional fashion, and climate patterns. Generate a comprehensive, culturally-aware packing list.
+    const systemPrompt = `You are a practical travel packing advisor. Generate a packing list for this trip.
 
 TRIP CONTEXT:
 ${itineraryContext}
 - Dates: ${start_date} to ${end_date} (${tripNights} nights, ${tripDays} days)
 - Month: ${travelMonth}
 - Trip type: ${trip_type}
-- Days until departure: ${daysUntilTrip}
 ${weatherContext}
 
-CRITICAL RULES:
-1. MULTI-LEG AWARENESS: This trip visits MULTIPLE cities/regions. Consider the weather and culture of EACH leg separately. Pack for the widest range of conditions across ALL stops.
-2. CLOTHING QUANTITIES based on ${tripNights} nights:
-   - Underwear: ${tripNights} pairs
-   - Socks: ${tripNights} pairs
-   - Tops: ${tripNights} (one per day)
-   - Bottoms: ${Math.ceil(tripNights / 2)} pairs
-   - Sleepwear: ${tripNights < 5 ? 1 : 2} set(s)
-3. CULTURAL AWARENESS:
-   - Suggest clothing appropriate for local culture and norms (e.g., covering shoulders for churches in Italy, modest dress in certain regions)
-   - Note dress codes for restaurants, museums, or religious sites common in the destination
-   - Include cultural tips in special_notes
-4. COLOR & STYLE SUGGESTIONS:
-   - For each clothing item, include a "color_tip" with region-appropriate color suggestions
-   - Europeans tend toward neutral tones (navy, black, olive, cream, beige) — suggest blending in
-   - Beach destinations: lighter, brighter colors are appropriate
-   - Business: dark suits, muted tones
-   - Consider what locals typically wear during that time of year
-5. PER-LEG APPLICABILITY: Each item must have an "applies_to" array indicating which legs/conditions it covers (e.g., ["all"], ["Milan - cold"], ["Barcelona - warm"], ["rain"], ["beach"])
-6. DEDUPLICATION: Each item appears ONCE in the master list. If needed for multiple legs, list all applicable legs in applies_to.
-${isBeachDestination ? '\n7. BEACH MANDATORY: Include swimsuit(s), sunscreen SPF 30+, sunglasses, sun hat, flip-flops, beach towel, after-sun care.' : ''}
-${isMountainDestination ? '\n7. MOUNTAIN MANDATORY: Include hiking boots, warm layers, waterproof jacket, hiking socks, daypack.' : ''}
-${is_regenerate ? '\nREGENERATION MODE: Generating updated list with latest weather data. Focus on accuracy.' : ''}
+RULES:
+1. Pack for ALL legs/locations — widest range of conditions.
+2. Underwear: ${tripNights} pairs. Socks: ${tripNights} pairs. Tops: ${tripNights}. Bottoms: ${Math.ceil(tripNights / 2)}.
+3. Include color_tip for clothing items appropriate for the region.
+4. Each item has applies_to array (e.g. ["all"], ["Milan"], ["rain"]).
+5. Deduplicate — each item appears ONCE.
+${isBeachDestination ? '6. BEACH: Include swimsuit, sunscreen SPF 30+, sunglasses, sun hat, flip-flops, beach towel.' : ''}
+${isMountainDestination ? '6. MOUNTAIN: Include hiking boots, warm layers, waterproof jacket, hiking socks, daypack.' : ''}
 
-Categories: Clothing Core, Layers & Outerwear, Rain & Wet Weather, Cold / Snow Gear, Footwear, Accessories, Swimwear & Beach, Toiletries & Health, Tech & Chargers, Documents & Critical Items, Cultural Essentials, Business (if applicable)`;
+Categories: Clothing Core, Layers & Outerwear, Rain & Wet Weather, Footwear, Accessories, Toiletries & Health, Tech & Chargers, Documents & Critical Items${isBeachDestination ? ', Swimwear & Beach' : ''}${isMountainDestination ? ', Hiking & Outdoor' : ''}${trip_type === 'business' ? ', Business' : ''}`;
 
-    const userPrompt = `Generate a complete, culturally-aware packing list for this multi-leg trip. 
-
-For each clothing item, include color suggestions appropriate for the regions visited. Include cultural tips about dress codes, local customs, and what to wear where.
-
-Be specific about which leg each item applies to. For example:
-- A warm jacket applies to Milan (cool/cold) but not to beach stops
-- Modest clothing for church visits in Italy
-- Comfortable walking shoes for all legs
-
-Return practical quantities. Mark specialty items as suggest_buy_early=true with rationale.`;
+    const userPrompt = `Generate a complete packing list. Be concise. Return practical quantities. Mark specialty items as suggest_buy_early=true.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
