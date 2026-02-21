@@ -513,7 +513,9 @@ export type Database = {
       }
       packing_items: {
         Row: {
+          applies_to: string[] | null
           category: string
+          color_tip: string | null
           created_at: string
           id: string
           is_custom: boolean
@@ -523,7 +525,9 @@ export type Database = {
           trip_id: string
         }
         Insert: {
+          applies_to?: string[] | null
           category: string
+          color_tip?: string | null
           created_at?: string
           id?: string
           is_custom?: boolean
@@ -533,7 +537,9 @@ export type Database = {
           trip_id: string
         }
         Update: {
+          applies_to?: string[] | null
           category?: string
+          color_tip?: string | null
           created_at?: string
           id?: string
           is_custom?: boolean
