@@ -3,7 +3,7 @@ import { usePackingItems, useCreatePackingItem, useUpdatePackingItem, useDeleteP
 import { useTrip } from '@/hooks/useTrips';
 import { useBookings } from '@/hooks/useBookings';
 import { useWeatherEngine } from '@/hooks/useWeatherEngine';
-import { generatePackingRecommendations, buildPackingContext, type PackingEngineResult, type PackingEngineOutput, type PackingContext } from '@/lib/packingEngine';
+import { generatePackingRecommendations, buildPackingContext, deriveClimateTags, type PackingEngineResult, type PackingEngineOutput, type PackingContext } from '@/lib/packingEngine';
 import { resolveWeather } from '@/lib/weatherEngine';
 import { supabase } from '@/integrations/supabase/client';
 import { PackingItem } from '@/types/database';
@@ -73,8 +73,9 @@ const categoryColors: Record<string, string> = {
 };
 
 interface AIPackingResponse {
-  items: { category: string; item_name: string; quantity: number; own_it_likely?: boolean; suggest_buy_early?: boolean; rationale?: string; applies_to?: string[] }[];
+  items: { category: string; item_name: string; quantity: number; own_it_likely?: boolean; suggest_buy_early?: boolean; rationale?: string; color_tip?: string; applies_to?: string[] }[];
   special_notes?: string[];
+  leg_summaries?: { city: string; climate_summary: string; style_note?: string }[];
 }
 
 // v4.6.0: Climate tag display labels
@@ -117,39 +118,64 @@ export function PackingTab({ tripId }: PackingTabProps) {
     );
   }, [trip, weather]);
 
-  // v4.6.0: Build multi-location PackingContext
+  // v4.7.0: Build multi-location PackingContext with per-leg itinerary
   const packingContext = useMemo((): PackingContext | null => {
     if (!trip) return null;
 
-    // Extract unique locations from bookings (stays, activities with addresses)
-    const additionalLocations: Array<{ city: string | null; state?: string | null; country: string | null }> = [];
+    // Extract unique leg/location stops from bookings in chronological order
+    const legs: Array<{ city: string; state?: string; country: string; arriveDate?: string; departDate?: string; source: string }> = [];
     const seenCities = new Set<string>();
-    
+
+    // Primary destination
     if (trip.destination_city) {
       seenCities.add(trip.destination_city.toLowerCase());
     }
 
-    for (const booking of bookings) {
-      // Extract city from property_name or address for stays
-      if (booking.booking_type === 'stay' && booking.address) {
-        const parts = booking.address.split(',').map((p: string) => p.trim());
+    // Build legs from bookings: flights (arrival cities), stays (property cities)
+    const sortedBookings = [...bookings].sort((a, b) => 
+      new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime()
+    );
+
+    for (const booking of sortedBookings) {
+      if (booking.booking_type === 'flight' && booking.to_location) {
+        const city = booking.to_location.trim();
+        if (city && !seenCities.has(city.toLowerCase())) {
+          seenCities.add(city.toLowerCase());
+          legs.push({ 
+            city, 
+            country: trip.destination_country || '', 
+            arriveDate: booking.end_datetime?.split('T')[0],
+            source: 'flight'
+          });
+        }
+      } else if (booking.booking_type === 'stay') {
+        // Extract city from address or property_name
+        const addr = booking.address || '';
+        const parts = addr.split(',').map((p: string) => p.trim());
+        let city = '';
         if (parts.length >= 2) {
-          const city = parts[parts.length - 2];
-          if (city && !seenCities.has(city.toLowerCase())) {
-            seenCities.add(city.toLowerCase());
-            additionalLocations.push({ city, country: trip.destination_country });
-          }
+          city = parts[parts.length - 2]; // second-to-last is usually city
+        }
+        if (city && !seenCities.has(city.toLowerCase())) {
+          seenCities.add(city.toLowerCase());
+          legs.push({ 
+            city, 
+            country: trip.destination_country || '',
+            arriveDate: booking.start_datetime?.split('T')[0],
+            departDate: booking.end_datetime?.split('T')[0],
+            source: 'stay'
+          });
         }
       }
     }
 
-    // Build weather results for additional locations
-    const weatherResults: import('@/lib/weatherEngine').WeatherEngineResult[] = [];
-    if (weather) {
-      weatherResults.push(weather);
-    }
+    // Build weather results for each location
+    const additionalLocations: Array<{ city: string | null; state?: string | null; country: string | null }> = 
+      legs.map(l => ({ city: l.city, country: l.country }));
 
-    // For additional locations, generate weather using the engine
+    const weatherResults: import('@/lib/weatherEngine').WeatherEngineResult[] = [];
+    if (weather) weatherResults.push(weather);
+
     for (const loc of additionalLocations) {
       if (loc.city) {
         const locWeather = resolveWeather({
@@ -183,6 +209,7 @@ export function PackingTab({ tripId }: PackingTabProps) {
   const [copied, setCopied] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [specialNotes, setSpecialNotes] = useState<string[]>([]);
+  const [legSummaries, setLegSummaries] = useState<{ city: string; climate_summary: string; style_note?: string }[]>([]);
   const [preselectedCategory, setPreselectedCategory] = useState<string | null>(null);
   const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
 
@@ -266,14 +293,53 @@ export function PackingTab({ tripId }: PackingTabProps) {
       // Delete auto-generated items first, preserving custom items
       await deleteAutoItems.mutateAsync({ trip_id: tripId });
       
-      // v4.6.0: Build additional locations from packing context
-      const additionalLocations = packingContext?.locations
-        .filter(loc => loc.city && loc.city.toLowerCase() !== city.toLowerCase())
-        .map(loc => ({
-          city: loc.city,
-          country: loc.country,
-          climateTags: loc.climateTags,
-        })) ?? [];
+      // v4.7.0: Build per-leg itinerary with weather for each stop
+      const itineraryLegs: Array<{ city: string; country: string; arriveDate?: string; departDate?: string; climateTags?: string[] }> = [];
+      const sortedBookings = [...bookings].sort((a, b) => 
+        new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime()
+      );
+      const legCities = new Set<string>();
+      
+      for (const booking of sortedBookings) {
+        if (booking.booking_type === 'flight' && booking.to_location) {
+          const legCity = booking.to_location.trim();
+          if (legCity && !legCities.has(legCity.toLowerCase())) {
+            legCities.add(legCity.toLowerCase());
+            const legWeather = resolveWeather({
+              city: legCity,
+              country: trip.destination_country || '',
+              startDate: trip.start_date,
+              endDate: trip.end_date,
+            });
+            itineraryLegs.push({
+              city: legCity,
+              country: trip.destination_country || '',
+              arriveDate: booking.end_datetime?.split('T')[0],
+              climateTags: legWeather?.summary ? deriveClimateTags(legWeather.summary) : [],
+            });
+          }
+        } else if (booking.booking_type === 'stay') {
+          const addr = booking.address || '';
+          const parts = addr.split(',').map((p: string) => p.trim());
+          let stayCity = parts.length >= 2 ? parts[parts.length - 2] : '';
+          if (stayCity && !legCities.has(stayCity.toLowerCase())) {
+            legCities.add(stayCity.toLowerCase());
+            const legWeather = resolveWeather({
+              city: stayCity,
+              country: trip.destination_country || '',
+              startDate: booking.start_datetime?.split('T')[0] || trip.start_date,
+              endDate: booking.end_datetime?.split('T')[0] || trip.end_date,
+            });
+            itineraryLegs.push({
+              city: stayCity,
+              country: trip.destination_country || '',
+              arriveDate: booking.start_datetime?.split('T')[0],
+              departDate: booking.end_datetime?.split('T')[0],
+              climateTags: legWeather?.summary ? deriveClimateTags(legWeather.summary) : [],
+            });
+          }
+        }
+      }
 
       const { data, error } = await supabase.functions.invoke<{ success: boolean; data: AIPackingResponse; meta?: { isEarlyDraft: boolean; generatedAt: string }; error?: string }>('generate-packing-list', {
         body: {
@@ -289,8 +355,8 @@ export function PackingTab({ tripId }: PackingTabProps) {
             summary: weather.summary,
             anchorLabel: weather.anchor.label,
           } : null,
-          // v4.6.0: Multi-location + regeneration
-          additional_locations: additionalLocations,
+          // v4.7.0: Per-leg itinerary with weather
+          itinerary_legs: itineraryLegs,
           is_regenerate: isRegenerate,
         },
       });
@@ -308,6 +374,9 @@ export function PackingTab({ tripId }: PackingTabProps) {
         
         if (data.data.special_notes) {
           setSpecialNotes(data.data.special_notes);
+        }
+        if (data.data.leg_summaries) {
+          setLegSummaries(data.data.leg_summaries);
         }
 
         if (isRegenerate) {
@@ -491,14 +560,34 @@ export function PackingTab({ tripId }: PackingTabProps) {
         </Card>
       )}
 
-      {/* Special Notes from AI */}
+      {/* v4.7.0: Per-Leg Climate & Style Summaries */}
+      {legSummaries.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {legSummaries.map((leg, idx) => (
+            <Card key={idx} className="border-muted">
+              <CardContent className="pt-4 pb-3">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-sm font-semibold">{leg.city}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">{leg.climate_summary}</p>
+                {leg.style_note && (
+                  <p className="text-xs text-primary/80 mt-1 italic">{leg.style_note}</p>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Special Notes / Cultural Tips from AI */}
       {specialNotes.length > 0 && (
         <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20">
           <CardContent className="pt-4">
             <div className="flex gap-2">
               <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
               <div className="space-y-1">
-                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Packing Tips for {trip?.destination_city}</p>
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Cultural Tips & Packing Notes</p>
                 <ul className="text-sm text-amber-700 dark:text-amber-300 space-y-1">
                   {specialNotes.map((note, idx) => (
                     <li key={idx}>• {note}</li>
