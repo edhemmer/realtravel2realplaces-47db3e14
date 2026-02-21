@@ -36,6 +36,8 @@ import type { CanonicalItem } from '@/lib/canonical/canonicalTypes';
 import { runCanonicalImportPipeline } from '@/lib/ingestion/canonicalImportPipeline';
 // v3.9.28: Receipt cost extraction fallback
 import { enrichParsedBookingCost } from '@/lib/costAttribution';
+// v3.9.9: Flight cost intelligence (multi-currency + declined detection)
+import { enrichFlightCostIntelligence } from '@/lib/import/flightCostIntelligence';
 // v3.9.35: Canonical import staging — single source for trip creation inputs
 import { buildImportStaging, buildStagingSnapshot, extractDateTokensFromParsedItems, deriveTripFrameFromDateTokens, type ParsedImportStaging, type StagingSnapshot } from '@/lib/ingestion/importStaging';
 // v4.4.2: Single canonical date derivation — no legacy Date-object fallback
@@ -426,6 +428,8 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
           // v3.9.28: Enrich each booking's cost from raw text if AI parser missed it
           for (const booking of parsed.bookings) {
             enrichParsedBookingCost(booking, text);
+            // v3.9.9: Apply flight cost intelligence (multi-currency preference)
+            enrichFlightCostIntelligence(booking, text, 'USD');
           }
           
           if (import.meta.env.DEV) {

@@ -286,6 +286,13 @@ Deno.serve(async (req: Request) => {
   const vendorName = (extracted.vendor_name as string) || (extracted.airline as string) || "Unknown";
   const confNum = (extracted.confirmation_number as string) || null;
   const docClassStr = String(docClass);
+  const extractedCost = (extracted.total_cost as number) || null;
+  const extractedCurrency = (extracted.currency_code as string) || null;
+
+  // v3.9.9: Detect declined/cancelled confirmations
+  const isDeclined = extracted._payment_declined === true ||
+    extracted.is_payment_declined === true ||
+    docClass === 'CHANGE_OR_CANCEL';
 
   if (
     (extracted.booking_type as string) === "flight" &&
@@ -294,8 +301,9 @@ Deno.serve(async (req: Request) => {
   ) {
     // Multi-leg or single-leg flight: one CanonicalBooking per leg
     const legs = extracted.flight_legs as Record<string, unknown>[];
-    for (const leg of legs) {
-      bookings.push({
+    for (let i = 0; i < legs.length; i++) {
+      const leg = legs[i];
+      const cb: CanonicalBooking = {
         booking_type: "flight",
         vendor_name: vendorName,
         start_datetime: (leg.departure_datetime as string) || null,
@@ -306,17 +314,22 @@ Deno.serve(async (req: Request) => {
         airline: (extracted.airline as string) || null,
         passenger_name: (extracted.passenger_name as string) || null,
         flight_number: (leg.flight_number as string) || null,
-        total_cost: null, // cost lives at booking level, not per-leg
-        currency_code: (extracted.currency_code as string) || null,
+        // v3.9.9: Assign full cost to FIRST leg only (PNR-aware sync handles the rest)
+        total_cost: i === 0 ? (isDeclined ? null : extractedCost) : null,
+        currency_code: extractedCurrency,
         _source: "email",
         _import_id: importId,
-        _doc_classification: docClassStr,
-      });
+        _doc_classification: isDeclined ? 'CHANGE_OR_CANCEL' : docClassStr,
+      };
+      if (isDeclined) {
+        cb._parse_issues = [{ issueType: 'PAYMENT_DECLINED', entityType: 'flight', missingFields: [], actionHint: 'Payment was declined or cancelled.' }];
+      }
+      bookings.push(cb);
     }
   } else {
     // Non-flight or single-leg flight without flight_legs array
     const bt = (extracted.booking_type as string) || "other";
-    bookings.push({
+    const cb: CanonicalBooking = {
       booking_type: bt as CanonicalBooking["booking_type"],
       vendor_name: vendorName,
       start_datetime: (extracted.start_datetime as string) || null,
@@ -333,12 +346,16 @@ Deno.serve(async (req: Request) => {
       return_location: (extracted.return_location as string) || null,
       parking_type: (extracted.parking_type as CanonicalBooking["parking_type"]) || null,
       address: (extracted.address as string) || null,
-      total_cost: (extracted.total_cost as number) || null,
-      currency_code: (extracted.currency_code as string) || null,
+      total_cost: isDeclined ? null : extractedCost,
+      currency_code: extractedCurrency,
       _source: "email",
       _import_id: importId,
-      _doc_classification: docClassStr,
-    });
+      _doc_classification: isDeclined ? 'CHANGE_OR_CANCEL' : docClassStr,
+    };
+    if (isDeclined) {
+      cb._parse_issues = [{ issueType: 'PAYMENT_DECLINED', entityType: bt, missingFields: [], actionHint: 'Payment was declined or cancelled.' }];
+    }
+    bookings.push(cb);
   }
 
   // ── 7. Derive trip dates from service dates ────────────────────

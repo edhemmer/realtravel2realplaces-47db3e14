@@ -59,6 +59,8 @@ import { normalizeDatetimeForStorage } from '@/lib/datetimeIntegrity';
 import { runCanonicalImportPipelineSingle } from '@/lib/ingestion/canonicalImportPipeline';
 // v3.9.28: Receipt cost extraction fallback
 import { enrichParsedBookingCost } from '@/lib/costAttribution';
+// v3.9.9: Flight cost intelligence (multi-currency + declined detection)
+import { enrichFlightCostIntelligence } from '@/lib/import/flightCostIntelligence';
 
 // Helper to safely open external URLs in new tab
 const openExternalUrl = (url: string | null | undefined) => {
@@ -337,6 +339,8 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
         
         // v3.9.28: Enrich cost from raw text if AI parser missed it
         enrichParsedBookingCost(parsed, text);
+        // v3.9.9: Apply flight cost intelligence (multi-currency preference)
+        enrichFlightCostIntelligence(parsed, text, 'USD');
         // v3.9.9: Run canonical import pipeline for unified classification + validation
         const pipelineResult = runCanonicalImportPipelineSingle(parsed, text);
         

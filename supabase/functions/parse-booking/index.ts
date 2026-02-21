@@ -385,6 +385,10 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
           parsed._parse_issues = [...(parsed._parse_issues || []), ...parseIssues];
         }
         // ── v4.4.0B: BUILD CANONICAL IMPORT BATCH ─────────────────
+        const isDeclined = parsed.is_payment_declined === true || parsed._payment_declined === true;
+        const parsedCost = isDeclined ? null : (parsed.total_cost as number) || null;
+        const parsedCurrency = (parsed.currency_code as string) || null;
+
         const canonicalBooking: CanonicalBooking = {
           booking_type: (parsed.booking_type as CanonicalBooking["booking_type"]) || "other",
           vendor_name: (parsed.vendor_name as string) || "Unknown",
@@ -404,10 +408,16 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
           address: parsed.address || null,
           from_location: parsed.from_location || null,
           to_location: parsed.to_location || null,
+          total_cost: parsedCost,
+          currency_code: parsedCurrency,
           _source: "clipboard",
           _doc_classification: parsed._doc_classification || null,
           _parse_issues: parsed._parse_issues,
         };
+        if (isDeclined) {
+          canonicalBooking._parse_issues = [...(canonicalBooking._parse_issues || []), { issueType: 'PAYMENT_DECLINED', entityType: parsed.booking_type || 'other', missingFields: [], actionHint: 'Payment was declined or cancelled.' }];
+          canonicalBooking._doc_classification = 'CHANGE_OR_CANCEL';
+        }
         const canonicalBookings: CanonicalBooking[] = [canonicalBooking];
         const tripDates = deriveTripDatesFromBookings(canonicalBookings);
         const canonicalBatch: CanonicalImportBatch = {

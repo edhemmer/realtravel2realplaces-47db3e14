@@ -12,6 +12,7 @@
  */
 
 import type { CanonicalBooking, CanonicalImportBatch } from './canonicalBookingMapper.types';
+import { isDeclinedCanonicalBooking } from './flightCostIntelligence';
 
 // Re-export the types from the edge function contract for frontend use
 export type { CanonicalBooking, CanonicalImportBatch };
@@ -129,7 +130,7 @@ export function deriveTripDatesFromCanonical(
 function mapCanonicalToBookingInput(
   cb: CanonicalBooking,
   tripId: string,
-  currencyCode: string,
+  fallbackCurrencyCode: string,
 ): BookingInput {
   const validTypes = ['flight', 'stay', 'car_rental', 'activity', 'transport'];
   const bookingType = validTypes.includes(cb.booking_type) ? cb.booking_type : 'activity';
@@ -138,6 +139,9 @@ function mapCanonicalToBookingInput(
   if (bookingType === 'flight') {
     attachMissingAirportCodeIssues(cb);
   }
+
+  // v3.9.9: Use currency_code from CanonicalBooking if available, fallback to param
+  const effectiveCurrency = cb.currency_code || fallbackCurrencyCode;
 
   return {
     trip_id: tripId,
@@ -160,7 +164,7 @@ function mapCanonicalToBookingInput(
     from_location: cb.from_location || null,
     to_location: cb.to_location || null,
     notes: null,
-    _extracted_currency: currencyCode,
+    _extracted_currency: effectiveCurrency,
   };
 }
 
@@ -242,17 +246,29 @@ export function buildBookingsFromCanonicalImport(
   parsedData: Record<string, unknown>,
   tripId: string,
   currencyCode: string = 'USD',
-): { bookings: BookingInput[]; tripBounds: TripBounds } | null {
+): { bookings: BookingInput[]; tripBounds: TripBounds; ignoredImports?: Array<{ booking: CanonicalBooking; reason: string }> } | null {
   const batch = extractCanonicalBatch(parsedData);
   if (!batch || batch.bookings.length === 0) return null;
 
-  const bookings = batch.bookings.map((cb) =>
+  // v3.9.9: Filter out declined/cancelled bookings
+  const activeBookings: CanonicalBooking[] = [];
+  const ignoredImports: Array<{ booking: CanonicalBooking; reason: string }> = [];
+
+  for (const cb of batch.bookings) {
+    if (isDeclinedCanonicalBooking(cb as unknown as Record<string, unknown>)) {
+      ignoredImports.push({ booking: cb, reason: 'DECLINED_OR_CANCELLED' });
+    } else {
+      activeBookings.push(cb);
+    }
+  }
+
+  const bookings = activeBookings.map((cb) =>
     mapCanonicalToBookingInput(cb, tripId, currencyCode),
   );
 
   const tripBounds = batch.trip?.start_date && batch.trip?.end_date
     ? { start_date: batch.trip.start_date, end_date: batch.trip.end_date }
-    : deriveTripDatesFromCanonical(batch.bookings);
+    : deriveTripDatesFromCanonical(activeBookings);
 
-  return { bookings, tripBounds };
+  return { bookings, tripBounds, ignoredImports: ignoredImports.length > 0 ? ignoredImports : undefined };
 }
