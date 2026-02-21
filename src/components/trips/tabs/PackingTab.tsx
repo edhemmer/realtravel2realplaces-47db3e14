@@ -19,33 +19,41 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { 
   Plus, Trash2, Sparkles, Copy, Check, Cloud, Sun, 
   Briefcase, ShoppingBag, Luggage, Waves, RefreshCw, AlertCircle, Mountain, Building2,
-  Minus, Thermometer, MapPin, Shirt, Footprints, Watch, Umbrella, Snowflake, Plug, FileText, Globe
+  Minus, MapPin, Shirt, Footprints, Watch, Umbrella, Snowflake, 
+  Globe, Battery, ShowerHead, BookOpen, Smartphone, Cable
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { differenceInDays, parseISO } from 'date-fns';
 import { useTripPermission } from '@/pages/TripDetail';
 
+// Wearable categories (rendered in left column) vs utility (right column)
+const WEARABLE_CATEGORIES = new Set([
+  'Clothing Core', 'Clothing', 'Layers & Outerwear', 'Footwear', 
+  'Accessories', 'Swimwear & Beach', 'Hiking & Outdoor', 'Rain & Wet Weather',
+  'Cold / Snow Gear', 'Weather Gear', 'Business',
+]);
+
 // Category color system for premium visual identity
 const categoryThemes: Record<string, { icon: React.ReactNode; border: string; bg: string; text: string; iconBg: string }> = {
-  'Clothing Core':            { icon: <Shirt className="w-3.5 h-3.5" />,       border: 'border-l-blue-500',      bg: 'bg-blue-50/40 dark:bg-blue-950/20',      text: 'text-blue-700 dark:text-blue-300',      iconBg: 'bg-blue-100 dark:bg-blue-900/40' },
-  'Clothing':                 { icon: <Shirt className="w-3.5 h-3.5" />,       border: 'border-l-blue-500',      bg: 'bg-blue-50/40 dark:bg-blue-950/20',      text: 'text-blue-700 dark:text-blue-300',      iconBg: 'bg-blue-100 dark:bg-blue-900/40' },
-  'Layers & Outerwear':       { icon: <Mountain className="w-3.5 h-3.5" />,    border: 'border-l-slate-500',     bg: 'bg-slate-50/40 dark:bg-slate-950/20',    text: 'text-slate-700 dark:text-slate-300',    iconBg: 'bg-slate-100 dark:bg-slate-900/40' },
-  'Rain & Wet Weather':       { icon: <Umbrella className="w-3.5 h-3.5" />,    border: 'border-l-cyan-500',      bg: 'bg-cyan-50/40 dark:bg-cyan-950/20',      text: 'text-cyan-700 dark:text-cyan-300',      iconBg: 'bg-cyan-100 dark:bg-cyan-900/40' },
-  'Cold / Snow Gear':         { icon: <Snowflake className="w-3.5 h-3.5" />,   border: 'border-l-indigo-500',    bg: 'bg-indigo-50/40 dark:bg-indigo-950/20',  text: 'text-indigo-700 dark:text-indigo-300',  iconBg: 'bg-indigo-100 dark:bg-indigo-900/40' },
-  'Footwear':                 { icon: <Footprints className="w-3.5 h-3.5" />,  border: 'border-l-amber-500',     bg: 'bg-amber-50/40 dark:bg-amber-950/20',    text: 'text-amber-700 dark:text-amber-300',    iconBg: 'bg-amber-100 dark:bg-amber-900/40' },
-  'Accessories':              { icon: <Watch className="w-3.5 h-3.5" />,       border: 'border-l-purple-500',    bg: 'bg-purple-50/40 dark:bg-purple-950/20',  text: 'text-purple-700 dark:text-purple-300',  iconBg: 'bg-purple-100 dark:bg-purple-900/40' },
-  'Swimwear & Beach':         { icon: <Waves className="w-3.5 h-3.5" />,       border: 'border-l-teal-500',      bg: 'bg-teal-50/40 dark:bg-teal-950/20',      text: 'text-teal-700 dark:text-teal-300',      iconBg: 'bg-teal-100 dark:bg-teal-900/40' },
-  'Hiking & Outdoor':         { icon: <Mountain className="w-3.5 h-3.5" />,    border: 'border-l-emerald-500',   bg: 'bg-emerald-50/40 dark:bg-emerald-950/20',text: 'text-emerald-700 dark:text-emerald-300',iconBg: 'bg-emerald-100 dark:bg-emerald-900/40' },
-  'Toiletries & Health':      { icon: <Sparkles className="w-3.5 h-3.5" />,    border: 'border-l-rose-500',      bg: 'bg-rose-50/40 dark:bg-rose-950/20',      text: 'text-rose-700 dark:text-rose-300',      iconBg: 'bg-rose-100 dark:bg-rose-900/40' },
-  'Tech & Chargers':          { icon: <Plug className="w-3.5 h-3.5" />,        border: 'border-l-violet-500',    bg: 'bg-violet-50/40 dark:bg-violet-950/20',  text: 'text-violet-700 dark:text-violet-300',  iconBg: 'bg-violet-100 dark:bg-violet-900/40' },
-  'Electronics':              { icon: <Plug className="w-3.5 h-3.5" />,        border: 'border-l-violet-500',    bg: 'bg-violet-50/40 dark:bg-violet-950/20',  text: 'text-violet-700 dark:text-violet-300',  iconBg: 'bg-violet-100 dark:bg-violet-900/40' },
-  'Documents & Critical Items':{ icon: <FileText className="w-3.5 h-3.5" />,   border: 'border-l-orange-500',    bg: 'bg-orange-50/40 dark:bg-orange-950/20',  text: 'text-orange-700 dark:text-orange-300',  iconBg: 'bg-orange-100 dark:bg-orange-900/40' },
-  'Documents':                { icon: <FileText className="w-3.5 h-3.5" />,    border: 'border-l-orange-500',    bg: 'bg-orange-50/40 dark:bg-orange-950/20',  text: 'text-orange-700 dark:text-orange-300',  iconBg: 'bg-orange-100 dark:bg-orange-900/40' },
-  'Cultural Essentials':      { icon: <Globe className="w-3.5 h-3.5" />,       border: 'border-l-pink-500',      bg: 'bg-pink-50/40 dark:bg-pink-950/20',      text: 'text-pink-700 dark:text-pink-300',      iconBg: 'bg-pink-100 dark:bg-pink-900/40' },
-  'City Essentials':          { icon: <Building2 className="w-3.5 h-3.5" />,   border: 'border-l-sky-500',       bg: 'bg-sky-50/40 dark:bg-sky-950/20',        text: 'text-sky-700 dark:text-sky-300',        iconBg: 'bg-sky-100 dark:bg-sky-900/40' },
-  'Essentials':               { icon: <Check className="w-3.5 h-3.5" />,       border: 'border-l-green-500',     bg: 'bg-green-50/40 dark:bg-green-950/20',    text: 'text-green-700 dark:text-green-300',    iconBg: 'bg-green-100 dark:bg-green-900/40' },
-  'Weather Gear':             { icon: <Cloud className="w-3.5 h-3.5" />,       border: 'border-l-sky-500',       bg: 'bg-sky-50/40 dark:bg-sky-950/20',        text: 'text-sky-700 dark:text-sky-300',        iconBg: 'bg-sky-100 dark:bg-sky-900/40' },
-  'Business':                 { icon: <Briefcase className="w-3.5 h-3.5" />,   border: 'border-l-gray-500',      bg: 'bg-gray-50/40 dark:bg-gray-950/20',      text: 'text-gray-700 dark:text-gray-300',      iconBg: 'bg-gray-100 dark:bg-gray-900/40' },
+  'Clothing Core':            { icon: <Shirt className="w-3.5 h-3.5" />,        border: 'border-l-blue-500',      bg: 'bg-blue-50/40 dark:bg-blue-950/20',      text: 'text-blue-700 dark:text-blue-300',      iconBg: 'bg-blue-100 dark:bg-blue-900/40' },
+  'Clothing':                 { icon: <Shirt className="w-3.5 h-3.5" />,        border: 'border-l-blue-500',      bg: 'bg-blue-50/40 dark:bg-blue-950/20',      text: 'text-blue-700 dark:text-blue-300',      iconBg: 'bg-blue-100 dark:bg-blue-900/40' },
+  'Layers & Outerwear':       { icon: <Mountain className="w-3.5 h-3.5" />,     border: 'border-l-slate-500',     bg: 'bg-slate-50/40 dark:bg-slate-950/20',    text: 'text-slate-700 dark:text-slate-300',    iconBg: 'bg-slate-100 dark:bg-slate-900/40' },
+  'Rain & Wet Weather':       { icon: <Umbrella className="w-3.5 h-3.5" />,     border: 'border-l-cyan-500',      bg: 'bg-cyan-50/40 dark:bg-cyan-950/20',      text: 'text-cyan-700 dark:text-cyan-300',      iconBg: 'bg-cyan-100 dark:bg-cyan-900/40' },
+  'Cold / Snow Gear':         { icon: <Snowflake className="w-3.5 h-3.5" />,    border: 'border-l-indigo-500',    bg: 'bg-indigo-50/40 dark:bg-indigo-950/20',  text: 'text-indigo-700 dark:text-indigo-300',  iconBg: 'bg-indigo-100 dark:bg-indigo-900/40' },
+  'Footwear':                 { icon: <Footprints className="w-3.5 h-3.5" />,   border: 'border-l-amber-500',     bg: 'bg-amber-50/40 dark:bg-amber-950/20',    text: 'text-amber-700 dark:text-amber-300',    iconBg: 'bg-amber-100 dark:bg-amber-900/40' },
+  'Accessories':              { icon: <Watch className="w-3.5 h-3.5" />,        border: 'border-l-purple-500',    bg: 'bg-purple-50/40 dark:bg-purple-950/20',  text: 'text-purple-700 dark:text-purple-300',  iconBg: 'bg-purple-100 dark:bg-purple-900/40' },
+  'Swimwear & Beach':         { icon: <Waves className="w-3.5 h-3.5" />,        border: 'border-l-teal-500',      bg: 'bg-teal-50/40 dark:bg-teal-950/20',      text: 'text-teal-700 dark:text-teal-300',      iconBg: 'bg-teal-100 dark:bg-teal-900/40' },
+  'Hiking & Outdoor':         { icon: <Mountain className="w-3.5 h-3.5" />,     border: 'border-l-emerald-500',   bg: 'bg-emerald-50/40 dark:bg-emerald-950/20',text: 'text-emerald-700 dark:text-emerald-300',iconBg: 'bg-emerald-100 dark:bg-emerald-900/40' },
+  'Toiletries & Health':      { icon: <ShowerHead className="w-3.5 h-3.5" />,   border: 'border-l-rose-500',      bg: 'bg-rose-50/40 dark:bg-rose-950/20',      text: 'text-rose-700 dark:text-rose-300',      iconBg: 'bg-rose-100 dark:bg-rose-900/40' },
+  'Tech & Chargers':          { icon: <Cable className="w-3.5 h-3.5" />,        border: 'border-l-violet-500',    bg: 'bg-violet-50/40 dark:bg-violet-950/20',  text: 'text-violet-700 dark:text-violet-300',  iconBg: 'bg-violet-100 dark:bg-violet-900/40' },
+  'Electronics':              { icon: <Smartphone className="w-3.5 h-3.5" />,   border: 'border-l-violet-500',    bg: 'bg-violet-50/40 dark:bg-violet-950/20',  text: 'text-violet-700 dark:text-violet-300',  iconBg: 'bg-violet-100 dark:bg-violet-900/40' },
+  'Documents & Critical Items':{ icon: <BookOpen className="w-3.5 h-3.5" />,    border: 'border-l-orange-500',    bg: 'bg-orange-50/40 dark:bg-orange-950/20',  text: 'text-orange-700 dark:text-orange-300',  iconBg: 'bg-orange-100 dark:bg-orange-900/40' },
+  'Documents':                { icon: <BookOpen className="w-3.5 h-3.5" />,     border: 'border-l-orange-500',    bg: 'bg-orange-50/40 dark:bg-orange-950/20',  text: 'text-orange-700 dark:text-orange-300',  iconBg: 'bg-orange-100 dark:bg-orange-900/40' },
+  'Cultural Essentials':      { icon: <Globe className="w-3.5 h-3.5" />,        border: 'border-l-pink-500',      bg: 'bg-pink-50/40 dark:bg-pink-950/20',      text: 'text-pink-700 dark:text-pink-300',      iconBg: 'bg-pink-100 dark:bg-pink-900/40' },
+  'City Essentials':          { icon: <Building2 className="w-3.5 h-3.5" />,    border: 'border-l-sky-500',       bg: 'bg-sky-50/40 dark:bg-sky-950/20',        text: 'text-sky-700 dark:text-sky-300',        iconBg: 'bg-sky-100 dark:bg-sky-900/40' },
+  'Essentials':               { icon: <Check className="w-3.5 h-3.5" />,        border: 'border-l-green-500',     bg: 'bg-green-50/40 dark:bg-green-950/20',    text: 'text-green-700 dark:text-green-300',    iconBg: 'bg-green-100 dark:bg-green-900/40' },
+  'Weather Gear':             { icon: <Cloud className="w-3.5 h-3.5" />,        border: 'border-l-sky-500',       bg: 'bg-sky-50/40 dark:bg-sky-950/20',        text: 'text-sky-700 dark:text-sky-300',        iconBg: 'bg-sky-100 dark:bg-sky-900/40' },
+  'Business':                 { icon: <Briefcase className="w-3.5 h-3.5" />,    border: 'border-l-gray-500',      bg: 'bg-gray-50/40 dark:bg-gray-950/20',      text: 'text-gray-700 dark:text-gray-300',      iconBg: 'bg-gray-100 dark:bg-gray-900/40' },
 };
 
 const defaultTheme = { icon: <ShoppingBag className="w-3.5 h-3.5" />, border: 'border-l-primary', bg: 'bg-primary/5', text: 'text-primary', iconBg: 'bg-primary/10' };
@@ -610,10 +618,13 @@ export function PackingTab({ tripId }: PackingTabProps) {
         </div>
       )}
 
-      {/* Category Grid — compact cards */}
-      {Object.keys(groupedItems).length > 0 ? (
-        <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-          {Object.entries(groupedItems).map(([category, items]) => {
+      {/* Category Grid — wearables left, utilities right */}
+      {Object.keys(groupedItems).length > 0 ? (() => {
+        const entries = Object.entries(groupedItems);
+        const wearables = entries.filter(([cat]) => WEARABLE_CATEGORIES.has(cat));
+        const utilities = entries.filter(([cat]) => !WEARABLE_CATEGORIES.has(cat));
+        
+        const renderCategory = ([category, items]: [string, PackingItem[]]) => {
             const categoryPacked = items.filter(i => i.is_packed).length;
             const allPacked = categoryPacked === items.length;
             const theme = categoryThemes[category] || defaultTheme;
@@ -724,9 +735,21 @@ export function PackingTab({ tripId }: PackingTabProps) {
                 </div>
               </div>
             );
-          })}
-        </div>
-      ) : (
+          };
+        
+        return (
+          <div className="grid gap-3 md:grid-cols-2">
+            {/* Left column: Wearables */}
+            <div className="space-y-2">
+              {wearables.map(renderCategory)}
+            </div>
+            {/* Right column: Utilities */}
+            <div className="space-y-2">
+              {utilities.map(renderCategory)}
+            </div>
+          </div>
+        );
+      })() : (
         /* Empty state */
         <div className="rounded-lg border border-dashed border-border/60 bg-card">
           <div className="flex flex-col items-center justify-center py-10 px-4">
