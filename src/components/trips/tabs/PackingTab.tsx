@@ -412,10 +412,11 @@ export function PackingTab({ tripId }: PackingTabProps) {
       const responseData = data as { success: boolean; data: AIPackingResponse; meta?: any; error?: string } | null;
       if (responseData?.success && responseData.data?.items) {
         const normalizedItems = responseData.data.items.map(item => ({
-          ...item,
           category: item.category || 'General',
           item_name: item.item_name || 'Unknown item',
           quantity: typeof item.quantity === 'number' && item.quantity >= 1 ? item.quantity : 1,
+          color_tip: item.color_tip || null,
+          applies_to: item.applies_to || null,
         }));
         await bulkCreate.mutateAsync({ trip_id: tripId, items: normalizedItems, is_custom: false });
         
