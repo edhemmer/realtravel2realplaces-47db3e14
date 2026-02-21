@@ -432,16 +432,18 @@ export function PackingTab({ tripId }: PackingTabProps) {
       } else {
         throw new Error(responseData?.error || 'Failed to generate packing list');
       }
-    } catch (err) {
-      console.error('[PackingTab] Generation failed:', err);
-      const message = err instanceof Error ? err.message : String(err);
-      console.error('[PackingTab] Error message:', message);
-      if (message.includes('Rate limit')) {
+    } catch (err: any) {
+      console.error('[PackingTab] Generation failed:', JSON.stringify(err, null, 2), err);
+      const message = err instanceof Error ? err.message 
+        : typeof err === 'object' && err !== null ? (err.message || err.msg || err.error || JSON.stringify(err))
+        : String(err);
+      console.error('[PackingTab] Error detail:', message);
+      if (message.includes('Rate limit') || message.includes('429')) {
         toast.error('Too many requests. Please wait a moment and try again.');
-      } else if (message.includes('credits')) {
+      } else if (message.includes('credits') || message.includes('402')) {
         toast.error('AI credits are temporarily unavailable. Please try again later.');
       } else {
-        toast.error(`Packing list error: ${message.slice(0, 120)}`);
+        toast.error(`Packing list error: ${String(message).slice(0, 200)}`);
       }
     } finally {
       setIsGenerating(false);
