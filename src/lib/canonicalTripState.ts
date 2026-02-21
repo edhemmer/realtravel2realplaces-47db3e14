@@ -752,6 +752,28 @@ function getEventEndTime(event: CanonicalTimelineEvent): string {
 }
 
 /**
+ * v4.9.3: Connection-aware sort for connecting flights sharing the same PNR.
+ * If flight A arrives at airport X and flight B departs from airport X (same day, same PNR),
+ * then A must come before B regardless of stored times (which may be missing/midnight).
+ */
+function resolveConnectionOrder(a: CanonicalTimelineEvent, b: CanonicalTimelineEvent): number | null {
+  // Only applies to flight pairs with matching confirmation numbers
+  if (a.bookingType !== 'flight' || b.bookingType !== 'flight') return null;
+  if (!a.confirmationNumber || !b.confirmationNumber) return null;
+  if (a.confirmationNumber !== b.confirmationNumber) return null;
+
+  // Check if A arrives where B departs → A before B
+  if (a.arrivalAirportCode && b.departureAirportCode && a.arrivalAirportCode === b.departureAirportCode) {
+    return -1;
+  }
+  // Check if B arrives where A departs → B before A
+  if (b.arrivalAirportCode && a.departureAirportCode && b.arrivalAirportCode === a.departureAirportCode) {
+    return 1;
+  }
+  return null;
+}
+
+/**
  * v3.8.3: Execution-based sort for canonical timeline events.
  *
  * Cross-day: chronological (ascending by date).
@@ -760,6 +782,9 @@ function getEventEndTime(event: CanonicalTimelineEvent): string {
  *   2. Future (not started) — ascending by start
  *   3. Past (started and ended) — descending by start (most recent first)
  * Within non-today days: simple ascending by time.
+ *
+ * v4.9.3: Connection-aware tiebreaker for flights sharing the same PNR
+ * on the same day — uses airport topology to determine correct leg order.
  */
 function sortTimelineExecutionOrder(events: CanonicalTimelineEvent[]): CanonicalTimelineEvent[] {
   // v3.11.2: Use canonical policy helpers — no new Date()
@@ -775,6 +800,10 @@ function sortTimelineExecutionOrder(events: CanonicalTimelineEvent[]): Canonical
     // Different days: chronological
     if (aDate < bDate) return -1;
     if (aDate > bDate) return 1;
+
+    // v4.9.3: Same day — connection-aware tiebreaker for connecting flights
+    const connectionOrder = resolveConnectionOrder(a, b);
+    if (connectionOrder !== null) return connectionOrder;
 
     // Same day: explicit times before unknown times
     if (a.hasExplicitTime && !b.hasExplicitTime) return -1;
