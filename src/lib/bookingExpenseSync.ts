@@ -153,6 +153,10 @@ export function getBookingExpenseCost(booking: Booking): number {
  * The expense is flagged with [needs_pricing] so the UI can show a visual indicator.
  * This ensures users always see their booking in the expenses tab and can update the
  * cost once they receive a receipt or final charge.
+ *
+ * v5.1.0: RE-REVERSED — placeholder $0 expenses create noise with no value.
+ * If booking has no cost, no expense is created. Bookings are visible on the
+ * Bookings tab; the Expenses tab should only show real financial records.
  */
 export async function syncExpenseFromBooking(booking: Booking, currency: string = 'USD'): Promise<string | null> {
   // Get normalized booking cost — coerce string to number defensively
@@ -164,7 +168,8 @@ export async function syncExpenseFromBooking(booking: Booking, currency: string 
         return Number.isFinite(n) && n > 0 ? n : 0;
       })();
 
-  const needsPricing = totalCost <= 0;
+  // v5.1.0: No expense for costless bookings
+  if (totalCost <= 0) return null;
   
   const bookingLinkMarker = createBookingLinkMarker(booking.id);
   const category = mapBookingTypeToExpenseCategory(booking.booking_type);
@@ -176,32 +181,20 @@ export async function syncExpenseFromBooking(booking: Booking, currency: string 
     ? rawStart.substring(0, 10)
     : new Date().toISOString().split('T')[0];
   
-  // Build notes with markers
-  const notesMarkers = needsPricing
-    ? `${bookingLinkMarker} ${NEEDS_PRICING_FLAG}`
-    : bookingLinkMarker;
+  // Build notes — cost is always > 0 at this point (guard at line 172)
+  const notesMarkers = bookingLinkMarker;
   
   // Check for existing linked expense
   const existingExpense = await findLinkedExpense(booking.trip_id, booking.id);
   
   if (existingExpense) {
-    // v4.9.4: If existing expense was a placeholder and now we have a real cost, upgrade it
-    const existingNeedsPricing = hasNeedsPricingFlag(existingExpense.notes);
-    
-    if (needsPricing && existingNeedsPricing) {
-      // Still no cost — leave placeholder as-is
-      return existingExpense.id;
-    }
-    
-    // Update existing expense
+    // Update existing expense with real cost
     const safeAmount = totalCost;
     const rawMyShare = booking.my_share != null ? Number(booking.my_share) : null;
     const safeMyShare = (rawMyShare != null && Number.isFinite(rawMyShare) && rawMyShare > 0) ? rawMyShare : safeAmount;
     
-    // If we now have a real cost, remove the needs_pricing flag
-    const updatedNotes = needsPricing 
-      ? existingExpense.notes 
-      : (existingExpense.notes || '').replace(NEEDS_PRICING_FLAG, '').trim();
+    // Remove any legacy needs_pricing flag since we now have real cost
+    const updatedNotes = (existingExpense.notes || '').replace(NEEDS_PRICING_FLAG, '').trim();
     
     const { error } = await supabase
       .from('expenses')
