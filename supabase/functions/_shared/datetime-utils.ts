@@ -96,8 +96,9 @@ export function extractRawTimeToken(input: string | null | undefined): string | 
     const timePart = s.substring(tIndex + 1);
     const match = timePart.match(/^(\d{2}:\d{2})/);
     if (match) {
-      // Check if midnight (likely defaulted)
-      if (match[1] === '00:00') return null;
+      // v4.5.0: Do NOT suppress midnight — 00:00 IS a valid flight time.
+      // The AI prompt now enforces date-only when no explicit time exists,
+      // so if we have a T-separated datetime, the time was explicit.
       return match[1];
     }
   }
@@ -236,10 +237,9 @@ export function normalizeDatetime(dt: string | null | undefined): string | null 
     return null;
   }
   
-  // Check if time is midnight (likely defaulted)
-  if (isMidnightTime(timePart)) {
-    return datePart; // Store as date-only
-  }
+  // v4.5.0: Do NOT strip midnight times — the AI prompt now enforces
+  // date-only format when no explicit time exists. If we receive a
+  // T-separated datetime with 00:00, the time was explicitly extracted.
   
   // v2.2.4: Validate and normalize using string digits ONLY.
   // NEVER use new Date() here — that applies the Deno server's timezone,

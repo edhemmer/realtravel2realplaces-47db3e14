@@ -1,11 +1,12 @@
 /**
- * v4.3.0: Parse Booking Edge Function
+ * v4.5.0: Parse Booking Edge Function
  * 
  * Uses the canonical parse contract for document classification,
  * required field enforcement, and receipt handling across ALL entity types.
  * 
- * MULTI-LEG PRESERVATION (v4.3.0):
- * - Each flight leg is extracted as a separate entity
+ * MULTI-LEG PRESERVATION (v4.5.0):
+ * - AI tool schema includes a `flight_legs` array for multi-leg itineraries
+ * - Each flight leg is mapped to a SEPARATE CanonicalBooking in the batch
  * - Deduplication uses segment-level identity (dep+arr+datetime), NOT PNR alone
  * - All legs persist independently in timeline
  * 
@@ -41,6 +42,176 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// ============================================================================
+// v4.5.0: MULTI-LEG NORMALIZER
+// ============================================================================
+
+/**
+ * Normalize a single datetime field, preserving explicit times.
+ * If rawTimeToken exists but normalization lost the time, re-derive it.
+ */
+function normalizeWithTimePreservation(
+  rawDt: string | null | undefined,
+  parseIssues: ParseIssue[],
+  fieldPath: string,
+  bookingType: string,
+): { datetime: string | null; rawTime: string | null } {
+  const rawTime = extractRawTimeToken(rawDt) || null;
+  let normalized = normalizeDatetime(rawDt);
+
+  // If we extracted a raw time but normalization lost it, try to re-derive
+  if (rawTime && normalized && !normalized.includes('T')) {
+    const derived = tryDeriveIsoTime(rawTime);
+    if (derived) {
+      normalized = `${normalized}T${derived}:00`;
+    } else {
+      parseIssues.push({
+        issueType: 'TIME_DERIVATION_FAILED',
+        entityType: bookingType || 'other',
+        missingFields: [],
+        actionHint: `Could not parse time "${rawTime}". The raw time is preserved for display.`,
+        rawValue: rawTime,
+        fieldPath,
+      });
+    }
+  }
+
+  return { datetime: normalized, rawTime };
+}
+
+/**
+ * v4.5.0: Build CanonicalBooking[] from parsed AI output.
+ * If flight_legs[] is present, each leg becomes its own CanonicalBooking.
+ * Otherwise, a single booking is created (backward compatible).
+ */
+function buildCanonicalBookings(
+  parsed: Record<string, unknown>,
+): { bookings: CanonicalBooking[]; parseIssues: ParseIssue[] } {
+  const parseIssues: ParseIssue[] = [...(parsed._parse_issues as ParseIssue[] || [])];
+  const isDeclined = parsed.is_payment_declined === true || parsed._payment_declined === true;
+  const parsedCost = isDeclined ? null : (typeof parsed.total_cost === 'number' ? parsed.total_cost : null);
+  const parsedCurrency = (parsed.currency_code as string) || null;
+  const bookingType = (parsed.booking_type as string) || 'other';
+
+  // ── v4.5.0: MULTI-LEG FLIGHT PATH ─────────────────────────
+  const flightLegs = parsed.flight_legs as Array<Record<string, unknown>> | undefined;
+  
+  if (bookingType === 'flight' && Array.isArray(flightLegs) && flightLegs.length > 0) {
+    const bookings: CanonicalBooking[] = [];
+
+    for (let i = 0; i < flightLegs.length; i++) {
+      const leg = flightLegs[i];
+      const legIssues: ParseIssue[] = [];
+
+      const startResult = normalizeWithTimePreservation(
+        (leg.start_datetime as string) || null,
+        legIssues, 'start_datetime', 'flight',
+      );
+      const endResult = normalizeWithTimePreservation(
+        (leg.end_datetime as string) || null,
+        legIssues, 'end_datetime', 'flight',
+      );
+
+      // Sanitize IATA codes
+      const IATA_RE = /^[A-Z]{3}$/i;
+      let depCode = (leg.departure_airport_code as string) || null;
+      let arrCode = (leg.arrival_airport_code as string) || null;
+      if (depCode && !IATA_RE.test(depCode.trim())) depCode = null;
+      else if (depCode) depCode = depCode.trim().toUpperCase();
+      if (arrCode && !IATA_RE.test(arrCode.trim())) arrCode = null;
+      else if (arrCode) arrCode = arrCode.trim().toUpperCase();
+
+      const cb: CanonicalBooking = {
+        booking_type: 'flight',
+        vendor_name: (leg.vendor_name as string) || (parsed.vendor_name as string) || 'Unknown',
+        start_datetime: startResult.datetime,
+        end_datetime: endResult.datetime,
+        confirmation_number: (leg.confirmation_number as string) || (parsed.confirmation_number as string) || null,
+        departure_airport_code: depCode,
+        arrival_airport_code: arrCode,
+        airline: (leg.airline as string) || (parsed.airline as string) || null,
+        passenger_name: (leg.passenger_name as string) || (parsed.passenger_name as string) || null,
+        flight_number: (leg.flight_number as string) || null,
+        // Cost: assign full fare to FIRST leg only
+        total_cost: i === 0 ? parsedCost : null,
+        currency_code: i === 0 ? parsedCurrency : null,
+        from_location: (leg.from_location as string) || null,
+        to_location: (leg.to_location as string) || null,
+        _source: 'clipboard',
+        _doc_classification: parsed._doc_classification as string || null,
+        _parse_issues: legIssues.length > 0 ? legIssues : undefined,
+      };
+
+      if (isDeclined) {
+        cb._parse_issues = [...(cb._parse_issues || []), {
+          issueType: 'PAYMENT_DECLINED', entityType: 'flight',
+          missingFields: [], actionHint: 'Payment was declined or cancelled.',
+        }];
+        cb._doc_classification = 'CHANGE_OR_CANCEL';
+      }
+
+      bookings.push(cb);
+    }
+
+    parseIssues.push(...bookings.flatMap(b => (b._parse_issues as ParseIssue[]) || []));
+    return { bookings, parseIssues };
+  }
+
+  // ── SINGLE-BOOKING PATH (backward compatible) ──────────────
+  const startResult = normalizeWithTimePreservation(
+    parsed.start_datetime as string, parseIssues, 'start_datetime', bookingType,
+  );
+  const endResult = normalizeWithTimePreservation(
+    parsed.end_datetime as string, parseIssues, 'end_datetime', bookingType,
+  );
+
+  // Update parsed with normalized values for downstream classification
+  parsed.start_datetime = startResult.datetime;
+  parsed.end_datetime = endResult.datetime;
+  parsed.rawStartTimeText = startResult.rawTime;
+  parsed.rawEndTimeText = endResult.rawTime;
+
+  const cb: CanonicalBooking = {
+    booking_type: (bookingType as CanonicalBooking['booking_type']) || 'other',
+    vendor_name: (parsed.vendor_name as string) || 'Unknown',
+    start_datetime: startResult.datetime,
+    end_datetime: endResult.datetime,
+    confirmation_number: (parsed.confirmation_number as string) || null,
+    departure_airport_code: (parsed.departure_airport_code as string) || null,
+    arrival_airport_code: (parsed.arrival_airport_code as string) || null,
+    airline: (parsed.airline as string) || null,
+    passenger_name: (parsed.passenger_name as string) || null,
+    property_name: (parsed.property_name as string) || null,
+    stay_type: (parsed.stay_type as CanonicalBooking['stay_type']) || null,
+    rental_company: (parsed.rental_company as string) || null,
+    pickup_location: (parsed.pickup_location as string) || null,
+    return_location: (parsed.return_location as string) || null,
+    parking_type: (parsed.parking_type as CanonicalBooking['parking_type']) || null,
+    address: (parsed.address as string) || null,
+    from_location: (parsed.from_location as string) || null,
+    to_location: (parsed.to_location as string) || null,
+    total_cost: parsedCost,
+    currency_code: parsedCurrency,
+    _source: 'clipboard',
+    _doc_classification: (parsed._doc_classification as string) || null,
+    _parse_issues: parseIssues.length > 0 ? parseIssues : undefined,
+  };
+
+  if (isDeclined) {
+    cb._parse_issues = [...(cb._parse_issues || []), {
+      issueType: 'PAYMENT_DECLINED', entityType: bookingType,
+      missingFields: [], actionHint: 'Payment was declined or cancelled.',
+    }];
+    cb._doc_classification = 'CHANGE_OR_CANCEL';
+  }
+
+  return { bookings: [cb], parseIssues };
+}
+
+// ============================================================================
+// MAIN HANDLER
+// ============================================================================
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -175,19 +346,22 @@ For RECEIPT ONLY documents (is_receipt_only: true), extract:
 - confirmation_number
 - address
 
-CRITICAL AIRFARE COST RULES (v4.3.0):
-- For multi-leg/round-trip flights: Create SEPARATE booking records for EACH LEG
-- Each leg must have its own departure_airport_code, arrival_airport_code, start_datetime, end_datetime
-- total_cost: assign the FULL fare to the FIRST leg only, set other legs to null
+CRITICAL AIRFARE COST RULES (v4.5.0):
+- For multi-leg/round-trip flights: Use the "flight_legs" array to return EACH LEG as a separate entry
+- Each leg must have its own departure_airport_code, arrival_airport_code, start_datetime, end_datetime, flight_number
+- total_cost: assign the FULL fare to the top-level field only (first leg gets it)
 - The confirmation_number (PNR) may be the same across legs — that is expected
-- Example: DEN→LAX and LAX→DEN should be TWO separate booking records
-- NEVER collapse multiple legs into a single booking record
+- Example: ATL→LHR and LHR→LIN should be TWO separate entries in flight_legs[]
+- NEVER collapse multiple legs into a single record — use flight_legs for EVERY leg
 
-CRITICAL FOR FLIGHTS WITH MULTIPLE LEGS (round trips, multi-city):
-- Create a SEPARATE booking record for EACH LEG
-- Each leg has its own departure and arrival airports, times
-- If only one total cost: assign to first leg, set null on subsequent legs
-- Include shared confirmation_number on all legs
+CRITICAL v4.5.0 - MULTI-LEG FLIGHTS:
+- When you detect a multi-leg itinerary (round-trip, multi-city, connecting flights):
+  - Set booking_type to "flight"
+  - Populate the "flight_legs" array with one entry PER LEG
+  - Each leg entry must contain: flight_number, departure_airport_code, arrival_airport_code, start_datetime (departure), end_datetime (arrival)
+  - Times MUST be in ISO format: YYYY-MM-DDTHH:mm:00 using 24-hour clock
+  - Do NOT set top-level start_datetime/end_datetime for multi-leg flights (use flight_legs instead)
+- For single-leg flights: still use top-level start_datetime/end_datetime (no flight_legs needed)
 
 For flights also extract:
 - airline
@@ -256,8 +430,8 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
                     is_receipt_only: { type: "boolean", description: "True if this is a payment receipt without service dates" },
                     booking_type: { type: "string", enum: ["flight", "stay", "car_rental", "activity", "parking", "transport", "other"] },
                     vendor_name: { type: "string" },
-                    start_datetime: { type: "string" },
-                    end_datetime: { type: "string" },
+                    start_datetime: { type: "string", description: "ISO datetime (YYYY-MM-DDTHH:mm:00) for single-leg bookings. Omit for multi-leg flights." },
+                    end_datetime: { type: "string", description: "ISO datetime for single-leg bookings. Omit for multi-leg flights." },
                     receipt_date: { type: "string", description: "For receipts only: payment date in YYYY-MM-DD" },
                     confirmation_number: { type: "string" },
                     total_cost: { type: "number" },
@@ -271,12 +445,32 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
                     return_location: { type: "string" },
                     parking_type: { type: "string", enum: ["airport", "hotel", "city_garage", "beach", "other"] },
                     notes: { type: "string" },
-                    departure_airport_code: { type: "string", description: "3-letter IATA code for departure airport" },
-                    arrival_airport_code: { type: "string", description: "3-letter IATA code for arrival airport" },
+                    departure_airport_code: { type: "string", description: "3-letter IATA code for departure airport (single-leg only)" },
+                    arrival_airport_code: { type: "string", description: "3-letter IATA code for arrival airport (single-leg only)" },
                     activity_name: { type: "string" },
                     provider_name: { type: "string" },
                     is_ticket_or_permit: { type: "boolean" },
                     location_summary: { type: "string" },
+                    // v4.5.0: Multi-leg flight support
+                    flight_legs: {
+                      type: "array",
+                      description: "For multi-leg flights: one entry per flight leg with its own airports, times, and flight number. Use this for round-trips, multi-city, and connecting flights.",
+                      items: {
+                        type: "object",
+                        properties: {
+                          flight_number: { type: "string", description: "Flight number e.g. BA0226" },
+                          departure_airport_code: { type: "string", description: "3-letter IATA departure code" },
+                          arrival_airport_code: { type: "string", description: "3-letter IATA arrival code" },
+                          start_datetime: { type: "string", description: "Departure datetime in YYYY-MM-DDTHH:mm:00 format (24h clock)" },
+                          end_datetime: { type: "string", description: "Arrival datetime in YYYY-MM-DDTHH:mm:00 format (24h clock)" },
+                          airline: { type: "string" },
+                          from_location: { type: "string", description: "Departure airport/city name" },
+                          to_location: { type: "string", description: "Arrival airport/city name" },
+                          vendor_name: { type: "string" },
+                        },
+                        required: ["departure_airport_code", "arrival_airport_code", "start_datetime", "end_datetime"],
+                      },
+                    },
                   },
                   required: ["is_receipt_only", "vendor_name"],
                 },
@@ -325,7 +519,7 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
         // Clean up "null" strings to actual null values
         cleanNullStrings(parsed);
         
-        // Sanitize airport codes — only valid 3-letter IATA codes allowed
+        // Sanitize top-level airport codes (for single-leg flights)
         const IATA_RE = /^[A-Z]{3}$/i;
         if (parsed.departure_airport_code && !IATA_RE.test(parsed.departure_airport_code.trim())) {
           parsed.departure_airport_code = null;
@@ -338,87 +532,13 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
           parsed.arrival_airport_code = parsed.arrival_airport_code.trim().toUpperCase();
         }
         
-        // v4.4.0: Extract raw time tokens BEFORE normalization
-        parsed.rawStartTimeText = extractRawTimeToken(parsed.start_datetime) || null;
-        parsed.rawEndTimeText = extractRawTimeToken(parsed.end_datetime) || null;
-        parsed.rawStartDateText = parsed.start_datetime ? String(parsed.start_datetime).substring(0, 10) : null;
-        parsed.rawEndDateText = parsed.end_datetime ? String(parsed.end_datetime).substring(0, 10) : null;
+        // ── v4.5.0: BUILD CANONICAL IMPORT BATCH via multi-leg aware builder ──
+        const { bookings: canonicalBookings, parseIssues } = buildCanonicalBookings(parsed);
         
-        // Normalize datetimes (never throws)
-        parsed.start_datetime = normalizeDatetime(parsed.start_datetime);
-        parsed.end_datetime = normalizeDatetime(parsed.end_datetime);
-        parsed.receipt_date = normalizeReceiptDate(parsed.receipt_date);
-        
-        // v4.4.0: If raw time token exists but normalization lost time, try derive
-        const parseIssues: ParseIssue[] = [];
-        if (parsed.rawStartTimeText && parsed.start_datetime && !parsed.start_datetime.includes('T')) {
-          const derived = tryDeriveIsoTime(parsed.rawStartTimeText);
-          if (derived) {
-            parsed.start_datetime = `${parsed.start_datetime}T${derived}:00`;
-          } else {
-            parseIssues.push({
-              issueType: 'TIME_DERIVATION_FAILED',
-              entityType: parsed.booking_type || 'other',
-              missingFields: [],
-              actionHint: `Could not parse time "${parsed.rawStartTimeText}". The raw time is preserved for display.`,
-              rawValue: parsed.rawStartTimeText,
-              fieldPath: 'start_datetime',
-            });
-          }
-        }
-        if (parsed.rawEndTimeText && parsed.end_datetime && !parsed.end_datetime.includes('T')) {
-          const derived = tryDeriveIsoTime(parsed.rawEndTimeText);
-          if (derived) {
-            parsed.end_datetime = `${parsed.end_datetime}T${derived}:00`;
-          } else {
-            parseIssues.push({
-              issueType: 'TIME_DERIVATION_FAILED',
-              entityType: parsed.booking_type || 'other',
-              missingFields: [],
-              actionHint: `Could not parse time "${parsed.rawEndTimeText}". The raw time is preserved for display.`,
-              rawValue: parsed.rawEndTimeText,
-              fieldPath: 'end_datetime',
-            });
-          }
-        }
         if (parseIssues.length > 0) {
           parsed._parse_issues = [...(parsed._parse_issues || []), ...parseIssues];
         }
-        // ── v4.4.0B: BUILD CANONICAL IMPORT BATCH ─────────────────
-        const isDeclined = parsed.is_payment_declined === true || parsed._payment_declined === true;
-        const parsedCost = isDeclined ? null : (parsed.total_cost as number) || null;
-        const parsedCurrency = (parsed.currency_code as string) || null;
 
-        const canonicalBooking: CanonicalBooking = {
-          booking_type: (parsed.booking_type as CanonicalBooking["booking_type"]) || "other",
-          vendor_name: (parsed.vendor_name as string) || "Unknown",
-          start_datetime: parsed.start_datetime || null,
-          end_datetime: parsed.end_datetime || null,
-          confirmation_number: parsed.confirmation_number || null,
-          departure_airport_code: parsed.departure_airport_code || null,
-          arrival_airport_code: parsed.arrival_airport_code || null,
-          airline: parsed.airline || null,
-          passenger_name: parsed.passenger_name || null,
-          property_name: parsed.property_name || null,
-          stay_type: parsed.stay_type || null,
-          rental_company: parsed.rental_company || null,
-          pickup_location: parsed.pickup_location || null,
-          return_location: parsed.return_location || null,
-          parking_type: parsed.parking_type || null,
-          address: parsed.address || null,
-          from_location: parsed.from_location || null,
-          to_location: parsed.to_location || null,
-          total_cost: parsedCost,
-          currency_code: parsedCurrency,
-          _source: "clipboard",
-          _doc_classification: parsed._doc_classification || null,
-          _parse_issues: parsed._parse_issues,
-        };
-        if (isDeclined) {
-          canonicalBooking._parse_issues = [...(canonicalBooking._parse_issues || []), { issueType: 'PAYMENT_DECLINED', entityType: parsed.booking_type || 'other', missingFields: [], actionHint: 'Payment was declined or cancelled.' }];
-          canonicalBooking._doc_classification = 'CHANGE_OR_CANCEL';
-        }
-        const canonicalBookings: CanonicalBooking[] = [canonicalBooking];
         const tripDates = deriveTripDatesFromBookings(canonicalBookings);
         const canonicalBatch: CanonicalImportBatch = {
           trip: { start_date: tripDates.start_date, end_date: tripDates.end_date },
@@ -427,7 +547,7 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
 
         // ── v4.2.0: CANONICAL CLASSIFICATION ────────────────────────
         const entityType = parsed.booking_type as string || 'other';
-        const hasDates = hasServiceDates(parsed);
+        const hasDates = hasServiceDates(parsed) || canonicalBookings.some(b => b.start_datetime != null);
         const docClass: DocClassification = classifyDocument(parsed, hasDates);
         
         // Stamp classification on parsed data
@@ -438,7 +558,7 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
           parsed._is_receipt_only = true;
           const entityLabel = ENTITY_TYPE_LABELS[entityType] || 'Booking';
           
-          canonicalBooking._doc_classification = 'RECEIPT';
+          for (const cb of canonicalBookings) cb._doc_classification = 'RECEIPT';
           return new Response(JSON.stringify({ 
             success: true, 
             data: parsed,
@@ -471,13 +591,15 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
           }
           
           // All required fields present — clean confirmation
+          const legCount = canonicalBookings.length;
+          const legMsg = legCount > 1 ? ` (${legCount} flight legs detected)` : '';
           return new Response(JSON.stringify({ 
             success: true, 
             data: parsed,
             canonical_import: canonicalBatch,
             is_receipt_only: false,
             doc_classification: docClass,
-            message: "Successfully parsed booking details."
+            message: `Successfully parsed booking details.${legMsg}`
           }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
         
