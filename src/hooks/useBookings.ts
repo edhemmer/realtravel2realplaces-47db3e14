@@ -88,9 +88,8 @@ export function useCreateBooking() {
       
       if (error) throw error;
       
-      // v3.9.30: Wrapped in try/catch — expense sync failure must not
-      // abort the booking creation (booking is already persisted above).
-      if (booking && Number(booking.total_cost || 0) > 0) {
+      // v4.9.4: Always sync — syncExpenseFromBooking handles $0 placeholders
+      if (booking) {
         try {
           await syncExpenseFromBooking(booking as Booking, expenseCurrency);
         } catch (err) {
@@ -131,13 +130,9 @@ export function useUpdateBooking() {
         .eq('id', id)
         .single();
       
+      // v4.9.4: Always sync — handles both real costs and $0 placeholders
       if (updatedBooking) {
-        if (Number(updatedBooking.total_cost || 0) > 0) {
-          await syncExpenseFromBooking(updatedBooking as Booking);
-        } else {
-          // If cost is now 0, remove linked expense
-          await deleteLinkedExpense(trip_id, id);
-        }
+        await syncExpenseFromBooking(updatedBooking as Booking);
       }
       
       return { trip_id };
