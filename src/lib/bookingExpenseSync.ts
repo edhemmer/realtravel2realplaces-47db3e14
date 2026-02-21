@@ -12,8 +12,9 @@
  *   BOOKING_TOTAL: one expense per confirmation total (non-duplicative)
  *   PER_LEG: one expense per leg with explicit leg cost
  *   MIXED_NEEDS_REVIEW: no automatic expense; user must review
- *   NONE: no expense (no cost data)
- * - If booking.total_cost is null/0, no expense is created
+ *   NONE: no cost data — creates a $0 placeholder expense flagged [needs_pricing]
+ * - If booking.total_cost is null/0, a placeholder expense is created so the user
+ *   can update it once they know the final cost. The expense is visually flagged.
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -23,6 +24,7 @@ import { Expense, ExpenseCategory, Booking } from '@/types/database';
 // Marker format for linking expenses to bookings
 const BOOKING_LINK_PREFIX = '[linked_booking:';
 const BOOKING_LINK_SUFFIX = ']';
+const NEEDS_PRICING_FLAG = '[needs_pricing]';
 
 /**
  * Generate the booking link marker to embed in expense notes
@@ -146,10 +148,14 @@ export function getBookingExpenseCost(booking: Booking): number {
  * v3.9.25: Guard — never creates $0 placeholder expenses.
  * If totalCost is null/0/undefined, no expense is created and any existing
  * linked expense is left unchanged (not zeroed out).
+ *
+ * v4.9.4: REVERSED — now creates $0 placeholder expenses when booking has no cost.
+ * The expense is flagged with [needs_pricing] so the UI can show a visual indicator.
+ * This ensures users always see their booking in the expenses tab and can update the
+ * cost once they receive a receipt or final charge.
  */
 export async function syncExpenseFromBooking(booking: Booking, currency: string = 'USD'): Promise<string | null> {
   // Get normalized booking cost — coerce string to number defensively
-  // DB may return total_cost as string "924" rather than number 924
   const rawCost = booking.total_cost;
   const totalCost = (rawCost === null || rawCost === undefined)
     ? 0
@@ -158,8 +164,7 @@ export async function syncExpenseFromBooking(booking: Booking, currency: string 
         return Number.isFinite(n) && n > 0 ? n : 0;
       })();
 
-  // Only sync if booking has a valid cost > 0
-  if (totalCost <= 0) return null;
+  const needsPricing = totalCost <= 0;
   
   const bookingLinkMarker = createBookingLinkMarker(booking.id);
   const category = mapBookingTypeToExpenseCategory(booking.booking_type);
@@ -171,15 +176,33 @@ export async function syncExpenseFromBooking(booking: Booking, currency: string 
     ? rawStart.substring(0, 10)
     : new Date().toISOString().split('T')[0];
   
+  // Build notes with markers
+  const notesMarkers = needsPricing
+    ? `${bookingLinkMarker} ${NEEDS_PRICING_FLAG}`
+    : bookingLinkMarker;
+  
   // Check for existing linked expense
   const existingExpense = await findLinkedExpense(booking.trip_id, booking.id);
   
   if (existingExpense) {
+    // v4.9.4: If existing expense was a placeholder and now we have a real cost, upgrade it
+    const existingNeedsPricing = hasNeedsPricingFlag(existingExpense.notes);
+    
+    if (needsPricing && existingNeedsPricing) {
+      // Still no cost — leave placeholder as-is
+      return existingExpense.id;
+    }
+    
     // Update existing expense
-    // v3.9.43: Treat my_share=0 as "unset" — fall back to totalCost.
     const safeAmount = totalCost;
     const rawMyShare = booking.my_share != null ? Number(booking.my_share) : null;
     const safeMyShare = (rawMyShare != null && Number.isFinite(rawMyShare) && rawMyShare > 0) ? rawMyShare : safeAmount;
+    
+    // If we now have a real cost, remove the needs_pricing flag
+    const updatedNotes = needsPricing 
+      ? existingExpense.notes 
+      : (existingExpense.notes || '').replace(NEEDS_PRICING_FLAG, '').trim();
+    
     const { error } = await supabase
       .from('expenses')
       .update({
@@ -189,7 +212,7 @@ export async function syncExpenseFromBooking(booking: Booking, currency: string 
         amount: safeAmount,
         my_share: safeMyShare,
         currency: currency || 'USD',
-        notes: existingExpense.notes, // Preserve existing notes with marker
+        notes: updatedNotes,
       })
       .eq('id', existingExpense.id);
     
@@ -199,8 +222,7 @@ export async function syncExpenseFromBooking(booking: Booking, currency: string 
     }
     return existingExpense.id;
   } else {
-    // Create new expense
-    // v3.9.43: Treat my_share=0 as "unset" — fall back to totalCost.
+    // Create new expense (with or without cost)
     const safeAmount = totalCost;
     const rawMyShare = booking.my_share != null ? Number(booking.my_share) : null;
     const safeMyShare = (rawMyShare != null && Number.isFinite(rawMyShare) && rawMyShare > 0) ? rawMyShare : safeAmount;
@@ -214,7 +236,7 @@ export async function syncExpenseFromBooking(booking: Booking, currency: string 
         amount: safeAmount,
         my_share: safeMyShare,
         currency: currency || 'USD',
-        notes: bookingLinkMarker,
+        notes: notesMarkers,
       })
       .select()
       .single();
@@ -256,20 +278,34 @@ export function isAutoGeneratedExpense(expense: Expense): boolean {
 }
 
 /**
- * Get clean notes without the booking link marker (for display)
+ * v4.9.4: Check if an expense is flagged as needing pricing from the user
+ */
+export function hasNeedsPricingFlag(notes: string | null | undefined): boolean {
+  if (!notes) return false;
+  return notes.includes(NEEDS_PRICING_FLAG);
+}
+
+/**
+ * Get clean notes without the booking link marker or needs_pricing flag (for display)
  */
 export function getCleanNotesForDisplay(notes: string | null | undefined): string {
   if (!notes) return '';
   
-  const startIdx = notes.indexOf(BOOKING_LINK_PREFIX);
-  if (startIdx === -1) return notes;
+  let cleaned = notes;
   
-  const endIdx = notes.indexOf(BOOKING_LINK_SUFFIX, startIdx);
-  if (endIdx === -1) return notes;
+  // Remove booking link marker
+  const startIdx = cleaned.indexOf(BOOKING_LINK_PREFIX);
+  if (startIdx !== -1) {
+    const endIdx = cleaned.indexOf(BOOKING_LINK_SUFFIX, startIdx);
+    if (endIdx !== -1) {
+      const before = cleaned.substring(0, startIdx).trim();
+      const after = cleaned.substring(endIdx + BOOKING_LINK_SUFFIX.length).trim();
+      cleaned = [before, after].filter(Boolean).join(' ').trim();
+    }
+  }
   
-  // Remove the marker and any surrounding whitespace
-  const before = notes.substring(0, startIdx).trim();
-  const after = notes.substring(endIdx + BOOKING_LINK_SUFFIX.length).trim();
+  // Remove needs_pricing flag
+  cleaned = cleaned.replace(NEEDS_PRICING_FLAG, '').trim();
   
-  return [before, after].filter(Boolean).join(' ').trim();
+  return cleaned;
 }
