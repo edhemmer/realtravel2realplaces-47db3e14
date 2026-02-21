@@ -38,7 +38,18 @@ export function getFlightTimeLabel(
 ): string {
   // 1. Raw time string takes priority (from canonical departLocalTime / arriveLocalTime)
   if (rawTime && rawTime.trim().length > 0) {
-    return rawTime.trim();
+    const trimmed = rawTime.trim();
+    // If rawTime is actually a full datetime string (contains date), extract time portion
+    const tIdx = trimmed.indexOf('T');
+    if (tIdx !== -1 && tIdx > 4) {
+      const afterT = trimmed.substring(tIdx + 1);
+      const m = afterT.match(/^(\d{2}:\d{2})/);
+      if (m) return m[1];
+    }
+    // Handle space-separated datetime: "2026-03-11 23:10:00+00"
+    const spaceMatch = trimmed.match(/^\d{4}-\d{2}-\d{2}\s+(\d{2}:\d{2})/);
+    if (spaceMatch) return spaceMatch[1];
+    return trimmed;
   }
 
   // 2. Extract from ISO datetime string (from DB start_datetime / end_datetime)
