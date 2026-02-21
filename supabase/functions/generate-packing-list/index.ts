@@ -31,7 +31,6 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
     
     if (authError || !user) {
-      console.error("Auth validation failed:", authError?.message);
       return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -42,10 +41,14 @@ serve(async (req) => {
     const { 
       destination_city, destination_state, destination_country, 
       start_date, end_date, trip_type, destination_type,
-      weather_forecast, weather_envelope 
+      weather_forecast, weather_envelope,
+      // v4.6.0: Multi-location + regeneration support
+      additional_locations,
+      is_regenerate,
+      existing_items,
     } = body;
 
-    // v3.9.40: Validate required inputs before proceeding
+    // v3.9.40: Validate required inputs
     if (!destination_city || typeof destination_city !== 'string' || !destination_city.trim()) {
       return new Response(JSON.stringify({ success: false, error: "Destination city is required" }), {
         status: 400,
@@ -71,10 +74,29 @@ serve(async (req) => {
     const tripNights = Math.max(1, Math.ceil((endD.getTime() - startD.getTime()) / (1000 * 60 * 60 * 24)));
     const tripDays = tripNights + 1;
 
+    // Days until trip
+    const today = new Date();
+    const daysUntilTrip = Math.max(0, Math.ceil((startD.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+    const isEarlyDraft = daysUntilTrip > 7;
+
     // Get month for seasonality
     const travelMonth = startD.toLocaleString('en-US', { month: 'long' });
 
-    // Detect destination type
+    // Build multi-location context string
+    let locationContext = `Primary: ${destination_city}${destination_state ? `, ${destination_state}` : ''}, ${destination_country || ''}`;
+    if (additional_locations && Array.isArray(additional_locations) && additional_locations.length > 0) {
+      const locStrings = additional_locations
+        .filter((loc: { city?: string }) => loc.city)
+        .map((loc: { city: string; country?: string; climateTags?: string[] }) => {
+          const tags = loc.climateTags?.length ? ` (climate: ${loc.climateTags.join(', ')})` : '';
+          return `${loc.city}${loc.country ? `, ${loc.country}` : ''}${tags}`;
+        });
+      if (locStrings.length > 0) {
+        locationContext += `\nAdditional stops: ${locStrings.join('; ')}`;
+      }
+    }
+
+    // Destination type detection
     const beachDestinations = ['florida', 'miami', 'orlando', 'tampa', 'key west', 'fort lauderdale', 'clearwater', 'naples', 'sarasota', 'destin', 'panama city', 'jacksonville beach', 'daytona', 'hawaii', 'maui', 'honolulu', 'cancun', 'cabo', 'puerto rico', 'virgin islands', 'bahamas', 'caribbean', 'aruba', 'jamaica', 'turks', 'caicos', 'bermuda', 'maldives', 'bali', 'phuket', 'thailand beach', 'costa rica', 'san diego', 'los angeles', 'santa monica', 'malibu', 'galveston', 'south padre', 'gulf shores', 'myrtle beach', 'outer banks', 'hilton head', 'charleston'];
     const beachStates = ['florida', 'fl', 'hawaii', 'hi'];
     const mountainDestinations = ['aspen', 'vail', 'breckenridge', 'telluride', 'park city', 'jackson hole', 'big sky', 'lake tahoe', 'mammoth', 'whistler', 'banff', 'jasper', 'zermatt', 'chamonix', 'innsbruck', 'st moritz', 'courchevel', 'verbier', 'denver', 'boulder', 'colorado springs', 'flagstaff', 'sedona', 'grand canyon', 'yellowstone', 'yosemite', 'glacier', 'rocky mountain', 'gatlinburg', 'pigeon forge', 'asheville', 'lake placid', 'stowe', 'killington', 'salt lake city', 'reno', 'santa fe', 'taos', 'durango', 'steamboat', 'keystone', 'copper mountain', 'winter park', 'crested butte', 'sun valley', 'bend', 'mount rainier', 'swiss alps', 'austrian alps', 'italian alps', 'dolomites', 'pyrenees', 'scottish highlands', 'patagonia', 'queenstown', 'interlaken'];
@@ -134,7 +156,7 @@ MANDATORY CITY/URBAN ITEMS (YOU MUST INCLUDE ALL OF THESE):
 - Smart casual outfit for dining: 1 set
 These items are RECOMMENDED for city destinations.` : '';
 
-    // v3.8.13: Build weather context from envelope if available
+    // Build weather context from envelope if available
     let weatherContext = '';
     if (weather_envelope) {
       const env = weather_envelope;
@@ -151,6 +173,13 @@ These items are RECOMMENDED for city destinations.` : '';
       weatherContext = `- Weather forecast: ${JSON.stringify(weather_forecast)}`;
     }
 
+    // v4.6.0: Regeneration context
+    const regenerateInstruction = is_regenerate ? `
+REGENERATION MODE: You are updating an existing packing list with fresher weather data.
+- Generate the full recommended list based on current weather/climate.
+- The caller will handle preserving user-added and checked items.
+- Focus on accuracy of climate-based recommendations.` : '';
+
     const systemPrompt = `You are a smart travel packing assistant. Generate a practical, accurate packing list based on the destination, trip duration, time of year, and weather conditions.
 
 CRITICAL RULES for clothing quantities:
@@ -164,6 +193,13 @@ CRITICAL RULES for clothing quantities:
 ${beachItemsInstruction}
 ${mountainItemsInstruction}
 ${cityItemsInstruction}
+${regenerateInstruction}
+
+MULTI-LOCATION TRIPS:
+- Consider ALL locations the traveler will visit.
+- Include items for the coldest, warmest, and wettest stops.
+- Each item appears ONCE; use the "applies_to" field to note which climate conditions it covers (e.g. ["all"], ["cold"], ["beach", "warm"]).
+- Do NOT duplicate items across different climate needs.
 
 Location-aware items:
 - Florida/Beach/Tropical destinations: ALWAYS include swimsuit, sunscreen, sunglasses, sun hat, flip-flops, beach towel, after-sun care
@@ -181,17 +217,18 @@ Weather-based adjustments:
 
 For each item, indicate if it's a seasonal/specialty item the traveler may need to BUY vs a common item they likely already OWN.
 
-Return a JSON object with categorized items. Each item needs: category, item_name, quantity, own_it_likely (boolean), suggest_buy_early (boolean), rationale (optional string).
+Return a JSON object with categorized items. Each item needs: category, item_name, quantity, own_it_likely (boolean), suggest_buy_early (boolean), rationale (optional string), applies_to (array of climate tags like "all", "cold", "beach", "rain", "business").
 Categories: Clothing Core, Layers & Outerwear, Rain & Wet Weather, Cold / Snow Gear, Footwear, Accessories, Swimwear & Beach, Toiletries & Health, Tech & Chargers, Documents & Critical Items, Business (if applicable)`;
 
     const userPrompt = `Generate a packing list for this trip:
-- Destination: ${destination_city}${destination_state ? `, ${destination_state}` : ''}, ${destination_country}
+- Locations: ${locationContext}
 - Dates: ${start_date} to ${end_date} (${tripNights} nights, ${tripDays} days)
 - Month of travel: ${travelMonth}
 - Trip type: ${trip_type}
+- Days until departure: ${daysUntilTrip}
 ${weatherContext}
 
-Return a practical packing list. Be accurate with quantities based on trip length. Mark seasonal/specialty items as suggest_buy_early=true with a short rationale.`;
+Return a practical packing list covering ALL locations. Be accurate with quantities based on trip length. Mark seasonal/specialty items as suggest_buy_early=true with a short rationale. Each item must have an applies_to array.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -228,7 +265,12 @@ Return a practical packing list. Be accurate with quantities based on trip lengt
                         quantity: { type: "number", description: "How many to pack" },
                         own_it_likely: { type: "boolean", description: "Whether the traveler likely already owns this" },
                         suggest_buy_early: { type: "boolean", description: "Whether to suggest buying early if missing" },
-                        rationale: { type: "string", description: "Short reason for including this item (e.g., 'Typical wet period')" },
+                        rationale: { type: "string", description: "Short reason for including this item" },
+                        applies_to: { 
+                          type: "array", 
+                          items: { type: "string" },
+                          description: "Climate tags this item covers, e.g. ['all'], ['cold', 'rain'], ['beach']"
+                        },
                       },
                       required: ["category", "item_name", "quantity"],
                     },
@@ -250,7 +292,6 @@ Return a practical packing list. Be accurate with quantities based on trip lengt
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
       
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
@@ -276,7 +317,14 @@ Return a practical packing list. Be accurate with quantities based on trip lengt
     
     if (toolCall?.function?.arguments) {
       const parsed = JSON.parse(toolCall.function.arguments);
-      return new Response(JSON.stringify({ success: true, data: parsed }), {
+      return new Response(JSON.stringify({ 
+        success: true, 
+        data: parsed,
+        meta: {
+          isEarlyDraft: isEarlyDraft,
+          generatedAt: new Date().toISOString(),
+        }
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -286,7 +334,6 @@ Return a practical packing list. Be accurate with quantities based on trip lengt
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Generate packing list error:", error);
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

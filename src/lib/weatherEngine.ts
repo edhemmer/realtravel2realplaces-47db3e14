@@ -202,7 +202,7 @@ const LATITUDE_OVERRIDES: Record<string, number> = {
   'vermont': 44, 'vt': 44, 'new hampshire': 44, 'nh': 44, 'connecticut': 42, 'ct': 42,
 };
 
-function estimateLatitude(city: string, state?: string, country?: string): number {
+export function estimateLatitude(city: string, state?: string, country?: string): number {
   // Try state first (more specific for US)
   if (state) {
     const lat = LATITUDE_OVERRIDES[state.toLowerCase()];
@@ -222,7 +222,7 @@ function estimateLatitude(city: string, state?: string, country?: string): numbe
   return 40;
 }
 
-function getClimateZone(latitude: number): string {
+export function getClimateZone(latitude: number): string {
   const absLat = Math.abs(latitude);
   if (absLat < 23) return 'tropical';
   if (absLat < 35) return 'subtropical';
