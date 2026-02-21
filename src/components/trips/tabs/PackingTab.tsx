@@ -7,6 +7,7 @@ import { generatePackingRecommendations, buildPackingContext, deriveClimateTags,
 import { resolveWeather } from '@/lib/weatherEngine';
 import { supabase } from '@/integrations/supabase/client';
 import { PackingItem } from '@/types/database';
+import { airports } from '@/lib/airportData';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -138,16 +139,24 @@ export function PackingTab({ tripId }: PackingTabProps) {
     const homeAirport = sortedBookings.find(b => b.booking_type === 'flight')?.departure_airport_code?.toUpperCase() || '';
     const homeCity = sortedBookings.find(b => b.booking_type === 'flight')?.from_location?.toLowerCase() || '';
 
+    // Helper: resolve country from airport code
+    const resolveCountryFromAirport = (code: string | null): string | null => {
+      if (!code) return null;
+      const apt = airports.find(a => a.code === code.toUpperCase());
+      return apt?.country || null;
+    };
+
     // 1. LODGING FIRST (highest priority)
     for (const booking of sortedBookings) {
       if (booking.booking_type === 'stay') {
         const addr = booking.address || '';
         const parts = addr.split(',').map((p: string) => p.trim());
         let city = parts.length >= 2 ? parts[parts.length - 2] : '';
+        const stayCountry = parts.length >= 1 ? parts[parts.length - 1] : '';
         if (city && !seenCities.has(city.toLowerCase())) {
           seenCities.add(city.toLowerCase());
           legs.push({ 
-            city, country: trip.destination_country || '',
+            city, country: stayCountry || trip.destination_country || '',
             arriveDate: booking.start_datetime?.split('T')[0],
             departDate: booking.end_datetime?.split('T')[0],
             source: 'stay'
@@ -175,8 +184,9 @@ export function PackingTab({ tripId }: PackingTabProps) {
           if (isTransit) continue; // Skip short layovers/connections
 
           seenCities.add(city.toLowerCase());
+          const flightCountry = resolveCountryFromAirport(booking.arrival_airport_code) || trip.destination_country || '';
           legs.push({ 
-            city, country: trip.destination_country || '', 
+            city, country: flightCountry, 
             arriveDate: booking.end_datetime?.split('T')[0],
             source: 'flight'
           });
@@ -323,23 +333,33 @@ export function PackingTab({ tripId }: PackingTabProps) {
       const homeAirport = sortedBookings.find(b => b.booking_type === 'flight')?.departure_airport_code?.toUpperCase() || '';
       const homeCity = sortedBookings.find(b => b.booking_type === 'flight')?.from_location?.toLowerCase() || '';
 
+      // Helper: resolve country from airport code
+      const resolveCountryFromAirport = (code: string | null): string | null => {
+        if (!code) return null;
+        const apt = airports.find(a => a.code === code.toUpperCase());
+        return apt?.country || null;
+      };
+
       // 1. LODGING FIRST
       for (const booking of sortedBookings) {
         if (booking.booking_type === 'stay') {
           const addr = booking.address || '';
           const parts = addr.split(',').map((p: string) => p.trim());
           let stayCity = parts.length >= 2 ? parts[parts.length - 2] : '';
+          // Try to extract country from last part of address
+          const stayCountry = parts.length >= 1 ? parts[parts.length - 1] : '';
           if (stayCity && !legCities.has(stayCity.toLowerCase())) {
             legCities.add(stayCity.toLowerCase());
+            const resolvedCountry = stayCountry || trip.destination_country || '';
             const legWeather = resolveWeather({
               city: stayCity,
-              country: trip.destination_country || '',
+              country: resolvedCountry,
               startDate: booking.start_datetime?.split('T')[0] || trip.start_date,
               endDate: booking.end_datetime?.split('T')[0] || trip.end_date,
             });
             itineraryLegs.push({
               city: stayCity,
-              country: trip.destination_country || '',
+              country: resolvedCountry,
               arriveDate: booking.start_datetime?.split('T')[0],
               departDate: booking.end_datetime?.split('T')[0],
               climateTags: legWeather?.summary ? deriveClimateTags(legWeather.summary) : [],
@@ -366,15 +386,17 @@ export function PackingTab({ tripId }: PackingTabProps) {
             if (isTransit) continue;
 
             legCities.add(legCity.toLowerCase());
+            // Resolve country from arrival airport code, not trip destination
+            const flightCountry = resolveCountryFromAirport(booking.arrival_airport_code) || trip.destination_country || '';
             const legWeather = resolveWeather({
               city: legCity,
-              country: trip.destination_country || '',
+              country: flightCountry,
               startDate: trip.start_date,
               endDate: trip.end_date,
             });
             itineraryLegs.push({
               city: legCity,
-              country: trip.destination_country || '',
+              country: flightCountry,
               arriveDate: booking.end_datetime?.split('T')[0],
               climateTags: legWeather?.summary ? deriveClimateTags(legWeather.summary) : [],
               source: 'flight',
@@ -707,68 +729,94 @@ export function PackingTab({ tripId }: PackingTabProps) {
                 </CardHeader>
                 <CardContent className="pt-3">
                   <div className="space-y-1">
-                    {items.map((item) => (
-                      <div
-                        key={item.id}
-                        className={`flex items-center justify-between p-2 rounded-lg transition-all ${
-                          item.is_packed 
-                            ? 'bg-green-50 dark:bg-green-950/20' 
-                            : 'hover:bg-muted/50'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <Checkbox
-                            checked={item.is_packed}
-                            onCheckedChange={() => canEdit && togglePacked(item)}
-                            disabled={!canEdit}
-                            className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 flex-shrink-0"
-                          />
-                          <span className={`text-sm truncate ${item.is_packed ? 'line-through text-muted-foreground' : ''}`}>
-                            {item.item_name}
-                          </span>
-                          {item.is_custom && (
-                            <Badge variant="outline" className="text-[10px] px-1 py-0 border-primary/30 text-primary/70">
-                              Custom
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          {/* Quantity Stepper */}
-                          {canEdit ? (
-                            <div className="inline-flex items-center h-5 rounded-full border border-border/60 bg-muted/30 overflow-hidden">
-                              <button
-                                type="button"
-                                className="flex items-center justify-center w-5 h-5 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                                onClick={() => updateQuantity(item, item.quantity - 1)}
-                                disabled={item.quantity <= 1}
-                              >
-                                <Minus className="w-2.5 h-2.5" />
-                              </button>
-                              <span className="text-[11px] font-medium w-4 text-center tabular-nums">{item.quantity}</span>
-                              <button
-                                type="button"
-                                className="flex items-center justify-center w-5 h-5 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                                onClick={() => updateQuantity(item, item.quantity + 1)}
-                              >
-                                <Plus className="w-2.5 h-2.5" />
-                              </button>
+                    {items.map((item) => {
+                      const colorTip = (item as any).color_tip as string | null;
+                      const appliesTo = (item as any).applies_to as string[] | null;
+                      return (
+                        <div
+                          key={item.id}
+                          className={`group p-2.5 rounded-xl transition-all ${
+                            item.is_packed 
+                              ? 'bg-green-50/80 dark:bg-green-950/20 opacity-75' 
+                              : 'hover:bg-muted/40'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-start gap-3 flex-1 min-w-0">
+                              <Checkbox
+                                checked={item.is_packed}
+                                onCheckedChange={() => canEdit && togglePacked(item)}
+                                disabled={!canEdit}
+                                className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 flex-shrink-0 mt-0.5"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className={`text-sm font-medium ${item.is_packed ? 'line-through text-muted-foreground' : ''}`}>
+                                    {item.item_name}
+                                  </span>
+                                  {item.is_custom && (
+                                    <Badge variant="outline" className="text-[10px] px-1 py-0 border-primary/30 text-primary/70 shrink-0">
+                                      Custom
+                                    </Badge>
+                                  )}
+                                </div>
+                                {/* Color tip */}
+                                {colorTip && !item.is_packed && (
+                                  <p className="text-[11px] text-muted-foreground/80 mt-0.5 italic leading-tight">
+                                    🎨 {colorTip}
+                                  </p>
+                                )}
+                                {/* Applies to tags */}
+                                {appliesTo && appliesTo.length > 0 && !item.is_packed && appliesTo[0] !== 'all' && (
+                                  <div className="flex gap-1 mt-1 flex-wrap">
+                                    {appliesTo.map((tag, i) => (
+                                      <span key={i} className="text-[9px] px-1.5 py-0.5 rounded-full bg-primary/8 text-primary/70 font-medium">
+                                        {tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          ) : (
-                            <span className="text-[11px] text-muted-foreground tabular-nums">×{item.quantity}</span>
-                          )}
-                          {canEdit && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                              onClick={() => handleDelete(item.id)}
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          )}
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              {/* Quantity Stepper */}
+                              {canEdit ? (
+                                <div className="inline-flex items-center h-6 rounded-full border border-border/50 bg-muted/20 overflow-hidden">
+                                  <button
+                                    type="button"
+                                    className="flex items-center justify-center w-6 h-6 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                    onClick={() => updateQuantity(item, item.quantity - 1)}
+                                    disabled={item.quantity <= 1}
+                                  >
+                                    <Minus className="w-3 h-3" />
+                                  </button>
+                                  <span className="text-xs font-semibold w-5 text-center tabular-nums">{item.quantity}</span>
+                                  <button
+                                    type="button"
+                                    className="flex items-center justify-center w-6 h-6 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                                    onClick={() => updateQuantity(item, item.quantity + 1)}
+                                  >
+                                    <Plus className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-muted-foreground tabular-nums font-medium">×{item.quantity}</span>
+                              )}
+                              {canEdit && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => handleDelete(item.id)}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
