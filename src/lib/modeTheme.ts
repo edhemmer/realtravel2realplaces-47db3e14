@@ -1,9 +1,18 @@
 /**
- * v3.9.35: Canonical Mode Theme System
+ * v4.9.2: Canonical Mode Theme System – Psychological Color Theory
  *
  * Single source of truth for all trip-mode visual styling.
  * All mode-specific colors MUST come from getModeTheme().
  * Do NOT hardcode per-mode hex/colors in components.
+ *
+ * Design principles (70/20/10):
+ *   70% neutral surfaces
+ *   20% semantic accent (mode color)
+ *   10% attention tone (alerts only — amber/red, never mode-colored)
+ *
+ * Fly  = Stability + Precision   → Refined muted blue (trust, order)
+ * Drive = Freedom + Movement     → Deep natural green (calm confidence)
+ * Train = Flow + Smoothness      → Soft slate-indigo (continuity, rhythm)
  */
 
 // ============================================================================
@@ -45,60 +54,72 @@ export interface ModeTheme {
 }
 
 // ============================================================================
-// THEME DEFINITIONS (v1.0 — premium, accessible)
+// THEME DEFINITIONS (v4.9.2 — psychological color theory, accessible)
 // ============================================================================
 
+/**
+ * FLY: Refined muted blue — stability, precision, trust.
+ * Slightly desaturated from nav blue. No bright cyan. No deep navy.
+ */
 const FLY_THEME: ModeTheme = {
   id: 'fly',
   palette: {
-    primary: 'text-blue-600 dark:text-blue-400',
-    accent: 'text-cyan-500 dark:text-cyan-400',
-    background: 'bg-blue-500/10 dark:bg-blue-500/15',
-    border: 'border-blue-500/25 dark:border-blue-400/25',
+    primary: 'text-blue-500 dark:text-blue-400',
+    accent: 'text-blue-400 dark:text-blue-300',
+    background: 'bg-blue-500/8 dark:bg-blue-500/12',
+    border: 'border-blue-400/25 dark:border-blue-400/20',
     icon: 'text-white',
-    subtle: 'bg-blue-50/60 dark:bg-blue-950/30',
-    focus: 'ring-blue-500/40 dark:ring-blue-400/40',
+    subtle: 'bg-blue-50/40 dark:bg-blue-950/20',
+    focus: 'ring-blue-400/30 dark:ring-blue-400/30',
   },
   gradients: {
-    buttonBg: 'bg-gradient-to-br from-blue-500 to-cyan-500 dark:from-blue-600 dark:to-cyan-600',
-    headerBg: 'bg-gradient-to-r from-blue-500/8 to-cyan-500/5 dark:from-blue-500/10 dark:to-cyan-500/8',
-    pillBg: 'bg-gradient-to-r from-blue-500/10 to-cyan-500/10 dark:from-blue-500/15 dark:to-cyan-500/15',
+    buttonBg: 'bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-500 dark:to-blue-600',
+    headerBg: 'bg-gradient-to-r from-blue-500/6 to-blue-400/4 dark:from-blue-500/8 dark:to-blue-400/6',
+    pillBg: 'bg-gradient-to-r from-blue-500/8 to-blue-400/8 dark:from-blue-500/12 dark:to-blue-400/10',
   },
 };
 
+/**
+ * DRIVE: Deep natural green — freedom, forward motion, calm confidence.
+ * Desaturated. No neon/lime. Lean toward deep natural green.
+ */
 const DRIVE_THEME: ModeTheme = {
   id: 'drive',
   palette: {
-    primary: 'text-[#8B7355] dark:text-amber-300',
-    accent: 'text-[#6B5B45] dark:text-amber-200',
-    background: 'bg-[#E6D2B3]/15 dark:bg-amber-500/12',
-    border: 'border-[#A9885C]/30 dark:border-amber-400/20',
-    icon: 'text-[#3E3A34] dark:text-amber-100',
-    subtle: 'bg-[#F5EDE0]/50 dark:bg-amber-950/20',
-    focus: 'ring-[#A9885C]/30 dark:ring-amber-400/30',
+    primary: 'text-emerald-600 dark:text-emerald-400',
+    accent: 'text-emerald-500 dark:text-emerald-300',
+    background: 'bg-emerald-500/8 dark:bg-emerald-500/12',
+    border: 'border-emerald-500/25 dark:border-emerald-400/20',
+    icon: 'text-white',
+    subtle: 'bg-emerald-50/40 dark:bg-emerald-950/20',
+    focus: 'ring-emerald-500/30 dark:ring-emerald-400/30',
   },
   gradients: {
-    buttonBg: 'bg-gradient-to-br from-[#EBD8BF] to-[#C9A874] dark:from-[#8B7355] dark:to-[#6B5B45]',
-    headerBg: 'bg-gradient-to-r from-[#E6D2B3]/6 to-[#C9A874]/4 dark:from-amber-500/8 dark:to-amber-700/6',
-    pillBg: 'bg-gradient-to-r from-[#E6D2B3]/12 to-[#C9A874]/8 dark:from-amber-500/12 dark:to-amber-700/10',
+    buttonBg: 'bg-gradient-to-br from-emerald-600 to-emerald-700 dark:from-emerald-500 dark:to-emerald-600',
+    headerBg: 'bg-gradient-to-r from-emerald-500/6 to-emerald-400/4 dark:from-emerald-500/8 dark:to-emerald-400/6',
+    pillBg: 'bg-gradient-to-r from-emerald-500/8 to-emerald-400/8 dark:from-emerald-500/12 dark:to-emerald-400/10',
   },
 };
 
+/**
+ * TRAIN: Soft slate-indigo — flow, rhythm, smooth efficiency.
+ * Muted steel-blue leaning. NOT same as Fly. No purple. No red.
+ */
 const TRAIN_THEME: ModeTheme = {
   id: 'train',
   palette: {
-    primary: 'text-indigo-600 dark:text-indigo-400',
-    accent: 'text-violet-500 dark:text-violet-400',
-    background: 'bg-indigo-500/10 dark:bg-indigo-500/15',
-    border: 'border-indigo-500/25 dark:border-indigo-400/25',
+    primary: 'text-slate-600 dark:text-slate-400',
+    accent: 'text-slate-500 dark:text-slate-300',
+    background: 'bg-slate-500/8 dark:bg-slate-500/12',
+    border: 'border-slate-400/25 dark:border-slate-400/20',
     icon: 'text-white',
-    subtle: 'bg-indigo-50/60 dark:bg-indigo-950/30',
-    focus: 'ring-indigo-500/40 dark:ring-indigo-400/40',
+    subtle: 'bg-slate-50/40 dark:bg-slate-900/20',
+    focus: 'ring-slate-500/30 dark:ring-slate-400/30',
   },
   gradients: {
-    buttonBg: 'bg-gradient-to-br from-indigo-500 to-violet-500 dark:from-indigo-600 dark:to-violet-600',
-    headerBg: 'bg-gradient-to-r from-indigo-500/8 to-violet-500/5 dark:from-indigo-500/10 dark:to-violet-500/8',
-    pillBg: 'bg-gradient-to-r from-indigo-500/10 to-violet-500/10 dark:from-indigo-500/15 dark:to-violet-500/15',
+    buttonBg: 'bg-gradient-to-br from-slate-500 to-slate-600 dark:from-slate-500 dark:to-slate-600',
+    headerBg: 'bg-gradient-to-r from-slate-500/6 to-slate-400/4 dark:from-slate-500/8 dark:to-slate-400/6',
+    pillBg: 'bg-gradient-to-r from-slate-500/8 to-slate-400/8 dark:from-slate-500/12 dark:to-slate-400/10',
   },
 };
 
