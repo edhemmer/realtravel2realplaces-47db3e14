@@ -110,7 +110,10 @@ export function parseTravelerName(fullName: string): ParsedTravelerName {
  */
 export function buildTravelerKeyFromFullName(fullName: string): string {
   const { first, last } = parseTravelerName(fullName);
-  return `${last}|${first}`;
+  // v5.2.0: Collapse all spaces so "LI SANCHEZ" matches "LISANCHEZ"
+  const compactFirst = first.replace(/\s+/g, '');
+  const compactLast = last.replace(/\s+/g, '');
+  return `${compactLast}|${compactFirst}`;
 }
 
 // ============================================================================

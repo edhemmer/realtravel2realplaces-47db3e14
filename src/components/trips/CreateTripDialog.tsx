@@ -9,6 +9,7 @@ import { useCreateBooking } from '@/hooks/useBookings';
 import { useCreateCompanion } from '@/hooks/useCompanions';
 import { useCompleteOnboarding } from '@/hooks/useOnboardingStatus';
 import { supabase } from '@/integrations/supabase/client';
+import { buildTravelerKeyFromFullName } from '@/lib/travelers/travelerIdentity';
 import { DropzoneIntake } from '@/components/trips/DropzoneIntake';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -870,8 +871,9 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
             if (booking.passenger_name && booking.booking_type === 'flight') {
               const passengers = parsePassengers(booking.passenger_name, booking.airline);
               for (const passenger of passengers) {
-                const normalizedName = passenger.name.toLowerCase().trim();
-                if (!createdCompanions.has(normalizedName)) {
+                // v5.2.0: Use canonical traveler identity key for dedup
+                const dedupKey = buildTravelerKeyFromFullName(passenger.name);
+                if (!createdCompanions.has(dedupKey)) {
                   try {
                     const companion = await createCompanion.mutateAsync({
                       trip_id: trip.id,
@@ -880,14 +882,14 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
                       airline: passenger.airline,
                     });
                     if (companion?.id) {
-                      createdCompanions.set(normalizedName, companion.id);
+                      createdCompanions.set(dedupKey, companion.id);
                       totalCompanionsCreated++;
                     }
                   } catch (err) {
                     console.error('Failed to create companion:', err);
                   }
                 }
-                const companionId = createdCompanions.get(normalizedName);
+                const companionId = createdCompanions.get(dedupKey);
                 if (companionId && createdBooking?.id) {
                   try {
                     await supabase.from('booking_companions').insert({
