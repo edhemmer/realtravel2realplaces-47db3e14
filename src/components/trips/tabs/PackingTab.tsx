@@ -3,7 +3,8 @@ import { usePackingItems, useCreatePackingItem, useUpdatePackingItem, useDeleteP
 import { useTrip } from '@/hooks/useTrips';
 import { useBookings } from '@/hooks/useBookings';
 import { useWeatherEngine } from '@/hooks/useWeatherEngine';
-import { generatePackingRecommendations, type PackingEngineResult, type PackingEngineOutput } from '@/lib/packingEngine';
+import { generatePackingRecommendations, buildPackingContext, type PackingEngineResult, type PackingEngineOutput, type PackingContext } from '@/lib/packingEngine';
+import { resolveWeather } from '@/lib/weatherEngine';
 import { supabase } from '@/integrations/supabase/client';
 import { PackingItem } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,7 +28,7 @@ interface PackingTabProps {
   tripId: string;
 }
 
-// Icon mapping for categories (extended for v3.8.13)
+// Icon mapping for categories
 const categoryIcons: Record<string, React.ReactNode> = {
   'Clothing': <ShoppingBag className="w-4 h-4" />,
   'Clothing Core': <ShoppingBag className="w-4 h-4" />,
@@ -72,9 +73,23 @@ const categoryColors: Record<string, string> = {
 };
 
 interface AIPackingResponse {
-  items: { category: string; item_name: string; quantity: number; own_it_likely?: boolean; suggest_buy_early?: boolean; rationale?: string }[];
+  items: { category: string; item_name: string; quantity: number; own_it_likely?: boolean; suggest_buy_early?: boolean; rationale?: string; applies_to?: string[] }[];
   special_notes?: string[];
 }
+
+// v4.6.0: Climate tag display labels
+const CLIMATE_TAG_LABELS: Record<string, string> = {
+  all: 'All trip',
+  cold: 'Cold days',
+  cool: 'Cool days',
+  warm: 'Warm days',
+  hot: 'Hot days',
+  rain: 'Rainy days',
+  snow: 'Snow days',
+  beach: 'Beach days',
+  business: 'Business',
+  custom: 'Custom',
+};
 
 
 export function PackingTab({ tripId }: PackingTabProps) {
@@ -102,6 +117,65 @@ export function PackingTab({ tripId }: PackingTabProps) {
     );
   }, [trip, weather]);
 
+  // v4.6.0: Build multi-location PackingContext
+  const packingContext = useMemo((): PackingContext | null => {
+    if (!trip) return null;
+
+    // Extract unique locations from bookings (stays, activities with addresses)
+    const additionalLocations: Array<{ city: string | null; state?: string | null; country: string | null }> = [];
+    const seenCities = new Set<string>();
+    
+    if (trip.destination_city) {
+      seenCities.add(trip.destination_city.toLowerCase());
+    }
+
+    for (const booking of bookings) {
+      // Extract city from property_name or address for stays
+      if (booking.booking_type === 'stay' && booking.address) {
+        const parts = booking.address.split(',').map((p: string) => p.trim());
+        if (parts.length >= 2) {
+          const city = parts[parts.length - 2];
+          if (city && !seenCities.has(city.toLowerCase())) {
+            seenCities.add(city.toLowerCase());
+            additionalLocations.push({ city, country: trip.destination_country });
+          }
+        }
+      }
+    }
+
+    // Build weather results for additional locations
+    const weatherResults: import('@/lib/weatherEngine').WeatherEngineResult[] = [];
+    if (weather) {
+      weatherResults.push(weather);
+    }
+
+    // For additional locations, generate weather using the engine
+    for (const loc of additionalLocations) {
+      if (loc.city) {
+        const locWeather = resolveWeather({
+          city: loc.city,
+          country: loc.country || trip.destination_country || '',
+          startDate: trip.start_date,
+          endDate: trip.end_date,
+        });
+        weatherResults.push(locWeather);
+      }
+    }
+
+    return buildPackingContext(
+      {
+        start_date: trip.start_date,
+        end_date: trip.end_date,
+        trip_type: trip.trip_type,
+        destination_city: trip.destination_city,
+        destination_state: trip.destination_state,
+        destination_country: trip.destination_country,
+      },
+      additionalLocations,
+      weatherResults
+    );
+  }, [trip, bookings, weather]);
+
   // Extract ready result (null if not ready)
   const packingRecs: PackingEngineResult | null = packingOutput && !packingOutput.notReady ? packingOutput as PackingEngineResult : null;
 
@@ -110,6 +184,7 @@ export function PackingTab({ tripId }: PackingTabProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [specialNotes, setSpecialNotes] = useState<string[]>([]);
   const [preselectedCategory, setPreselectedCategory] = useState<string | null>(null);
+  const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
 
   const [formData, setFormData] = useState({
     category: '',
@@ -172,12 +247,10 @@ export function PackingTab({ tripId }: PackingTabProps) {
     await deleteItem.mutateAsync({ id: itemId, trip_id: tripId });
   };
 
-  const generatePackingList = async () => {
+  const generatePackingList = async (isRegenerate = false) => {
     if (!trip) return;
 
-    // v3.9.40: Validate inputs before calling edge function
     const city = trip.destination_city?.trim();
-    const country = trip.destination_country?.trim();
     if (!city) {
       toast.error('We need a destination city to build your packing list. Please set your trip destination first.');
       return;
@@ -188,32 +261,43 @@ export function PackingTab({ tripId }: PackingTabProps) {
     }
     
     setIsGenerating(true);
+    setShowRegenerateConfirm(false);
     try {
       // Delete auto-generated items first, preserving custom items
       await deleteAutoItems.mutateAsync({ trip_id: tripId });
       
-      const { data, error } = await supabase.functions.invoke<{ success: boolean; data: AIPackingResponse; error?: string }>('generate-packing-list', {
+      // v4.6.0: Build additional locations from packing context
+      const additionalLocations = packingContext?.locations
+        .filter(loc => loc.city && loc.city.toLowerCase() !== city.toLowerCase())
+        .map(loc => ({
+          city: loc.city,
+          country: loc.country,
+          climateTags: loc.climateTags,
+        })) ?? [];
+
+      const { data, error } = await supabase.functions.invoke<{ success: boolean; data: AIPackingResponse; meta?: { isEarlyDraft: boolean; generatedAt: string }; error?: string }>('generate-packing-list', {
         body: {
           destination_city: city,
           destination_state: trip.destination_state || null,
-          destination_country: country || null,
+          destination_country: trip.destination_country || null,
           start_date: trip.start_date,
           end_date: trip.end_date,
           trip_type: trip.trip_type,
           destination_type: (trip as any).destination_type || 'unspecified',
-          // v3.8.13: Pass weather envelope for richer AI context
           weather_envelope: weather ? {
             weatherMode: weather.weatherMode,
             summary: weather.summary,
             anchorLabel: weather.anchor.label,
           } : null,
+          // v4.6.0: Multi-location + regeneration
+          additional_locations: additionalLocations,
+          is_regenerate: isRegenerate,
         },
       });
 
       if (error) throw error;
 
       if (data?.success && data.data?.items) {
-        // v3.9.40: Normalize items before bulk insert — ensure no undefined category
         const normalizedItems = data.data.items.map(item => ({
           ...item,
           category: item.category || 'General',
@@ -225,12 +309,14 @@ export function PackingTab({ tripId }: PackingTabProps) {
         if (data.data.special_notes) {
           setSpecialNotes(data.data.special_notes);
         }
+
+        if (isRegenerate) {
+          toast.success('Packing list updated with latest weather data. Your custom items were preserved.');
+        }
       } else {
         throw new Error(data?.error || 'Failed to generate packing list');
       }
     } catch (err) {
-      console.error('Error generating packing list:', err);
-      // v3.9.40: Friendly, retryable error messages
       const message = err instanceof Error ? err.message : '';
       if (message.includes('Rate limit')) {
         toast.error('Too many requests. Please wait a moment and try again.');
@@ -280,30 +366,46 @@ export function PackingTab({ tripId }: PackingTabProps) {
   const packedItems = packingItems.filter(i => i.is_packed).length;
   const progress = totalItems > 0 ? (packedItems / totalItems) * 100 : 0;
 
+  // v4.6.0: Multi-location indicator
+  const locationCount = packingContext?.locations.length ?? 0;
+  const allClimateTags = useMemo(() => {
+    if (!packingContext) return [];
+    const tags = new Set<string>();
+    for (const loc of packingContext.locations) {
+      for (const tag of loc.climateTags) {
+        tags.add(tag);
+      }
+    }
+    return Array.from(tags);
+  }, [packingContext]);
+
   if (isLoading) {
     return <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>;
   }
 
   return (
     <div className="space-y-6">
-      {/* Header v3.8.13 */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h3 className="text-lg font-semibold">Packing List</h3>
-          <p className="text-sm text-muted-foreground">{tripNights} night{tripNights !== 1 ? 's' : ''} in {trip?.destination_city}{trip?.destination_state ? `, ${trip.destination_state}` : ''}</p>
+          <p className="text-sm text-muted-foreground">
+            {tripNights} night{tripNights !== 1 ? 's' : ''} in {trip?.destination_city}{trip?.destination_state ? `, ${trip.destination_state}` : ''}
+            {locationCount > 1 && ` + ${locationCount - 1} other location${locationCount > 2 ? 's' : ''}`}
+          </p>
         </div>
         {canEdit && (
           <div className="flex gap-2 flex-wrap">
             {packingItems.length === 0 ? (
-              <Button onClick={generatePackingList} variant="outline" disabled={isGenerating}>
+              <Button onClick={() => generatePackingList(false)} variant="outline" disabled={isGenerating}>
                 <Sparkles className="w-4 h-4 mr-2" />
                 {isGenerating ? 'Generating...' : 'Generate AI Packing List'}
               </Button>
             ) : (
               <>
-                <Button onClick={generatePackingList} variant="ghost" size="sm" disabled={isGenerating}>
+                <Button onClick={() => setShowRegenerateConfirm(true)} variant="ghost" size="sm" disabled={isGenerating}>
                   <RefreshCw className={`w-4 h-4 mr-1 ${isGenerating ? 'animate-spin' : ''}`} />
-                  Regenerate
+                  Regenerate with updated weather
                 </Button>
                 <Button onClick={copyToClipboard} variant="outline" size="sm">
                   {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
@@ -372,6 +474,19 @@ export function PackingTab({ tripId }: PackingTabProps) {
                 </Badge>
               )}
             </div>
+            {/* v4.6.0: Multi-location climate summary */}
+            {locationCount > 1 && allClimateTags.length > 0 && (
+              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-primary/10">
+                <span className="text-xs text-muted-foreground">{locationCount} locations:</span>
+                <div className="flex gap-1 flex-wrap">
+                  {allClimateTags.map(tag => (
+                    <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0">
+                      {CLIMATE_TAG_LABELS[tag] || tag}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -470,6 +585,11 @@ export function PackingTab({ tripId }: PackingTabProps) {
                           <span className={`text-sm truncate ${item.is_packed ? 'line-through text-muted-foreground' : ''}`}>
                             {item.item_name}
                           </span>
+                          {item.is_custom && (
+                            <Badge variant="outline" className="text-[10px] px-1 py-0 border-primary/30 text-primary/70">
+                              Custom
+                            </Badge>
+                          )}
                         </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
                           {/* Quantity Stepper */}
@@ -526,7 +646,7 @@ export function PackingTab({ tripId }: PackingTabProps) {
             </p>
             {canEdit && (
               <div className="flex gap-2">
-                <Button onClick={generatePackingList} disabled={isGenerating} className="bg-gradient-ocean hover:opacity-90">
+                <Button onClick={() => generatePackingList(false)} disabled={isGenerating} className="bg-gradient-ocean hover:opacity-90">
                   <Sparkles className="w-4 h-4 mr-2" />
                   {isGenerating ? 'Generating...' : 'Generate packing list'}
                 </Button>
@@ -600,6 +720,27 @@ export function PackingTab({ tripId }: PackingTabProps) {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* v4.6.0: Regenerate Confirmation Dialog */}
+      <Dialog open={showRegenerateConfirm} onOpenChange={setShowRegenerateConfirm}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Regenerate packing list?</DialogTitle>
+            <DialogDescription>
+              This will update suggested items based on the latest weather data. Your checked items and custom items will be preserved.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 pt-2">
+            <Button variant="outline" onClick={() => setShowRegenerateConfirm(false)} className="flex-1">
+              Cancel
+            </Button>
+            <Button onClick={() => generatePackingList(true)} disabled={isGenerating} className="flex-1">
+              <RefreshCw className={`w-4 h-4 mr-1 ${isGenerating ? 'animate-spin' : ''}`} />
+              {isGenerating ? 'Updating...' : 'Regenerate'}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

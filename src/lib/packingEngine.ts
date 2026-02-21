@@ -1,9 +1,14 @@
 /**
- * v3.8.14: PackingEngine — Hardened Packing Intelligence
+ * v4.6.0: PackingEngine — Trip-Scoped Climate Packing
  * 
  * Location-specific, granular, non-duplicative, subtle.
  * Consumes WeatherEngineResult envelope to produce structured, categorized packing
  * recommendations with quantities, buy-vs-bring nudges, and confidence-aware phrasing.
+ * 
+ * NEW in v4.6.0:
+ * - PackingContext: canonical multi-location climate context for a whole trip
+ * - buildPackingContext: gathers all locations + weather → climateTags per location
+ * - buildMasterPackingList: deterministic master list from PackingContext
  * 
  * RULES:
  * - May calculate quantities from trip length (days/nights)
@@ -16,6 +21,7 @@
  */
 
 import type { WeatherEngineResult, WeatherMode, WeatherSummary, AnchorType } from './weatherEngine';
+import { resolveWeather, estimateLatitude as resolveLatitude } from './weatherEngine';
 
 // ============================================================================
 // TYPES
@@ -448,4 +454,335 @@ function climateWarrants(climate: ClimateIndex, itemName: string): boolean {
     default:
       return false;
   }
+}
+
+// ============================================================================
+// v4.6.0: TRIP-SCOPED CLIMATE PACKING CONTEXT
+// ============================================================================
+
+export interface PackingLocationClimate {
+  city: string | null;
+  country: string | null;
+  climateTags: string[]; // e.g. ["cold", "rain", "beach"]
+}
+
+export interface PackingContext {
+  tripStart: string | null;   // YYYY-MM-DD
+  tripEnd: string | null;     // YYYY-MM-DD
+  tripType: 'business' | 'personal' | 'mixed' | null;
+  daysUntilTrip: number | null;
+  locations: PackingLocationClimate[];
+}
+
+export interface MasterPackingItem {
+  id: string;
+  label: string;
+  category: string;
+  appliesTo: string[];    // e.g. ["all", "cold", "beach"]
+  isRequired: boolean;
+  isUserAdded: boolean;
+  isChecked: boolean;
+}
+
+/**
+ * Derive simple climate tags from a WeatherSummary.
+ * Pure function, no network calls.
+ */
+function deriveClimateTags(summary: WeatherSummary): string[] {
+  const tags: string[] = [];
+
+  // Temperature band
+  if (summary.avgHigh >= 88) tags.push('hot');
+  else if (summary.avgHigh >= 75) tags.push('warm');
+  else if (summary.avgHigh >= 60) tags.push('mild');
+  else if (summary.avgHigh >= 45) tags.push('cool');
+  else tags.push('cold');
+
+  // Precipitation
+  if (summary.hasRain) tags.push('rain');
+  if (summary.hasSnow) tags.push('snow');
+
+  // Beach: warm/hot + low rain
+  if ((summary.avgHigh >= 78) && !summary.hasRain && !summary.hasSnow) {
+    tags.push('beach');
+  }
+
+  return tags;
+}
+
+/**
+ * Build a PackingContext from trip data + bookings + weather results.
+ * All data is passed in — no async, no DB, no network calls.
+ * Pure and deterministic.
+ */
+export function buildPackingContext(
+  trip: {
+    start_date: string;
+    end_date: string;
+    trip_type: string;
+    destination_city: string | null;
+    destination_state?: string | null;
+    destination_country: string | null;
+  },
+  locations: Array<{
+    city: string | null;
+    state?: string | null;
+    country: string | null;
+  }>,
+  weatherResults: WeatherEngineResult[]
+): PackingContext {
+  // Compute daysUntilTrip
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const [y1, m1, d1] = todayStr.split('-').map(Number);
+  const [y2, m2, d2] = trip.start_date.split('-').map(Number);
+  const date1 = new Date(y1, m1 - 1, d1);
+  const date2 = new Date(y2, m2 - 1, d2);
+  const daysUntilTrip = Math.round((date2.getTime() - date1.getTime()) / (1000 * 60 * 60 * 24));
+
+  // Build per-location climate from weather results
+  const packingLocations: PackingLocationClimate[] = [];
+  const seenCities = new Set<string>();
+
+  // Add primary destination
+  if (trip.destination_city) {
+    const key = `${trip.destination_city}::${trip.destination_country}`.toLowerCase();
+    if (!seenCities.has(key)) {
+      seenCities.add(key);
+      const matchingWeather = weatherResults.find(w =>
+        w.anchor.city.toLowerCase() === trip.destination_city!.toLowerCase()
+      );
+      packingLocations.push({
+        city: trip.destination_city,
+        country: trip.destination_country,
+        climateTags: matchingWeather ? deriveClimateTags(matchingWeather.summary) : [],
+      });
+    }
+  }
+
+  // Add additional locations from bookings/stops
+  for (let i = 0; i < locations.length; i++) {
+    const loc = locations[i];
+    if (!loc.city) continue;
+    const key = `${loc.city}::${loc.country}`.toLowerCase();
+    if (seenCities.has(key)) continue;
+    seenCities.add(key);
+
+    const matchingWeather = weatherResults[i] ?? weatherResults.find(w =>
+      w.anchor.city.toLowerCase() === loc.city!.toLowerCase()
+    );
+    packingLocations.push({
+      city: loc.city,
+      country: loc.country,
+      climateTags: matchingWeather ? deriveClimateTags(matchingWeather.summary) : [],
+    });
+  }
+
+  const tripType = (['business', 'personal', 'mixed'].includes(trip.trip_type)
+    ? trip.trip_type as 'business' | 'personal' | 'mixed'
+    : null);
+
+  return {
+    tripStart: trip.start_date || null,
+    tripEnd: trip.end_date || null,
+    tripType,
+    daysUntilTrip,
+    locations: packingLocations,
+  };
+}
+
+// ============================================================================
+// v4.6.0: MASTER PACKING LIST BUILDER (deterministic, no network calls)
+// ============================================================================
+
+let _itemIdCounter = 0;
+function nextItemId(): string {
+  return `packing_${++_itemIdCounter}_${Date.now()}`;
+}
+
+function masterItem(
+  label: string,
+  category: string,
+  appliesTo: string[],
+  isRequired: boolean
+): MasterPackingItem {
+  return {
+    id: nextItemId(),
+    label,
+    category,
+    appliesTo,
+    isRequired,
+    isUserAdded: false,
+    isChecked: false,
+  };
+}
+
+/**
+ * Build a deterministic master packing list from PackingContext.
+ * No network calls. Pure function.
+ */
+export function buildMasterPackingList(ctx: PackingContext): MasterPackingItem[] {
+  const items: MasterPackingItem[] = [];
+  const added = new Set<string>();
+
+  function add(item: MasterPackingItem) {
+    if (added.has(item.label)) return;
+    added.add(item.label);
+    items.push(item);
+  }
+
+  // Gather all climate tags across all locations
+  const allTags = new Set<string>();
+  for (const loc of ctx.locations) {
+    for (const tag of loc.climateTags) {
+      allTags.add(tag);
+    }
+  }
+
+  // Trip duration for quantity math
+  const tripDays = (ctx.tripStart && ctx.tripEnd)
+    ? Math.max(1, Math.ceil(
+        (new Date(ctx.tripEnd).getTime() - new Date(ctx.tripStart).getTime()) / (1000 * 60 * 60 * 24)
+      ) + 1)
+    : 3;
+  const tripNights = Math.max(1, tripDays - 1);
+  const laundryFactor = tripNights >= 5 ? 0.65 : 1;
+  const dailyQty = (perDay: number) => Math.max(1, Math.ceil(perDay * tripNights * laundryFactor));
+  const cappedDaily = (perDay: number, max: number) => Math.min(dailyQty(perDay), max);
+
+  // ── BASE ITEMS (always present) ──
+  add(masterItem('Tops / T-shirts', 'Clothing Core', ['all'], true));
+  add(masterItem('Underwear', 'Clothing Core', ['all'], true));
+  add(masterItem('Socks', 'Clothing Core', ['all'], true));
+  add(masterItem('Pants / Shorts', 'Clothing Core', ['all'], true));
+  add(masterItem('Sleepwear', 'Clothing Core', ['all'], false));
+
+  // ── FOOTWEAR ──
+  add(masterItem('Comfortable walking shoes', 'Footwear', ['all'], true));
+
+  // ── TOILETRIES ──
+  add(masterItem('Toothbrush & Toothpaste', 'Toiletries & Health', ['all'], true));
+  add(masterItem('Deodorant', 'Toiletries & Health', ['all'], true));
+  add(masterItem('Shampoo / Conditioner', 'Toiletries & Health', ['all'], false));
+  add(masterItem('Prescription medications', 'Toiletries & Health', ['all'], true));
+  add(masterItem('Basic first aid kit', 'Toiletries & Health', ['all'], false));
+
+  // ── ELECTRONICS ──
+  add(masterItem('Phone charger', 'Tech & Chargers', ['all'], true));
+  add(masterItem('Portable battery pack', 'Tech & Chargers', ['all'], false));
+  add(masterItem('Headphones / Earbuds', 'Tech & Chargers', ['all'], false));
+
+  // ── DOCUMENTS ──
+  add(masterItem('ID / Passport', 'Documents & Critical Items', ['all'], true));
+  add(masterItem('Boarding passes / Tickets', 'Documents & Critical Items', ['all'], true));
+  add(masterItem('Credit / Debit cards', 'Documents & Critical Items', ['all'], true));
+
+  // ── CLIMATE: HOT / WARM ──
+  if (allTags.has('hot') || allTags.has('warm')) {
+    add(masterItem('Light / breathable tops', 'Clothing Core', ['hot', 'warm'], false));
+    add(masterItem('Sunglasses', 'Accessories', ['hot', 'warm'], false));
+    add(masterItem('Sun hat / Cap', 'Accessories', ['hot', 'warm'], false));
+    add(masterItem('Sunscreen SPF 30+', 'Toiletries & Health', ['hot', 'warm'], true));
+    add(masterItem('Sandals / Flip-flops', 'Footwear', ['hot', 'warm', 'beach'], false));
+  }
+
+  // ── CLIMATE: COOL / COLD ──
+  if (allTags.has('cool') || allTags.has('cold')) {
+    add(masterItem('Hoodie / Sweater', 'Layers & Outerwear', ['cool', 'cold'], false));
+    add(masterItem('Light jacket', 'Layers & Outerwear', ['cool', 'cold'], false));
+  }
+  if (allTags.has('cold')) {
+    add(masterItem('Insulated jacket / Puffer', 'Layers & Outerwear', ['cold'], false));
+    add(masterItem('Thermal base layer', 'Layers & Outerwear', ['cold'], false));
+    add(masterItem('Warm gloves', 'Cold / Snow Gear', ['cold'], false));
+    add(masterItem('Warm hat / Beanie', 'Cold / Snow Gear', ['cold'], false));
+    add(masterItem('Scarf / Neck gaiter', 'Cold / Snow Gear', ['cold'], false));
+  }
+
+  // ── CLIMATE: RAIN ──
+  if (allTags.has('rain')) {
+    add(masterItem('Rain jacket / Shell', 'Rain & Wet Weather', ['rain'], false));
+    add(masterItem('Compact umbrella', 'Rain & Wet Weather', ['rain'], false));
+    if (allTags.has('cold') || allTags.has('cool')) {
+      add(masterItem('Waterproof shoes/boots', 'Rain & Wet Weather', ['rain', 'cold'], false));
+    }
+  }
+
+  // ── CLIMATE: SNOW ──
+  if (allTags.has('snow')) {
+    add(masterItem('Insulated / Snow boots', 'Cold / Snow Gear', ['snow'], false));
+    add(masterItem('Warm gloves', 'Cold / Snow Gear', ['snow', 'cold'], false));
+    add(masterItem('Warm hat / Beanie', 'Cold / Snow Gear', ['snow', 'cold'], false));
+  }
+
+  // ── CLIMATE: BEACH ──
+  if (allTags.has('beach')) {
+    add(masterItem('Swimsuit', 'Swimwear & Beach', ['beach'], false));
+    add(masterItem('Beach towel', 'Swimwear & Beach', ['beach'], false));
+    add(masterItem('Sunscreen SPF 30+', 'Swimwear & Beach', ['beach'], true));
+    add(masterItem('After-sun lotion', 'Swimwear & Beach', ['beach'], false));
+  }
+
+  // ── BUSINESS ──
+  if (ctx.tripType === 'business' || ctx.tripType === 'mixed') {
+    add(masterItem('Professional attire', 'Business', ['business'], false));
+    add(masterItem('Dress shirt', 'Business', ['business'], false));
+    add(masterItem('Belt', 'Business', ['business'], false));
+    add(masterItem('Dress shoes', 'Footwear', ['business'], false));
+    add(masterItem('Laptop + charger', 'Tech & Chargers', ['business'], false));
+    add(masterItem('Business cards', 'Documents & Critical Items', ['business'], false));
+  }
+
+  return items;
+}
+
+/**
+ * Merge system-generated items with existing user items for regeneration.
+ * Preserves: isChecked state, isUserAdded items.
+ * Replaces system items based on stable key (category + label).
+ */
+export function mergePackingLists(
+  newSystemItems: MasterPackingItem[],
+  existingItems: Array<{
+    id: string;
+    item_name: string;
+    category: string;
+    is_packed: boolean;
+    is_custom: boolean;
+    quantity: number;
+  }>
+): MasterPackingItem[] {
+  const result: MasterPackingItem[] = [];
+  const existingByKey = new Map<string, typeof existingItems[number]>();
+
+  for (const item of existingItems) {
+    existingByKey.set(`${item.category}::${item.item_name}`.toLowerCase(), item);
+  }
+
+  // Add system-generated items, preserving checked state if they existed before
+  for (const newItem of newSystemItems) {
+    const key = `${newItem.category}::${newItem.label}`.toLowerCase();
+    const existing = existingByKey.get(key);
+    result.push({
+      ...newItem,
+      isChecked: existing?.is_packed ?? false,
+    });
+  }
+
+  // Preserve all user-added items
+  for (const item of existingItems) {
+    if (item.is_custom) {
+      result.push({
+        id: item.id,
+        label: item.item_name,
+        category: item.category,
+        appliesTo: ['custom'],
+        isRequired: false,
+        isUserAdded: true,
+        isChecked: item.is_packed,
+      });
+    }
+  }
+
+  return result;
 }
