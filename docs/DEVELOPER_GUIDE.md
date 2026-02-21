@@ -551,13 +551,18 @@ if (dt.length === 10 && DATE_ONLY_REGEX.test(dt)) {
 parsed.bookings = normalizeBatchDatetimes(bookings, ['start_datetime', 'end_datetime']);
 ```
 
+### Flight Date Independence (v4.4.3)
+
+The `parse-itinerary` edge function uses `google/gemini-2.5-pro` with a **DATE INDEPENDENCE** prompt rule. This prevents the AI from hallucinating dates for return flight legs by requiring each segment's date to be read independently from the document text. Diagnostic logging (`FLIGHT_DIAG`) in the edge function outputs extracted dates per leg for verification.
+
 ### Testing Parsing Changes
 
 When modifying parsing logic:
 
 1. Run Deno tests: `supabase--test-edge-functions` with pattern `datetime`
 2. Run frontend tests: `src/lib/__tests__/parsingPerformance.test.ts`
-3. Verify outputs match expected behavior documented in tests
+3. Check edge function logs for `FLIGHT_DIAG` entries to verify per-leg date extraction
+4. Verify outputs match expected behavior documented in tests
 
 ---
 

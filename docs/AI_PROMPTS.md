@@ -60,7 +60,7 @@ DATA TYPES HANDLED:
 ## Parse Itinerary Prompt
 
 **Function:** `parse-itinerary`  
-**Model:** `google/gemini-3-flash-preview`  
+**Model:** `google/gemini-2.5-pro` (upgraded v4.4.3 for complex multi-leg itinerary accuracy)  
 **Purpose:** Extract trip-level metadata and all bookings from complete itinerary documents
 
 ### System Prompt
@@ -100,6 +100,19 @@ For car rentals also extract:
 - rental_company
 - pickup_location
 - return_location
+
+CRITICAL - DATE INDEPENDENCE FOR MULTI-LEG ITINERARIES:
+- EACH flight segment has its OWN departure date — read it directly from THAT segment's text.
+- Do NOT assume legs are on consecutive days. Outbound legs may be in March and return legs in April.
+- Round-trip itineraries commonly have a GAP of days or weeks between outbound and return legs.
+- Read the EXACT date printed next to each flight segment. If the text says "26 Mar 2026", use 2026-03-26.
+- NEVER infer or calculate dates from other legs. NEVER assume "next day" for subsequent legs.
+- Example: A 4-leg round trip might be:
+  * Leg 1: 11 Mar 2026 (outbound)
+  * Leg 2: 12 Mar 2026 (outbound connection)
+  * Leg 3: 26 Mar 2026 (return — 14 days later!)
+  * Leg 4: 26 Mar 2026 (return connection)
+  Each date MUST be read independently from the document text for that specific leg.
 
 Return a JSON object with trip info and an array of bookings. Use null for any fields 
 you cannot determine.
