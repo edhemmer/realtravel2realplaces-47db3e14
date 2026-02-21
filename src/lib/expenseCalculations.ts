@@ -584,22 +584,22 @@ export function calculateCategorySummary(expenses: Expense[]): CategorySummary {
 }
 
 /**
- * v4.4.x: Compute per-currency expense totals — no mixed-currency math.
+ * v4.4.x / v4.9.4: Compute per-currency expense totals — no mixed-currency math.
  *
- * Groups ALL expenses by their currency_code and sums amounts per group.
- * Returns totals_by_currency map and ordered list of currencies.
+ * Groups ALL expenses (including booking-linked) by their currency and sums amounts.
+ * This gives the user a complete picture of what currencies are in play.
  *
- * This is the ONLY correct way to aggregate trip expense totals when
- * multiple currencies may be present. Do NOT compute a single combined total.
+ * v4.9.4: Now includes booking-linked expenses so the multi-currency breakdown
+ * shows the full trip cost across all currencies (e.g., "974.00 EUR, 20.00 USD").
+ * $0 placeholder expenses (needs-pricing) are excluded from totals.
  */
 export function computeTripExpenseTotals(expenses: Expense[]): MultiCurrencyTotals {
   const totals: Record<string, number> = {};
 
   for (const e of expenses) {
-    if (isBookingLinkedExpense(e)) continue;
     const currency = ((e as any).currency || 'USD').toUpperCase();
     const amount = Number(e.amount || 0);
-    if (!Number.isFinite(amount) || amount < 0) continue;
+    if (!Number.isFinite(amount) || amount <= 0) continue; // Skip $0 placeholders
     totals[currency] = (totals[currency] || 0) + amount;
   }
 
