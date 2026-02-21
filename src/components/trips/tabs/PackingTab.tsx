@@ -737,17 +737,30 @@ export function PackingTab({ tripId }: PackingTabProps) {
             );
           };
         
+        // On mobile (single col): interleave wearable/utility for natural flow
+        const interleaved: [string, PackingItem[]][] = [];
+        const maxLen = Math.max(wearables.length, utilities.length);
+        for (let i = 0; i < maxLen; i++) {
+          if (i < wearables.length) interleaved.push(wearables[i]);
+          if (i < utilities.length) interleaved.push(utilities[i]);
+        }
+
         return (
-          <div className="grid gap-3 md:grid-cols-2">
-            {/* Left column: Wearables */}
-            <div className="space-y-2">
-              {wearables.map(renderCategory)}
+          <>
+            {/* Desktop: 2-column wearables|utilities */}
+            <div className="hidden md:grid gap-3 md:grid-cols-2">
+              <div className="space-y-2">
+                {wearables.map(renderCategory)}
+              </div>
+              <div className="space-y-2">
+                {utilities.map(renderCategory)}
+              </div>
             </div>
-            {/* Right column: Utilities */}
-            <div className="space-y-2">
-              {utilities.map(renderCategory)}
+            {/* Mobile: interleaved single column */}
+            <div className="md:hidden space-y-2">
+              {interleaved.map(renderCategory)}
             </div>
-          </div>
+          </>
         );
       })() : (
         /* Empty state */
