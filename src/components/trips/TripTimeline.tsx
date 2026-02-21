@@ -246,23 +246,30 @@ export function TripTimeline({ events, datetimeFormat, onEventClick, onExploreNe
                             </div>
                           )}
                         </div>
-                        {/* v3.9.39: Flight time uses canonical string helper; others use legacy path */}
-                        <div className="text-right shrink-0 tabular-nums pt-px">
+                        {/* v3.9.80: Redesigned time display — human-readable, not raw ISO */}
+                        <div className="text-right shrink-0 tabular-nums">
                           {event.bookingType === 'flight' ? (() => {
                             const flightTime = getDepartureTimeLabel(event.departureLocalTime, event.eventLocalDateTime);
                             const flightHasTime = hasFlightTime(event.departureLocalTime, event.eventLocalDateTime);
-                            return (
-                              <p className={`text-[10px] ${flightHasTime ? 'text-muted-foreground/70' : 'text-destructive font-medium'}`}>
+                            return flightHasTime ? (
+                              <p className="text-xs font-medium text-foreground/70">
                                 {flightTime}
+                              </p>
+                            ) : (
+                              <p className="text-[11px] text-destructive font-medium">
+                                {UNKNOWN_TIME_PLACEHOLDER}
                               </p>
                             );
                           })() : (
-                            <p className={`text-[10px] ${event.hasExplicitTime ? 'text-muted-foreground/70' : 'text-destructive font-medium'}`}>
-                              {event.hasExplicitTime
-                                ? (formatLocalTimeDirect(event.eventLocalDateTime, use24h) || UNKNOWN_TIME_PLACEHOLDER)
-                                : UNKNOWN_TIME_PLACEHOLDER
-                              }
-                            </p>
+                            event.hasExplicitTime ? (
+                              <p className="text-xs font-medium text-foreground/70">
+                                {formatLocalTimeDirect(event.eventLocalDateTime, use24h) || UNKNOWN_TIME_PLACEHOLDER}
+                              </p>
+                            ) : (
+                              <p className="text-[11px] text-destructive font-medium">
+                                {UNKNOWN_TIME_PLACEHOLDER}
+                              </p>
+                            )
                           )}
                         </div>
                       </div>
