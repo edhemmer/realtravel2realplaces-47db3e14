@@ -22,8 +22,13 @@ serve(async (req) => {
       is_regenerate,
     } = body;
 
-    if (!destination_city || typeof destination_city !== 'string' || !destination_city.trim()) {
-      return new Response(JSON.stringify({ success: false, error: "Destination city is required" }), {
+    // v4.10.0: destination_city can be derived from itinerary legs
+    const effectiveCity = (destination_city && typeof destination_city === 'string' && destination_city.trim())
+      ? destination_city.trim()
+      : (itinerary_legs?.length > 0 ? itinerary_legs[0]?.city : null);
+    
+    if (!effectiveCity) {
+      return new Response(JSON.stringify({ success: false, error: "Destination city or bookings are required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -48,7 +53,7 @@ serve(async (req) => {
     const travelMonth = startD.toLocaleString('en-US', { month: 'long' });
 
     // v4.7.0: Build per-leg itinerary context
-    let itineraryContext = `Primary destination: ${destination_city}${destination_state ? `, ${destination_state}` : ''}, ${destination_country || ''}`;
+    let itineraryContext = `Primary destination: ${effectiveCity}${destination_state ? `, ${destination_state}` : ''}, ${destination_country || ''}`;
     
     const legs = itinerary_legs || additional_locations || [];
     if (Array.isArray(legs) && legs.length > 0) {
@@ -62,7 +67,7 @@ serve(async (req) => {
     }
 
     // Destination type detection
-    const cityLower = destination_city?.toLowerCase() || '';
+    const cityLower = effectiveCity?.toLowerCase() || '';
     const stateLower = destination_state?.toLowerCase() || '';
     const countryLower = destination_country?.toLowerCase() || '';
     

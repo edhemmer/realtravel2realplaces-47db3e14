@@ -119,51 +119,66 @@ export function PackingTab({ tripId }: PackingTabProps) {
   }, [trip, weather]);
 
   // v4.7.0: Build multi-location PackingContext with per-leg itinerary
+  // v4.10.0: Lodging-first, exclude home airport, use destination airports
   const packingContext = useMemo((): PackingContext | null => {
     if (!trip) return null;
 
-    // Extract unique leg/location stops from bookings in chronological order
     const legs: Array<{ city: string; state?: string; country: string; arriveDate?: string; departDate?: string; source: string }> = [];
     const seenCities = new Set<string>();
 
-    // Primary destination
     if (trip.destination_city) {
       seenCities.add(trip.destination_city.toLowerCase());
     }
 
-    // Build legs from bookings: flights (arrival cities), stays (property cities)
     const sortedBookings = [...bookings].sort((a, b) => 
       new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime()
     );
 
+    // Identify home airport (first departure) to exclude return legs
+    const homeAirport = sortedBookings.find(b => b.booking_type === 'flight')?.departure_airport_code?.toUpperCase() || '';
+    const homeCity = sortedBookings.find(b => b.booking_type === 'flight')?.from_location?.toLowerCase() || '';
+
+    // 1. LODGING FIRST (highest priority)
     for (const booking of sortedBookings) {
-      if (booking.booking_type === 'flight' && booking.to_location) {
-        const city = booking.to_location.trim();
-        if (city && !seenCities.has(city.toLowerCase())) {
-          seenCities.add(city.toLowerCase());
-          legs.push({ 
-            city, 
-            country: trip.destination_country || '', 
-            arriveDate: booking.end_datetime?.split('T')[0],
-            source: 'flight'
-          });
-        }
-      } else if (booking.booking_type === 'stay') {
-        // Extract city from address or property_name
+      if (booking.booking_type === 'stay') {
         const addr = booking.address || '';
         const parts = addr.split(',').map((p: string) => p.trim());
-        let city = '';
-        if (parts.length >= 2) {
-          city = parts[parts.length - 2]; // second-to-last is usually city
-        }
+        let city = parts.length >= 2 ? parts[parts.length - 2] : '';
         if (city && !seenCities.has(city.toLowerCase())) {
           seenCities.add(city.toLowerCase());
           legs.push({ 
-            city, 
-            country: trip.destination_country || '',
+            city, country: trip.destination_country || '',
             arriveDate: booking.start_datetime?.split('T')[0],
             departDate: booking.end_datetime?.split('T')[0],
             source: 'stay'
+          });
+        }
+      }
+    }
+
+    // 2. DESTINATION AIRPORTS (exclude home airport and transit/connections)
+    for (const booking of sortedBookings) {
+      if (booking.booking_type === 'flight' && booking.to_location) {
+        const arrCode = booking.arrival_airport_code?.toUpperCase() || '';
+        // Skip home airport returns
+        if (arrCode === homeAirport) continue;
+        if (booking.to_location.toLowerCase() === homeCity) continue;
+
+        const city = booking.to_location.trim();
+        if (city && !seenCities.has(city.toLowerCase())) {
+          // Check if this is a transit stop (next flight departs from same airport)
+          const bookingIdx = sortedBookings.indexOf(booking);
+          const nextFlight = sortedBookings.slice(bookingIdx + 1).find(b => b.booking_type === 'flight');
+          const isTransit = nextFlight && nextFlight.departure_airport_code?.toUpperCase() === arrCode
+            && new Date(nextFlight.start_datetime).getTime() - new Date(booking.end_datetime || booking.start_datetime).getTime() < 24 * 60 * 60 * 1000;
+          
+          if (isTransit) continue; // Skip short layovers/connections
+
+          seenCities.add(city.toLowerCase());
+          legs.push({ 
+            city, country: trip.destination_country || '', 
+            arriveDate: booking.end_datetime?.split('T')[0],
+            source: 'flight'
           });
         }
       }
@@ -277,9 +292,11 @@ export function PackingTab({ tripId }: PackingTabProps) {
   const generatePackingList = async (isRegenerate = false) => {
     if (!trip) return;
 
+    // v4.10.0: destination_city OR bookings required (not just city)
     const city = trip.destination_city?.trim();
-    if (!city) {
-      toast.error('We need a destination city to build your packing list. Please set your trip destination first.');
+    const hasBookings = bookings.length > 0;
+    if (!city && !hasBookings) {
+      toast.error('We need a destination or bookings to build your packing list.');
       return;
     }
     if (!trip.start_date || !trip.end_date) {
@@ -293,32 +310,20 @@ export function PackingTab({ tripId }: PackingTabProps) {
       // Delete auto-generated items first, preserving custom items
       await deleteAutoItems.mutateAsync({ trip_id: tripId });
       
-      // v4.7.0: Build per-leg itinerary with weather for each stop
-      const itineraryLegs: Array<{ city: string; country: string; arriveDate?: string; departDate?: string; climateTags?: string[] }> = [];
+      // v4.10.0: Build per-leg itinerary — lodging first, exclude home airport
+      const itineraryLegs: Array<{ city: string; country: string; arriveDate?: string; departDate?: string; climateTags?: string[]; source: string }> = [];
       const sortedBookings = [...bookings].sort((a, b) => 
         new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime()
       );
       const legCities = new Set<string>();
       
+      // Identify home airport
+      const homeAirport = sortedBookings.find(b => b.booking_type === 'flight')?.departure_airport_code?.toUpperCase() || '';
+      const homeCity = sortedBookings.find(b => b.booking_type === 'flight')?.from_location?.toLowerCase() || '';
+
+      // 1. LODGING FIRST
       for (const booking of sortedBookings) {
-        if (booking.booking_type === 'flight' && booking.to_location) {
-          const legCity = booking.to_location.trim();
-          if (legCity && !legCities.has(legCity.toLowerCase())) {
-            legCities.add(legCity.toLowerCase());
-            const legWeather = resolveWeather({
-              city: legCity,
-              country: trip.destination_country || '',
-              startDate: trip.start_date,
-              endDate: trip.end_date,
-            });
-            itineraryLegs.push({
-              city: legCity,
-              country: trip.destination_country || '',
-              arriveDate: booking.end_datetime?.split('T')[0],
-              climateTags: legWeather?.summary ? deriveClimateTags(legWeather.summary) : [],
-            });
-          }
-        } else if (booking.booking_type === 'stay') {
+        if (booking.booking_type === 'stay') {
           const addr = booking.address || '';
           const parts = addr.split(',').map((p: string) => p.trim());
           let stayCity = parts.length >= 2 ? parts[parts.length - 2] : '';
@@ -336,14 +341,52 @@ export function PackingTab({ tripId }: PackingTabProps) {
               arriveDate: booking.start_datetime?.split('T')[0],
               departDate: booking.end_datetime?.split('T')[0],
               climateTags: legWeather?.summary ? deriveClimateTags(legWeather.summary) : [],
+              source: 'stay',
             });
           }
         }
       }
 
+      // 2. DESTINATION AIRPORTS (exclude home, exclude transit)
+      for (const booking of sortedBookings) {
+        if (booking.booking_type === 'flight' && booking.to_location) {
+          const arrCode = booking.arrival_airport_code?.toUpperCase() || '';
+          if (arrCode === homeAirport) continue;
+          if (booking.to_location.toLowerCase() === homeCity) continue;
+
+          const legCity = booking.to_location.trim();
+          if (legCity && !legCities.has(legCity.toLowerCase())) {
+            // Check transit (next flight departs same airport within 24h)
+            const idx = sortedBookings.indexOf(booking);
+            const nextFlight = sortedBookings.slice(idx + 1).find(b => b.booking_type === 'flight');
+            const isTransit = nextFlight && nextFlight.departure_airport_code?.toUpperCase() === arrCode
+              && new Date(nextFlight.start_datetime).getTime() - new Date(booking.end_datetime || booking.start_datetime).getTime() < 24 * 60 * 60 * 1000;
+            if (isTransit) continue;
+
+            legCities.add(legCity.toLowerCase());
+            const legWeather = resolveWeather({
+              city: legCity,
+              country: trip.destination_country || '',
+              startDate: trip.start_date,
+              endDate: trip.end_date,
+            });
+            itineraryLegs.push({
+              city: legCity,
+              country: trip.destination_country || '',
+              arriveDate: booking.end_datetime?.split('T')[0],
+              climateTags: legWeather?.summary ? deriveClimateTags(legWeather.summary) : [],
+              source: 'flight',
+            });
+          }
+        }
+      }
+
+      // Use destination_city, or derive from first leg
+      const effectiveCity = city || itineraryLegs[0]?.city || 'Unknown';
+
       const { data, error } = await supabase.functions.invoke<{ success: boolean; data: AIPackingResponse; meta?: { isEarlyDraft: boolean; generatedAt: string }; error?: string }>('generate-packing-list', {
         body: {
-          destination_city: city,
+          destination_city: effectiveCity,
           destination_state: trip.destination_state || null,
           destination_country: trip.destination_country || null,
           start_date: trip.start_date,
@@ -355,7 +398,6 @@ export function PackingTab({ tripId }: PackingTabProps) {
             summary: weather.summary,
             anchorLabel: weather.anchor.label,
           } : null,
-          // v4.7.0: Per-leg itinerary with weather
           itinerary_legs: itineraryLegs,
           is_regenerate: isRegenerate,
         },
