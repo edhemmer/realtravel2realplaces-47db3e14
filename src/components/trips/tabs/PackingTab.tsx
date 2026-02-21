@@ -15,42 +15,40 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Progress } from '@/components/ui/progress';
+
 import { 
   Plus, Trash2, Sparkles, Copy, Check, Cloud, Sun, 
   Briefcase, ShoppingBag, Luggage, Waves, RefreshCw, AlertCircle, Mountain, Building2,
-  Minus, Thermometer, MapPin, ShoppingCart
+  Minus, Thermometer, MapPin, Shirt, Footprints, Watch, Umbrella, Snowflake, Plug, FileText, Globe
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { differenceInDays, parseISO } from 'date-fns';
 import { useTripPermission } from '@/pages/TripDetail';
 
-interface PackingTabProps {
-  tripId: string;
-}
-
-// Icon mapping for categories
-const categoryIcons: Record<string, React.ReactNode> = {
-  'Clothing': <ShoppingBag className="w-3.5 h-3.5" />,
-  'Clothing Core': <ShoppingBag className="w-3.5 h-3.5" />,
-  'Layers & Outerwear': <Mountain className="w-3.5 h-3.5" />,
-  'Rain & Wet Weather': <Cloud className="w-3.5 h-3.5" />,
-  'Cold / Snow Gear': <Thermometer className="w-3.5 h-3.5" />,
-  'Footwear': <Luggage className="w-3.5 h-3.5" />,
-  'Accessories': <Sun className="w-3.5 h-3.5" />,
-  'Swimwear & Beach': <Waves className="w-3.5 h-3.5" />,
-  'Hiking & Outdoor': <Mountain className="w-3.5 h-3.5" />,
-  'City Essentials': <Building2 className="w-3.5 h-3.5" />,
-  'Toiletries & Health': <Sparkles className="w-3.5 h-3.5" />,
-  'Electronics': <Sparkles className="w-3.5 h-3.5" />,
-  'Tech & Chargers': <Sparkles className="w-3.5 h-3.5" />,
-  'Documents': <Briefcase className="w-3.5 h-3.5" />,
-  'Documents & Critical Items': <Briefcase className="w-3.5 h-3.5" />,
-  'Cultural Essentials': <MapPin className="w-3.5 h-3.5" />,
-  'Essentials': <Check className="w-3.5 h-3.5" />,
-  'Weather Gear': <Cloud className="w-3.5 h-3.5" />,
-  'Business': <Briefcase className="w-3.5 h-3.5" />,
+// Category color system for premium visual identity
+const categoryThemes: Record<string, { icon: React.ReactNode; border: string; bg: string; text: string; iconBg: string }> = {
+  'Clothing Core':            { icon: <Shirt className="w-3.5 h-3.5" />,       border: 'border-l-blue-500',      bg: 'bg-blue-50/40 dark:bg-blue-950/20',      text: 'text-blue-700 dark:text-blue-300',      iconBg: 'bg-blue-100 dark:bg-blue-900/40' },
+  'Clothing':                 { icon: <Shirt className="w-3.5 h-3.5" />,       border: 'border-l-blue-500',      bg: 'bg-blue-50/40 dark:bg-blue-950/20',      text: 'text-blue-700 dark:text-blue-300',      iconBg: 'bg-blue-100 dark:bg-blue-900/40' },
+  'Layers & Outerwear':       { icon: <Mountain className="w-3.5 h-3.5" />,    border: 'border-l-slate-500',     bg: 'bg-slate-50/40 dark:bg-slate-950/20',    text: 'text-slate-700 dark:text-slate-300',    iconBg: 'bg-slate-100 dark:bg-slate-900/40' },
+  'Rain & Wet Weather':       { icon: <Umbrella className="w-3.5 h-3.5" />,    border: 'border-l-cyan-500',      bg: 'bg-cyan-50/40 dark:bg-cyan-950/20',      text: 'text-cyan-700 dark:text-cyan-300',      iconBg: 'bg-cyan-100 dark:bg-cyan-900/40' },
+  'Cold / Snow Gear':         { icon: <Snowflake className="w-3.5 h-3.5" />,   border: 'border-l-indigo-500',    bg: 'bg-indigo-50/40 dark:bg-indigo-950/20',  text: 'text-indigo-700 dark:text-indigo-300',  iconBg: 'bg-indigo-100 dark:bg-indigo-900/40' },
+  'Footwear':                 { icon: <Footprints className="w-3.5 h-3.5" />,  border: 'border-l-amber-500',     bg: 'bg-amber-50/40 dark:bg-amber-950/20',    text: 'text-amber-700 dark:text-amber-300',    iconBg: 'bg-amber-100 dark:bg-amber-900/40' },
+  'Accessories':              { icon: <Watch className="w-3.5 h-3.5" />,       border: 'border-l-purple-500',    bg: 'bg-purple-50/40 dark:bg-purple-950/20',  text: 'text-purple-700 dark:text-purple-300',  iconBg: 'bg-purple-100 dark:bg-purple-900/40' },
+  'Swimwear & Beach':         { icon: <Waves className="w-3.5 h-3.5" />,       border: 'border-l-teal-500',      bg: 'bg-teal-50/40 dark:bg-teal-950/20',      text: 'text-teal-700 dark:text-teal-300',      iconBg: 'bg-teal-100 dark:bg-teal-900/40' },
+  'Hiking & Outdoor':         { icon: <Mountain className="w-3.5 h-3.5" />,    border: 'border-l-emerald-500',   bg: 'bg-emerald-50/40 dark:bg-emerald-950/20',text: 'text-emerald-700 dark:text-emerald-300',iconBg: 'bg-emerald-100 dark:bg-emerald-900/40' },
+  'Toiletries & Health':      { icon: <Sparkles className="w-3.5 h-3.5" />,    border: 'border-l-rose-500',      bg: 'bg-rose-50/40 dark:bg-rose-950/20',      text: 'text-rose-700 dark:text-rose-300',      iconBg: 'bg-rose-100 dark:bg-rose-900/40' },
+  'Tech & Chargers':          { icon: <Plug className="w-3.5 h-3.5" />,        border: 'border-l-violet-500',    bg: 'bg-violet-50/40 dark:bg-violet-950/20',  text: 'text-violet-700 dark:text-violet-300',  iconBg: 'bg-violet-100 dark:bg-violet-900/40' },
+  'Electronics':              { icon: <Plug className="w-3.5 h-3.5" />,        border: 'border-l-violet-500',    bg: 'bg-violet-50/40 dark:bg-violet-950/20',  text: 'text-violet-700 dark:text-violet-300',  iconBg: 'bg-violet-100 dark:bg-violet-900/40' },
+  'Documents & Critical Items':{ icon: <FileText className="w-3.5 h-3.5" />,   border: 'border-l-orange-500',    bg: 'bg-orange-50/40 dark:bg-orange-950/20',  text: 'text-orange-700 dark:text-orange-300',  iconBg: 'bg-orange-100 dark:bg-orange-900/40' },
+  'Documents':                { icon: <FileText className="w-3.5 h-3.5" />,    border: 'border-l-orange-500',    bg: 'bg-orange-50/40 dark:bg-orange-950/20',  text: 'text-orange-700 dark:text-orange-300',  iconBg: 'bg-orange-100 dark:bg-orange-900/40' },
+  'Cultural Essentials':      { icon: <Globe className="w-3.5 h-3.5" />,       border: 'border-l-pink-500',      bg: 'bg-pink-50/40 dark:bg-pink-950/20',      text: 'text-pink-700 dark:text-pink-300',      iconBg: 'bg-pink-100 dark:bg-pink-900/40' },
+  'City Essentials':          { icon: <Building2 className="w-3.5 h-3.5" />,   border: 'border-l-sky-500',       bg: 'bg-sky-50/40 dark:bg-sky-950/20',        text: 'text-sky-700 dark:text-sky-300',        iconBg: 'bg-sky-100 dark:bg-sky-900/40' },
+  'Essentials':               { icon: <Check className="w-3.5 h-3.5" />,       border: 'border-l-green-500',     bg: 'bg-green-50/40 dark:bg-green-950/20',    text: 'text-green-700 dark:text-green-300',    iconBg: 'bg-green-100 dark:bg-green-900/40' },
+  'Weather Gear':             { icon: <Cloud className="w-3.5 h-3.5" />,       border: 'border-l-sky-500',       bg: 'bg-sky-50/40 dark:bg-sky-950/20',        text: 'text-sky-700 dark:text-sky-300',        iconBg: 'bg-sky-100 dark:bg-sky-900/40' },
+  'Business':                 { icon: <Briefcase className="w-3.5 h-3.5" />,   border: 'border-l-gray-500',      bg: 'bg-gray-50/40 dark:bg-gray-950/20',      text: 'text-gray-700 dark:text-gray-300',      iconBg: 'bg-gray-100 dark:bg-gray-900/40' },
 };
+
+const defaultTheme = { icon: <ShoppingBag className="w-3.5 h-3.5" />, border: 'border-l-primary', bg: 'bg-primary/5', text: 'text-primary', iconBg: 'bg-primary/10' };
 
 interface AIPackingResponse {
   items: { category: string; item_name: string; quantity: number; own_it_likely?: boolean; suggest_buy_early?: boolean; rationale?: string; color_tip?: string; applies_to?: string[] }[];
@@ -72,6 +70,10 @@ const CLIMATE_TAG_LABELS: Record<string, string> = {
   custom: 'Custom',
 };
 
+
+interface PackingTabProps {
+  tripId: string;
+}
 
 export function PackingTab({ tripId }: PackingTabProps) {
   const { canEdit } = useTripPermission();
@@ -549,41 +551,57 @@ export function PackingTab({ tripId }: PackingTabProps) {
 
       {/* Inline progress bar when items exist */}
       {packingItems.length > 0 && (
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-              {progress === 100 ? '✓ All packed' : `${packedItems}/${totalItems} packed`}
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+              {progress === 100 ? '✓ All packed' : `${packedItems} of ${totalItems} packed`}
             </span>
-            <span className="text-[11px] text-muted-foreground tabular-nums">{Math.round(progress)}%</span>
+            <span className={`text-[11px] font-bold tabular-nums ${progress === 100 ? 'text-green-600' : 'text-primary'}`}>{Math.round(progress)}%</span>
           </div>
-          <Progress value={progress} className="h-1" />
+          <div className="h-1.5 rounded-full bg-muted/30 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${progress === 100 ? 'bg-green-500' : 'bg-gradient-to-r from-primary to-primary/70'}`}
+              style={{ width: `${progress}%` }}
+            />
+          </div>
         </div>
       )}
 
-      {/* Per-Leg Climate Cards — compact horizontal scroll */}
+      {/* Per-Leg Climate Cards — rich colored horizontal scroll */}
       {legSummaries.length > 0 && (
         <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-          {legSummaries.map((leg, idx) => (
-            <div key={idx} className="flex-shrink-0 rounded-lg border border-border/40 bg-card px-3 py-2 min-w-[180px] max-w-[240px]">
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <MapPin className="w-3 h-3 text-primary flex-shrink-0" />
-                <span className="text-xs font-semibold truncate">{leg.city}</span>
+          {legSummaries.map((leg, idx) => {
+            const legColors = [
+              { border: 'border-blue-400/60', bg: 'bg-blue-50/50 dark:bg-blue-950/20', dot: 'bg-blue-500' },
+              { border: 'border-amber-400/60', bg: 'bg-amber-50/50 dark:bg-amber-950/20', dot: 'bg-amber-500' },
+              { border: 'border-emerald-400/60', bg: 'bg-emerald-50/50 dark:bg-emerald-950/20', dot: 'bg-emerald-500' },
+              { border: 'border-violet-400/60', bg: 'bg-violet-50/50 dark:bg-violet-950/20', dot: 'bg-violet-500' },
+              { border: 'border-rose-400/60', bg: 'bg-rose-50/50 dark:bg-rose-950/20', dot: 'bg-rose-500' },
+              { border: 'border-cyan-400/60', bg: 'bg-cyan-50/50 dark:bg-cyan-950/20', dot: 'bg-cyan-500' },
+            ];
+            const c = legColors[idx % legColors.length];
+            return (
+              <div key={idx} className={`flex-shrink-0 rounded-lg border ${c.border} ${c.bg} px-3 py-2 min-w-[160px] max-w-[200px]`}>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className={`w-2 h-2 rounded-full ${c.dot} flex-shrink-0`} />
+                  <span className="text-[11px] font-bold truncate">{leg.city}</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground leading-snug line-clamp-2">{leg.climate_summary}</p>
+                {leg.style_note && (
+                  <p className="text-[10px] text-foreground/50 mt-0.5 italic leading-snug line-clamp-1">{leg.style_note}</p>
+                )}
               </div>
-              <p className="text-[10px] text-muted-foreground leading-snug line-clamp-2">{leg.climate_summary}</p>
-              {leg.style_note && (
-                <p className="text-[10px] text-primary/70 mt-0.5 italic leading-snug line-clamp-1">{leg.style_note}</p>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
       {/* Cultural Tips — compact inline */}
       {specialNotes.length > 0 && (
-        <div className="rounded-lg border border-amber-200/60 bg-amber-50/30 dark:bg-amber-950/10 px-3 py-2">
+        <div className="rounded-lg border border-amber-300/40 bg-amber-50/40 dark:bg-amber-950/10 px-3 py-2">
           <div className="flex items-start gap-2">
             <AlertCircle className="w-3.5 h-3.5 text-amber-600 mt-0.5 flex-shrink-0" />
-            <div className="text-[11px] text-amber-800 dark:text-amber-300 space-y-0.5">
+            <div className="text-[11px] text-amber-800 dark:text-amber-300 space-y-0.5 leading-relaxed">
               {specialNotes.map((note, idx) => (
                 <p key={idx}>{note}</p>
               ))}
@@ -598,91 +616,94 @@ export function PackingTab({ tripId }: PackingTabProps) {
           {Object.entries(groupedItems).map(([category, items]) => {
             const categoryPacked = items.filter(i => i.is_packed).length;
             const allPacked = categoryPacked === items.length;
+            const theme = categoryThemes[category] || defaultTheme;
             
             return (
-              <div key={category} className={`rounded-lg border bg-card transition-colors ${allPacked ? 'border-green-200/60 bg-green-50/20 dark:bg-green-950/10' : 'border-border/40'}`}>
-                {/* Category header — tight */}
-                <div className="flex items-center justify-between px-3 py-2 border-b border-border/20">
+              <div key={category} className={`rounded-lg border-l-[3px] border border-border/30 transition-colors ${theme.border} ${allPacked ? 'bg-green-50/30 dark:bg-green-950/10' : 'bg-card'}`}>
+                {/* Category header — colored */}
+                <div className={`flex items-center justify-between px-3 py-2 rounded-t-[5px] ${theme.bg}`}>
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-muted-foreground flex-shrink-0">{categoryIcons[category] || <ShoppingBag className="w-3.5 h-3.5" />}</span>
-                    <span className="text-xs font-semibold truncate">{category}</span>
+                    <div className={`w-6 h-6 rounded-md flex items-center justify-center ${theme.iconBg} ${theme.text} flex-shrink-0`}>
+                      {theme.icon}
+                    </div>
+                    <span className={`text-xs font-bold tracking-tight truncate ${theme.text}`}>{category}</span>
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <span className={`text-[10px] font-medium tabular-nums ${allPacked ? 'text-green-600' : 'text-muted-foreground'}`}>
+                    <span className={`text-[10px] font-semibold tabular-nums px-1.5 py-0.5 rounded-full ${allPacked ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' : `${theme.iconBg} ${theme.text}`}`}>
                       {categoryPacked}/{items.length}
                     </span>
                     {canEdit && (
                       <button
                         onClick={() => openAddDialogForCategory(category)}
-                        className="flex items-center justify-center w-5 h-5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
+                        className={`flex items-center justify-center w-5 h-5 rounded-md ${theme.text} hover:${theme.iconBg} transition-colors opacity-60 hover:opacity-100`}
                       >
                         <Plus className="w-3 h-3" />
                       </button>
                     )}
                   </div>
                 </div>
-                {/* Items — ultra compact rows */}
-                <div className="divide-y divide-border/10">
+                {/* Items */}
+                <div className="divide-y divide-border/8">
                   {items.map((item) => {
                     const colorTip = (item as any).color_tip as string | null;
                     const appliesTo = (item as any).applies_to as string[] | null;
                     return (
                       <div
                         key={item.id}
-                        className={`group flex items-center gap-2 px-3 py-1.5 transition-colors ${
-                          item.is_packed ? 'opacity-50' : 'hover:bg-muted/20'
+                        className={`group flex items-center gap-2.5 px-3 py-2 transition-colors ${
+                          item.is_packed ? 'opacity-40' : 'hover:bg-muted/15'
                         }`}
                       >
                         <Checkbox
                           checked={item.is_packed}
                           onCheckedChange={() => canEdit && togglePacked(item)}
                           disabled={!canEdit}
-                          className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 h-3.5 w-3.5 flex-shrink-0"
+                          className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 h-4 w-4 flex-shrink-0 rounded"
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className={`text-xs leading-tight ${item.is_packed ? 'line-through text-muted-foreground' : 'font-medium'}`}>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className={`text-[13px] leading-tight ${item.is_packed ? 'line-through text-muted-foreground' : 'font-semibold'}`}>
                               {item.item_name}
                             </span>
                             {item.is_custom && (
-                              <span className="text-[8px] uppercase tracking-wider text-primary/60 font-semibold flex-shrink-0">you</span>
+                              <span className="text-[8px] uppercase tracking-widest bg-primary/10 text-primary px-1 py-px rounded font-bold flex-shrink-0">custom</span>
                             )}
-                            {/* Inline location tags */}
+                            {/* Location tags */}
                             {appliesTo && appliesTo.length > 0 && !item.is_packed && appliesTo[0] !== 'all' && (
                               <>
                                 {appliesTo.slice(0, 2).map((tag, i) => (
-                                  <span key={i} className="text-[8px] px-1 py-0 rounded bg-primary/6 text-primary/60 font-medium flex-shrink-0 hidden sm:inline">
+                                  <span key={i} className="text-[9px] px-1.5 py-px rounded-full bg-primary/8 text-primary/70 font-medium flex-shrink-0">
                                     {tag}
                                   </span>
                                 ))}
                               </>
                             )}
                           </div>
-                          {/* Color tip — subtle inline */}
+                          {/* Color/style tip — visible, not buried */}
                           {colorTip && !item.is_packed && (
-                            <p className="text-[10px] text-muted-foreground/60 leading-tight mt-px italic truncate">
+                            <p className="text-[11px] text-muted-foreground/70 leading-snug mt-0.5 line-clamp-1">
                               {colorTip}
                             </p>
                           )}
                         </div>
-                        <div className="flex items-center gap-0.5 flex-shrink-0">
+                        <div className="flex items-center gap-1 flex-shrink-0">
                           {canEdit ? (
-                            <div className="inline-flex items-center h-5 rounded border border-border/30 bg-background overflow-hidden">
+                            <div className="inline-flex items-center h-6 rounded-md border border-border/40 bg-background overflow-hidden shadow-sm">
                               <button
                                 type="button"
-                                className="flex items-center justify-center w-5 h-5 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30"
+                                className="flex items-center justify-center w-6 h-6 text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors disabled:opacity-30"
                                 onClick={() => updateQuantity(item, item.quantity - 1)}
                                 disabled={item.quantity <= 1}
                               >
-                                <Minus className="w-2.5 h-2.5" />
+                                <Minus className="w-3 h-3" />
                               </button>
-                              <span className="text-[10px] font-semibold w-4 text-center tabular-nums">{item.quantity}</span>
+                              <span className="text-[11px] font-bold w-5 text-center tabular-nums">{item.quantity}</span>
                               <button
                                 type="button"
-                                className="flex items-center justify-center w-5 h-5 text-muted-foreground hover:text-foreground transition-colors"
+                                className="flex items-center justify-center w-6 h-6 text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
                                 onClick={() => updateQuantity(item, item.quantity + 1)}
                               >
-                                <Plus className="w-2.5 h-2.5" />
+                                <Plus className="w-3 h-3" />
                               </button>
                             </div>
                           ) : (
@@ -758,9 +779,11 @@ export function PackingTab({ tripId }: PackingTabProps) {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-3">
             {preselectedCategory ? (
-              <div className="flex items-center gap-2 p-2 rounded-md bg-muted/30 text-sm">
-                {categoryIcons[preselectedCategory]}
-                <span className="font-medium text-xs">{preselectedCategory}</span>
+              <div className={`flex items-center gap-2 p-2 rounded-md text-sm ${(categoryThemes[preselectedCategory] || defaultTheme).bg}`}>
+                <div className={`w-6 h-6 rounded-md flex items-center justify-center ${(categoryThemes[preselectedCategory] || defaultTheme).iconBg} ${(categoryThemes[preselectedCategory] || defaultTheme).text}`}>
+                  {(categoryThemes[preselectedCategory] || defaultTheme).icon}
+                </div>
+                <span className={`font-semibold text-xs ${(categoryThemes[preselectedCategory] || defaultTheme).text}`}>{preselectedCategory}</span>
               </div>
             ) : (
               <div className="space-y-1.5">
