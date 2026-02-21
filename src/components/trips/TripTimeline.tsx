@@ -246,27 +246,27 @@ export function TripTimeline({ events, datetimeFormat, onEventClick, onExploreNe
                             </div>
                           )}
                         </div>
-                        {/* v3.9.80: Redesigned time display — human-readable, not raw ISO */}
-                        <div className="text-right shrink-0 tabular-nums">
+                        {/* v4.0.1: Redesigned time display — larger, bolder, better contrast */}
+                        <div className="text-right shrink-0 tabular-nums min-w-[60px]">
                           {event.bookingType === 'flight' ? (() => {
                             const flightTime = getDepartureTimeLabel(event.departureLocalTime, event.eventLocalDateTime);
                             const flightHasTime = hasFlightTime(event.departureLocalTime, event.eventLocalDateTime);
                             return flightHasTime ? (
-                              <p className="text-xs font-medium text-foreground/70">
+                              <p className="text-sm font-semibold text-foreground tracking-tight">
                                 {flightTime}
                               </p>
                             ) : (
-                              <p className="text-[11px] text-destructive font-medium">
+                              <p className="text-xs font-medium text-destructive/80">
                                 {UNKNOWN_TIME_PLACEHOLDER}
                               </p>
                             );
                           })() : (
                             event.hasExplicitTime ? (
-                              <p className="text-xs font-medium text-foreground/70">
+                              <p className="text-sm font-semibold text-foreground tracking-tight">
                                 {formatLocalTimeDirect(event.eventLocalDateTime, use24h) || UNKNOWN_TIME_PLACEHOLDER}
                               </p>
                             ) : (
-                              <p className="text-[11px] text-destructive font-medium">
+                              <p className="text-xs font-medium text-destructive/80">
                                 {UNKNOWN_TIME_PLACEHOLDER}
                               </p>
                             )
