@@ -365,7 +365,7 @@ CRITICAL v4.5.0 - MULTI-LEG FLIGHTS:
 
 For flights also extract:
 - airline
-- passenger_name
+- passenger_name: Extract ALL passenger names listed in the booking, comma-separated. Example: "Paula Li Sanchez, Edward Hemmer, Erika Li Sanchez". NEVER return only one passenger if multiple are listed. Check ALL passenger sections, tables, and lists in the document.
 - departure_airport_code (3-letter IATA code)
 - arrival_airport_code (3-letter IATA code)
 
@@ -437,7 +437,7 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
                     total_cost: { type: "number" },
                     address: { type: "string" },
                     airline: { type: "string" },
-                    passenger_name: { type: "string" },
+                    passenger_name: { type: "string", description: "ALL passenger names, comma-separated. E.g. 'Paula Li Sanchez, Edward Hemmer'. Extract EVERY passenger listed." },
                     property_name: { type: "string" },
                     stay_type: { type: "string", enum: ["hotel", "airbnb", "vrbo", "other"] },
                     rental_company: { type: "string" },

@@ -192,7 +192,7 @@ Also extract ALL BOOKINGS found in the document as an array. Each booking should
 
 For flights also extract:
 - airline
-- passenger_name
+- passenger_name: Extract ALL passenger names listed in the booking, comma-separated. Example: "Paula Li Sanchez, Edward Hemmer, Erika Li Sanchez". NEVER return only one passenger if multiple are listed. Check ALL passenger sections, tables, and lists in the document.
 - flight_number: The airline flight number (e.g., "BA0226", "AA1234")
 
 For stays also extract:
@@ -261,7 +261,7 @@ IMPORTANT: Count ALL flight header blocks in the itinerary. If there are 4 fligh
                           total_cost: { type: "number" },
                           address: { type: "string" },
                           airline: { type: "string" },
-                          passenger_name: { type: "string" },
+                          passenger_name: { type: "string", description: "ALL passenger names, comma-separated. E.g. 'Paula Li Sanchez, Edward Hemmer'. Extract EVERY passenger listed." },
                           property_name: { type: "string" },
                           stay_type: { type: "string", enum: ["hotel", "airbnb", "vrbo", "other"] },
                           rental_company: { type: "string" },
