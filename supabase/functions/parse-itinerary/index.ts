@@ -98,7 +98,7 @@ CRITICAL v4.4.1 - MULTI-SEGMENT FLIGHT PRESERVATION:
 - Each leg must have its own departure_airport_code, arrival_airport_code, start_datetime, and end_datetime
 - The confirmation_number (PNR) may be the same across legs — that is expected
 - Example: DEN→LAX and LAX→DEN should be TWO separate flight bookings
-- For total_cost: assign the FULL fare to the FIRST leg only, set other legs to null
+- For total_cost: assign the SINGLE PAYMENT TOTAL to the FIRST leg only, set other legs to null. Do NOT sum per-passenger fares.
 - NEVER collapse multiple legs into a single booking record
 - CRITICAL: Scan the ENTIRE itinerary section for ALL flight segments. Do NOT stop after 2 legs.
 - Multi-segment itineraries (e.g. 4 legs: outbound connecting + return connecting) are common.
@@ -181,7 +181,7 @@ Also extract ALL BOOKINGS found in the document as an array. Each booking should
 - start_datetime: With explicit time: ISO 8601 format (YYYY-MM-DDTHH:mm:ss); Without explicit time: date-only (YYYY-MM-DD)
 - end_datetime: Same format rules as start_datetime. For flights this is the ARRIVAL date+time — MUST be extracted from the arrival block of each flight segment. NEVER omit for flights.
 - confirmation_number: If present (PNR for flights)
-- total_cost: Number only (for multi-leg flights: full fare on first leg, null on others)
+- total_cost: The SINGLE PAYMENT/TRANSACTION total (e.g., "Payment Total USD 924.00"). Use the exact amount from ONE payment line. Do NOT sum per-passenger fares or per-ticket prices. For multi-leg flights: assign to first leg only, null on others.
 - address: If applicable
 - departure_airport_code: 3-letter IATA code (flights only). If unknown, set null.
 - arrival_airport_code: 3-letter IATA code (flights only). If unknown, set null.
@@ -258,7 +258,7 @@ IMPORTANT: Count ALL flight header blocks in the itinerary. If there are 4 fligh
                           start_datetime: { type: "string" },
                           end_datetime: { type: "string" },
                           confirmation_number: { type: "string" },
-                          total_cost: { type: "number" },
+                          total_cost: { type: "number", description: "Single payment/transaction total. Do NOT sum per-passenger fares." },
                           address: { type: "string" },
                           airline: { type: "string" },
                           passenger_name: { type: "string", description: "ALL passenger names, comma-separated. E.g. 'Paula Li Sanchez, Edward Hemmer'. Extract EVERY passenger listed." },

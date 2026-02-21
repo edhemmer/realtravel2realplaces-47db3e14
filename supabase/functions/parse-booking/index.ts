@@ -338,7 +338,7 @@ CRITICAL v3.9.33 - SEGMENT-ONLY DATES FOR FLIGHTS:
 
 For RECEIPT ONLY documents (is_receipt_only: true), extract:
 - vendor_name
-- total_cost (amount paid)
+- total_cost: The SINGLE PAYMENT/TRANSACTION total shown on the receipt (e.g., "Payment Total USD 924.00"). Use the exact amount from ONE payment line. Do NOT sum per-passenger fares, per-ticket prices, or fare breakdowns across travelers. If a receipt shows "Payment Total USD 924.00" for 2 passengers, total_cost is 924.00 — NOT 1848.00.
 - receipt_date (payment/transaction date in YYYY-MM-DD format)
 - Set booking_type based on context if determinable (flight, stay, car_rental, parking, activity, other)
 - start_datetime: use date-only if no explicit time
@@ -349,7 +349,7 @@ For RECEIPT ONLY documents (is_receipt_only: true), extract:
 CRITICAL AIRFARE COST RULES (v4.5.0):
 - For multi-leg/round-trip flights: Use the "flight_legs" array to return EACH LEG as a separate entry
 - Each leg must have its own departure_airport_code, arrival_airport_code, start_datetime, end_datetime, flight_number
-- total_cost: assign the FULL fare to the top-level field only (first leg gets it)
+- total_cost: assign the SINGLE PAYMENT TOTAL to the top-level field only (first leg gets it). This is the amount from the "Payment Total" or "Amount Charged" line — NOT the sum of per-passenger fares.
 - The confirmation_number (PNR) may be the same across legs — that is expected
 - Example: ATL→LHR and LHR→LIN should be TWO separate entries in flight_legs[]
 - NEVER collapse multiple legs into a single record — use flight_legs for EVERY leg
@@ -434,7 +434,7 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
                     end_datetime: { type: "string", description: "ISO datetime for single-leg bookings. Omit for multi-leg flights." },
                     receipt_date: { type: "string", description: "For receipts only: payment date in YYYY-MM-DD" },
                     confirmation_number: { type: "string" },
-                    total_cost: { type: "number" },
+                    total_cost: { type: "number", description: "Single payment/transaction total from the receipt. Do NOT sum per-passenger fares." },
                     address: { type: "string" },
                     airline: { type: "string" },
                     passenger_name: { type: "string", description: "ALL passenger names, comma-separated. E.g. 'Paula Li Sanchez, Edward Hemmer'. Extract EVERY passenger listed." },
