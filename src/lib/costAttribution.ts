@@ -60,25 +60,47 @@ export interface CostAttributionResult {
 // ============================================================================
 
 /** Patterns that indicate a booking-level total */
+// Each pattern returns groups — see extraction logic for (currency, amount) vs (amount, currency) handling
 const BOOKING_TOTAL_PATTERNS = [
   /payment\s+total\s*[:=]?\s*([A-Z]{3})?\s*\$?\s*([\d,]+(?:\.\d{2})?)/i,
   /total\s+paid\s*[:=]?\s*([A-Z]{3})?\s*\$?\s*([\d,]+(?:\.\d{2})?)/i,
-  /grand\s+total\s*[:=]?\s*([A-Z]{3})?\s*\$?\s*([\d,]+(?:\.\d{2})?)/i,
   /amount\s+(?:charged|paid)\s*[:=]?\s*([A-Z]{3})?\s*\$?\s*([\d,]+(?:\.\d{2})?)/i,
   /total\s+charge[ds]?\s*[:=]?\s*([A-Z]{3})?\s*\$?\s*([\d,]+(?:\.\d{2})?)/i,
   /total\s+amount\s*[:=]?\s*([A-Z]{3})?\s*\$?\s*([\d,]+(?:\.\d{2})?)/i,
-  /(?:^|\n)\s*total\s*[:=]?\s*([A-Z]{3})?\s*\$?\s*([\d,]+(?:\.\d{2})?)/im,
   // Currency-first patterns: "USD 924.00", "EUR 150.00" near total keywords
   /payment\s+total\s+([A-Z]{3})\s+([\d,]+(?:\.\d{2})?)/i,
-  /total\s+([A-Z]{3})\s+([\d,]+(?:\.\d{2})?)/i,
   // Dollar-sign-first: "Total: $924.00"
   /total\s*[:=]?\s*\$\s*()([\d,]+(?:\.\d{2})?)/i,
+
+  // ── v5.2.0: AMOUNT-THEN-CURRENCY PATTERNS ──────────────────────────
+  // These patterns capture (amount, currency) — detected via /^\d/ check on match[1]
+
+  // Grand total with amount BEFORE currency: "Grand total \t 146.44  EUR"
+  /grand\s+total[\s\t:=]*([\d,]+(?:\.\d{2})?)\s*(USD|EUR|GBP|CHF|CAD|AUD|NZD|SEK|NOK|DKK|PLN|CZK|HUF|RON|BGN|HRK|TRY|ILS|ZAR|BRL|MXN|JPY|KRW|CNY|INR|THB)/i,
+  // Generic total with amount BEFORE currency: "Total 146.44 EUR"
+  /(?:^|\n)\s*total[\s\t:=]*([\d,]+(?:\.\d{2})?)\s*(USD|EUR|GBP|CHF|CAD|AUD)/im,
+
+  // ── CARRIER-SPECIFIC PATTERNS ──────────────────────────────────────
+
   // Wizz Air: tab-separated payment row "confirmed\t146.44 EUR\t196.32 USD"
-  // Captures the last amount+currency on the confirmed row (USD shown to user)
+  // Captures the LAST amount+currency on the confirmed row (USD displayed to user)
   // Does NOT match declined rows — "confirmed" keyword required
-  /confirmed[^\n]+\t([\d,]+(?:\.\d{2})?)\s+(USD|EUR|GBP)/i,
+  /confirmed[^\n]*[\t\s]([\d,]+(?:\.\d{2})?)\s+(USD|EUR|GBP)/i,
+  // Wizz Air alternate: "Grand total \t \t146.44  EUR" (tab-heavy layout)
+  /grand\s+total\s*\t[\s\t]*([\d,]+(?:\.\d{2})?)\s*(EUR|USD|GBP)/i,
+
   // Ryanair: "Total price of your trip purchased via PayPal...\n262.40 USD"
   /total\s+price\s+of\s+your\s+trip[\s\S]{0,200}?([\d,]+(?:\.\d{2})?)\s+(USD|EUR|GBP)/i,
+  // Ryanair alternate: tabular layout "262.40 USD" on its own line after purchase text
+  /purchased\s+via\s+[\w\s]+ending\s+in[^\n]*\n?\s*([\d,]+(?:\.\d{2})?)\s+(USD|EUR|GBP)/i,
+
+  // ── GENERIC CURRENCY-FIRST "TOTAL" ─────────────────────────────────
+  // Must come LAST to avoid false positives on carrier-specific patterns
+  /total\s+([A-Z]{3})\s+([\d,]+(?:\.\d{2})?)/i,
+  // Generic "Grand Total" with currency first: "Grand Total EUR 1,250.00"
+  /grand\s+total\s+([A-Z]{3})\s+([\d,]+(?:\.\d{2})?)/i,
+  // Bare "total" on its own line: "\nTotal: USD 500.00"
+  /(?:^|\n)\s*total\s*[:=]?\s*([A-Z]{3})?\s*\$?\s*([\d,]+(?:\.\d{2})?)/im,
 ];
 
 /** Patterns for per-leg/segment pricing */
@@ -438,9 +460,13 @@ export function enrichParsedBookingCost(
   })[0];
 
   parsed.total_cost = best.amount;
-  // Store currency if extracted (for future multi-currency support)
-  if (best.currency && best.currency !== 'USD') {
+  // v5.2.0: Always propagate extracted currency for multi-currency support
+  if (best.currency) {
     parsed._extracted_currency = best.currency;
+    // Also set currency_code if not already set (used by canonicalBookingMapper)
+    if (!parsed.currency_code) {
+      parsed.currency_code = best.currency;
+    }
   }
 
   return parsed;

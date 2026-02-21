@@ -91,7 +91,7 @@ function buildCanonicalBookings(
   const parseIssues: ParseIssue[] = [...(parsed._parse_issues as ParseIssue[] || [])];
   const isDeclined = parsed.is_payment_declined === true || parsed._payment_declined === true;
   const parsedCost = isDeclined ? null : (typeof parsed.total_cost === 'number' ? parsed.total_cost : null);
-  const parsedCurrency = (parsed.currency_code as string) || null;
+  const parsedCurrency = (parsed.currency_code as string) || (parsed._extracted_currency as string) || null;
   const bookingType = (parsed.booking_type as string) || 'other';
 
   // ── v4.5.0: MULTI-LEG FLIGHT PATH ─────────────────────────
@@ -354,6 +354,14 @@ CRITICAL AIRFARE COST RULES (v4.5.0):
 - Example: ATL→LHR and LHR→LIN should be TWO separate entries in flight_legs[]
 - NEVER collapse multiple legs into a single record — use flight_legs for EVERY leg
 
+CRITICAL v5.2.0 - CARRIER COST FORMAT EXAMPLES:
+- Ryanair: "Total price of your trip purchased via PayPal ending in: 0000\t262.40 USD" → total_cost=262.40, currency_code="USD"
+- Wizz Air: "Grand total \t \t146.44  EUR" (payment summary section) → total_cost=146.44, currency_code="EUR"
+  - Wizz Air also shows "Payment in selected currency" (e.g. "196.32 USD") — prefer the BASE amount in EUR from "Grand total" or "Base Amount and currency" column
+- British Airways: "Payment Total USD 924.00" → total_cost=924.00, currency_code="USD"
+- Generic: Look for "Grand Total", "Total Paid", "Amount Charged", "Payment Total" — extract the EXACT number shown
+- ALWAYS extract currency_code alongside total_cost. If the cost shows "EUR", set currency_code="EUR". If "$" or "USD", set currency_code="USD".
+
 CRITICAL v4.5.0 - MULTI-LEG FLIGHTS:
 - When you detect a multi-leg itinerary (round-trip, multi-city, connecting flights):
   - Set booking_type to "flight"
@@ -434,7 +442,8 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
                     end_datetime: { type: "string", description: "ISO datetime for single-leg bookings. Omit for multi-leg flights." },
                     receipt_date: { type: "string", description: "For receipts only: payment date in YYYY-MM-DD" },
                     confirmation_number: { type: "string" },
-                    total_cost: { type: "number", description: "Single payment/transaction total from the receipt. Do NOT sum per-passenger fares." },
+                    total_cost: { type: "number", description: "Single payment/transaction total from the receipt. Do NOT sum per-passenger fares. For Wizz Air use 'Grand total' EUR amount, for Ryanair use the amount on the 'Total price' line." },
+                    currency_code: { type: "string", description: "ISO 4217 currency code for the total_cost (e.g. USD, EUR, GBP). Extract from the payment line." },
                     address: { type: "string" },
                     airline: { type: "string" },
                     passenger_name: { type: "string", description: "ALL passenger names, comma-separated. E.g. 'Paula Li Sanchez, Edward Hemmer'. Extract EVERY passenger listed." },

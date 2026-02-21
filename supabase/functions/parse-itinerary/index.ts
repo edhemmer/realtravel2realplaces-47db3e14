@@ -182,6 +182,13 @@ Also extract ALL BOOKINGS found in the document as an array. Each booking should
 - end_datetime: Same format rules as start_datetime. For flights this is the ARRIVAL date+time — MUST be extracted from the arrival block of each flight segment. NEVER omit for flights.
 - confirmation_number: If present (PNR for flights)
 - total_cost: The SINGLE PAYMENT/TRANSACTION total (e.g., "Payment Total USD 924.00"). Use the exact amount from ONE payment line. Do NOT sum per-passenger fares or per-ticket prices. For multi-leg flights: assign to first leg only, null on others.
+- currency_code: ISO 4217 currency code for the total_cost (e.g. "USD", "EUR", "GBP"). ALWAYS extract alongside total_cost.
+
+CARRIER COST FORMAT EXAMPLES (v5.2.0):
+- Ryanair: "Total price of your trip purchased via PayPal ending in: 0000\t262.40 USD" → total_cost=262.40, currency_code="USD"
+- Wizz Air: "Grand total \t \t146.44  EUR" → total_cost=146.44, currency_code="EUR". Prefer the base EUR amount, NOT the USD conversion.
+- British Airways: "Payment Total USD 924.00" → total_cost=924.00, currency_code="USD"
+- Generic: Look for "Grand Total", "Total Paid", "Amount Charged", "Payment Total" — extract the EXACT number shown.
 - address: If applicable
 - departure_airport_code: 3-letter IATA code (flights only). If unknown, set null.
 - arrival_airport_code: 3-letter IATA code (flights only). If unknown, set null.
@@ -258,7 +265,8 @@ IMPORTANT: Count ALL flight header blocks in the itinerary. If there are 4 fligh
                           start_datetime: { type: "string" },
                           end_datetime: { type: "string" },
                           confirmation_number: { type: "string" },
-                          total_cost: { type: "number", description: "Single payment/transaction total. Do NOT sum per-passenger fares." },
+                          total_cost: { type: "number", description: "Single payment/transaction total. Do NOT sum per-passenger fares. For Wizz Air use 'Grand total' EUR amount, for Ryanair use the 'Total price' line amount." },
+                          currency_code: { type: "string", description: "ISO 4217 currency code for total_cost (e.g. USD, EUR, GBP)" },
                           address: { type: "string" },
                           airline: { type: "string" },
                           passenger_name: { type: "string", description: "ALL passenger names, comma-separated. E.g. 'Paula Li Sanchez, Edward Hemmer'. Extract EVERY passenger listed." },
