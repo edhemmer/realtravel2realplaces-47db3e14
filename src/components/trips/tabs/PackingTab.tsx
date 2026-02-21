@@ -308,7 +308,9 @@ export function PackingTab({ tripId }: PackingTabProps) {
     setShowRegenerateConfirm(false);
     try {
       // Delete auto-generated items first, preserving custom items
+      console.log('[PackingTab] Starting generation, deleting auto items...');
       await deleteAutoItems.mutateAsync({ trip_id: tripId });
+      console.log('[PackingTab] Auto items deleted, building legs...');
       
       // v4.10.0: Build per-leg itinerary — lodging first, exclude home airport
       const itineraryLegs: Array<{ city: string; country: string; arriveDate?: string; departDate?: string; climateTags?: string[]; source: string }> = [];
@@ -384,7 +386,8 @@ export function PackingTab({ tripId }: PackingTabProps) {
       // Use destination_city, or derive from first leg
       const effectiveCity = city || itineraryLegs[0]?.city || 'Unknown';
 
-      const { data, error } = await supabase.functions.invoke<{ success: boolean; data: AIPackingResponse; meta?: { isEarlyDraft: boolean; generatedAt: string }; error?: string }>('generate-packing-list', {
+      console.log('[PackingTab] Invoking edge function with', itineraryLegs.length, 'legs, effectiveCity:', effectiveCity);
+      const { data, error } = await supabase.functions.invoke('generate-packing-list', {
         body: {
           destination_city: effectiveCity,
           destination_state: trip.destination_state || null,
@@ -403,10 +406,12 @@ export function PackingTab({ tripId }: PackingTabProps) {
         },
       });
 
+      console.log('[PackingTab] Edge function response:', { data, error });
       if (error) throw error;
 
-      if (data?.success && data.data?.items) {
-        const normalizedItems = data.data.items.map(item => ({
+      const responseData = data as { success: boolean; data: AIPackingResponse; meta?: any; error?: string } | null;
+      if (responseData?.success && responseData.data?.items) {
+        const normalizedItems = responseData.data.items.map(item => ({
           ...item,
           category: item.category || 'General',
           item_name: item.item_name || 'Unknown item',
@@ -414,18 +419,18 @@ export function PackingTab({ tripId }: PackingTabProps) {
         }));
         await bulkCreate.mutateAsync({ trip_id: tripId, items: normalizedItems, is_custom: false });
         
-        if (data.data.special_notes) {
-          setSpecialNotes(data.data.special_notes);
+        if (responseData.data.special_notes) {
+          setSpecialNotes(responseData.data.special_notes);
         }
-        if (data.data.leg_summaries) {
-          setLegSummaries(data.data.leg_summaries);
+        if (responseData.data.leg_summaries) {
+          setLegSummaries(responseData.data.leg_summaries);
         }
 
         if (isRegenerate) {
           toast.success('Packing list updated with latest weather data. Your custom items were preserved.');
         }
       } else {
-        throw new Error(data?.error || 'Failed to generate packing list');
+        throw new Error(responseData?.error || 'Failed to generate packing list');
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : '';
