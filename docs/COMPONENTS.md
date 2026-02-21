@@ -334,6 +334,51 @@ Expense tracking and categorization.
 
 ---
 
+### PackingTab (`src/components/trips/tabs/PackingTab.tsx`)
+
+AI-powered packing list with premium category-colored UI.
+
+**Props:**
+```typescript
+interface PackingTabProps {
+  tripId: string;
+}
+```
+
+**Features:**
+- AI packing list generation via `generate-packing-list` edge function
+- Multi-leg itinerary context with per-city climate cards
+- Laundry Intelligence: caps daily-wear quantities at 7 for trips >7 nights
+- Category color system with unique accent colors per category (blue=Clothing, amber=Footwear, rose=Toiletries, violet=Tech, orange=Documents, etc.)
+- Semantic icons: Shirt (Clothing), Footprints (Footwear), ShowerHead (Toiletries), Cable (Tech), BookOpen (Documents), Watch (Accessories)
+- Wearables left / Utilities right 2-column layout (desktop); interleaved single column (mobile)
+- Per-item color/style tips and `applies_to` location tags
+- Gradient progress bar with packed percentage
+- Per-category "+" add button with category pre-fill
+- Quantity stepper (min 1) with immediate persistence
+- Custom items preserved on regeneration
+- Copy-to-clipboard export
+- Green completion states for fully packed categories
+
+**Category Theme System:**
+```typescript
+// Each category has: icon, border color, background, text color, icon background
+const categoryThemes: Record<string, { icon, border, bg, text, iconBg }> = {
+  'Clothing Core': { border: 'border-l-blue-500', ... },
+  'Footwear':      { border: 'border-l-amber-500', ... },
+  'Toiletries':    { border: 'border-l-rose-500', ... },
+  // ... 18 categories total
+};
+```
+
+**Mobile Optimization:**
+- Single-column layout with wearable/utility categories interleaved for natural packing flow
+- Touch-optimized checkboxes (16px) and quantity steppers (24px)
+- Horizontal scrolling leg summary cards
+- Mobile-friendly dialogs (sm:max-w-sm)
+
+---
+
 ### ParkingTab (`src/components/trips/tabs/ParkingTab.tsx`)
 
 Parking entry management.

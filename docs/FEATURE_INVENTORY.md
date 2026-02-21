@@ -54,10 +54,21 @@ Complete list of implemented features organized by tier and domain.
 
 ### Packing Lists
 - AI-generated packing suggestions based on trip context
-- Custom item addition
-- Pack/unpack toggle per item
-- Category grouping
-- Quantity tracking
+- Multi-leg itinerary intelligence with per-city climate and cultural analysis
+- Laundry Intelligence: caps daily-wear items at 7 for trips >7 nights
+- Color/style tips per item with region-specific fashion advice (e.g., "Dark neutrals for Milan")
+- Per-item `applies_to` location tags (e.g., "Milan", "Barcelona")
+- Per-leg climate summary cards with destination-specific color coding
+- Cultural tips and special notes banner
+- Category color system: each category gets a unique accent color (blue=Clothing, amber=Footwear, rose=Toiletries, violet=Tech, orange=Documents, etc.)
+- Semantic icon mapping: Shirt (Clothing), Footprints (Footwear), ShowerHead (Toiletries), Cable (Tech), BookOpen (Documents), Watch (Accessories)
+- Wearables/Utilities column layout: wearable categories on left, utility categories on right (desktop); interleaved on mobile
+- Custom item addition with category pre-fill
+- Pack/unpack toggle per item with green completion states
+- Gradient progress bar with percentage tracking
+- Quantity stepper controls (min 1) with immediate persistence
+- Regeneration preserves custom items
+- Copy-to-clipboard export
 
 ### Parking Tracker
 - 5 parking types: Airport, Beach, City Garage, Hotel, Other

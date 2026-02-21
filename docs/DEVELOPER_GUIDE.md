@@ -137,6 +137,7 @@ import { hasExplicitTime } from '@/lib/datetimeIntegrity';
 - Never use raw color classes (`text-white`, `bg-black`)
 - All colors must be HSL-based
 - Prefer existing component variants over custom styles
+- Exception: Category-specific accent colors in packing list use intentional hardcoded Tailwind colors for visual differentiation (blue, amber, rose, violet, orange, etc.)
 - Use standardized action button colors: Explore = `bg-primary`, Add Expense = `bg-success` (v2.6.30)
 - All mobile primary action buttons: `h-12 rounded-xl font-semibold shadow-sm` (v2.6.30)
 

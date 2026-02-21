@@ -483,147 +483,144 @@ ACCURACY RULES:
 ## Generate Packing List Prompt
 
 **Function:** `generate-packing-list`  
-**Model:** `google/gemini-3-flash-preview`  
-**Purpose:** Generate contextual, weather-aware packing lists based on destination and duration
+**Model:** `google/gemini-2.5-flash`  
+**Purpose:** Generate contextual, weather-aware, multi-leg packing lists with cultural intelligence
+
+### v4.10.0 Architecture
+
+The packing engine follows a priority-driven location resolver:
+1. **Lodging (Stays)** — highest priority, extracted from booking addresses
+2. **Destination Address** — trip-level destination city
+3. **Non-home Arrival Airports** — resolved via airport code to country mapping
+
+Home/transit airports (<24h layovers) are excluded. The engine identifies destination countries per-leg using airport codes (e.g., BCN → Spain).
 
 ### Dynamic Variables
 
 ```javascript
-// Calculated from trip dates
 const tripNights = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
 const tripDays = tripNights + 1;
 const travelMonth = startDate.toLocaleString('en-US', { month: 'long' });
+const assumeLaundry = tripNights > 7;  // Laundry Intelligence
+const dailyWearCap = assumeLaundry ? 7 : tripNights;
+const bottomsCap = assumeLaundry ? 4 : Math.ceil(tripNights / 2);
 ```
 
-### Destination Detection Lists
+### Laundry Intelligence
 
-```javascript
-// Beach/Tropical destinations
-const beachDestinations = ['florida', 'miami', 'orlando', 'tampa', 'key west', 
-  'fort lauderdale', 'clearwater', 'naples', 'sarasota', 'destin', 'panama city', 
-  'jacksonville beach', 'daytona', 'hawaii', 'maui', 'honolulu', 'cancun', 'cabo', 
-  'puerto rico', 'virgin islands', 'bahamas', 'caribbean', 'aruba', 'jamaica', 
-  'turks', 'caicos', 'bermuda', 'maldives', 'bali', 'phuket', 'thailand beach', 
-  'costa rica', 'san diego', 'los angeles', 'santa monica', 'malibu', 'galveston', 
-  'south padre', 'gulf shores', 'myrtle beach', 'outer banks', 'hilton head', 'charleston'];
+For trips >7 nights, the system assumes laundry access and caps:
+- Underwear: EXACTLY `dailyWearCap` (max 7)
+- Socks: EXACTLY `dailyWearCap` (max 7)  
+- Tops: max `dailyWearCap`
+- Bottoms: max `bottomsCap`
+- NO item ever exceeds quantity 7
 
-const beachStates = ['florida', 'fl', 'hawaii', 'hi'];
-
-// Mountain destinations
-const mountainDestinations = ['aspen', 'vail', 'breckenridge', 'telluride', 'park city', 
-  'jackson hole', 'big sky', 'lake tahoe', 'mammoth', 'whistler', 'banff', 'jasper', 
-  'zermatt', 'chamonix', 'innsbruck', 'st moritz', 'courchevel', 'verbier', 'denver', 
-  'boulder', 'colorado springs', 'flagstaff', 'sedona', 'grand canyon', 'yellowstone', 
-  'yosemite', 'glacier', 'rocky mountain', 'gatlinburg', 'pigeon forge', 'asheville', 
-  'lake placid', 'stowe', 'killington', 'salt lake city', 'reno', 'santa fe', 'taos', 
-  'durango', 'steamboat', 'keystone', 'copper mountain', 'winter park', 'crested butte', 
-  'sun valley', 'bend', 'mount rainier', 'swiss alps', 'austrian alps', 'italian alps', 
-  'dolomites', 'pyrenees', 'scottish highlands', 'patagonia', 'queenstown', 'interlaken'];
-
-const mountainStates = ['colorado', 'co', 'utah', 'ut', 'wyoming', 'wy', 
-  'montana', 'mt', 'idaho', 'id', 'vermont', 'vt', 'new hampshire', 'nh'];
-```
-
-### Mandatory Items Instructions
-
-#### Beach Destinations
+### System Prompt (v4.10.0)
 
 ```
-MANDATORY BEACH ITEMS (YOU MUST INCLUDE ALL OF THESE):
-- Swimsuit/Swimwear: 2 (one to wear, one drying)
-- Sunscreen SPF 30+: 1
-- Sunglasses: 1
-- Sun hat/Baseball cap: 1
-- Flip-flops/Sandals: 1 pair
-- Beach towel: 1
-- After-sun lotion/Aloe vera: 1
-These items are REQUIRED for this destination. Do not skip any of them.
+You are an elite travel stylist and packing strategist. You create PRECISE, curated 
+packing lists that a sophisticated frequent traveler would respect.
+
+TRIP CONTEXT:
+${itineraryContext}  // Per-leg cities with arrive/depart dates and climate tags
+- Dates: ${start_date} to ${end_date} (${tripNights} nights, ${tripDays} days)
+- Month: ${travelMonth}
+- Trip type: ${trip_type}
+${weatherContext}  // Weather Intelligence with avg high/low, rain/snow, cloud cover
+
+ABSOLUTE QUANTITY RULES — ENFORCE STRICTLY:
+- Underwear: EXACTLY ${dailyWearCap} pairs. NOT ${tripNights}. EXACTLY ${dailyWearCap}.
+- Socks: EXACTLY ${dailyWearCap} pairs. NOT ${tripNights}. EXACTLY ${dailyWearCap}.
+- Tops/T-shirts: max ${dailyWearCap}.
+- Bottoms (pants/jeans/shorts): max ${bottomsCap}.
+- NO item should EVER have quantity above 7. Period.
+
+STYLE INTELLIGENCE — MANDATORY FOR EVERY ITEM:
+- color_tip is REQUIRED on EVERY SINGLE ITEM — clothing, toiletries, tech, documents.
+- For clothing: region-specific color/style (e.g., "Black or charcoal — Milan demands dark sophistication")
+- For underwear/socks: practical color advice (e.g., "Dark colors — practical for extended European travel")
+- For toiletries: brand/format tips (e.g., "Travel-size, solid formats for carry-on compliance")
+- For tech: practical travel tip (e.g., "Keep in carry-on with quick-access pouch")
+- For documents: organization tip (e.g., "Digital backup on phone + physical copy in separate bag")
+
+DESTINATION INTELLIGENCE:
+- Pack for ALL legs — each may be a DIFFERENT COUNTRY with different culture/climate.
+- applies_to REQUIRED — tag with specific city or "all".
+- Deduplicate items — each appears ONCE with widest applies_to.
+- Include power adapter if crossing outlet-type boundaries.
+
+Categories: Clothing Core, Layers & Outerwear, Rain & Wet Weather, Footwear, Accessories, 
+Toiletries & Health, Tech & Chargers, Documents & Critical Items
+(+ Swimwear & Beach, Hiking & Outdoor, Business as needed)
 ```
 
-#### Mountain Destinations
+### Tool Schema (v4.10.0)
 
-```
-MANDATORY MOUNTAIN/HIKING ITEMS (YOU MUST INCLUDE ALL OF THESE):
-- Hiking boots or sturdy trail shoes: 1 pair
-- Warm hat/Beanie: 1
-- Layering base layer top: 1
-- Fleece or insulated mid-layer jacket: 1
-- Waterproof/windproof outer layer jacket: 1
-- Hiking socks (wool or synthetic): 2 pairs
-- Sunglasses (UV protection for altitude): 1
-- Sunscreen SPF 30+ (UV is stronger at altitude): 1
-- Reusable water bottle: 1
-- Daypack/Backpack for hikes: 1
-- Gloves (lightweight or insulated based on season): 1 pair
-These items are REQUIRED for mountain destinations. Do not skip any of them.
-```
-
-#### City Destinations
-
-```
-MANDATORY CITY/URBAN ITEMS (YOU MUST INCLUDE ALL OF THESE):
-- Comfortable walking shoes: 1 pair
-- Daypack or crossbody bag for sightseeing: 1
-- Portable phone charger/power bank: 1
-- Umbrella (compact): 1
-- Light jacket or cardigan for AC/evening: 1
-- Smart casual outfit for dining: 1 set
-These items are RECOMMENDED for city destinations.
-```
-
-### System Prompt
-
-```
-You are a smart travel packing assistant. Generate a practical, accurate packing list 
-based on the destination, trip duration, time of year, and weather conditions.
-
-CRITICAL RULES for clothing quantities:
-- Trip nights (not days) determine clothing quantities
-- Underwear: exactly {tripNights} pairs (you can wash if needed)
-- Socks: exactly {tripNights} pairs
-- Tops/T-shirts: {tripNights} shirts (one per day)
-- Bottoms: {Math.ceil(tripNights / 2)} pairs of pants/shorts (can repeat)
-- Sleepwear: 1 set (for trips under 5 nights) or 2 sets
-- Keep total quantity practical - travelers prefer packing light
-
-{beachItemsInstruction}
-{mountainItemsInstruction}
-{cityItemsInstruction}
-
-Location-aware items:
-- Florida/Beach/Tropical destinations: ALWAYS include swimsuit, sunscreen, sunglasses, 
-  sun hat, flip-flops, beach towel, after-sun care
-- Mountain/Hiking destinations: ALWAYS include hiking boots, warm hat, layers, 
-  fleece jacket, waterproof jacket, hiking socks, gloves, daypack
-- City/Urban destinations: comfortable walking shoes, daypack, portable charger, 
-  umbrella, smart casual outfit
-- Cold destinations: layers, warm jacket, gloves, hat
-- Business trips: add professional attire items
-
-Weather-based adjustments:
-- Rain in forecast: umbrella, rain jacket
-- Hot (>80°F): more shorts, light fabrics, sun protection
-- Cold (<50°F): layers, warm jacket, thermals
-- Snow in forecast: snow boots, insulated jacket, warm gloves, thermal layers
-- Variable: versatile pieces that layer
-
-Return a JSON object with categorized items. Each item needs: category, item_name, quantity.
-Categories: Clothing, Swimwear & Beach, Hiking & Outdoor, City Essentials, 
-Toiletries & Health, Electronics, Documents, Essentials, Weather Gear, Business (if applicable)
+```json
+{
+  "name": "generate_packing_list",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "category": { "type": "string", "enum": ["Clothing Core", "Layers & Outerwear", "Rain & Wet Weather", "Cold / Snow Gear", "Footwear", "Accessories", "Swimwear & Beach", "Toiletries & Health", "Tech & Chargers", "Documents & Critical Items", "Cultural Essentials", "Business"] },
+            "item_name": { "type": "string" },
+            "quantity": { "type": "number" },
+            "color_tip": { "type": "string", "description": "Color/style suggestion appropriate for the region" },
+            "applies_to": { "type": "array", "items": { "type": "string" }, "description": "Which legs/conditions e.g. ['all'], ['Milan'], ['rain']" }
+          },
+          "required": ["category", "item_name", "quantity"]
+        }
+      },
+      "special_notes": { "type": "array", "items": { "type": "string" } },
+      "leg_summaries": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "city": { "type": "string" },
+            "climate_summary": { "type": "string" },
+            "style_note": { "type": "string" }
+          },
+          "required": ["city", "climate_summary"]
+        }
+      }
+    },
+    "required": ["items"]
+  }
+}
 ```
 
-### User Prompt Template
+### UI Architecture (v4.10.0)
 
-```
-Generate a packing list for this trip:
-- Destination: {destination_city}, {destination_state}, {destination_country}
-- Dates: {start_date} to {end_date} ({tripNights} nights, {tripDays} days)
-- Month of travel: {travelMonth}
-- Trip type: {trip_type}
-- Weather forecast: {weather_forecast}
+**Category Color System:**
+Each category has a unique color theme applied via left border, tinted header, and icon badge:
 
-Return a practical packing list. Be accurate with quantities based on trip length.
-```
+| Category | Color | Icon |
+|----------|-------|------|
+| Clothing Core | Blue | Shirt |
+| Layers & Outerwear | Slate | Mountain |
+| Rain & Wet Weather | Cyan | Umbrella |
+| Cold / Snow Gear | Indigo | Snowflake |
+| Footwear | Amber | Footprints |
+| Accessories | Purple | Watch |
+| Swimwear & Beach | Teal | Waves |
+| Toiletries & Health | Rose | ShowerHead |
+| Tech & Chargers | Violet | Cable |
+| Documents & Critical Items | Orange | BookOpen |
+| Cultural Essentials | Pink | Globe |
+| Business | Gray | Briefcase |
+
+**Layout:**
+- Desktop: 2-column grid — wearables (left), utilities (right)
+- Mobile: single column with wearable/utility categories interleaved for natural packing flow
+
+**Leg Summary Cards:**
+Horizontal scrolling cards with per-city color dots (blue, amber, emerald, violet, rose, cyan rotating).
 
 ### Tool Schema
 
@@ -937,6 +934,13 @@ type trip_type = "business" | "personal" | "mixed";
 | 4.0 | 2026-02-04 | Foundation (v2.0.0): Free tier limited to 3 active trips, Pro unlimited |
 | 4.0 | 2026-02-04 | Foundation (v2.0.0): Added useSubscription and useUsageTracking hooks |
 | 4.0 | 2026-02-04 | Foundation (v2.0.0): Defined PRODUCT_GUARDRAILS for trust principles (no silent actions, data provenance) |
+| 4.10 | 2026-02-21 | Packing v4.10.0: Multi-leg itinerary intelligence with per-city climate cards |
+| 4.10 | 2026-02-21 | Packing v4.10.0: Laundry Intelligence caps daily-wear at 7 for trips >7 nights |
+| 4.10 | 2026-02-21 | Packing v4.10.0: Universal color_tip required on every item (clothing, tech, toiletries, documents) |
+| 4.10 | 2026-02-21 | Packing v4.10.0: Category color system with 18 unique accent themes (blue=Clothing, amber=Footwear, rose=Toiletries, violet=Tech, orange=Documents) |
+| 4.10 | 2026-02-21 | Packing v4.10.0: Semantic icon mapping (Shirt, Footprints, ShowerHead, Cable, BookOpen, Watch) |
+| 4.10 | 2026-02-21 | Packing v4.10.0: Wearables/Utilities 2-column layout (desktop) with interleaved mobile flow |
+| 4.10 | 2026-02-21 | Packing v4.10.0: Lodging-first location resolver excluding home/transit airports |
 ---
 
 *This document is auto-generated based on the current state of the application's edge functions and UI components.*
