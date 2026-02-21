@@ -1237,13 +1237,13 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
             </div>
 
             <div className="grid grid-cols-3 gap-3">
-              {/* Fly */}
+              {/* Fly — Refined blue: trust, order, reliability */}
               <button
                 onClick={() => handleModeSelect('fly')}
-                className="group flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-border hover:border-primary/60 hover:bg-primary/5 transition-all duration-200 cursor-pointer"
+                className="group flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-border hover:border-blue-500/50 hover:bg-blue-500/5 hover:shadow-md transition-all duration-200 cursor-pointer"
               >
-                <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                  <Plane className="w-5 h-5 text-primary" />
+                <div className="w-11 h-11 rounded-full bg-blue-500/8 flex items-center justify-center group-hover:bg-blue-500/15 transition-colors">
+                  <Plane className="w-5 h-5 text-blue-500 dark:text-blue-400" />
                 </div>
                 <span className="text-base font-semibold text-foreground">Fly</span>
                 <span className="text-xs text-muted-foreground text-center leading-snug">
@@ -1251,13 +1251,13 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
                 </span>
               </button>
 
-              {/* Drive */}
+              {/* Drive — Deep natural green: freedom, calm confidence */}
               <button
                 onClick={() => handleModeSelect('drive')}
-                className="group flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-border hover:border-primary/60 hover:bg-primary/5 transition-all duration-200 cursor-pointer"
+                className="group flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-border hover:border-emerald-600/50 hover:bg-emerald-500/5 hover:shadow-md transition-all duration-200 cursor-pointer"
               >
-                <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                  <Car className="w-5 h-5 text-primary" />
+                <div className="w-11 h-11 rounded-full bg-emerald-500/8 flex items-center justify-center group-hover:bg-emerald-500/15 transition-colors">
+                  <Car className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                 </div>
                 <span className="text-base font-semibold text-foreground">Drive</span>
                 <span className="text-xs text-muted-foreground text-center leading-snug">
@@ -1265,13 +1265,13 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
                 </span>
               </button>
 
-              {/* Train */}
+              {/* Train — Soft slate-indigo: flow, rhythm, smooth movement */}
               <button
                 onClick={() => handleModeSelect('train')}
-                className="group flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-border hover:border-primary/60 hover:bg-primary/5 transition-all duration-200 cursor-pointer"
+                className="group flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-border hover:border-slate-500/50 hover:bg-slate-500/5 hover:shadow-md transition-all duration-200 cursor-pointer"
               >
-                <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                  <TrainFront className="w-5 h-5 text-primary" />
+                <div className="w-11 h-11 rounded-full bg-slate-500/8 flex items-center justify-center group-hover:bg-slate-500/15 transition-colors">
+                  <TrainFront className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                 </div>
                 <span className="text-base font-semibold text-foreground">Train</span>
                 <span className="text-xs text-muted-foreground text-center leading-snug">
