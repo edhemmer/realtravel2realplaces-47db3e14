@@ -52,16 +52,19 @@ export function getFlightTimeLabel(
     return trimmed;
   }
 
-  // 2. Extract from ISO datetime string (from DB start_datetime / end_datetime)
+  // 2. Extract from ISO or space-separated datetime string (from DB start_datetime / end_datetime)
   if (isoDatetime) {
-    const tIndex = isoDatetime.indexOf('T');
+    const dt = isoDatetime.trim();
+    // T-separated: "2026-03-14T19:00:00"
+    const tIndex = dt.indexOf('T');
     if (tIndex !== -1) {
-      const timePart = isoDatetime.substring(tIndex + 1);
+      const timePart = dt.substring(tIndex + 1);
       const match = timePart.match(/^(\d{2}:\d{2})/);
-      if (match) {
-        return match[1];
-      }
+      if (match) return match[1];
     }
+    // Space-separated: "2026-03-14 19:00:00+00"
+    const spaceMatch = dt.match(/^\d{4}-\d{2}-\d{2}\s+(\d{2}:\d{2})/);
+    if (spaceMatch) return spaceMatch[1];
   }
 
   return FALLBACK;

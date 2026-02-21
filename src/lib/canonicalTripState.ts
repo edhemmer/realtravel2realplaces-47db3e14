@@ -427,6 +427,8 @@ export function buildCanonicalTimeline(
               departLocalKey: canonicalFlight.departLocalKey,
               arriveLocalKey: canonicalFlight.arriveLocalKey,
               arriveLocalDate: canonicalFlight.arriveLocalDate,
+              departLocalTime: canonicalFlight.departLocalTime ?? null,
+              arriveLocalTime: canonicalFlight.arriveLocalTime ?? null,
             }
           : computeFlightLocalDatetimes(booking.start_datetime, booking.end_datetime);
 
@@ -441,16 +443,15 @@ export function buildCanonicalTimeline(
         const arrIata = booking.arrival_airport_code?.match(/^[A-Z]{3}$/) ? booking.arrival_airport_code : undefined;
         const showRoute = !!(depIata && arrIata && iataConfidence !== 'low');
 
-        // v3.10.5: Use local keys for display — never raw ISO with timezone suffix
-        const departureLocalTimeStr = flightLocal.departLocalKey
-          || preserveTimeString(booking.start_datetime) || undefined;
-        const arrivalLocalTimeStr = flightLocal.arriveLocalKey
-          || preserveTimeString(booking.end_datetime) || undefined;
+        // v4.0.1: Use HH:mm time strings for departureLocalTime (NOT full datetime keys)
+        const departureLocalTimeStr = flightLocal.departLocalTime || undefined;
+        const arrivalLocalTimeStr = flightLocal.arriveLocalTime || undefined;
 
-        // v2.1.22: Combined flight entry (departure + arrival on one row)
-        // v3.9.62: Normalize time fields to string | null — never undefined, never empty string
-        const safeDepartureLocalTime = departureLocalTimeStr || null;
-        const safeArrivalLocalTime = arrivalLocalTimeStr || null;
+        // v4.0.1: Use hasExplicitTime to detect midnight defaults (00:00:00) as missing
+        const depHasRealTime = hasExplicitTime(booking.start_datetime) || (departureLocalTimeStr != null && departureLocalTimeStr !== '00:00');
+        const arrHasRealTime = hasExplicitTime(booking.end_datetime) || (arrivalLocalTimeStr != null && arrivalLocalTimeStr !== '00:00');
+        const safeDepartureLocalTime = depHasRealTime ? (departureLocalTimeStr || null) : null;
+        const safeArrivalLocalTime = arrHasRealTime ? (arrivalLocalTimeStr || null) : null;
         const safeEventLocalDateTime = (flightLocal.departLocalKey || preserveTimeString(booking.start_datetime)) || null;
 
         events.push({
@@ -462,16 +463,16 @@ export function buildCanonicalTimeline(
           title: booking.airline || booking.vendor_name,
           subtitle: '', // v3.13.2: Flight subtitle built by buildFlightDisplayLine
           datetime: startDate,
-          hasExplicitTime: hasFlightTime(safeDepartureLocalTime, booking.start_datetime),
+          hasExplicitTime: depHasRealTime,
           address: booking.address || null,
           linkUrl: booking.link_url || null,
           departureAirportCode: showRoute ? depIata : null,
           arrivalAirportCode: showRoute ? arrIata : null,
           departureTime: startDate,
           arrivalTime: arrivalDate || null,
-          // v3.9.41: Use hasFlightTime (does not suppress midnight) for flight defensibility
-          hasDepartureTime: hasFlightTime(safeDepartureLocalTime, booking.start_datetime),
-          hasArrivalTime: hasFlightTime(safeArrivalLocalTime, booking.end_datetime),
+          // v4.0.1: Use explicit-time detection that treats midnight defaults as missing
+          hasDepartureTime: depHasRealTime,
+          hasArrivalTime: arrHasRealTime,
           confirmationNumber: booking.confirmation_number || null,
           // v3.10.5: Local wall-clock time strings for display
           departureLocalTime: safeDepartureLocalTime,
