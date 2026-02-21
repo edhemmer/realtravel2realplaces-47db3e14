@@ -19,6 +19,7 @@
 
 import type { ParsedConfirmation, ExpenseRecord } from './types';
 import { toDateTokenFromString } from '@/lib/dateTokenExtractor';
+import { normalizeCurrencyCode, buildCurrencyAssumedNote } from '@/lib/currencyNormalization';
 
 // ============================================================================
 // CORE
@@ -36,23 +37,38 @@ export function buildExpensesFromConfirmations(
   confirmations: ParsedConfirmation[],
 ): ExpenseRecord[] {
   const expenses: ExpenseRecord[] = [];
-  const seenConfirmationIds = new Set<string>();
+  // v4.4.x: Currency-aware dedupe key: confirmationId + currency + totalCost
+  // Ensures EUR 924 and USD 924 are NOT treated as duplicates.
+  const seenDedupeKeys = new Set<string>();
 
   for (const conf of confirmations) {
-    // Dedup guard — don't create duplicate expenses for same confirmation
-    if (seenConfirmationIds.has(conf.confirmationId)) continue;
-    seenConfirmationIds.add(conf.confirmationId);
+    const dedupeKey = `${conf.confirmationId}::${conf.costCurrency || 'USD'}::${conf.totalCost ?? 'null'}`;
+    if (seenDedupeKeys.has(dedupeKey)) continue;
+    seenDedupeKeys.add(dedupeKey);
 
     // Skip if no cost data at all
     if (conf.totalCost === null && !hasAnyLegCost(conf)) continue;
 
-    const currency = conf.costCurrency || 'USD';
+    // v4.4.x: Normalize currency from raw confirmation data
+    const normalizedCurrency = normalizeCurrencyCode(conf.costCurrency);
+    const currency = normalizedCurrency || 'USD';
+    const currencyWasAssumed = !normalizedCurrency && !conf.costCurrency;
     const needsCurrencyReview = currency !== 'USD';
 
     if (conf.type === 'FLIGHT') {
-      expenses.push(...buildFlightExpenses(tripId, conf, currency, needsCurrencyReview));
+      const flightExpenses = buildFlightExpenses(tripId, conf, currency, needsCurrencyReview);
+      if (currencyWasAssumed) {
+        for (const fe of flightExpenses) {
+          fe.notes = fe.notes ? `${fe.notes} | ${buildCurrencyAssumedNote(currency)}` : buildCurrencyAssumedNote(currency);
+        }
+      }
+      expenses.push(...flightExpenses);
     } else {
-      expenses.push(buildBookingExpense(tripId, conf, currency, needsCurrencyReview));
+      const bookingExpense = buildBookingExpense(tripId, conf, currency, needsCurrencyReview);
+      if (currencyWasAssumed) {
+        bookingExpense.notes = bookingExpense.notes ? `${bookingExpense.notes} | ${buildCurrencyAssumedNote(currency)}` : buildCurrencyAssumedNote(currency);
+      }
+      expenses.push(bookingExpense);
     }
   }
 
