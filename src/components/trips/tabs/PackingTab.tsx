@@ -527,427 +527,324 @@ export function PackingTab({ tripId }: PackingTabProps) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h3 className="text-lg font-semibold">Packing List</h3>
-          <p className="text-sm text-muted-foreground">
-            {tripNights} night{tripNights !== 1 ? 's' : ''} in {trip?.destination_city}{trip?.destination_state ? `, ${trip.destination_state}` : ''}
-            {locationCount > 1 && ` + ${locationCount - 1} other location${locationCount > 2 ? 's' : ''}`}
+    <div className="space-y-4">
+      {/* Compact Header */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="text-base font-semibold tracking-tight">Packing List</h3>
+          <p className="text-xs text-muted-foreground truncate">
+            {tripNights} night{tripNights !== 1 ? 's' : ''}
+            {trip?.destination_city ? ` · ${trip.destination_city}` : ''}
+            {locationCount > 1 && ` + ${locationCount - 1} more`}
           </p>
         </div>
         {canEdit && (
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             {packingItems.length === 0 ? (
-              <Button onClick={() => generatePackingList(false)} variant="outline" disabled={isGenerating}>
-                <Sparkles className="w-4 h-4 mr-2" />
-                {isGenerating ? 'Generating...' : 'Generate AI Packing List'}
+              <Button onClick={() => generatePackingList(false)} size="sm" disabled={isGenerating} className="h-8 text-xs">
+                <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                {isGenerating ? 'Generating…' : 'Generate Smart List'}
               </Button>
             ) : (
               <>
-                <Button onClick={() => setShowRegenerateConfirm(true)} variant="ghost" size="sm" disabled={isGenerating}>
-                  <RefreshCw className={`w-4 h-4 mr-1 ${isGenerating ? 'animate-spin' : ''}`} />
-                  Regenerate with updated weather
+                <Button onClick={() => setShowRegenerateConfirm(true)} variant="ghost" size="sm" disabled={isGenerating} className="h-7 text-xs px-2">
+                  <RefreshCw className={`w-3 h-3 mr-1 ${isGenerating ? 'animate-spin' : ''}`} />
+                  Refresh
                 </Button>
-                <Button onClick={copyToClipboard} variant="outline" size="sm">
-                  {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
-                  Copy
+                <Button onClick={copyToClipboard} variant="ghost" size="sm" className="h-7 text-xs px-2">
+                  {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                 </Button>
               </>
             )}
-            <Button onClick={() => setDialogOpen(true)} className="bg-gradient-ocean hover:opacity-90">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Item
+            <Button onClick={() => setDialogOpen(true)} size="sm" className="h-7 w-7 p-0" variant="outline">
+              <Plus className="w-3.5 h-3.5" />
             </Button>
           </div>
         )}
         {!canEdit && packingItems.length > 0 && (
-          <Button onClick={copyToClipboard} variant="outline" size="sm">
-            {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
-            Copy
+          <Button onClick={copyToClipboard} variant="ghost" size="sm" className="h-7 text-xs px-2">
+            {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
           </Button>
         )}
       </div>
 
-      {/* v3.8.13: Weather Intelligence Banner */}
-      {weather && (
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="pt-4 pb-3">
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-1.5">
-                {weather.weatherMode === 'FORECAST_PRIMARY' ? (
-                  <Sun className="w-4 h-4 text-primary" />
-                ) : weather.weatherMode === 'FORECAST_BLEND' ? (
-                  <Cloud className="w-4 h-4 text-primary" />
-                ) : (
-                  <Thermometer className="w-4 h-4 text-primary" />
-                )}
-                <span className="text-sm font-medium text-primary">
-                  {packingRecs?.modeLabel || 'Weather Intelligence'}
-                </span>
-              </div>
-              <span className="text-xs text-muted-foreground">•</span>
-              <div className="flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">{weather.anchor.label}</span>
-              </div>
-              <span className="text-xs text-muted-foreground">•</span>
-              <span className="text-sm text-muted-foreground">
-                {weather.summary.avgHigh}°F high / {weather.summary.avgLow}°F low
-              </span>
-              {weather.summary.hasRain && (
-                <Badge variant="outline" className="text-xs border-sky-300 text-sky-600 bg-sky-50">
-                  Rain likely
-                </Badge>
-              )}
-              {weather.summary.hasSnow && (
-                <Badge variant="outline" className="text-xs border-blue-300 text-blue-600 bg-blue-50">
-                  Snow likely
-                </Badge>
-              )}
-              {weather.summary.hasCold && (
-                <Badge variant="outline" className="text-xs border-indigo-300 text-indigo-600 bg-indigo-50">
-                  Cold
-                </Badge>
-              )}
-              {weather.summary.hasHot && (
-                <Badge variant="outline" className="text-xs border-orange-300 text-orange-600 bg-orange-50">
-                  Hot
-                </Badge>
-              )}
-            </div>
-            {/* v4.6.0: Multi-location climate summary */}
-            {locationCount > 1 && allClimateTags.length > 0 && (
-              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-primary/10">
-                <span className="text-xs text-muted-foreground">{locationCount} locations:</span>
-                <div className="flex gap-1 flex-wrap">
-                  {allClimateTags.map(tag => (
-                    <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0">
-                      {CLIMATE_TAG_LABELS[tag] || tag}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      {/* Inline progress bar when items exist */}
+      {packingItems.length > 0 && (
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+              {progress === 100 ? '✓ All packed' : `${packedItems}/${totalItems} packed`}
+            </span>
+            <span className="text-[11px] text-muted-foreground tabular-nums">{Math.round(progress)}%</span>
+          </div>
+          <Progress value={progress} className="h-1" />
+        </div>
       )}
 
-      {/* v4.7.0: Per-Leg Climate & Style Summaries */}
+      {/* Per-Leg Climate Cards — compact horizontal scroll */}
       {legSummaries.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
           {legSummaries.map((leg, idx) => (
-            <Card key={idx} className="border-muted">
-              <CardContent className="pt-4 pb-3">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-sm font-semibold">{leg.city}</span>
-                </div>
-                <p className="text-xs text-muted-foreground">{leg.climate_summary}</p>
-                {leg.style_note && (
-                  <p className="text-xs text-primary/80 mt-1 italic">{leg.style_note}</p>
-                )}
-              </CardContent>
-            </Card>
+            <div key={idx} className="flex-shrink-0 rounded-lg border border-border/40 bg-card px-3 py-2 min-w-[180px] max-w-[240px]">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <MapPin className="w-3 h-3 text-primary flex-shrink-0" />
+                <span className="text-xs font-semibold truncate">{leg.city}</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-snug line-clamp-2">{leg.climate_summary}</p>
+              {leg.style_note && (
+                <p className="text-[10px] text-primary/70 mt-0.5 italic leading-snug line-clamp-1">{leg.style_note}</p>
+              )}
+            </div>
           ))}
         </div>
       )}
 
-      {/* Special Notes / Cultural Tips from AI */}
+      {/* Cultural Tips — compact inline */}
       {specialNotes.length > 0 && (
-        <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20">
-          <CardContent className="pt-4">
-            <div className="flex gap-2">
-              <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Cultural Tips & Packing Notes</p>
-                <ul className="text-sm text-amber-700 dark:text-amber-300 space-y-1">
-                  {specialNotes.map((note, idx) => (
-                    <li key={idx}>• {note}</li>
-                  ))}
-                </ul>
-              </div>
+        <div className="rounded-lg border border-amber-200/60 bg-amber-50/30 dark:bg-amber-950/10 px-3 py-2">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="w-3.5 h-3.5 text-amber-600 mt-0.5 flex-shrink-0" />
+            <div className="text-[11px] text-amber-800 dark:text-amber-300 space-y-0.5">
+              {specialNotes.map((note, idx) => (
+                <p key={idx}>{note}</p>
+              ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
-      {/* Progress */}
-      {packingItems.length > 0 && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex justify-between mb-2">
-              <span className="text-sm font-medium">Packing Progress</span>
-              <span className="text-sm text-muted-foreground">
-                {packedItems} of {totalItems} items
-              </span>
-            </div>
-            <Progress value={progress} className="h-2" />
-            {progress === 100 && (
-              <p className="text-sm text-green-600 mt-2 flex items-center gap-1">
-                <Check className="w-4 h-4" /> All packed! Ready to go!
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Items by Category */}
+      {/* Category Grid — compact cards */}
       {Object.keys(groupedItems).length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2">
           {Object.entries(groupedItems).map(([category, items]) => {
             const categoryPacked = items.filter(i => i.is_packed).length;
-            const categoryProgress = (categoryPacked / items.length) * 100;
-            const colorClass = categoryColors[category] || 'bg-muted text-foreground border-border';
+            const allPacked = categoryPacked === items.length;
             
             return (
-              <Card key={category} className="overflow-hidden">
-                <CardHeader className={`pb-2 ${colorClass.split(' ')[0]}`}>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-medium flex items-center gap-2">
-                      {categoryIcons[category]}
-                      {category}
-                    </CardTitle>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className={colorClass}>
-                        {categoryPacked}/{items.length}
-                      </Badge>
-                      {canEdit && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          onClick={() => openAddDialogForCategory(category)}
-                        >
-                          <Plus className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
+              <div key={category} className={`rounded-lg border bg-card transition-colors ${allPacked ? 'border-green-200/60 bg-green-50/20 dark:bg-green-950/10' : 'border-border/40'}`}>
+                {/* Category header — tight */}
+                <div className="flex items-center justify-between px-3 py-2 border-b border-border/20">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-muted-foreground flex-shrink-0">{categoryIcons[category] || <ShoppingBag className="w-3.5 h-3.5" />}</span>
+                    <span className="text-xs font-semibold truncate">{category}</span>
                   </div>
-                  <Progress value={categoryProgress} className="h-1 mt-2" />
-                </CardHeader>
-                <CardContent className="pt-3">
-                  <div className="space-y-1">
-                    {items.map((item) => {
-                      const colorTip = (item as any).color_tip as string | null;
-                      const appliesTo = (item as any).applies_to as string[] | null;
-                      return (
-                        <div
-                          key={item.id}
-                          className={`group p-2.5 rounded-xl transition-all ${
-                            item.is_packed 
-                              ? 'bg-green-50/80 dark:bg-green-950/20 opacity-75' 
-                              : 'hover:bg-muted/40'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex items-start gap-3 flex-1 min-w-0">
-                              <Checkbox
-                                checked={item.is_packed}
-                                onCheckedChange={() => canEdit && togglePacked(item)}
-                                disabled={!canEdit}
-                                className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 flex-shrink-0 mt-0.5"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className={`text-sm font-medium ${item.is_packed ? 'line-through text-muted-foreground' : ''}`}>
-                                    {item.item_name}
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <span className={`text-[10px] font-medium tabular-nums ${allPacked ? 'text-green-600' : 'text-muted-foreground'}`}>
+                      {categoryPacked}/{items.length}
+                    </span>
+                    {canEdit && (
+                      <button
+                        onClick={() => openAddDialogForCategory(category)}
+                        className="flex items-center justify-center w-5 h-5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {/* Items — ultra compact rows */}
+                <div className="divide-y divide-border/10">
+                  {items.map((item) => {
+                    const colorTip = (item as any).color_tip as string | null;
+                    const appliesTo = (item as any).applies_to as string[] | null;
+                    return (
+                      <div
+                        key={item.id}
+                        className={`group flex items-center gap-2 px-3 py-1.5 transition-colors ${
+                          item.is_packed ? 'opacity-50' : 'hover:bg-muted/20'
+                        }`}
+                      >
+                        <Checkbox
+                          checked={item.is_packed}
+                          onCheckedChange={() => canEdit && togglePacked(item)}
+                          disabled={!canEdit}
+                          className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 h-3.5 w-3.5 flex-shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-xs leading-tight ${item.is_packed ? 'line-through text-muted-foreground' : 'font-medium'}`}>
+                              {item.item_name}
+                            </span>
+                            {item.is_custom && (
+                              <span className="text-[8px] uppercase tracking-wider text-primary/60 font-semibold flex-shrink-0">you</span>
+                            )}
+                            {/* Inline location tags */}
+                            {appliesTo && appliesTo.length > 0 && !item.is_packed && appliesTo[0] !== 'all' && (
+                              <>
+                                {appliesTo.slice(0, 2).map((tag, i) => (
+                                  <span key={i} className="text-[8px] px-1 py-0 rounded bg-primary/6 text-primary/60 font-medium flex-shrink-0 hidden sm:inline">
+                                    {tag}
                                   </span>
-                                  {item.is_custom && (
-                                    <Badge variant="outline" className="text-[10px] px-1 py-0 border-primary/30 text-primary/70 shrink-0">
-                                      Custom
-                                    </Badge>
-                                  )}
-                                </div>
-                                {/* Color tip */}
-                                {colorTip && !item.is_packed && (
-                                  <p className="text-[11px] text-muted-foreground/80 mt-0.5 italic leading-tight">
-                                    🎨 {colorTip}
-                                  </p>
-                                )}
-                                {/* Applies to tags */}
-                                {appliesTo && appliesTo.length > 0 && !item.is_packed && appliesTo[0] !== 'all' && (
-                                  <div className="flex gap-1 mt-1 flex-wrap">
-                                    {appliesTo.map((tag, i) => (
-                                      <span key={i} className="text-[9px] px-1.5 py-0.5 rounded-full bg-primary/8 text-primary/70 font-medium">
-                                        {tag}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1 flex-shrink-0">
-                              {/* Quantity Stepper */}
-                              {canEdit ? (
-                                <div className="inline-flex items-center h-6 rounded-full border border-border/50 bg-muted/20 overflow-hidden">
-                                  <button
-                                    type="button"
-                                    className="flex items-center justify-center w-6 h-6 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                                    onClick={() => updateQuantity(item, item.quantity - 1)}
-                                    disabled={item.quantity <= 1}
-                                  >
-                                    <Minus className="w-3 h-3" />
-                                  </button>
-                                  <span className="text-xs font-semibold w-5 text-center tabular-nums">{item.quantity}</span>
-                                  <button
-                                    type="button"
-                                    className="flex items-center justify-center w-6 h-6 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                                    onClick={() => updateQuantity(item, item.quantity + 1)}
-                                  >
-                                    <Plus className="w-3 h-3" />
-                                  </button>
-                                </div>
-                              ) : (
-                                <span className="text-xs text-muted-foreground tabular-nums font-medium">×{item.quantity}</span>
-                              )}
-                              {canEdit && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                                  onClick={() => handleDelete(item.id)}
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </Button>
-                              )}
-                            </div>
+                                ))}
+                              </>
+                            )}
                           </div>
+                          {/* Color tip — subtle inline */}
+                          {colorTip && !item.is_packed && (
+                            <p className="text-[10px] text-muted-foreground/60 leading-tight mt-px italic truncate">
+                              {colorTip}
+                            </p>
+                          )}
                         </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
+                        <div className="flex items-center gap-0.5 flex-shrink-0">
+                          {canEdit ? (
+                            <div className="inline-flex items-center h-5 rounded border border-border/30 bg-background overflow-hidden">
+                              <button
+                                type="button"
+                                className="flex items-center justify-center w-5 h-5 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30"
+                                onClick={() => updateQuantity(item, item.quantity - 1)}
+                                disabled={item.quantity <= 1}
+                              >
+                                <Minus className="w-2.5 h-2.5" />
+                              </button>
+                              <span className="text-[10px] font-semibold w-4 text-center tabular-nums">{item.quantity}</span>
+                              <button
+                                type="button"
+                                className="flex items-center justify-center w-5 h-5 text-muted-foreground hover:text-foreground transition-colors"
+                                onClick={() => updateQuantity(item, item.quantity + 1)}
+                              >
+                                <Plus className="w-2.5 h-2.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground tabular-nums">×{item.quantity}</span>
+                          )}
+                          {canEdit && (
+                            <button
+                              className="flex items-center justify-center w-5 h-5 text-muted-foreground/40 hover:text-destructive opacity-0 group-hover:opacity-100 transition-all"
+                              onClick={() => handleDelete(item.id)}
+                            >
+                              <Trash2 className="w-2.5 h-2.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             );
           })}
         </div>
       ) : (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-12">
+        /* Empty state */
+        <div className="rounded-lg border border-dashed border-border/60 bg-card">
+          <div className="flex flex-col items-center justify-center py-10 px-4">
             {isGenerating ? (
               <>
-                <div className="relative w-20 h-20 mb-4">
-                  {/* Spinning circle */}
+                <div className="relative w-14 h-14 mb-3">
                   <div className="absolute inset-0 rounded-full border-2 border-primary/20" />
                   <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary animate-spin" style={{ animationDuration: '2s' }} />
-                  {/* Centered suitcase icon rotating slowly clockwise */}
-                  <div className="absolute inset-0 flex items-center justify-center animate-spin" style={{ animationDuration: '6s' }}>
-                    <Luggage className="w-8 h-8 text-primary" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Luggage className="w-6 h-6 text-primary" />
                   </div>
                 </div>
-                <h4 className="text-base font-medium mb-1">Generating your packing list…</h4>
-                <p className="text-muted-foreground text-sm text-center max-w-sm">
-                  Our AI is analyzing weather, culture, and your itinerary
-                </p>
+                <p className="text-sm font-medium">Building your packing list…</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Analyzing weather, culture & itinerary</p>
               </>
             ) : (
               <>
-                <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                  <Luggage className="w-7 h-7 text-primary" />
+                <div className="w-10 h-10 rounded-full bg-primary/8 flex items-center justify-center mb-3">
+                  <Luggage className="w-5 h-5 text-primary" />
                 </div>
-                <h4 className="text-base font-medium mb-1">No packing list yet</h4>
-                <p className="text-muted-foreground text-sm text-center max-w-sm mb-4">
-                  {weather ? `Weather data is ready — generate your smart packing list based on ${packingRecs?.modeLabel?.toLowerCase() || 'conditions'}.` : 'Packing lists help you avoid last-minute stress.'}
+                <p className="text-sm font-medium">No packing list yet</p>
+                <p className="text-xs text-muted-foreground mt-0.5 text-center max-w-xs">
+                  {weather ? 'Weather data ready — generate your AI-powered smart list.' : 'Add your trip details to get started.'}
                 </p>
                 {canEdit && (
-                  <div className="flex gap-2">
-                    <Button onClick={() => generatePackingList(false)} disabled={isGenerating} className="bg-gradient-ocean hover:opacity-90">
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Generate packing list
+                  <div className="flex gap-2 mt-3">
+                    <Button onClick={() => generatePackingList(false)} size="sm" disabled={isGenerating} className="h-8 text-xs">
+                      <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                      Generate Smart List
                     </Button>
-                    <Button onClick={() => setDialogOpen(true)} variant="outline">
+                    <Button onClick={() => setDialogOpen(true)} variant="outline" size="sm" className="h-8 text-xs">
                       Add Manually
                     </Button>
                   </div>
                 )}
               </>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Add Item Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) resetForm(); setDialogOpen(open); }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>
-              {preselectedCategory ? `Add Item to ${preselectedCategory}` : 'Add Packing Item'}
+            <DialogTitle className="text-base">
+              {preselectedCategory ? `Add to ${preselectedCategory}` : 'Add Packing Item'}
             </DialogTitle>
-            <DialogDescription>Add an item to your packing list</DialogDescription>
+            <DialogDescription className="text-xs">Add an item to your packing list</DialogDescription>
           </DialogHeader>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3">
             {preselectedCategory ? (
-              <div className="space-y-2">
-                <Label>Category</Label>
-                <div className="flex items-center gap-2 p-2 rounded-md bg-muted">
-                  {categoryIcons[preselectedCategory]}
-                  <span className="font-medium">{preselectedCategory}</span>
-                </div>
+              <div className="flex items-center gap-2 p-2 rounded-md bg-muted/30 text-sm">
+                {categoryIcons[preselectedCategory]}
+                <span className="font-medium text-xs">{preselectedCategory}</span>
               </div>
             ) : (
-              <div className="space-y-2">
-                <Label>Category *</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Category</Label>
                 <Input
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  placeholder="Clothing, Toiletries, Electronics..."
+                  placeholder="Clothing, Toiletries…"
                   required
+                  className="h-8 text-sm"
                 />
               </div>
             )}
-
-            <div className="grid grid-cols-3 gap-4">
-              <div className="col-span-2 space-y-2">
-                <Label>Item Name *</Label>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2 space-y-1.5">
+                <Label className="text-xs">Item</Label>
                 <Input
                   value={formData.item_name}
                   onChange={(e) => setFormData({ ...formData, item_name: e.target.value })}
                   placeholder="T-shirt"
                   required
+                  className="h-8 text-sm"
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Qty</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Qty</Label>
                 <Input
                   type="number"
                   min="1"
                   value={formData.quantity}
                   onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                  className="h-8 text-sm"
                 />
               </div>
             </div>
-
-            <div className="flex gap-3 pt-4">
-              <Button type="button" variant="outline" onClick={() => { resetForm(); setDialogOpen(false); }} className="flex-1">
+            <div className="flex gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => { resetForm(); setDialogOpen(false); }} className="flex-1 h-8 text-xs">
                 Cancel
               </Button>
-              <Button type="submit" className="flex-1 bg-gradient-ocean hover:opacity-90" disabled={createItem.isPending}>
-                {createItem.isPending ? 'Adding...' : 'Add Item'}
+              <Button type="submit" className="flex-1 h-8 text-xs" disabled={createItem.isPending}>
+                {createItem.isPending ? 'Adding…' : 'Add Item'}
               </Button>
             </div>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* v4.6.0: Regenerate Confirmation Dialog */}
+      {/* Regenerate Confirmation */}
       <Dialog open={showRegenerateConfirm} onOpenChange={setShowRegenerateConfirm}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-xs">
           <DialogHeader>
-            <DialogTitle>Regenerate packing list?</DialogTitle>
-            <DialogDescription>
-              This will update suggested items based on the latest weather data. Your checked items and custom items will be preserved.
+            <DialogTitle className="text-base">Regenerate packing list?</DialogTitle>
+            <DialogDescription className="text-xs">
+              Updates suggestions with latest weather. Custom items are preserved.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex gap-3 pt-2">
-            <Button variant="outline" onClick={() => setShowRegenerateConfirm(false)} className="flex-1">
+          <div className="flex gap-2 pt-1">
+            <Button variant="outline" onClick={() => setShowRegenerateConfirm(false)} className="flex-1 h-8 text-xs">
               Cancel
             </Button>
-            <Button onClick={() => generatePackingList(true)} disabled={isGenerating} className="flex-1">
-              <RefreshCw className={`w-4 h-4 mr-1 ${isGenerating ? 'animate-spin' : ''}`} />
-              {isGenerating ? 'Updating...' : 'Regenerate'}
+            <Button onClick={() => generatePackingList(true)} disabled={isGenerating} className="flex-1 h-8 text-xs">
+              <RefreshCw className={`w-3 h-3 mr-1 ${isGenerating ? 'animate-spin' : ''}`} />
+              {isGenerating ? 'Updating…' : 'Regenerate'}
             </Button>
           </div>
         </DialogContent>
