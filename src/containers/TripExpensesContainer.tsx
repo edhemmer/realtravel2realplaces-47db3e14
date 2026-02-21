@@ -20,6 +20,8 @@
 import { Trip } from '@/types/database';
 import { useExpenses } from '@/hooks/useExpenses';
 import { useBookings } from '@/hooks/useBookings';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import { useBookingExpenseSync } from '@/hooks/useBookingExpenseSync';
 import { TripSectionLoading, TripSectionError } from '@/components/trips/TripSectionStates';
 import { ExpensesTab } from '@/components/trips/tabs/ExpensesTab';
 
@@ -34,16 +36,28 @@ interface TripExpensesContainerProps {
 /**
  * Container that wires canonical hooks to ExpensesTab
  * 
- * ExpensesTab internally uses:
- * - calculateTripCostSummary() for cost totals
- * - normalizeFlightBookingCosts() for Frontier-style cost normalization
+ * v4.9.5: Owns the canonical booking→expense retroactive repair via
+ * useBookingExpenseSync. This ensures repairs happen at container level,
+ * not inside tab components, so all views see consistent data.
  * 
  * Tours are excluded from all cost calculations.
  */
 export function TripExpensesContainer({ tripId, trip, autoOpenAdd, onAutoOpenConsumed }: TripExpensesContainerProps) {
   // Canonical data fetching
-  const { isLoading: expensesLoading, error: expensesError } = useExpenses(tripId);
-  const { isLoading: bookingsLoading, error: bookingsError } = useBookings(tripId);
+  const { data: expenses = [], isLoading: expensesLoading, error: expensesError } = useExpenses(tripId);
+  const { data: bookings = [], isLoading: bookingsLoading, error: bookingsError } = useBookings(tripId);
+  const { data: userProfile } = useUserProfile();
+  const homeCurrency = userProfile?.preferred_currency || 'USD';
+  
+  // v4.9.5: Canonical retroactive repair — ensures every booking has a linked expense
+  useBookingExpenseSync({
+    tripId,
+    bookings,
+    expenses,
+    bookingsLoading,
+    expensesLoading,
+    homeCurrency,
+  });
   
   const isLoading = expensesLoading || bookingsLoading;
   const hasError = expensesError || bookingsError;
