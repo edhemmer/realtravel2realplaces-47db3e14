@@ -488,7 +488,7 @@ export interface MasterPackingItem {
  * Derive simple climate tags from a WeatherSummary.
  * Pure function, no network calls.
  */
-function deriveClimateTags(summary: WeatherSummary): string[] {
+export function deriveClimateTags(summary: WeatherSummary): string[] {
   const tags: string[] = [];
 
   // Temperature band

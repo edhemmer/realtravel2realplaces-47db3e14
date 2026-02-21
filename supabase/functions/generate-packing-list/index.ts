@@ -12,223 +12,123 @@ serve(async (req) => {
   }
 
   try {
-    // Verify authentication
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: "Authentication required" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-    
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     const body = await req.json();
     const { 
       destination_city, destination_state, destination_country, 
       start_date, end_date, trip_type, destination_type,
-      weather_forecast, weather_envelope,
-      // v4.6.0: Multi-location + regeneration support
+      weather_envelope,
+      itinerary_legs,
       additional_locations,
       is_regenerate,
-      existing_items,
     } = body;
 
-    // v3.9.40: Validate required inputs
     if (!destination_city || typeof destination_city !== 'string' || !destination_city.trim()) {
       return new Response(JSON.stringify({ success: false, error: "Destination city is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     if (!start_date || !end_date) {
       return new Response(JSON.stringify({ success: false, error: "Trip dates are required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Calculate trip nights and days
     const startD = new Date(start_date);
     const endD = new Date(end_date);
     const tripNights = Math.max(1, Math.ceil((endD.getTime() - startD.getTime()) / (1000 * 60 * 60 * 24)));
     const tripDays = tripNights + 1;
-
-    // Days until trip
     const today = new Date();
     const daysUntilTrip = Math.max(0, Math.ceil((startD.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
     const isEarlyDraft = daysUntilTrip > 7;
-
-    // Get month for seasonality
     const travelMonth = startD.toLocaleString('en-US', { month: 'long' });
 
-    // Build multi-location context string
-    let locationContext = `Primary: ${destination_city}${destination_state ? `, ${destination_state}` : ''}, ${destination_country || ''}`;
-    if (additional_locations && Array.isArray(additional_locations) && additional_locations.length > 0) {
-      const locStrings = additional_locations
-        .filter((loc: { city?: string }) => loc.city)
-        .map((loc: { city: string; country?: string; climateTags?: string[] }) => {
-          const tags = loc.climateTags?.length ? ` (climate: ${loc.climateTags.join(', ')})` : '';
-          return `${loc.city}${loc.country ? `, ${loc.country}` : ''}${tags}`;
-        });
-      if (locStrings.length > 0) {
-        locationContext += `\nAdditional stops: ${locStrings.join('; ')}`;
+    // v4.7.0: Build per-leg itinerary context
+    let itineraryContext = `Primary destination: ${destination_city}${destination_state ? `, ${destination_state}` : ''}, ${destination_country || ''}`;
+    
+    const legs = itinerary_legs || additional_locations || [];
+    if (Array.isArray(legs) && legs.length > 0) {
+      itineraryContext += '\n\nTrip Itinerary Legs:';
+      for (const leg of legs) {
+        if (!leg.city) continue;
+        const dates = leg.arriveDate ? ` (arriving ${leg.arriveDate}${leg.departDate ? `, departing ${leg.departDate}` : ''})` : '';
+        const climate = leg.climateTags?.length ? ` — Climate: ${leg.climateTags.join(', ')}` : '';
+        itineraryContext += `\n  • ${leg.city}${leg.country ? `, ${leg.country}` : ''}${dates}${climate}`;
       }
     }
 
     // Destination type detection
-    const beachDestinations = ['florida', 'miami', 'orlando', 'tampa', 'key west', 'fort lauderdale', 'clearwater', 'naples', 'sarasota', 'destin', 'panama city', 'jacksonville beach', 'daytona', 'hawaii', 'maui', 'honolulu', 'cancun', 'cabo', 'puerto rico', 'virgin islands', 'bahamas', 'caribbean', 'aruba', 'jamaica', 'turks', 'caicos', 'bermuda', 'maldives', 'bali', 'phuket', 'thailand beach', 'costa rica', 'san diego', 'los angeles', 'santa monica', 'malibu', 'galveston', 'south padre', 'gulf shores', 'myrtle beach', 'outer banks', 'hilton head', 'charleston'];
-    const beachStates = ['florida', 'fl', 'hawaii', 'hi'];
-    const mountainDestinations = ['aspen', 'vail', 'breckenridge', 'telluride', 'park city', 'jackson hole', 'big sky', 'lake tahoe', 'mammoth', 'whistler', 'banff', 'jasper', 'zermatt', 'chamonix', 'innsbruck', 'st moritz', 'courchevel', 'verbier', 'denver', 'boulder', 'colorado springs', 'flagstaff', 'sedona', 'grand canyon', 'yellowstone', 'yosemite', 'glacier', 'rocky mountain', 'gatlinburg', 'pigeon forge', 'asheville', 'lake placid', 'stowe', 'killington', 'salt lake city', 'reno', 'santa fe', 'taos', 'durango', 'steamboat', 'keystone', 'copper mountain', 'winter park', 'crested butte', 'sun valley', 'bend', 'mount rainier', 'swiss alps', 'austrian alps', 'italian alps', 'dolomites', 'pyrenees', 'scottish highlands', 'patagonia', 'queenstown', 'interlaken'];
-    const mountainStates = ['colorado', 'co', 'utah', 'ut', 'wyoming', 'wy', 'montana', 'mt', 'idaho', 'id', 'vermont', 'vt', 'new hampshire', 'nh'];
-    
     const cityLower = destination_city?.toLowerCase() || '';
     const stateLower = destination_state?.toLowerCase() || '';
     const countryLower = destination_country?.toLowerCase() || '';
     
-    const manualDestinationType = destination_type && destination_type !== 'unspecified' ? destination_type : null;
+    const beachDestinations = ['florida', 'miami', 'hawaii', 'maui', 'cancun', 'cabo', 'bahamas', 'caribbean', 'maldives', 'bali', 'phuket', 'tenerife', 'ibiza', 'mallorca', 'sardinia', 'amalfi', 'santorini', 'mykonos', 'crete'];
+    const isBeachDestination = destination_type === 'beach' || beachDestinations.some(b => cityLower.includes(b) || stateLower.includes(b));
     
-    const autoDetectedBeach = beachDestinations.some(beach => 
-      cityLower.includes(beach) || stateLower.includes(beach) || countryLower.includes(beach)
-    ) || beachStates.some(state => stateLower === state || stateLower.includes(state));
+    const mountainDestinations = ['aspen', 'vail', 'zermatt', 'chamonix', 'dolomites', 'alps', 'pyrenees', 'patagonia'];
+    const isMountainDestination = destination_type === 'mountain' || mountainDestinations.some(m => cityLower.includes(m));
 
-    const autoDetectedMountain = mountainDestinations.some(mountain => 
-      cityLower.includes(mountain) || stateLower.includes(mountain) || countryLower.includes(mountain)
-    ) || mountainStates.some(state => stateLower === state || stateLower.includes(state));
-
-    const isBeachDestination = manualDestinationType === 'beach' || (!manualDestinationType && autoDetectedBeach);
-    const isMountainDestination = manualDestinationType === 'mountain' || (!manualDestinationType && autoDetectedMountain);
-    const isCityDestination = manualDestinationType === 'city';
-
-    const beachItemsInstruction = isBeachDestination ? `
-MANDATORY BEACH ITEMS (YOU MUST INCLUDE ALL OF THESE):
-- Swimsuit/Swimwear: 2 (one to wear, one drying)
-- Sunscreen SPF 30+: 1
-- Sunglasses: 1
-- Sun hat/Baseball cap: 1
-- Flip-flops/Sandals: 1 pair
-- Beach towel: 1
-- After-sun lotion/Aloe vera: 1
-These items are REQUIRED for this destination. Do not skip any of them.` : '';
-
-    const mountainItemsInstruction = isMountainDestination ? `
-MANDATORY MOUNTAIN/HIKING ITEMS (YOU MUST INCLUDE ALL OF THESE):
-- Hiking boots or sturdy trail shoes: 1 pair
-- Warm hat/Beanie: 1
-- Layering base layer top: 1
-- Fleece or insulated mid-layer jacket: 1
-- Waterproof/windproof outer layer jacket: 1
-- Hiking socks (wool or synthetic): 2 pairs
-- Sunglasses (UV protection for altitude): 1
-- Sunscreen SPF 30+ (UV is stronger at altitude): 1
-- Reusable water bottle: 1
-- Daypack/Backpack for hikes: 1
-- Gloves (lightweight or insulated based on season): 1 pair
-These items are REQUIRED for mountain destinations. Do not skip any of them.` : '';
-
-    const cityItemsInstruction = isCityDestination ? `
-MANDATORY CITY/URBAN ITEMS (YOU MUST INCLUDE ALL OF THESE):
-- Comfortable walking shoes: 1 pair
-- Daypack or crossbody bag for sightseeing: 1
-- Portable phone charger/power bank: 1
-- Umbrella (compact): 1
-- Light jacket or cardigan for AC/evening: 1
-- Smart casual outfit for dining: 1 set
-These items are RECOMMENDED for city destinations.` : '';
-
-    // Build weather context from envelope if available
+    // Weather context
     let weatherContext = '';
-    if (weather_envelope) {
-      const env = weather_envelope;
+    if (weather_envelope?.summary) {
+      const s = weather_envelope.summary;
       weatherContext = `
-- Weather intelligence: ${env.weatherMode === 'SEASONAL_NORMALS' ? 'Based on typical conditions for this time of year' : env.weatherMode === 'FORECAST_BLEND' ? 'Mix of forecast + typical conditions' : 'Based on current forecast'}
-- Average high: ${env.summary?.avgHigh || 'unknown'}°F, Average low: ${env.summary?.avgLow || 'unknown'}°F
-- Rain expected: ${env.summary?.hasRain ? 'Yes' : 'No'}
-- Snow expected: ${env.summary?.hasSnow ? 'Yes' : 'No'}
-- Cold days (≤45°F): ${env.summary?.hasCold ? 'Yes' : 'No'}
-- Hot days (≥90°F): ${env.summary?.hasHot ? 'Yes' : 'No'}
-- Precipitation type: ${env.summary?.precipTypeHint || 'unknown'}
-- Cloud cover: ${env.summary?.cloudCoverHint || 'unknown'}`;
-    } else if (weather_forecast) {
-      weatherContext = `- Weather forecast: ${JSON.stringify(weather_forecast)}`;
+Weather Intelligence (${weather_envelope.weatherMode || 'SEASONAL_NORMALS'}):
+- Average high: ${s.avgHigh ?? 'unknown'}°F / Average low: ${s.avgLow ?? 'unknown'}°F
+- Rain: ${s.hasRain ? 'Yes' : 'No'} | Snow: ${s.hasSnow ? 'Yes' : 'No'}
+- Precipitation: ${s.precipTypeHint || 'unknown'} | Cloud cover: ${s.cloudCoverHint || 'unknown'}`;
     }
 
-    // v4.6.0: Regeneration context
-    const regenerateInstruction = is_regenerate ? `
-REGENERATION MODE: You are updating an existing packing list with fresher weather data.
-- Generate the full recommended list based on current weather/climate.
-- The caller will handle preserving user-added and checked items.
-- Focus on accuracy of climate-based recommendations.` : '';
+    const systemPrompt = `You are an expert travel packing advisor with deep knowledge of global cultures, regional fashion, and climate patterns. Generate a comprehensive, culturally-aware packing list.
 
-    const systemPrompt = `You are a smart travel packing assistant. Generate a practical, accurate packing list based on the destination, trip duration, time of year, and weather conditions.
-
-CRITICAL RULES for clothing quantities:
-- Trip nights (not days) determine clothing quantities
-- Underwear: exactly ${tripNights} pairs
-- Socks: exactly ${tripNights} pairs
-- Tops/T-shirts: ${tripNights} shirts (one per day)
-- Bottoms: ${Math.ceil(tripNights / 2)} pairs of pants/shorts (can repeat)
-- Sleepwear: 1 set (for trips under 5 nights) or 2 sets
-- Keep total quantity practical - travelers prefer packing light
-${beachItemsInstruction}
-${mountainItemsInstruction}
-${cityItemsInstruction}
-${regenerateInstruction}
-
-MULTI-LOCATION TRIPS:
-- Consider ALL locations the traveler will visit.
-- Include items for the coldest, warmest, and wettest stops.
-- Each item appears ONCE; use the "applies_to" field to note which climate conditions it covers (e.g. ["all"], ["cold"], ["beach", "warm"]).
-- Do NOT duplicate items across different climate needs.
-
-Location-aware items:
-- Florida/Beach/Tropical destinations: ALWAYS include swimsuit, sunscreen, sunglasses, sun hat, flip-flops, beach towel, after-sun care
-- Mountain/Hiking destinations: ALWAYS include hiking boots, warm hat, layers, fleece jacket, waterproof jacket, hiking socks, gloves, daypack
-- City/Urban destinations: comfortable walking shoes, daypack, portable charger, umbrella, smart casual outfit
-- Cold destinations: layers, warm jacket, gloves, hat
-- Business trips: add professional attire items
-
-Weather-based adjustments:
-- Rain likely: umbrella, rain jacket
-- Hot (>80°F): more shorts, light fabrics, sun protection
-- Cold (<50°F): layers, warm jacket, thermals
-- Snow likely: snow boots, insulated jacket, warm gloves, thermal layers
-- Variable: versatile pieces that layer
-
-For each item, indicate if it's a seasonal/specialty item the traveler may need to BUY vs a common item they likely already OWN.
-
-Return a JSON object with categorized items. Each item needs: category, item_name, quantity, own_it_likely (boolean), suggest_buy_early (boolean), rationale (optional string), applies_to (array of climate tags like "all", "cold", "beach", "rain", "business").
-Categories: Clothing Core, Layers & Outerwear, Rain & Wet Weather, Cold / Snow Gear, Footwear, Accessories, Swimwear & Beach, Toiletries & Health, Tech & Chargers, Documents & Critical Items, Business (if applicable)`;
-
-    const userPrompt = `Generate a packing list for this trip:
-- Locations: ${locationContext}
+TRIP CONTEXT:
+${itineraryContext}
 - Dates: ${start_date} to ${end_date} (${tripNights} nights, ${tripDays} days)
-- Month of travel: ${travelMonth}
+- Month: ${travelMonth}
 - Trip type: ${trip_type}
 - Days until departure: ${daysUntilTrip}
 ${weatherContext}
 
-Return a practical packing list covering ALL locations. Be accurate with quantities based on trip length. Mark seasonal/specialty items as suggest_buy_early=true with a short rationale. Each item must have an applies_to array.`;
+CRITICAL RULES:
+1. MULTI-LEG AWARENESS: This trip visits MULTIPLE cities/regions. Consider the weather and culture of EACH leg separately. Pack for the widest range of conditions across ALL stops.
+2. CLOTHING QUANTITIES based on ${tripNights} nights:
+   - Underwear: ${tripNights} pairs
+   - Socks: ${tripNights} pairs
+   - Tops: ${tripNights} (one per day)
+   - Bottoms: ${Math.ceil(tripNights / 2)} pairs
+   - Sleepwear: ${tripNights < 5 ? 1 : 2} set(s)
+3. CULTURAL AWARENESS:
+   - Suggest clothing appropriate for local culture and norms (e.g., covering shoulders for churches in Italy, modest dress in certain regions)
+   - Note dress codes for restaurants, museums, or religious sites common in the destination
+   - Include cultural tips in special_notes
+4. COLOR & STYLE SUGGESTIONS:
+   - For each clothing item, include a "color_tip" with region-appropriate color suggestions
+   - Europeans tend toward neutral tones (navy, black, olive, cream, beige) — suggest blending in
+   - Beach destinations: lighter, brighter colors are appropriate
+   - Business: dark suits, muted tones
+   - Consider what locals typically wear during that time of year
+5. PER-LEG APPLICABILITY: Each item must have an "applies_to" array indicating which legs/conditions it covers (e.g., ["all"], ["Milan - cold"], ["Barcelona - warm"], ["rain"], ["beach"])
+6. DEDUPLICATION: Each item appears ONCE in the master list. If needed for multiple legs, list all applicable legs in applies_to.
+${isBeachDestination ? '\n7. BEACH MANDATORY: Include swimsuit(s), sunscreen SPF 30+, sunglasses, sun hat, flip-flops, beach towel, after-sun care.' : ''}
+${isMountainDestination ? '\n7. MOUNTAIN MANDATORY: Include hiking boots, warm layers, waterproof jacket, hiking socks, daypack.' : ''}
+${is_regenerate ? '\nREGENERATION MODE: Generating updated list with latest weather data. Focus on accuracy.' : ''}
+
+Categories: Clothing Core, Layers & Outerwear, Rain & Wet Weather, Cold / Snow Gear, Footwear, Accessories, Swimwear & Beach, Toiletries & Health, Tech & Chargers, Documents & Critical Items, Cultural Essentials, Business (if applicable)`;
+
+    const userPrompt = `Generate a complete, culturally-aware packing list for this multi-leg trip. 
+
+For each clothing item, include color suggestions appropriate for the regions visited. Include cultural tips about dress codes, local customs, and what to wear where.
+
+Be specific about which leg each item applies to. For example:
+- A warm jacket applies to Milan (cool/cold) but not to beach stops
+- Modest clothing for church visits in Italy
+- Comfortable walking shoes for all legs
+
+Return practical quantities. Mark specialty items as suggest_buy_early=true with rationale.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -258,18 +158,18 @@ Return a practical packing list covering ALL locations. Be accurate with quantit
                       properties: {
                         category: { 
                           type: "string", 
-                          description: "Item category",
-                          enum: ["Clothing Core", "Layers & Outerwear", "Rain & Wet Weather", "Cold / Snow Gear", "Footwear", "Accessories", "Swimwear & Beach", "Toiletries & Health", "Tech & Chargers", "Documents & Critical Items", "Business"]
+                          enum: ["Clothing Core", "Layers & Outerwear", "Rain & Wet Weather", "Cold / Snow Gear", "Footwear", "Accessories", "Swimwear & Beach", "Toiletries & Health", "Tech & Chargers", "Documents & Critical Items", "Cultural Essentials", "Business"]
                         },
                         item_name: { type: "string", description: "Name of the item" },
                         quantity: { type: "number", description: "How many to pack" },
-                        own_it_likely: { type: "boolean", description: "Whether the traveler likely already owns this" },
-                        suggest_buy_early: { type: "boolean", description: "Whether to suggest buying early if missing" },
-                        rationale: { type: "string", description: "Short reason for including this item" },
+                        own_it_likely: { type: "boolean" },
+                        suggest_buy_early: { type: "boolean" },
+                        rationale: { type: "string", description: "Why this item is included, which leg it serves" },
+                        color_tip: { type: "string", description: "Color/style suggestion appropriate for the region (e.g., 'Navy or olive — blends with Italian style')" },
                         applies_to: { 
                           type: "array", 
                           items: { type: "string" },
-                          description: "Climate tags this item covers, e.g. ['all'], ['cold', 'rain'], ['beach']"
+                          description: "Which legs/conditions this covers, e.g. ['all'], ['Milan - cold'], ['Barcelona - warm'], ['rain']"
                         },
                       },
                       required: ["category", "item_name", "quantity"],
@@ -278,7 +178,20 @@ Return a practical packing list covering ALL locations. Be accurate with quantit
                   special_notes: {
                     type: "array",
                     items: { type: "string" },
-                    description: "Special packing tips for this destination/time of year"
+                    description: "Cultural tips, dress code advice, regional fashion notes, and packing wisdom for this specific trip"
+                  },
+                  leg_summaries: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        city: { type: "string" },
+                        climate_summary: { type: "string", description: "Brief weather/climate description" },
+                        style_note: { type: "string", description: "What locals typically wear, dress code tips" },
+                      },
+                      required: ["city", "climate_summary"],
+                    },
+                    description: "Per-city climate and style summaries for the trip"
                   }
                 },
                 required: ["items"],
@@ -292,23 +205,21 @@ Return a practical packing list covering ALL locations. Be accurate with quantit
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error("AI gateway error:", response.status, errorText);
       
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
         return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       
       return new Response(JSON.stringify({ error: "AI generation failed" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -323,6 +234,7 @@ Return a practical packing list covering ALL locations. Be accurate with quantit
         meta: {
           isEarlyDraft: isEarlyDraft,
           generatedAt: new Date().toISOString(),
+          legCount: legs.length,
         }
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -330,13 +242,12 @@ Return a practical packing list covering ALL locations. Be accurate with quantit
     }
 
     return new Response(JSON.stringify({ success: false, error: "Could not generate packing list" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
+    console.error("generate-packing-list error:", error);
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

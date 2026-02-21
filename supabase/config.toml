@@ -26,3 +26,21 @@ verify_jwt = false
 
 [functions.nearby-places]
 verify_jwt = false
+
+[functions.generate-packing-list]
+verify_jwt = false
+
+[functions.normalize-airfare-costs]
+verify_jwt = false
+
+[functions.parse-itinerary]
+verify_jwt = false
+
+[functions.send-companion-summary]
+verify_jwt = false
+
+[functions.admin-get-support-tickets]
+verify_jwt = false
+
+[functions.admin-update-ticket-status]
+verify_jwt = false
