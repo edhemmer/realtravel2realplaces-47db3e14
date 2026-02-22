@@ -1,5 +1,5 @@
 /**
- * Help Center — v3.0.0
+ * Help Center — v4.8.0
  * 
  * Premium SaaS documentation with plan transparency,
  * glossary, SEO optimization, and step-by-step guides.
@@ -156,9 +156,10 @@ const HELP_SECTIONS: HelpSection[] = [
             <li><strong>Expenses</strong> — track spending by category with optional receipt upload.</li>
             <li><strong>Companions</strong> — add travel partners with contact and flight details.</li>
             <li><strong>Parking</strong> — log parking location, level, space, and expiration.</li>
-            <li><strong>Packing</strong> — create and check off packing lists.</li>
+            <li><strong>Packing</strong> — AI-generated packing lists with per-city climate analysis and color/style tips.</li>
             <li><strong>Notes</strong> — save general notes, emergency numbers, and important links.</li>
             <li><strong>Timeline</strong> — a chronological view of every event in your Trip.</li>
+            <li><strong>EXPLORE</strong> — discover real places nearby with photos, ratings, and reviews from Google Places.</li>
             <li><strong>Stops</strong> — scheduled work locations and daily movement tracking. <PlanBadge tier="business" /></li>
           </ul>
         ),
@@ -296,23 +297,56 @@ const HELP_SECTIONS: HelpSection[] = [
     id: 'explore',
     title: 'EXPLORE',
     icon: <Search className="w-5 h-5 text-primary" />,
-    description: 'Discover places and activities near your destination.',
+    description: 'Discover real places near your destination with photos, ratings, and reviews.',
     items: [
       {
         question: 'What is EXPLORE?',
-        answer:
-          'EXPLORE helps you discover restaurants, attractions, and activities near your Trip destination. Browse curated suggestions organized by category and add them to your Trip timeline directly.',
+        answer: (
+          <div className="space-y-2">
+            <p>
+              EXPLORE helps you discover real places near your Trip destination using Google Places. Browse categories with photos, star ratings, and review counts — then add places directly to your Trip timeline.
+            </p>
+            <p className="font-medium text-foreground mt-3">Categories available:</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li>Signature Attractions — theme parks, tours, entertainment</li>
+              <li>Dining — restaurants and eateries</li>
+              <li>Cafes & Coffee — coffee shops and cafes</li>
+              <li>Bars & Nightlife — bars and evening venues</li>
+              <li>Parks & Gardens — parks and outdoor spaces</li>
+              <li>Hiking Trails — trails and nature walks</li>
+              <li>Museums & Culture — museums, galleries, and visitor centers</li>
+              <li>Grocery & Markets — grocery stores and supermarkets</li>
+            </ul>
+          </div>
+        ),
       },
       {
         question: 'How do I use EXPLORE?',
         answer: (
           <ol className="list-decimal list-inside space-y-1.5">
-            <li>Open your Trip and tap <strong>EXPLORE</strong>.</li>
-            <li>Browse categories such as restaurants, attractions, and activities.</li>
-            <li>Tap any place to see details, ratings, and photos.</li>
-            <li>Tap <strong>Add to Trip</strong> to add it to your Timeline.</li>
+            <li>Open your Trip and tap <strong>EXPLORE</strong> in the navigation.</li>
+            <li>The <strong>Right Now</strong> section shows a curated mix of top-rated places across all categories, adjusted for time of day and weather.</li>
+            <li>Below that, each category section shows 3 places. Tap <strong>See all</strong> next to a category name to expand and see every result.</li>
+            <li>Each place card shows a real photo, star rating, review count, and category.</li>
+            <li>Tap <strong>Navigate</strong> to open directions in your maps app.</li>
+            <li>Tap <strong>Add</strong> to add the place to your Trip timeline.</li>
           </ol>
         ),
+      },
+      {
+        question: 'How does "Right Now" work?',
+        answer:
+          'Right Now picks the highest-rated place from each category and ranks them using time-of-day awareness (cafes in the morning, restaurants in the evening) and weather conditions (indoor places during rain). This gives you a diverse, actionable snapshot of what is worth visiting right now.',
+      },
+      {
+        question: 'How does "See all" work in each section?',
+        answer:
+          'Each category section initially shows 3 places to keep the page compact. Tap "See all N" (where N is the total number of results) next to the section title to expand and see every place in that category. Newly revealed places animate in so it is clear the section expanded.',
+      },
+      {
+        question: 'Where does EXPLORE get its data?',
+        answer:
+          'EXPLORE uses the Google Places API to fetch real, up-to-date place data including names, addresses, photos, ratings, and review counts. Photos are served through a secure proxy to protect API credentials.',
       },
       {
         question: 'Is EXPLORE available on all plans?',
@@ -359,7 +393,7 @@ const HELP_SECTIONS: HelpSection[] = [
       },
       {
         question: 'Can I export my expenses?',
-        answer: 'Export functionality is not currently available.',
+        answer: 'Yes. Trip summary reports with per-category expense breakdowns and individualized PDF generation are available on Pro and Business plans.',
       },
       {
         question: 'Is advanced expense reporting available?',
@@ -575,7 +609,7 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         question: 'EXPLORE',
         answer:
-          'A discovery feature that surfaces restaurants, attractions, and activities near your Trip destination. Available on all plans.',
+          'A discovery feature powered by Google Places that surfaces restaurants, attractions, cafes, bars, parks, hiking trails, museums, and grocery stores near your Trip destination. Each place includes a real photo, rating, and review count. Available on all plans.',
       },
       {
         question: 'Reminder',
