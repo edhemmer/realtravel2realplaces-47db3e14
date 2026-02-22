@@ -23,7 +23,7 @@ export interface CategoryPageState {
 export type CategoryPaginationMap = Record<string, CategoryPageState>;
 
 /** Page size for "More" loads */
-export const CATEGORY_PAGE_SIZE = 8;
+export const CATEGORY_PAGE_SIZE = 10;
 
 /** Initial visible count per section (matches ExploreSectionFeed INITIAL_SHOW) */
 export const INITIAL_VISIBLE = 4;
