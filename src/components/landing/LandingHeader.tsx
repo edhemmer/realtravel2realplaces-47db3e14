@@ -14,6 +14,12 @@ export default function LandingHeader() {
           {/* Right-side actions */}
           <div className="flex items-center gap-4 sm:gap-5 flex-shrink-0">
             <Link 
+              to="/help" 
+              className="landing-login-link"
+            >
+              Help
+            </Link>
+            <Link 
               to="/auth" 
               className="landing-login-link"
             >

@@ -26,6 +26,9 @@ export default function LandingFooter() {
             <Link to="/terms" className="landing-footer-link">
               Terms
             </Link>
+            <Link to="/help" className="landing-footer-link">
+              Help
+            </Link>
             <a href="mailto:support@realtravel2realplaces.com" className="landing-footer-link">
               Contact
             </a>

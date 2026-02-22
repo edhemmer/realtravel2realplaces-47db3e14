@@ -62,9 +62,13 @@ export function Layout({ children }: LayoutProps) {
                   <Settings className="w-4 h-4 mr-2" />
                   Account Settings
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/help')} className="cursor-pointer">
+                  <MessageCircleQuestion className="w-4 h-4 mr-2" />
+                  Help Center
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setSupportDialogOpen(true)} className="cursor-pointer">
                   <MessageCircleQuestion className="w-4 h-4 mr-2" />
-                  Contact support
+                  Contact Support
                 </DropdownMenuItem>
                 {canAccessBusinessFeatures && (
                   <>
