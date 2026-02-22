@@ -13,7 +13,8 @@ import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Compass, Plus, Navigation, Clock, CalendarCheck } from 'lucide-react';
 import { getTodayActionItems, TodayActionItem } from '@/lib/todayActionItems';
-import { resolveMapsDestination, openMapsDestination } from '@/lib/mapsDestination';
+import { resolveAirportRef, getAirportCoords } from '@/lib/location/locationResolver';
+import { buildNavTarget, openNavTarget, buildMapsSearchUrl } from '@/lib/location/navigationTargets';
 import type { CanonicalTimelineEvent } from '@/lib/canonicalTripState';
 
 interface NowExecutionPillsProps {
@@ -23,24 +24,62 @@ interface NowExecutionPillsProps {
 }
 
 /**
- * Resolve a navigation action for an actionable item.
+ * v3.5.3: Resolve a navigation action for an actionable item.
+ * Uses coords-first resolution: airport coords → address NavTarget → coords-based URL.
+ * NEVER sends raw strings like city names or "Nearby" as map queries.
  */
 function handleItemNavigate(item: TodayActionItem) {
-  // Try address first
+  // 1. Flights: resolve airport coordinates directly
+  if (item.bookingType === 'flight' || item.eventType === 'flight_departure' || item.eventType === 'flight') {
+    const depCode = item.departureAirportCode;
+    const arrCode = item.arrivalAirportCode;
+    // For departure events, prefer departure airport; otherwise arrival
+    const code = (item.eventType === 'flight_departure' ? depCode : arrCode) || depCode || arrCode;
+    if (code) {
+      const coords = getAirportCoords(code);
+      if (coords) {
+        window.open(
+          `https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`,
+          '_blank',
+          'noopener,noreferrer'
+        );
+        return;
+      }
+      // Fallback: canonical airport ref → NavTarget
+      const ref = resolveAirportRef({ iata: code });
+      if (ref) {
+        const target = buildNavTarget(ref);
+        if (target) {
+          window.open(buildMapsSearchUrl(target), '_blank', 'noopener,noreferrer');
+          return;
+        }
+      }
+    }
+  }
+
+  // 2. Address-based: build NavTarget (prefers coords → address → query)
   if (item.address) {
-    const dest = resolveMapsDestination({ address: item.address });
-    if (dest) {
-      openMapsDestination(dest);
+    const target = buildNavTarget({
+      kind: 'PLACE',
+      key: item.sourceId,
+      label: item.title,
+      address: item.address,
+    });
+    if (target) {
+      window.open(buildMapsSearchUrl(target), '_blank', 'noopener,noreferrer');
       return;
     }
   }
-  // Fallback: open Google Maps search with title
-  const query = item.address || item.title;
-  window.open(
-    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`,
-    '_blank',
-    'noopener,noreferrer'
-  );
+
+  // 3. Last resort: use title as query (only when no other data available)
+  const target = buildNavTarget({
+    kind: 'PLACE',
+    key: item.sourceId,
+    label: item.title,
+  });
+  if (target) {
+    window.open(buildMapsSearchUrl(target), '_blank', 'noopener,noreferrer');
+  }
 }
 
 export function NowExecutionPills({ timelineEvents, onExplore, onAddExpense }: NowExecutionPillsProps) {
