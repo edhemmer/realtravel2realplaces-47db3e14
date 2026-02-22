@@ -45,7 +45,9 @@ function buildTextQuery(type: string, lat: number, lng: number): { textQuery: st
     case 'museum':
       return { textQuery: 'museums and galleries', includedType: 'museum' };
     case 'park':
-      return { textQuery: 'parks nature trails and gardens', includedType: 'park' };
+      return { textQuery: 'parks hiking trails nature walks and gardens', includedType: 'park' };
+    case 'hiking_trail':
+      return { textQuery: 'hiking trails and trailheads' };
     case 'gas_station':
       return { textQuery: 'gas stations', includedType: 'gas_station' };
     case 'convenience_store':
