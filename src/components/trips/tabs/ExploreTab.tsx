@@ -138,6 +138,9 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
   };
 
   const handleNavigate = (attraction: AttractionSuggestion) => {
+    // v3.5.3: Build NavTarget for the attraction, using address-based resolution.
+    // For individual attractions, address/name is acceptable since these are
+    // specific place names (not generic labels). The origin query uses coords-only.
     const target = buildNavTarget({
       kind: 'PLACE',
       key: attraction.name,

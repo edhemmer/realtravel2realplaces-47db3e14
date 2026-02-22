@@ -4,7 +4,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { resolveExploreOriginForContext, hasExploreDestination } from '@/lib/location/exploreContext';
+import { resolveExploreOriginForContext, hasExploreDestination, buildExploreMapSearchUrl } from '@/lib/location/exploreContext';
+import type { ExploreOrigin } from '@/lib/location/exploreContext';
 import { buildExploreSections } from '@/lib/exploreRankingSections';
 import { getMockAttractions, dedupeAttractions, rankAttractions } from '@/lib/mockAttractions';
 import type { Trip, Booking } from '@/types/database';
@@ -240,6 +241,124 @@ describe('Explore Origin Resolver — Active Trip', () => {
     // Should fall back to ARRIVAL_AIRPORT, not DEVICE
     expect(origin!.source).not.toBe('DEVICE');
     expect(origin!.source).toBe('ARRIVAL_AIRPORT');
+  });
+});
+
+// ============================================================================
+// v3.5.3: COORDS-ONLY ORIGIN RESOLUTION
+// ============================================================================
+
+describe('Explore Origin Resolver — Coords Only (v3.5.3)', () => {
+  it('resolveExploreOriginForContext always returns numeric lat/lng, never strings', () => {
+    const trip = makeTripBase();
+    const bookings = [makeFlightBooking('TFS')];
+
+    const origin = resolveExploreOriginForContext({
+      tripId: trip.id,
+      trip,
+      bookings,
+      timelineEvents: [],
+      isActive: false,
+    });
+
+    expect(origin).not.toBeNull();
+    expect(typeof origin!.lat).toBe('number');
+    expect(typeof origin!.lng).toBe('number');
+    expect(Number.isFinite(origin!.lat)).toBe(true);
+    expect(Number.isFinite(origin!.lng)).toBe(true);
+  });
+
+  it('pre-arrival with flight + stay resolves to airport coords (not string)', () => {
+    const trip = makeTripBase({ start_date: '2026-06-01', end_date: '2026-06-15' });
+    const bookings = [makeFlightBooking('TFS'), makeStayBooking()];
+
+    const origin = resolveExploreOriginForContext({
+      tripId: trip.id,
+      trip,
+      bookings,
+      timelineEvents: [],
+      isActive: false,
+    });
+
+    expect(origin).not.toBeNull();
+    // Stay has no coords in this mock, so falls to airport
+    expect(origin!.source).toBe('ARRIVAL_AIRPORT');
+    expect(origin!.lat).toBeCloseTo(28.04, 0); // TFS
+    expect(origin!.lng).toBeCloseTo(-16.57, 0);
+  });
+
+  it('pre-arrival with flight only (no stay) resolves to airport coords', () => {
+    const trip = makeTripBase({ start_date: '2026-06-01', end_date: '2026-06-15' });
+    const bookings = [makeFlightBooking('ATH')];
+
+    const origin = resolveExploreOriginForContext({
+      tripId: trip.id,
+      trip,
+      bookings,
+      timelineEvents: [],
+      isActive: false,
+    });
+
+    expect(origin).not.toBeNull();
+    expect(origin!.source).toBe('ARRIVAL_AIRPORT');
+    // ATH coords ~ 37.94, 23.94
+    expect(origin!.lat).toBeCloseTo(37.94, 0);
+    expect(origin!.lng).toBeCloseTo(23.94, 0);
+  });
+
+  it('arrived (within 15mi) resolves to device coords, not city string', () => {
+    const activeTrip = makeTripBase({
+      start_date: '2026-02-15',
+      end_date: '2026-03-01',
+    });
+    const nearDevice = { lat: 28.05, lng: -16.56 }; // Near TFS
+    const bookings = [makeFlightBooking('TFS')];
+
+    const origin = resolveExploreOriginForContext({
+      tripId: activeTrip.id,
+      trip: activeTrip,
+      bookings,
+      timelineEvents: [],
+      isActive: true,
+      deviceLocation: nearDevice,
+    });
+
+    expect(origin).not.toBeNull();
+    expect(origin!.source).toBe('DEVICE');
+    expect(origin!.lat).toBe(nearDevice.lat);
+    expect(origin!.lng).toBe(nearDevice.lng);
+  });
+
+  it('buildExploreMapSearchUrl uses only lat,lng in query param', () => {
+    const origin: ExploreOrigin = {
+      lat: 33.64,
+      lng: -84.43,
+      label: 'ATL – Hartsfield-Jackson',
+      source: 'ARRIVAL_AIRPORT',
+    };
+    const url = buildExploreMapSearchUrl(origin);
+    expect(url).toBe('https://www.google.com/maps/search/?api=1&query=33.64,-84.43');
+    // Must NOT contain labels, city names, or airport codes
+    expect(url).not.toContain('ATL');
+    expect(url).not.toContain('Hartsfield');
+    expect(url).not.toContain('Nearby');
+    expect(url).not.toContain('Atlanta');
+  });
+
+  it('buildExploreMapSearchUrl never contains string-based queries', () => {
+    const origins: ExploreOrigin[] = [
+      { lat: 40.64, lng: -73.78, label: 'JFK – John F. Kennedy', source: 'ARRIVAL_AIRPORT' },
+      { lat: 28.05, lng: -16.56, label: 'Current location', source: 'DEVICE' },
+      { lat: 41.39, lng: 2.15, label: 'Barcelona, Spain', source: 'DESTINATION' },
+      { lat: 51.47, lng: -0.45, label: 'Your lodging (Hilton)', source: 'LODGING' },
+    ];
+
+    for (const origin of origins) {
+      const url = buildExploreMapSearchUrl(origin);
+      const queryParam = new URL(url).searchParams.get('query')!;
+      // Must be "lat,lng" format — two numbers separated by comma
+      expect(queryParam).toMatch(/^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/);
+    }
   });
 });
 

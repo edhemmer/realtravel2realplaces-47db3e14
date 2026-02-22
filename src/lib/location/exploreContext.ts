@@ -356,3 +356,32 @@ export function getExploreOriginSubtitle(source: ExploreOriginSource): string {
     case 'DESTINATION': return 'Exploring near your destination';
   }
 }
+
+// ============================================================================
+// v3.5.3: STRICT COORDS-ONLY MAP URL BUILDER
+// ============================================================================
+
+/**
+ * v3.5.3: Build a Google Maps search URL using ONLY lat/lng coordinates.
+ * NEVER passes strings like "Nearby", city names, or airport codes as the query.
+ * Returns null if no coordinates are available.
+ */
+export function buildExploreMapSearchUrl(origin: ExploreOrigin): string {
+  return `https://www.google.com/maps/search/?api=1&query=${origin.lat},${origin.lng}`;
+}
+
+/**
+ * v3.5.3: Build a Google Maps search URL for a specific place using coordinates.
+ * Falls back to null if no coordinates are provided.
+ */
+export function buildExplorePlaceMapUrl(coords: { lat: number; lng: number }): string {
+  return `https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`;
+}
+
+/**
+ * v3.5.3: Open Google Maps centered on the Explore origin coordinates.
+ * NEVER opens with string-based queries.
+ */
+export function openExploreOriginMap(origin: ExploreOrigin): void {
+  window.open(buildExploreMapSearchUrl(origin), '_blank', 'noopener,noreferrer');
+}
