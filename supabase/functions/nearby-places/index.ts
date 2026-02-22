@@ -60,6 +60,15 @@ Deno.serve(async (req) => {
       key: apiKey,
     });
 
+    // Add keyword for better relevance on certain types
+    if (type === 'restaurant') {
+      params.set('keyword', 'restaurant dining food');
+    } else if (type === 'bar' || type === 'night_club') {
+      params.set('keyword', 'bar pub nightclub');
+    } else if (type === 'cafe') {
+      params.set('keyword', 'cafe coffee');
+    }
+
     const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?${params.toString()}`;
     const response = await fetch(url);
 
@@ -81,7 +90,22 @@ Deno.serve(async (req) => {
       );
     }
 
-    const places: NearbyPlace[] = (data.results || [])
+    // Filter out lodging results from non-lodging queries
+    const lodgingTypes = ['lodging', 'hotel'];
+    const nonLodgingQueryTypes = ['restaurant', 'bar', 'night_club', 'cafe', 'tourist_attraction', 'museum', 'park'];
+    const shouldFilterLodging = nonLodgingQueryTypes.includes(type);
+
+    const filtered = (data.results || []).filter((r: any) => {
+      if (!shouldFilterLodging) return true;
+      const placeTypes: string[] = r.types || [];
+      // Exclude if primary type is lodging (has lodging type AND name contains hotel/inn patterns)
+      const isLodging = placeTypes.some((t: string) => lodgingTypes.includes(t));
+      if (!isLodging) return true;
+      const nameLower = (r.name || '').toLowerCase();
+      return !(nameLower.includes('hotel') || nameLower.includes(' inn') || nameLower.includes('hostel') || nameLower.includes('premier inn') || nameLower.includes('travelodge'));
+    });
+
+    const places: NearbyPlace[] = filtered
       .slice(0, limit)
       .map((r: any) => ({
         placeId: r.place_id || '',
