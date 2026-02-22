@@ -25,6 +25,8 @@ interface NearbyPlace {
   rating: number | null;
   lat: number;
   lng: number;
+  photoUrl: string | null;
+  reviewCount: number | null;
 }
 
 /**
@@ -107,7 +109,7 @@ Deno.serve(async (req) => {
       headers: {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': apiKey,
-        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.location',
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.location,places.photos,places.userRatingCount',
       },
       body: JSON.stringify(requestBody),
     });
@@ -125,14 +127,25 @@ Deno.serve(async (req) => {
 
     const places: NearbyPlace[] = (data.places || [])
       .slice(0, limit)
-      .map((p: any) => ({
-        placeId: p.id || '',
-        name: p.displayName?.text || '',
-        address: p.formattedAddress || '',
-        rating: p.rating ?? null,
-        lat: p.location?.latitude ?? 0,
-        lng: p.location?.longitude ?? 0,
-      }));
+      .map((p: any) => {
+        // Build photo ref for proxy (keeps API key server-side)
+        let photoUrl: string | null = null;
+        if (p.photos && p.photos.length > 0) {
+          const photoName = p.photos[0].name;
+          // Return the photo resource name — client will use places-photo proxy
+          photoUrl = `${photoName}/media`;
+        }
+        return {
+          placeId: p.id || '',
+          name: p.displayName?.text || '',
+          address: p.formattedAddress || '',
+          rating: p.rating ?? null,
+          lat: p.location?.latitude ?? 0,
+          lng: p.location?.longitude ?? 0,
+          photoUrl,
+          reviewCount: p.userRatingCount ?? null,
+        };
+      });
 
     console.log(`[nearby-places] Text Search for "${textQuery}" returned ${places.length} results`);
 

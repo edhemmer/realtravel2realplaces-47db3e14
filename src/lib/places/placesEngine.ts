@@ -37,6 +37,8 @@ export interface PlaceResult {
   lat: number;
   lng: number;
   provider: 'google';
+  photoUrl?: string | null;
+  reviewCount?: number;
 }
 
 export type PlacesStatus = 'OK' | 'UNAVAILABLE';
@@ -122,7 +124,7 @@ function writeToCache(key: string, result: PlacesEngineResult): void {
 // NORMALIZATION + DEDUP + SORT
 // ============================================================================
 
-function normalize(raw: { placeId: string; name: string; address: string; rating: number | null; lat: number; lng: number }): PlaceResult {
+function normalize(raw: { placeId: string; name: string; address: string; rating: number | null; lat: number; lng: number; photoUrl?: string | null; reviewCount?: number | null }): PlaceResult {
   return {
     placeId: raw.placeId,
     name: raw.name,
@@ -131,6 +133,8 @@ function normalize(raw: { placeId: string; name: string; address: string; rating
     lat: raw.lat,
     lng: raw.lng,
     provider: 'google',
+    photoUrl: raw.photoUrl ?? null,
+    reviewCount: raw.reviewCount ?? undefined,
   };
 }
 
