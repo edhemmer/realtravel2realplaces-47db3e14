@@ -15,6 +15,8 @@ export interface NearbyPlace {
   rating: number | null;
   lat: number;
   lng: number;
+  photoUrl?: string | null;
+  reviewCount?: number | null;
 }
 
 export type PlaceType = 'gas_station' | 'restaurant' | 'convenience_store' | 'tourist_attraction' | 'museum' | 'park' | 'bar' | 'cafe' | 'art_gallery' | 'amusement_park' | 'night_club';
@@ -54,7 +56,18 @@ export async function fetchNearbyPlaces({
       return [];
     }
 
-    return (data.places as NearbyPlace[]).slice(0, limit);
+    // Build proxy photo URLs using the places-photo edge function
+    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+    const baseUrl = projectId
+      ? `https://${projectId}.supabase.co/functions/v1/places-photo`
+      : null;
+
+    return (data.places as NearbyPlace[]).slice(0, limit).map((place) => ({
+      ...place,
+      photoUrl: place.photoUrl && baseUrl
+        ? `${baseUrl}?ref=${encodeURIComponent(place.photoUrl)}`
+        : null,
+    }));
   } catch (err) {
     console.warn('[PlacesService] Unexpected error:', err);
     return [];

@@ -35,7 +35,7 @@ function placeToAttraction(place: PlaceResult, displayCategory: string, index: n
     name: place.name,
     shortDescription: place.address || 'Nearby place',
     category: displayCategory,
-    thumbnailUrl: null,
+    thumbnailUrl: place.photoUrl ?? null,
     priceLevel: 'unknown',
     bookingInfo: {
       ticketRequired: false,
@@ -44,7 +44,7 @@ function placeToAttraction(place: PlaceResult, displayCategory: string, index: n
     },
     locationSummary: place.address,
     rating: place.rating,
-    reviewCount: undefined,
+    reviewCount: place.reviewCount,
     distanceMiles: undefined,
   };
 }
