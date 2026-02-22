@@ -6,7 +6,7 @@
 import { AttractionSuggestion } from '@/types/attraction';
 import { ExplorePlaceCard } from './ExplorePlaceCard';
 import { Button } from '@/components/ui/button';
-import { Loader2, ChevronDown } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 interface PaginatedSection {
   id: string;
@@ -31,47 +31,41 @@ export function ExploreSectionFeed({ sections, onNavigate, onAdd, onLoadMore }: 
     <div className="space-y-8">
       {sections.map((section) => (
         <div key={section.id} className="space-y-3">
-          {/* Section header with inline More */}
+          {/* Section header */}
           <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2">
-              <h3 className="text-base font-semibold text-foreground">
-                {section.title}
-              </h3>
-              <span className="text-xs text-muted-foreground tabular-nums">
-                {section.items.length}{section.totalCount && section.totalCount > section.items.length ? `/${section.totalCount}` : ''}
-              </span>
-            </div>
-            {section.hasMore ? (
+            <h3 className="text-base font-semibold text-foreground">
+              {section.title}
+            </h3>
+            {section.hasMore && section.totalCount ? (
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1"
+                className="h-7 px-2.5 text-xs text-primary hover:text-primary/80 gap-1 font-medium"
                 disabled={section.isLoadingMore}
                 onClick={() => onLoadMore?.(section.id)}
               >
                 {section.isLoadingMore ? (
                   <Loader2 className="w-3 h-3 animate-spin" />
                 ) : (
-                  <>
-                    Show more
-                    <ChevronDown className="w-3 h-3" />
-                  </>
+                  `See all ${section.totalCount}`
                 )}
               </Button>
-            ) : section.items.length > 3 ? (
-              <span className="text-xs text-muted-foreground italic">All shown</span>
             ) : null}
           </div>
 
           {/* Cards */}
           <div className="grid gap-3">
-            {section.items.map((item) => (
-              <ExplorePlaceCard
+            {section.items.map((item, idx) => (
+              <div
                 key={item.id}
-                attraction={item}
-                onNavigate={() => onNavigate(item)}
-                onAdd={() => onAdd(item)}
-              />
+                className={idx >= 3 ? 'animate-in fade-in slide-in-from-bottom-2 duration-300' : ''}
+              >
+                <ExplorePlaceCard
+                  attraction={item}
+                  onNavigate={() => onNavigate(item)}
+                  onAdd={() => onAdd(item)}
+                />
+              </div>
             ))}
           </div>
         </div>
