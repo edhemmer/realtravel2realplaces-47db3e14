@@ -84,7 +84,7 @@ Three-tier SaaS subscription:
 | Metric | Value |
 |--------|-------|
 | Tables in production | 18+ |
-| Edge functions | 10+ |
+| Edge functions | 14+ |
 | Unit tests | 250+ |
 | Features shipped | 100+ (see Feature Inventory) |
 | Database functions | 30+ security-definer functions |

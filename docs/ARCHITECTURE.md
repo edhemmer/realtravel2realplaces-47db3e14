@@ -84,7 +84,7 @@ src/
 └── main.tsx
 
 supabase/
-├── functions/           # 10+ Edge Functions
+├── functions/           # 14+ Edge Functions
 │   ├── _shared/         # Shared utilities (CORS, auth, AI client)
 │   ├── parse-booking/   # AI booking confirmation parser
 │   ├── parse-itinerary/ # AI itinerary parser
@@ -95,7 +95,9 @@ supabase/
 │   ├── normalize-airfare-costs/ # Cost normalization
 │   ├── send-companion-summary/ # Email notifications
 │   ├── trip-lifecycle-enforcement/ # Cron-authenticated lifecycle manager
-│   ├── places-search/   # Explore engine API
+│   ├── nearby-places/   # Google Places API search with photos (v4.8.0)
+│   ├── places-photo/    # Google Places photo proxy (v4.8.0)
+│   ├── places-search/   # Legacy places search
 │   ├── admin-get-support-tickets/
 │   └── admin-update-ticket-status/
 ├── migrations/          # Database migrations (read-only)
@@ -249,7 +251,7 @@ Sensitive data (emails, phone, TSA/FF numbers, confirmation codes) masked via se
 | Tier | Trip Limit | Key Features |
 |------|------------|-------------|
 | Free | 5 lifetime | Full trip management, expenses, packing, sharing |
-| Pro | Unlimited | Timeline events, health checklist, explore, reports, alerts |
+| Pro | Unlimited | Timeline events, health checklist, explore, reports, alerts, Google Places |
 | Business | Unlimited | All Pro + tour stops, business reporting |
 
 ### Gating Philosophy
@@ -345,6 +347,7 @@ Including: `user_owns_trip`, `user_has_trip_access`, `user_is_pro`, `trip_owner_
 | Dates never shift by timezone | String-based No-Math policy |
 | Flight dates extracted independently | DATE INDEPENDENCE prompt rule (v4.4.3) |
 | Missing data stays blank | `hasExplicitTime()` guards |
+| Explore shows real data counts | `totalCount` from actual API results, not query limits (v4.8.0) |
 
 ---
 

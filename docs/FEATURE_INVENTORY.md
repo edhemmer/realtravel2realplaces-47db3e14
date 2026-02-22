@@ -129,10 +129,14 @@ Complete list of implemented features organized by tier and domain.
 - Parking expiration indicators
 - Expense reminder banners
 
-### Explore Engine
-- Nearby attraction discovery
+### Explore Engine (v4.8.0)
+- Nearby attraction discovery via Google Places API (New)
+- Real photos, ratings, and review counts from Google Places (v4.8.0)
+- Photo proxy edge function to keep API keys server-side (v4.8.0)
 - Location-based: lodging address or device GPS
-- Category-based exploration
+- 8 category sections: Signature Attractions, Dining, Cafes & Coffee, Bars & Nightlife, Parks & Gardens, Hiking Trails, Museums & Culture, Grocery & Markets (v4.8.0)
+- "Right Now" diverse mix: top-scored items from each category with time-of-day and weather biasing (v4.7.0)
+- Per-section pagination: 3 items initially, "See all N" inline link to expand with fade+slide animation (v4.8.0)
 - Add-to-trip and add-to-timeline modals
 - Pre-arrival hints
 
@@ -226,9 +230,10 @@ Complete list of implemented features organized by tier and domain.
 
 ## Infrastructure
 
-- 10+ Edge Functions (AI parsing, notifications, lifecycle, admin)
+- 14+ Edge Functions (AI parsing, notifications, lifecycle, admin, places)
 - 30+ Database functions (security-definer)
 - 50+ RLS policies
 - Database triggers for event sync, permission validation, trip counting
 - Centralized API client with session expiration handling
 - Lovable AI gateway for AI operations (no user API keys required)
+- Google Places API integration with server-side photo proxy (v4.8.0)

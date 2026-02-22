@@ -67,6 +67,8 @@ v2.1.1 - Minor feature (Upcoming Events Strip)
 v2.1.2 - UX patch (Past Trips Visual De-Emphasis)
 v2.1.3 - UI: Parsing Confidence Hints (Bookings, Tour, Expenses)
 v2.1.6 - Technical: Tour/Bookings Separation via Canonical State
+v4.7.0 - Explore: Canonical ranking with time-of-day/weather biasing
+v4.8.0 - Explore: Google Places photos, grocery category, streamlined section UX
 ```
 
 ### Code Comments
