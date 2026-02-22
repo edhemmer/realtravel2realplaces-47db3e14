@@ -14,7 +14,7 @@ import { corsHeaders, handleCors } from "../_shared/cors.ts";
 interface NearbySearchRequest {
   lat: number;
   lng: number;
-  type: string; // 'gas_station' | 'restaurant'
+  type: string; // 'gas_station' | 'restaurant' | 'tourist_attraction' | 'museum' | 'park' | 'bar' | 'cafe' | etc.
   radiusMeters?: number;
   limit?: number;
 }
