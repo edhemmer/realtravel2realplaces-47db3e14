@@ -16,6 +16,7 @@ import {
 import { ContactSupportDialog } from '@/components/support/ContactSupportDialog';
 import { BrandHeader } from '@/components/BrandHeader';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
+import { FloatingHelpButton } from '@/components/FloatingHelpButton';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -108,6 +109,9 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Contact Support Dialog */}
       <ContactSupportDialog open={supportDialogOpen} onOpenChange={setSupportDialogOpen} />
+
+      {/* Floating help button */}
+      {user && <FloatingHelpButton />}
     </div>
   );
 }
