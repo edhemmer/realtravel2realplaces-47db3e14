@@ -64,9 +64,11 @@ Deno.serve(async (req) => {
     if (type === 'restaurant') {
       params.set('keyword', 'restaurant dining food');
     } else if (type === 'bar' || type === 'night_club') {
-      params.set('keyword', 'bar pub nightclub');
+      params.set('keyword', 'bar pub nightclub cocktail');
     } else if (type === 'cafe') {
       params.set('keyword', 'cafe coffee');
+    } else if (type === 'park') {
+      params.set('keyword', 'park garden nature trail');
     }
 
     const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?${params.toString()}`;
