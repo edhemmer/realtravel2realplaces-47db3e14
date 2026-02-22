@@ -70,12 +70,14 @@ export function ExplorePlaceCard({ attraction, onNavigate, onAdd }: ExplorePlace
                 </span>
               </>
             )}
-            <Badge
-              variant="secondary"
-              className={`text-[10px] px-1.5 py-0 ${getPriceBadgeClasses(attraction.priceLevel)}`}
-            >
-              {attraction.priceLevel === 'free' ? 'Free' : attraction.priceLevel}
-            </Badge>
+            {attraction.priceLevel && attraction.priceLevel !== 'unknown' && (
+              <Badge
+                variant="secondary"
+                className={`text-[10px] px-1.5 py-0 ${getPriceBadgeClasses(attraction.priceLevel)}`}
+              >
+                {attraction.priceLevel === 'free' ? 'Free' : attraction.priceLevel}
+              </Badge>
+            )}
             {showTicketBadge && (
               <Ticket className="w-3 h-3 text-amber-500" />
             )}
