@@ -7,7 +7,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Trip } from '@/types/database';
 import { AttractionSuggestion } from '@/types/attraction';
-import { useAttractions } from '@/hooks/useAttractions';
+import { useRealPlacesExplore } from '@/hooks/useRealPlacesExplore';
 import { useBookings } from '@/hooks/useBookings';
 import { useDeviceLocation } from '@/hooks/useDeviceLocation';
 import { getDeviceLocation } from '@/lib/deviceLocation';
@@ -112,8 +112,8 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
 
   const canFetch = origin !== null;
 
-  // v3.5.2 engine with optional query
-  const { data: attractions = [], isLoading, error, refetch } = useAttractions({
+  // v4.5.0: Real Places API via placesEngine
+  const { data: attractions = [], isLoading, error, refetch } = useRealPlacesExplore({
     lat: origin?.lat,
     lng: origin?.lng,
     radiusMiles: parseInt(radius),
