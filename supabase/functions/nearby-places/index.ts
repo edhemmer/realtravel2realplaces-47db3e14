@@ -1,9 +1,8 @@
 /**
- * v3.11.3: Nearby Places Search Edge Function
+ * v4.6.0: Nearby Places Search Edge Function
  *
- * Server-side proxy for Google Places Nearby Search.
- * Returns nearby gas stations, restaurants, etc.
- * Fails gracefully if GOOGLE_PLACES_API_KEY is not configured.
+ * Uses Google Places Text Search (New) API for accurate, relevant results.
+ * Falls back gracefully if GOOGLE_PLACES_API_KEY is not configured.
  *
  * Input: { lat, lng, type, radiusMeters, limit }
  * Output: { places: NearbyPlace[] }
@@ -14,7 +13,7 @@ import { corsHeaders, handleCors } from "../_shared/cors.ts";
 interface NearbySearchRequest {
   lat: number;
   lng: number;
-  type: string; // 'gas_station' | 'restaurant' | 'tourist_attraction' | 'museum' | 'park' | 'bar' | 'cafe' | etc.
+  type: string;
   radiusMeters?: number;
   limit?: number;
 }
@@ -26,6 +25,34 @@ interface NearbyPlace {
   rating: number | null;
   lat: number;
   lng: number;
+}
+
+/**
+ * Map our internal type to a Text Search query + includedType for accuracy.
+ * Text Search gives far better relevance than Nearby Search.
+ */
+function buildTextQuery(type: string, lat: number, lng: number): { textQuery: string; includedType?: string } {
+  switch (type) {
+    case 'restaurant':
+      return { textQuery: 'restaurants', includedType: 'restaurant' };
+    case 'bar':
+    case 'night_club':
+      return { textQuery: 'bars and pubs', includedType: 'bar' };
+    case 'cafe':
+      return { textQuery: 'cafes and coffee shops', includedType: 'cafe' };
+    case 'tourist_attraction':
+      return { textQuery: 'tourist attractions and landmarks', includedType: 'tourist_attraction' };
+    case 'museum':
+      return { textQuery: 'museums and galleries', includedType: 'museum' };
+    case 'park':
+      return { textQuery: 'parks nature trails and gardens', includedType: 'park' };
+    case 'gas_station':
+      return { textQuery: 'gas stations', includedType: 'gas_station' };
+    case 'convenience_store':
+      return { textQuery: 'convenience stores', includedType: 'convenience_store' };
+    default:
+      return { textQuery: type.replace(/_/g, ' ') };
+  }
 }
 
 Deno.serve(async (req) => {
@@ -52,30 +79,39 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Google Places Nearby Search
-    const params = new URLSearchParams({
-      location: `${lat},${lng}`,
-      radius: String(Math.min(radiusMeters, 50000)),
-      type,
-      key: apiKey,
-    });
+    const { textQuery, includedType } = buildTextQuery(type, lat, lng);
 
-    // Add keyword for better relevance on certain types
-    if (type === 'restaurant') {
-      params.set('keyword', 'restaurant dining food');
-    } else if (type === 'bar' || type === 'night_club') {
-      params.set('keyword', 'bar pub nightclub cocktail');
-    } else if (type === 'cafe') {
-      params.set('keyword', 'cafe coffee');
-    } else if (type === 'park') {
-      params.set('keyword', 'park garden nature trail');
+    // Use Text Search (New) API for accurate results
+    const requestBody: Record<string, unknown> = {
+      textQuery,
+      locationBias: {
+        circle: {
+          center: { latitude: lat, longitude: lng },
+          radius: Math.min(radiusMeters, 50000),
+        },
+      },
+      maxResultCount: Math.min(limit, 20),
+      rankPreference: 'DISTANCE',
+    };
+
+    if (includedType) {
+      requestBody.includedType = includedType;
     }
 
-    const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?${params.toString()}`;
-    const response = await fetch(url);
+    const url = 'https://places.googleapis.com/v1/places:searchText';
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': apiKey,
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.rating,places.location',
+      },
+      body: JSON.stringify(requestBody),
+    });
 
     if (!response.ok) {
-      console.error(`[nearby-places] Google API error: ${response.status}`);
+      const errText = await response.text();
+      console.error(`[nearby-places] Google Text Search API error: ${response.status}`, errText);
       return new Response(
         JSON.stringify({ places: [] }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -84,39 +120,18 @@ Deno.serve(async (req) => {
 
     const data = await response.json();
 
-    if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-      console.error(`[nearby-places] Google Places status: ${data.status}`);
-      return new Response(
-        JSON.stringify({ places: [] }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Filter out lodging results from non-lodging queries
-    const lodgingTypes = ['lodging', 'hotel'];
-    const nonLodgingQueryTypes = ['restaurant', 'bar', 'night_club', 'cafe', 'tourist_attraction', 'museum', 'park'];
-    const shouldFilterLodging = nonLodgingQueryTypes.includes(type);
-
-    const filtered = (data.results || []).filter((r: any) => {
-      if (!shouldFilterLodging) return true;
-      const placeTypes: string[] = r.types || [];
-      // Exclude if primary type is lodging (has lodging type AND name contains hotel/inn patterns)
-      const isLodging = placeTypes.some((t: string) => lodgingTypes.includes(t));
-      if (!isLodging) return true;
-      const nameLower = (r.name || '').toLowerCase();
-      return !(nameLower.includes('hotel') || nameLower.includes(' inn') || nameLower.includes('hostel') || nameLower.includes('premier inn') || nameLower.includes('travelodge'));
-    });
-
-    const places: NearbyPlace[] = filtered
+    const places: NearbyPlace[] = (data.places || [])
       .slice(0, limit)
-      .map((r: any) => ({
-        placeId: r.place_id || '',
-        name: r.name || '',
-        address: r.vicinity || '',
-        rating: r.rating ?? null,
-        lat: r.geometry?.location?.lat ?? 0,
-        lng: r.geometry?.location?.lng ?? 0,
+      .map((p: any) => ({
+        placeId: p.id || '',
+        name: p.displayName?.text || '',
+        address: p.formattedAddress || '',
+        rating: p.rating ?? null,
+        lat: p.location?.latitude ?? 0,
+        lng: p.location?.longitude ?? 0,
       }));
+
+    console.log(`[nearby-places] Text Search for "${textQuery}" returned ${places.length} results`);
 
     return new Response(
       JSON.stringify({ places }),
