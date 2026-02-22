@@ -32,24 +32,22 @@ export function ExploreSectionFeed({ sections, onNavigate, onAdd, onLoadMore }: 
       {sections.map((section) => (
         <div key={section.id} className="space-y-3">
           {/* Section header */}
-          <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-2 px-1">
             <h3 className="text-base font-semibold text-foreground">
               {section.title}
             </h3>
             {section.hasMore && section.totalCount ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2.5 text-xs text-primary hover:text-primary/80 gap-1 font-medium"
+              <button
+                className="text-xs text-primary hover:text-primary/80 font-medium disabled:opacity-50 shrink-0"
                 disabled={section.isLoadingMore}
                 onClick={() => onLoadMore?.(section.id)}
               >
                 {section.isLoadingMore ? (
                   <Loader2 className="w-3 h-3 animate-spin" />
                 ) : (
-                  `See all ${section.totalCount}`
+                  `· See all ${section.totalCount}`
                 )}
-              </Button>
+              </button>
             ) : null}
           </div>
 
