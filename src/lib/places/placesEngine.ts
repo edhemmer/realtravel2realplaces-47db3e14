@@ -59,7 +59,7 @@ function categoryToProviderType(category: PlacesCategory): string {
     case 'food': return 'restaurant';
     case 'essentials': return 'convenience_store';
     case 'attractions': return 'tourist_attraction';
-    case 'nature': return 'hiking_area';
+    case 'nature': return 'park';
     case 'culture': return 'museum';
     case 'nightlife': return 'bar';
     case 'cafe': return 'cafe';
