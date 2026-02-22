@@ -30,14 +30,29 @@ export function ExploreSectionFeed({ sections, onNavigate, onAdd, onLoadMore }: 
     <div className="space-y-8">
       {sections.map((section) => (
         <div key={section.id} className="space-y-3">
-          {/* Section header */}
+          {/* Section header with inline More */}
           <div className="flex items-center justify-between px-1">
             <h3 className="text-base font-semibold text-foreground">
               {section.title}
             </h3>
-            <span className="text-xs text-muted-foreground tabular-nums">
-              {section.items.length}
-            </span>
+            {section.hasMore && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground gap-1"
+                disabled={section.isLoadingMore}
+                onClick={() => onLoadMore?.(section.id)}
+              >
+                {section.isLoadingMore ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <>
+                    More
+                    <ChevronDown className="w-3 h-3" />
+                  </>
+                )}
+              </Button>
+            )}
           </div>
 
           {/* Cards */}
@@ -51,31 +66,6 @@ export function ExploreSectionFeed({ sections, onNavigate, onAdd, onLoadMore }: 
               />
             ))}
           </div>
-
-          {/* More pill */}
-          {section.hasMore && (
-            <div className="flex justify-center">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-xs text-muted-foreground hover:text-foreground gap-1.5"
-                disabled={section.isLoadingMore}
-                onClick={() => onLoadMore?.(section.id)}
-              >
-                {section.isLoadingMore ? (
-                  <>
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                    Loading…
-                  </>
-                ) : (
-                  <>
-                    More
-                    <ChevronDown className="w-3 h-3" />
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
         </div>
       ))}
     </div>
