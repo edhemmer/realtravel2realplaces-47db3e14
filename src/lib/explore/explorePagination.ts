@@ -26,7 +26,7 @@ export type CategoryPaginationMap = Record<string, CategoryPageState>;
 export const CATEGORY_PAGE_SIZE = 10;
 
 /** Initial visible count per section (matches ExploreSectionFeed INITIAL_SHOW) */
-export const INITIAL_VISIBLE = 4;
+export const INITIAL_VISIBLE = 3;
 
 // ============================================================================
 // HELPERS
