@@ -256,7 +256,7 @@ function generateGenericAttractions(): { name: string; category: string; locatio
     { name: 'Train Depot Museum', category: 'Museum', location: 'Downtown', desc: 'Restored railroad station with vintage trains and exhibits.' },
     { name: 'Farmers\' Market', category: 'Tourist Attraction', location: 'Downtown', desc: 'Fresh local produce, baked goods, and handmade crafts.' },
     { name: 'Evening Ghost Tour', category: 'Tour', location: 'Downtown', desc: 'Guided walking tour of haunted sites and local legends.' },
-    // v3.9.41: Dining lane — restaurants, cafes, bars
+    // v3.9.41: Dining lane — restaurants, cafes, bars (expanded for pagination depth)
     { name: 'Local Seafood Restaurant', category: 'Restaurant', location: 'Downtown', desc: 'Fresh catch of the day with waterfront or city views.' },
     { name: 'Farm-to-Table Bistro', category: 'Restaurant', location: 'Nearby', desc: 'Seasonal menu featuring locally sourced ingredients.' },
     { name: 'Traditional Regional Kitchen', category: 'Restaurant', location: 'Downtown', desc: 'Authentic local cuisine in a cozy, welcoming atmosphere.' },
@@ -267,6 +267,16 @@ function generateGenericAttractions(): { name: string; category: string; locatio
     { name: 'Pizzeria & Trattoria', category: 'Restaurant', location: 'Nearby', desc: 'Wood-fired pizza and classic pasta in a family-friendly setting.' },
     { name: 'Street Food Market', category: 'Restaurant', location: 'Downtown', desc: 'Open-air market with diverse food stalls and live music.' },
     { name: 'Craft Brewery & Kitchen', category: 'Bar', location: 'Nearby', desc: 'Locally brewed beers paired with pub-style food.' },
+    { name: 'Sushi & Ramen House', category: 'Restaurant', location: 'Downtown', desc: 'Authentic Japanese cuisine with fresh sushi and rich ramen bowls.' },
+    { name: 'Taco & Tequila Cantina', category: 'Restaurant', location: 'Nearby', desc: 'Vibrant Mexican eatery with street-style tacos and margaritas.' },
+    { name: 'Speakeasy Cocktail Lounge', category: 'Bar', location: 'Downtown', desc: 'Hidden entrance, vintage décor, and inventive craft cocktails.' },
+    { name: 'Waterfront Grill', category: 'Restaurant', location: 'Nearby', desc: 'Grilled steaks and seafood with sunset waterfront dining.' },
+    { name: 'Artisan Bakery & Café', category: 'Cafe', location: 'Downtown', desc: 'Fresh-baked breads, croissants, and gourmet sandwiches.' },
+    { name: 'Pho & Noodle Bar', category: 'Restaurant', location: 'Downtown', desc: 'Steaming Vietnamese pho and hand-pulled noodle dishes.' },
+    { name: 'Gastropub & Ale House', category: 'Bar', location: 'Nearby', desc: 'Upscale pub fare with rotating craft beer selections.' },
+    { name: 'Mediterranean Kitchen', category: 'Restaurant', location: 'Downtown', desc: 'Fresh hummus, kebabs, and wood-fired flatbreads.' },
+    { name: 'Dessert & Gelato Bar', category: 'Cafe', location: 'Nearby', desc: 'Artisan gelato, crêpes, and decadent pastries.' },
+    { name: 'BBQ Smokehouse', category: 'Restaurant', location: 'Nearby', desc: 'Slow-smoked ribs, brisket, and house-made sides.' },
   ];
 }
 
