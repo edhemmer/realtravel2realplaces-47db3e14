@@ -61,7 +61,7 @@ function categoryToProviderType(category: PlacesCategory): string {
     case 'attractions': return 'tourist_attraction';
     case 'nature': return 'park';
     case 'culture': return 'museum';
-    case 'nightlife': return 'bar';
+    case 'nightlife': return 'night_club';
     case 'cafe': return 'cafe';
     default: return 'gas_station';
   }
