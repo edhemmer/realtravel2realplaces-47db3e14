@@ -12,6 +12,7 @@ interface PaginatedSection {
   id: string;
   title: string;
   items: AttractionSuggestion[];
+  totalCount?: number;
   hasMore: boolean;
   isLoadingMore: boolean;
 }
@@ -32,10 +33,15 @@ export function ExploreSectionFeed({ sections, onNavigate, onAdd, onLoadMore }: 
         <div key={section.id} className="space-y-3">
           {/* Section header with inline More */}
           <div className="flex items-center justify-between px-1">
-            <h3 className="text-base font-semibold text-foreground">
-              {section.title}
-            </h3>
-            {section.hasMore && (
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-semibold text-foreground">
+                {section.title}
+              </h3>
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {section.items.length}{section.totalCount && section.totalCount > section.items.length ? `/${section.totalCount}` : ''}
+              </span>
+            </div>
+            {section.hasMore ? (
               <Button
                 variant="ghost"
                 size="sm"
@@ -47,12 +53,14 @@ export function ExploreSectionFeed({ sections, onNavigate, onAdd, onLoadMore }: 
                   <Loader2 className="w-3 h-3 animate-spin" />
                 ) : (
                   <>
-                    More
+                    Show more
                     <ChevronDown className="w-3 h-3" />
                   </>
                 )}
               </Button>
-            )}
+            ) : section.items.length > 3 ? (
+              <span className="text-xs text-muted-foreground italic">All shown</span>
+            ) : null}
           </div>
 
           {/* Cards */}

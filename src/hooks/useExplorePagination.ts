@@ -18,6 +18,7 @@ import {
 } from '@/lib/explore/explorePagination';
 
 export interface PaginatedSection extends ExploreSection {
+  totalCount: number;
   hasMore: boolean;
   isLoadingMore: boolean;
 }
@@ -72,6 +73,7 @@ export function useExplorePagination(sections: ExploreSection[], tripId: string)
         return {
           ...section,
           items: section.items.slice(0, INITIAL_VISIBLE),
+          totalCount: section.items.length,
           hasMore: section.items.length > INITIAL_VISIBLE,
           isLoadingMore: false,
         };
@@ -81,6 +83,7 @@ export function useExplorePagination(sections: ExploreSection[], tripId: string)
         id: section.id,
         title: section.title,
         items: getVisibleItems(pageState),
+        totalCount: pageState.items.length,
         hasMore: pageState.hasMore,
         isLoadingMore: pageState.isLoadingMore,
       };
