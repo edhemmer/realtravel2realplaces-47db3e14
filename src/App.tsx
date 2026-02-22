@@ -72,7 +72,7 @@ function AppRoutes() {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms" element={<Terms />} />
-      <Route path="/help" element={<HelpCenter />} />
+      <Route path="/help" element={<ProtectedRoute><HelpCenter /></ProtectedRoute>} />
       
       {/* Profile completion (authenticated but incomplete profile) */}
       <Route path="/complete-profile" element={<CompleteProfile />} />
