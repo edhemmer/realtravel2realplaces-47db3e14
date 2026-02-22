@@ -91,17 +91,23 @@ export function useRealPlacesExplore({
         })
       );
 
-      // Flatten + dedupe by placeId
-      const allItems = results.flat();
-      const seen = new Set<string>();
-      const deduped = allItems.filter((item) => {
-        if (seen.has(item.id)) return false;
-        seen.add(item.id);
-        return true;
-      });
+      // Flatten — dedupe within each category but allow same place in different categories
+      // so that e.g. a park that's also a tourist attraction appears in both sections
+      const allItems: AttractionSuggestion[] = [];
+      const seenPerCategory = new Map<string, Set<string>>();
+      
+      for (const categoryResults of results) {
+        for (const item of categoryResults) {
+          const catSet = seenPerCategory.get(item.category) ?? new Set();
+          if (catSet.has(item.id)) continue;
+          catSet.add(item.id);
+          seenPerCategory.set(item.category, catSet);
+          allItems.push(item);
+        }
+      }
 
       // Apply keyword filter if present
-      const filtered = query ? filterByQuery(deduped, query) : deduped;
+      const filtered = query ? filterByQuery(allItems, query) : allItems;
 
       // Sort by rating desc
       return filtered.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
