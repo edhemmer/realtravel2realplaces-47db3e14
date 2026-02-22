@@ -19,14 +19,14 @@ interface UseRealPlacesExploreOptions {
 
 /** Categories to query for Explore */
 const EXPLORE_CATEGORIES: { category: PlacesCategory; displayCategory: string; limit: number }[] = [
-  { category: 'attractions', displayCategory: 'Tourist Attraction', limit: 15 },
-  { category: 'food', displayCategory: 'Restaurant', limit: 15 },
-  { category: 'cafe', displayCategory: 'Cafe', limit: 8 },
-  { category: 'nightlife', displayCategory: 'Bar', limit: 8 },
-  { category: 'nature', displayCategory: 'Park', limit: 10 },
-  { category: 'hiking', displayCategory: 'Hiking Trail', limit: 8 },
-  { category: 'grocery', displayCategory: 'Grocery', limit: 8 },
-  { category: 'culture', displayCategory: 'Museum', limit: 10 },
+  { category: 'attractions', displayCategory: 'Tourist Attraction', limit: 20 },
+  { category: 'food', displayCategory: 'Restaurant', limit: 20 },
+  { category: 'cafe', displayCategory: 'Cafe', limit: 15 },
+  { category: 'nightlife', displayCategory: 'Bar', limit: 15 },
+  { category: 'nature', displayCategory: 'Park', limit: 15 },
+  { category: 'hiking', displayCategory: 'Hiking Trail', limit: 15 },
+  { category: 'culture', displayCategory: 'Museum', limit: 15 },
+  { category: 'grocery', displayCategory: 'Grocery', limit: 10 },
 ];
 
 function placeToAttraction(place: PlaceResult, displayCategory: string, index: number): AttractionSuggestion {

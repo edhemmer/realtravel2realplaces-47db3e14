@@ -1,19 +1,16 @@
 /**
- * v3.6.0: Canonical Explore Ranking & Sections helper
+ * v4.7.0: Canonical Explore Ranking & Sections
  *
- * Consumes v3.5.2 engine results and produces:
- *   - rightNow[]: 4-8 high-confidence items for horizontal carousel
- *   - sections[]: categorized vertical feed with stable IDs
+ * Produces:
+ *   - rightNow[]: Diverse mix across ALL categories (1-2 per category, max 10)
+ *   - sections[]: Every category as its own section with stable IDs
  *
- * Applies:
- *   - Final-stage dedupe (defensive, across all sections)
- *   - Time-of-day context boosts (morning/afternoon/evening)
- *   - Weather-aware biasing (indoor vs outdoor) if data available
- *   - Graceful fallback to v3.5.2 ordering when context missing
+ * Right Now picks the best item(s) from each category so users see
+ * a representative cross-section of what's nearby.
  */
 
 import { AttractionSuggestion } from '@/types/attraction';
-import { dedupeAttractions, rankAttractions } from '@/lib/mockAttractions';
+import { dedupeAttractions } from '@/lib/mockAttractions';
 
 // ============================================================================
 // TYPES
@@ -31,30 +28,39 @@ export interface ExploreSectionsResult {
 }
 
 // ============================================================================
-// CATEGORY MAPPING
+// CATEGORY → SECTION MAPPING
 // ============================================================================
 
 const SECTION_DEFS: { id: string; title: string; categories: string[] }[] = [
   {
-    id: 'signature',
+    id: 'attractions',
     title: 'Signature Attractions',
     categories: ['Tourist Attraction', 'Theme Park', 'Entertainment', 'Tour'],
   },
   {
-    // v3.9.41: Dining lane
     id: 'dining',
-    title: 'Dining & Drinks',
-    categories: ['Restaurant', 'Cafe', 'Bar'],
+    title: 'Dining',
+    categories: ['Restaurant'],
   },
   {
-    id: 'nature',
-    title: 'Nature & Trails',
-    categories: ['Hike', 'Nature Reserve', 'Park'],
+    id: 'cafes',
+    title: 'Cafes & Coffee',
+    categories: ['Cafe'],
   },
   {
-    id: 'viewpoints',
-    title: 'Viewpoints & Scenic',
-    categories: ['Viewpoint'],
+    id: 'nightlife',
+    title: 'Bars & Nightlife',
+    categories: ['Bar'],
+  },
+  {
+    id: 'parks',
+    title: 'Parks & Gardens',
+    categories: ['Park'],
+  },
+  {
+    id: 'hiking',
+    title: 'Hiking Trails',
+    categories: ['Hiking Trail'],
   },
   {
     id: 'culture',
@@ -62,9 +68,9 @@ const SECTION_DEFS: { id: string; title: string; categories: string[] }[] = [
     categories: ['Museum', 'Art Gallery', 'Visitor Center'],
   },
   {
-    id: 'historic',
-    title: 'Historic & Landmarks',
-    categories: ['Landmark', 'Historic Site', 'Monument'],
+    id: 'grocery',
+    title: 'Grocery & Markets',
+    categories: ['Grocery'],
   },
 ];
 
@@ -81,22 +87,18 @@ function getTimeBucket(): TimeBucket {
   return 'evening';
 }
 
-/** Small score boost for time-relevant categories */
 function timeBoost(category: string, bucket: TimeBucket): number {
   if (bucket === 'morning') {
-    // Hikes, nature best in morning
-    if (['Hike', 'Nature Reserve', 'Park', 'Viewpoint'].includes(category)) return 0.3;
+    if (['Hiking Trail', 'Park'].includes(category)) return 0.3;
+    if (['Cafe'].includes(category)) return 0.2;
   }
   if (bucket === 'afternoon') {
-    // Museums, indoor activities good for afternoon
-    if (['Museum', 'Art Gallery', 'Visitor Center', 'Tourist Attraction'].includes(category)) return 0.2;
-    if (['Cafe'].includes(category)) return 0.15; // v3.9.41: afternoon coffee
+    if (['Museum', 'Tourist Attraction'].includes(category)) return 0.2;
+    if (['Cafe'].includes(category)) return 0.15;
   }
   if (bucket === 'evening') {
-    // Entertainment, dining-adjacent
-    if (['Entertainment', 'Tour'].includes(category)) return 0.3;
-    if (['Viewpoint'].includes(category)) return 0.15; // sunset viewpoints
-    if (['Restaurant', 'Bar'].includes(category)) return 0.35; // v3.9.41: dinner/drinks
+    if (['Restaurant', 'Bar'].includes(category)) return 0.35;
+    if (['Entertainment'].includes(category)) return 0.3;
   }
   return 0;
 }
@@ -105,72 +107,42 @@ function timeBoost(category: string, bucket: TimeBucket): number {
 // WEATHER BIASING
 // ============================================================================
 
-const OUTDOOR_CATEGORIES = new Set([
-  'Hike', 'Nature Reserve', 'Park', 'Viewpoint', 'Landmark', 'Monument',
-]);
+const OUTDOOR = new Set(['Hiking Trail', 'Park']);
+const INDOOR = new Set(['Museum', 'Art Gallery', 'Restaurant', 'Cafe', 'Bar', 'Grocery', 'Entertainment']);
 
-const INDOOR_CATEGORIES = new Set([
-  'Museum', 'Art Gallery', 'Visitor Center', 'Entertainment', 'Theme Park',
-  'Restaurant', 'Cafe', 'Bar', // v3.9.41
-]);
-
-function weatherBias(
-  category: string,
-  weatherCondition?: string | null
-): number {
+function weatherBias(category: string, weatherCondition?: string | null): number {
   if (!weatherCondition) return 0;
   const cond = weatherCondition.toLowerCase();
-  const isRainy = cond.includes('rain') || cond.includes('shower') || cond.includes('storm');
-  const isSnowy = cond.includes('snow') || cond.includes('ice') || cond.includes('sleet');
-  const isBadWeather = isRainy || isSnowy;
-
-  if (isBadWeather) {
-    if (INDOOR_CATEGORIES.has(category)) return 0.4; // boost indoor
-    if (OUTDOOR_CATEGORIES.has(category)) return -0.3; // penalize outdoor
+  const bad = cond.includes('rain') || cond.includes('storm') || cond.includes('snow');
+  if (bad) {
+    if (INDOOR.has(category)) return 0.4;
+    if (OUTDOOR.has(category)) return -0.3;
   } else {
-    // Good weather: slight outdoor boost
-    if (OUTDOOR_CATEGORIES.has(category)) return 0.15;
+    if (OUTDOOR.has(category)) return 0.15;
   }
   return 0;
 }
 
 // ============================================================================
-// COMPOSITE SCORING
+// SCORING
 // ============================================================================
 
-function computeScore(
-  a: AttractionSuggestion,
-  timeBucket: TimeBucket,
-  weatherCondition?: string | null
-): number {
-  // Base: inverse distance (closer = higher), then rating, then reviews
-  const distScore = 1 / (1 + (a.distanceMiles ?? 50));
+function computeScore(a: AttractionSuggestion, timeBucket: TimeBucket, weatherCondition?: string | null): number {
   const ratingScore = (a.rating ?? 3) / 5;
   const reviewScore = Math.min((a.reviewCount ?? 0) / 10000, 1);
-
-  const base = distScore * 0.5 + ratingScore * 0.3 + reviewScore * 0.2;
-  const tBoost = timeBoost(a.category, timeBucket);
-  const wBias = weatherBias(a.category, weatherCondition);
-
-  return base + tBoost + wBias;
+  const base = ratingScore * 0.6 + reviewScore * 0.4;
+  return base + timeBoost(a.category, timeBucket) + weatherBias(a.category, weatherCondition);
 }
 
 // ============================================================================
 // PUBLIC API
 // ============================================================================
 
-/**
- * Produce sections from v3.5.2 ranked results.
- * @param attractions - Already deduped + ranked from v3.5.2 engine
- * @param weatherCondition - Optional current weather condition string
- */
 export function buildExploreSections(
   attractions: AttractionSuggestion[],
   weatherCondition?: string | null
 ): ExploreSectionsResult {
-  // Defensive dedupe
   const pool = dedupeAttractions(attractions);
-
   const timeBucket = getTimeBucket();
 
   // Score all items
@@ -179,41 +151,40 @@ export function buildExploreSections(
     score: computeScore(a, timeBucket, weatherCondition),
   }));
 
-  // Sort by score desc for "Right Now" picks
-  const sortedByScore = [...scored].sort((a, b) => b.score - a.score);
-
-  // Track used IDs to prevent cross-section duplication
-  const usedIds = new Set<string>();
-
-  // === RIGHT NOW: top 4-8 high-confidence items ===
+  // === RIGHT NOW: Pick top 1-2 from EACH category for diversity ===
   const rightNow: AttractionSuggestion[] = [];
-  for (const { item } of sortedByScore) {
-    if (rightNow.length >= 8) break;
-    if (!usedIds.has(item.id)) {
-      rightNow.push(item);
-      usedIds.add(item.id);
-    }
+  const categoryBuckets = new Map<string, typeof scored>();
+
+  for (const entry of scored) {
+    const cat = entry.item.category;
+    if (!categoryBuckets.has(cat)) categoryBuckets.set(cat, []);
+    categoryBuckets.get(cat)!.push(entry);
   }
 
-  // === SECTIONS ===
+  // Sort each bucket by score and pick top 1
+  for (const [, bucket] of categoryBuckets) {
+    bucket.sort((a, b) => b.score - a.score);
+    if (bucket.length > 0) rightNow.push(bucket[0].item);
+  }
+
+  // Sort Right Now by score descending, cap at 10
+  rightNow.sort((a, b) => computeScore(b, timeBucket, weatherCondition) - computeScore(a, timeBucket, weatherCondition));
+  if (rightNow.length > 10) rightNow.length = 10;
+
+  const rightNowIds = new Set(rightNow.map(i => i.id));
+
+  // === SECTIONS: All items per category (including Right Now items) ===
   const sections: ExploreSection[] = [];
 
   for (const def of SECTION_DEFS) {
     const categorySet = new Set(def.categories);
 
-    // Get items matching this section, sorted by score
-    const sectionScored = scored
-      .filter(({ item }) => categorySet.has(item.category) && !usedIds.has(item.id))
-      .sort((a, b) => b.score - a.score);
-
-    const sectionItems = sectionScored.map(({ item }) => item);
+    const sectionItems = scored
+      .filter(({ item }) => categorySet.has(item.category))
+      .sort((a, b) => b.score - a.score)
+      .map(({ item }) => item);
 
     if (sectionItems.length === 0) continue;
-
-    // Mark as used
-    for (const item of sectionItems) {
-      usedIds.add(item.id);
-    }
 
     sections.push({
       id: def.id,
@@ -222,9 +193,10 @@ export function buildExploreSections(
     });
   }
 
-  // Catch any uncategorized items and add to nearest section or create "More to Explore"
+  // Catch uncategorized
+  const allSectionCategories = new Set(SECTION_DEFS.flatMap(d => d.categories));
   const uncategorized = scored
-    .filter(({ item }) => !usedIds.has(item.id))
+    .filter(({ item }) => !allSectionCategories.has(item.category))
     .sort((a, b) => b.score - a.score)
     .map(({ item }) => item);
 
