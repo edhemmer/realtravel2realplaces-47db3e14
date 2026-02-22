@@ -23,7 +23,7 @@ const EXPLORE_CATEGORIES: { category: PlacesCategory; displayCategory: string; l
   { category: 'food', displayCategory: 'Restaurant', limit: 15 },
   { category: 'cafe', displayCategory: 'Cafe', limit: 8 },
   { category: 'nightlife', displayCategory: 'Bar', limit: 8 },
-  { category: 'nature', displayCategory: 'Park', limit: 10 },
+  { category: 'nature', displayCategory: 'Hike', limit: 10 },
   { category: 'culture', displayCategory: 'Museum', limit: 10 },
 ];
 

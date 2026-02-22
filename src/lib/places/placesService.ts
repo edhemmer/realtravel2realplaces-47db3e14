@@ -17,7 +17,7 @@ export interface NearbyPlace {
   lng: number;
 }
 
-export type PlaceType = 'gas_station' | 'restaurant' | 'convenience_store' | 'tourist_attraction' | 'museum' | 'park' | 'bar' | 'cafe' | 'art_gallery' | 'amusement_park' | 'night_club';
+export type PlaceType = 'gas_station' | 'restaurant' | 'convenience_store' | 'tourist_attraction' | 'museum' | 'park' | 'bar' | 'cafe' | 'art_gallery' | 'amusement_park' | 'night_club' | 'hiking_area';
 
 interface FetchNearbyPlacesParams {
   lat: number;
