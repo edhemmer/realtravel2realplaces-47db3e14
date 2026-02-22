@@ -25,6 +25,7 @@ const EXPLORE_CATEGORIES: { category: PlacesCategory; displayCategory: string; l
   { category: 'nightlife', displayCategory: 'Bar', limit: 8 },
   { category: 'nature', displayCategory: 'Park', limit: 10 },
   { category: 'hiking', displayCategory: 'Hiking Trail', limit: 8 },
+  { category: 'grocery', displayCategory: 'Grocery', limit: 8 },
   { category: 'culture', displayCategory: 'Museum', limit: 10 },
 ];
 

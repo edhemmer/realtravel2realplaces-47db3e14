@@ -15,7 +15,7 @@ import { fetchNearbyPlaces } from './placesService';
 // CANONICAL TYPES
 // ============================================================================
 
-export type PlacesCategory = 'gas' | 'food' | 'essentials' | 'attractions' | 'nature' | 'hiking' | 'culture' | 'nightlife' | 'cafe';
+export type PlacesCategory = 'gas' | 'food' | 'essentials' | 'attractions' | 'nature' | 'hiking' | 'grocery' | 'culture' | 'nightlife' | 'cafe';
 export type PlacesPlanContext = 'free' | 'pro' | 'business';
 export type PlacesSourceContext = 'explore' | 'drive_suggestions';
 
@@ -61,6 +61,7 @@ function categoryToProviderType(category: PlacesCategory): string {
     case 'attractions': return 'tourist_attraction';
     case 'nature': return 'park';
     case 'hiking': return 'hiking_trail';
+    case 'grocery': return 'grocery_store';
     case 'culture': return 'museum';
     case 'nightlife': return 'night_club';
     case 'cafe': return 'cafe';
