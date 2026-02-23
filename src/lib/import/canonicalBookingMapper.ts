@@ -1,8 +1,11 @@
 /**
- * v4.4.0C: Canonical Booking Mapper
+ * v3.9.24: Canonical Booking Mapper
  *
  * Maps a CanonicalImportBatch (from email pipeline or parse-booking response)
  * into BookingInput[] suitable for DB insertion via useCreateBooking.
+ *
+ * v3.9.24: Uses centralized classifyCandidate() for declined/receipt filtering.
+ * Declined-only bookings (e.g., ON3B8G) produce NOTHING — no booking, no expense.
  *
  * Rules:
  * - If canonical_import exists with bookings[], each CanonicalBooking becomes one booking row.
@@ -13,6 +16,7 @@
 
 import type { CanonicalBooking, CanonicalImportBatch } from './canonicalBookingMapper.types';
 import { isDeclinedCanonicalBooking } from './flightCostIntelligence';
+import { classifyCandidate } from '@/lib/parseContract';
 
 // Re-export the types from the edge function contract for frontend use
 export type { CanonicalBooking, CanonicalImportBatch };
@@ -250,16 +254,34 @@ export function buildBookingsFromCanonicalImport(
   const batch = extractCanonicalBatch(parsedData);
   if (!batch || batch.bookings.length === 0) return null;
 
-  // v3.9.9: Filter out declined/cancelled bookings
+  // v3.9.24: Use centralized classifyCandidate for each booking
   const activeBookings: CanonicalBooking[] = [];
   const ignoredImports: Array<{ booking: CanonicalBooking; reason: string }> = [];
 
   for (const cb of batch.bookings) {
-    if (isDeclinedCanonicalBooking(cb as unknown as Record<string, unknown>)) {
+    const classification = classifyCandidate(cb as unknown as Record<string, unknown>);
+    
+    if (classification === 'IGNORE') {
       ignoredImports.push({ booking: cb, reason: 'DECLINED_OR_CANCELLED' });
+    } else if (classification === 'RECEIPT') {
+      // Receipts handled separately — not as bookings
+      ignoredImports.push({ booking: cb, reason: 'RECEIPT_ONLY' });
     } else {
-      activeBookings.push(cb);
+      // BOOKING — also apply legacy declined check as safety net
+      if (isDeclinedCanonicalBooking(cb as unknown as Record<string, unknown>)) {
+        ignoredImports.push({ booking: cb, reason: 'DECLINED_OR_CANCELLED' });
+      } else {
+        activeBookings.push(cb);
+      }
     }
+  }
+
+  if (import.meta.env.DEV && ignoredImports.length > 0) {
+    console.log('[CANONICAL_MAPPER] IGNORED_BOOKINGS', ignoredImports.map(i => ({
+      vendor: i.booking.vendor_name,
+      confirmation: i.booking.confirmation_number,
+      reason: i.reason,
+    })));
   }
 
   const bookings = activeBookings.map((cb) =>
