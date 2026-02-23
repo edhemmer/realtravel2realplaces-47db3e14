@@ -1,9 +1,10 @@
 /**
- * v3.9.24: Canonical Parse Contract (Client Mirror)
+ * v3.9.25: Canonical Parse Contract (Client Mirror)
  * 
  * Client-side mirror of supabase/functions/_shared/parse-contract.ts
  * for UI rendering of classification, issues, and required field labels.
  *
+ * v3.9.25: No changes to classification logic — block parser is in pipeline layer.
  * v3.9.24: Adds centralized ImportClassification + classifyCandidate()
  */
 

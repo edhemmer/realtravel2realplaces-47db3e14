@@ -1,8 +1,12 @@
 /**
- * v4.5.0: Parse Booking Edge Function
+ * v3.9.25: Parse Booking Edge Function
  * 
  * Uses the canonical parse contract for document classification,
  * required field enforcement, and receipt handling across ALL entity types.
+ * 
+ * v3.9.25: LINE-BREAK TOLERANT FLIGHT PARSING
+ * - Raw text is normalized (blank-line collapse, invisible char strip) before AI
+ * - Normalization is parse-time only — raw text is NOT modified for storage
  * 
  * MULTI-LEG PRESERVATION (v4.5.0):
  * - AI tool schema includes a `flight_legs` array for multi-leg itineraries
@@ -37,6 +41,45 @@ import {
   type CanonicalImportBatch,
   deriveTripDatesFromBookings,
 } from "../_shared/import-contract.ts";
+
+// ============================================================================
+// v3.9.25: TEXT NORMALIZATION (parse-time only)
+// ============================================================================
+
+const INVISIBLE_CHARS_RE = /[\u200B\u200C\u200D\u00AD\uFEFF\u2060\u180E\u034F\u2028\u2029]/g;
+
+/**
+ * Normalize raw confirmation text for AI parsing.
+ * Collapses blank lines, strips invisible chars, trims lines.
+ * Parse-time only — never persisted.
+ */
+function normalizeForParsing(rawText: string): string {
+  if (!rawText) return rawText;
+  const cleaned = rawText.replace(INVISIBLE_CHARS_RE, '');
+  const lines = cleaned.split(/\r?\n/);
+  const result: string[] = [];
+  let lastWasBlank = true;
+
+  for (const raw of lines) {
+    const trimmed = raw.trim();
+    if (trimmed.length === 0) {
+      if (!lastWasBlank) {
+        result.push('');
+        lastWasBlank = true;
+      }
+      continue;
+    }
+    result.push(trimmed);
+    lastWasBlank = false;
+  }
+
+  // Remove trailing blank
+  while (result.length > 0 && result[result.length - 1] === '') {
+    result.pop();
+  }
+
+  return result.join('\n');
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -262,6 +305,10 @@ serve(async (req) => {
       }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // ── v3.9.25: Normalize text for parsing (collapse blank lines, strip invisible chars) ──
+    // This is parse-time only — the original raw text is NOT modified for storage.
+    const normalizedText = normalizeForParsing(text);
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
@@ -410,7 +457,7 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
           model: "google/gemini-2.5-flash",
           messages: [
             { role: "system", content: systemPrompt },
-            { role: "user", content: text },
+            { role: "user", content: normalizedText },
           ],
           tools: [
             {
