@@ -1,9 +1,13 @@
 /**
- * v4.2.0: Canonical Parse Contract (Client Mirror)
+ * v3.9.24: Canonical Parse Contract (Client Mirror)
  * 
  * Client-side mirror of supabase/functions/_shared/parse-contract.ts
  * for UI rendering of classification, issues, and required field labels.
+ *
+ * v3.9.24: Adds centralized ImportClassification + classifyCandidate()
  */
+
+import { isDeclinedOrCancelled } from '@/lib/import/flightCostIntelligence';
 
 // ============================================================================
 // DOCUMENT CLASSIFICATION
@@ -90,6 +94,74 @@ export function hasParseIssues(parsed: Record<string, unknown>): boolean {
  */
 export function getParseIssues(parsed: Record<string, unknown>): ParseIssue[] {
   return (parsed._parse_issues as ParseIssue[]) || [];
+}
+
+// ============================================================================
+// CENTRALIZED IMPORT CLASSIFICATION (v3.9.24)
+// ============================================================================
+
+/**
+ * Import classification determines how a parsed candidate is persisted.
+ * - BOOKING: Create booking + linked expense + timeline
+ * - RECEIPT: Create expense only (no booking, no timeline)
+ * - IGNORE:  Persist nothing (declined, failed, cancelled, or empty)
+ */
+export type ImportClassification = 'BOOKING' | 'RECEIPT' | 'IGNORE';
+
+/**
+ * Centralized, deterministic classification for any parsed candidate.
+ * ALL intake paths (paste, email, drag-drop, OCR) MUST call this before persistence.
+ *
+ * Rules:
+ * 1. IGNORE if all payments for the candidate are declined/failed/cancelled
+ * 2. BOOKING if candidate has valid itinerary structure (airports + date + time + traveler for flights,
+ *    or start_datetime for other booking types)
+ * 3. RECEIPT if no itinerary but valid payment structure exists
+ * 4. IGNORE if none of the above
+ */
+export function classifyCandidate(parsed: Record<string, unknown>): ImportClassification {
+  // Step 1: Check for declined/failed/cancelled — always IGNORE
+  if (isDeclinedOrCancelled(parsed)) {
+    return 'IGNORE';
+  }
+
+  // Step 2: Check for valid itinerary structure → BOOKING
+  const bookingType = (parsed.booking_type as string) || '';
+  const hasServiceDate = !!(parsed.start_datetime && String(parsed.start_datetime).trim().length >= 10);
+
+  if (bookingType === 'flight') {
+    // Flights require: origin + destination + departure date + departure time + traveler
+    const hasOrigin = !!(parsed.departure_airport_code || parsed.from_location);
+    const hasDestination = !!(parsed.arrival_airport_code || parsed.to_location);
+    const hasTime = hasServiceDate && /T\d{2}:\d{2}|(\d{1,2}:\d{2})/.test(String(parsed.start_datetime));
+    const hasTraveler = !!(parsed.passenger_name && String(parsed.passenger_name).trim());
+
+    if (hasOrigin && hasDestination && hasServiceDate && hasTime && hasTraveler) {
+      return 'BOOKING';
+    }
+    // Relaxed: even without time or traveler, if we have airports + date, it's still a booking
+    if (hasOrigin && hasDestination && hasServiceDate) {
+      return 'BOOKING';
+    }
+  } else if (hasServiceDate && bookingType && bookingType !== 'other') {
+    // Non-flight booking types: start_datetime is sufficient
+    return 'BOOKING';
+  } else if (hasServiceDate) {
+    // Generic: has a service date → booking
+    return 'BOOKING';
+  }
+
+  // Step 3: Check for receipt structure → RECEIPT
+  const isReceipt = isReceiptClassification(parsed);
+  const hasCost = typeof parsed.total_cost === 'number' && parsed.total_cost > 0;
+  const hasVendor = !!(parsed.vendor_name && String(parsed.vendor_name).trim());
+
+  if (isReceipt || (hasCost && !hasServiceDate)) {
+    return 'RECEIPT';
+  }
+
+  // Step 4: Nothing usable → IGNORE
+  return 'IGNORE';
 }
 
 /**

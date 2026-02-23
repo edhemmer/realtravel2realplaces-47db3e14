@@ -1,23 +1,16 @@
 /**
- * v3.9.9: Canonical Import Pipeline
+ * v3.9.24: Canonical Import Pipeline (Classification Fix)
  * 
  * This is the ONE entry point for all booking/confirmation parsing in the app.
  * Every UI entry point (BookingsTab paste, BookingsTab photo, CreateTripDialog
  * itinerary parse, DropzoneIntake file processing) MUST route through this pipeline.
  * 
- * ENTRY POINTS AUDITED (v3.9.9):
- * 1. BookingsTab — parse-booking (text paste)           → runCanonicalImportPipeline
- * 2. BookingsTab — parse-booking-image (photo upload)   → runCanonicalImportPipeline
- * 3. CreateTripDialog — parse-itinerary (onboarding)    → runCanonicalImportPipeline
- * 4. DropzoneIntake — parse-booking-image (drag-drop)   → runCanonicalImportPipeline
- * 
- * NOT IN SCOPE (receipt/expense parsing — separate domain):
- * 5. ExpensesTab — parse-receipt-image
- * 6. ExpensesTab — parse-booking (type: 'receipt')
- * 7. GasExpenseDialog — parse-receipt-image
+ * v3.9.24: Classification is now centralized via classifyCandidate() from parseContract.
+ * Mixed confirmations (e.g., Vueling + Wizz forward) are decomposed per-candidate,
+ * and declined-only bookings produce NOTHING (no expense, no booking, no review entry).
  * 
  * Pipeline steps (in order):
- * 1. CLASSIFY — Document classification (CONFIRMATION | RECEIPT | CHANGE_OR_CANCEL | UNKNOWN)
+ * 1. CLASSIFY — Centralized via classifyCandidate() → BOOKING | RECEIPT | IGNORE
  * 2. STAGE — Parse into staged items without writing to DB
  * 3. VALIDATE — Required fields, date chronology, trip frame coherence
  * 4. RESULT — Return structured result; caller decides UI treatment
@@ -32,8 +25,10 @@
 
 import {
   isReceiptClassification,
+  classifyCandidate,
   REQUIRED_FIELDS_BY_ENTITY,
   type DocClassification,
+  type ImportClassification,
   type ParseIssue,
 } from '@/lib/parseContract';
 
@@ -49,13 +44,15 @@ import { normalizeDatetimeForStorage } from '@/lib/datetimeIntegrity';
 // TYPES
 // ============================================================================
 
-export type PipelineStatus = 'PASS' | 'NEEDS_REVIEW' | 'FAIL' | 'RECEIPT_ONLY';
+export type PipelineStatus = 'PASS' | 'NEEDS_REVIEW' | 'FAIL' | 'RECEIPT_ONLY' | 'ALL_IGNORED';
 
 export interface StagedItem {
   /** Original parsed data from edge function */
   parsed: Record<string, unknown>;
-  /** Document classification */
+  /** Document classification (legacy) */
   classification: DocClassification;
+  /** v3.9.24: Centralized import classification */
+  importClassification: ImportClassification;
   /** Required field issues (null = all required fields present) */
   requiredFieldIssue: ParseIssue | null;
   /** Time validation result */
@@ -88,9 +85,13 @@ export interface CanonicalImportResult {
 }
 
 // ============================================================================
-// CLASSIFICATION + REQUIRED FIELD ENFORCEMENT (client-side mirrors)
+// CLASSIFICATION (v3.9.24: now delegates to centralized classifyCandidate)
 // ============================================================================
 
+/**
+ * Legacy doc classification — kept for backward compat in StagedItem.
+ * The authoritative classification is now importClassification.
+ */
 function classifyDocumentLocal(
   parsed: Record<string, unknown>,
   hasServiceDates: boolean,
@@ -145,14 +146,25 @@ function stageItem(
   const bookingType = (parsed.booking_type as string) || 'other';
   const hasServiceDates = !!(parsed.start_datetime && String(parsed.start_datetime).trim());
 
-  // Step 1: CLASSIFY
+  // v3.9.24: Centralized classification — single source of truth
+  const importClassification = classifyCandidate(parsed);
+
+  // Legacy doc classification for backward compat
   const classification = classifyDocumentLocal(parsed, hasServiceDates);
 
-  // If receipt → mark as non-importable immediately
-  if (classification === 'RECEIPT' || parsed.is_receipt_only === true) {
+  // IGNORE → produce nothing (declined, failed, cancelled, empty)
+  if (importClassification === 'IGNORE') {
+    if (import.meta.env.DEV) {
+      console.log('[IMPORT_PIPELINE] IGNORED candidate', {
+        vendor: parsed.vendor_name,
+        confirmation: parsed.confirmation_number,
+        reason: 'classifyCandidate returned IGNORE',
+      });
+    }
     return {
       parsed,
-      classification: 'RECEIPT',
+      classification: classification === 'RECEIPT' ? 'RECEIPT' : 'UNKNOWN',
+      importClassification: 'IGNORE',
       requiredFieldIssue: null,
       timeValidation: null,
       timeIsEstimated: false,
@@ -161,10 +173,23 @@ function stageItem(
     };
   }
 
-  // Step 3: VALIDATE — Required fields
+  // RECEIPT → expense only, no booking
+  if (importClassification === 'RECEIPT') {
+    return {
+      parsed,
+      classification: 'RECEIPT',
+      importClassification: 'RECEIPT',
+      requiredFieldIssue: null,
+      timeValidation: null,
+      timeIsEstimated: false,
+      bookingType,
+      isImportable: false,
+    };
+  }
+
+  // BOOKING → validate required fields + times
   const requiredFieldIssue = enforceRequiredFieldsLocal(parsed, bookingType);
 
-  // Step 3b: VALIDATE — Time validation
   let timeValidation: IngestionValidationResult | null = null;
   let timeIsEstimated = false;
 
@@ -181,19 +206,17 @@ function stageItem(
     }
   }
 
-  // Check if time info is explicit
   const startDt = parsed.start_datetime as string | undefined;
   if (!startDt || !/T\d{2}:\d{2}/.test(startDt)) {
     timeIsEstimated = true;
   }
 
-  // Importable = no blocking required field issues
-  // Time low-confidence is a WARNING, not a block (user reviews in form)
   const isImportable = !requiredFieldIssue;
 
   return {
     parsed,
     classification,
+    importClassification: 'BOOKING',
     requiredFieldIssue,
     timeValidation,
     timeIsEstimated,
@@ -232,20 +255,32 @@ export function runCanonicalImportPipeline(
 
   const stagedItems = parsedItems.map(p => stageItem(p, rawText));
 
-  const receiptItems = stagedItems.filter(s => s.classification === 'RECEIPT');
-  const bookingItems = stagedItems.filter(s => s.classification !== 'RECEIPT');
+  // v3.9.24: Filter using centralized importClassification
+  const ignoredItems = stagedItems.filter(s => s.importClassification === 'IGNORE');
+  const receiptItems = stagedItems.filter(s => s.importClassification === 'RECEIPT');
+  const bookingItems = stagedItems.filter(s => s.importClassification === 'BOOKING');
   const importableItems = bookingItems.filter(s => s.isImportable);
   const needsAttentionItems = bookingItems.filter(s => !s.isImportable);
 
-  // Collect all issues
+  // Dev logging for ignored items
+  if (import.meta.env.DEV && ignoredItems.length > 0) {
+    console.log('[IMPORT_PIPELINE] IGNORED_COUNT', ignoredItems.length, ignoredItems.map(i => ({
+      vendor: i.parsed.vendor_name,
+      confirmation: i.parsed.confirmation_number,
+    })));
+  }
+
+  // Collect all issues (only from non-ignored items)
   const allIssues: ParseIssue[] = [];
-  for (const item of stagedItems) {
+  for (const item of [...bookingItems, ...receiptItems]) {
     if (item.requiredFieldIssue) allIssues.push(item.requiredFieldIssue);
   }
 
   // Determine overall status
   let status: PipelineStatus;
-  if (bookingItems.length === 0 && receiptItems.length > 0) {
+  if (bookingItems.length === 0 && receiptItems.length === 0 && ignoredItems.length > 0) {
+    status = 'ALL_IGNORED';
+  } else if (bookingItems.length === 0 && receiptItems.length > 0) {
     status = 'RECEIPT_ONLY';
   } else if (importableItems.length === bookingItems.length && bookingItems.length > 0) {
     status = 'PASS';
@@ -297,6 +332,8 @@ function buildSummary(
       return `${importable} booking${importable !== 1 ? 's' : ''} ready. ${needsAttention} need${needsAttention !== 1 ? '' : 's'} review.`;
     case 'RECEIPT_ONLY':
       return `${receipts} receipt${receipts !== 1 ? 's' : ''} detected. Receipts are processed as expenses, not bookings.`;
+    case 'ALL_IGNORED':
+      return 'All items were declined, cancelled, or contained no usable data. Nothing was imported.';
     case 'FAIL':
       return needsAttention > 0
         ? `${needsAttention} item${needsAttention !== 1 ? 's' : ''} need review before import.`
