@@ -1,9 +1,13 @@
 /**
- * v3.9.24: Canonical Import Pipeline (Classification Fix)
+ * v3.9.25: Canonical Import Pipeline (Line-Break Tolerant Flight Parsing)
  * 
  * This is the ONE entry point for all booking/confirmation parsing in the app.
  * Every UI entry point (BookingsTab paste, BookingsTab photo, CreateTripDialog
  * itinerary parse, DropzoneIntake file processing) MUST route through this pipeline.
+ * 
+ * v3.9.25: Adds block-based flight leg detection fallback for multi-line airline
+ * emails (e.g. Vueling). If AI returns a flight candidate with no legs/airports,
+ * the block parser attempts to detect legs from the raw text.
  * 
  * v3.9.24: Classification is now centralized via classifyCandidate() from parseContract.
  * Mixed confirmations (e.g., Vueling + Wizz forward) are decomposed per-candidate,
@@ -39,6 +43,12 @@ import {
 } from '@/lib/bookingIngestionValidator';
 
 import { normalizeDatetimeForStorage } from '@/lib/datetimeIntegrity';
+import {
+  detectFlightLegsFromBlocks,
+  deduplicateDetectedLegs,
+  extractBookingCode,
+  type BlockDetectedLeg,
+} from '@/lib/ingestion/flightBlockParser';
 
 // ============================================================================
 // TYPES
@@ -136,6 +146,57 @@ function enforceRequiredFieldsLocal(
 }
 
 // ============================================================================
+// v3.9.25: BLOCK PARSER FALLBACK FOR FLIGHT ENRICHMENT
+// ============================================================================
+
+/**
+ * Try to enrich a flight parsed record using block-based leg detection.
+ * Only runs when AI missed flight legs (no start_datetime, no flight_legs).
+ * Mutates parsed in place. Returns true if enrichment occurred.
+ */
+function tryEnrichWithBlockParser(
+  parsed: Record<string, unknown>,
+  rawText: string,
+): boolean {
+  // Only enrich if AI didn't already detect legs
+  const existingLegs = parsed.flight_legs as unknown[] | undefined;
+  if (existingLegs && Array.isArray(existingLegs) && existingLegs.length > 0) return false;
+  if (parsed.start_datetime && String(parsed.start_datetime).trim().length >= 10) return false;
+
+  const bookingCode = extractBookingCode(rawText) || (parsed.confirmation_number as string) || null;
+  const rawLegs = detectFlightLegsFromBlocks(rawText);
+  if (rawLegs.length === 0) return false;
+
+  const legs = deduplicateDetectedLegs(rawLegs, bookingCode);
+  if (legs.length === 0) return false;
+
+  // Convert to flight_legs format expected by the canonical booking builder
+  const flightLegs: Array<Record<string, unknown>> = legs.map((leg) => ({
+    flight_number: leg.flightNumber,
+    departure_airport_code: leg.originAirportCode,
+    arrival_airport_code: leg.destinationAirportCode,
+    departure_airport_name: leg.originAirportName,
+    arrival_airport_name: leg.destinationAirportName,
+    from_location: leg.originAirportName,
+    to_location: leg.destinationAirportName,
+    // Build ISO-ish datetime from date + time for classification to detect
+    start_datetime: `${leg.departureDate} ${leg.departureTime}`,
+    end_datetime: `${leg.departureDate} ${leg.arrivalTime}`,
+  }));
+
+  parsed.flight_legs = flightLegs;
+
+  // Also set top-level fields from first leg so classifyCandidate sees a valid flight
+  const first = legs[0];
+  if (!parsed.departure_airport_code) parsed.departure_airport_code = first.originAirportCode;
+  if (!parsed.arrival_airport_code) parsed.arrival_airport_code = first.destinationAirportCode;
+  if (!parsed.start_datetime) parsed.start_datetime = `${first.departureDate} ${first.departureTime}`;
+  if (!parsed.confirmation_number && bookingCode) parsed.confirmation_number = bookingCode;
+
+  return true;
+}
+
+// ============================================================================
 // STAGING (Step 2)
 // ============================================================================
 
@@ -145,6 +206,22 @@ function stageItem(
 ): StagedItem {
   const bookingType = (parsed.booking_type as string) || 'other';
   const hasServiceDates = !!(parsed.start_datetime && String(parsed.start_datetime).trim());
+
+  // v3.9.25: Block-based flight leg fallback
+  // If AI returned a flight but missed legs/airports, try block detection from raw text
+  if (rawText && bookingType === 'flight' && !hasServiceDates) {
+    const enriched = tryEnrichWithBlockParser(parsed, rawText);
+    if (enriched) {
+      // Re-check service dates after enrichment
+      const enrichedHasDates = !!(parsed.start_datetime && String(parsed.start_datetime).trim());
+      if (enrichedHasDates && import.meta.env.DEV) {
+        console.log('[IMPORT_PIPELINE] Block parser enriched flight candidate', {
+          vendor: parsed.vendor_name,
+          flightLegs: (parsed.flight_legs as unknown[])?.length ?? 0,
+        });
+      }
+    }
+  }
 
   // v3.9.24: Centralized classification — single source of truth
   const importClassification = classifyCandidate(parsed);
