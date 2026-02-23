@@ -35,6 +35,7 @@ import {
   type ImportClassification,
   type ParseIssue,
 } from '@/lib/parseContract';
+import { isDeclinedOrCancelled } from '@/lib/import/flightCostIntelligence';
 
 import {
   validateParsedBookingTimes,
@@ -179,21 +180,55 @@ function tryEnrichWithBlockParser(
     arrival_airport_name: leg.destinationAirportName,
     from_location: leg.originAirportName,
     to_location: leg.destinationAirportName,
-    // Build ISO-ish datetime from date + time for classification to detect
     start_datetime: `${leg.departureDate} ${leg.departureTime}`,
     end_datetime: `${leg.departureDate} ${leg.arrivalTime}`,
   }));
 
   parsed.flight_legs = flightLegs;
 
-  // Also set top-level fields from first leg so classifyCandidate sees a valid flight
+  // Set top-level fields from first leg so classifyCandidate sees a valid flight
   const first = legs[0];
   if (!parsed.departure_airport_code) parsed.departure_airport_code = first.originAirportCode;
   if (!parsed.arrival_airport_code) parsed.arrival_airport_code = first.destinationAirportCode;
   if (!parsed.start_datetime) parsed.start_datetime = `${first.departureDate} ${first.departureTime}`;
   if (!parsed.confirmation_number && bookingCode) parsed.confirmation_number = bookingCode;
 
+  // v3.9.25b: Extract passenger names and vendor from raw text if missing
+  if (!parsed.passenger_name || !String(parsed.passenger_name).trim()) {
+    const passengers = extractPassengersFromRaw(rawText);
+    if (passengers) parsed.passenger_name = passengers;
+  }
+  if (!parsed.vendor_name || !String(parsed.vendor_name).trim()) {
+    const vendor = extractVendorFromRaw(rawText);
+    if (vendor) parsed.vendor_name = vendor;
+  }
+
   return true;
+}
+
+/** Extract passenger names from raw text near "Passengers" section */
+function extractPassengersFromRaw(rawText: string): string | null {
+  const section = rawText.match(/Passengers?\s+(?:Outbound|Inbound|Return)?[\s\S]*?(?=Payment|Important|Legal|$)/i);
+  if (!section) return null;
+  const nameRe = /^\s*([A-Z][a-zA-ZÀ-ÿ]+(?:\s+[A-Z][a-zA-ZÀ-ÿ]+){1,4})\s*$/gm;
+  const names: string[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = nameRe.exec(section[0])) !== null) {
+    const name = m[1].trim();
+    if (name.length > 4 && !/^(Seat|Max|Passengers?|Outbound|Inbound|Return|Payment|Important)/i.test(name)) {
+      names.push(name);
+    }
+  }
+  return names.length > 0 ? names.join(', ') : null;
+}
+
+/** Extract vendor/airline from email headers or known patterns */
+function extractVendorFromRaw(rawText: string): string | null {
+  const fromMatch = rawText.match(/From:\s*([A-Za-z\s]+?)\s*</);
+  if (fromMatch) return fromMatch[1].trim();
+  const subjMatch = rawText.match(/Subject:.*?\b(Vueling|Ryanair|Wizz\s*Air|British\s*Airways|EasyJet|Iberia|Lufthansa|KLM|Air\s*France)\b/i);
+  if (subjMatch) return subjMatch[1].trim();
+  return null;
 }
 
 // ============================================================================
@@ -204,27 +239,43 @@ function stageItem(
   parsed: Record<string, unknown>,
   rawText?: string,
 ): StagedItem {
-  const bookingType = (parsed.booking_type as string) || 'other';
+  let bookingType = (parsed.booking_type as string) || 'other';
   const hasServiceDates = !!(parsed.start_datetime && String(parsed.start_datetime).trim());
 
-  // v3.9.25: Block-based flight leg fallback
-  // If AI returned a flight but missed legs/airports, try block detection from raw text
-  if (rawText && bookingType === 'flight' && !hasServiceDates) {
+  // v3.9.25b: Block-based flight leg fallback — broadened trigger
+  // Try block parser whenever AI missed legs/airports, regardless of booking_type.
+  // This catches cases where AI returns booking_type='' or 'other' for messy airline HTML.
+  if (rawText && !hasServiceDates) {
     const enriched = tryEnrichWithBlockParser(parsed, rawText);
     if (enriched) {
-      // Re-check service dates after enrichment
-      const enrichedHasDates = !!(parsed.start_datetime && String(parsed.start_datetime).trim());
-      if (enrichedHasDates && import.meta.env.DEV) {
-        console.log('[IMPORT_PIPELINE] Block parser enriched flight candidate', {
+      // Block parser found flight legs — force booking_type to 'flight'
+      if (!parsed.booking_type || parsed.booking_type === 'other') {
+        parsed.booking_type = 'flight';
+        bookingType = 'flight';
+      }
+      if (import.meta.env.DEV) {
+        console.log('[IMPORT_PIPELINE] Block parser enriched candidate', {
           vendor: parsed.vendor_name,
+          bookingType,
           flightLegs: (parsed.flight_legs as unknown[])?.length ?? 0,
         });
       }
     }
   }
 
-  // v3.9.24: Centralized classification — single source of truth
-  const importClassification = classifyCandidate(parsed);
+  // v3.9.25b: Second-pass block parser — if classification would be RECEIPT but raw text has flights
+  let importClassification = classifyCandidate(parsed);
+  if (rawText && (importClassification === 'RECEIPT' || importClassification === 'IGNORE') && !isDeclinedOrCancelled(parsed)) {
+    const enriched = tryEnrichWithBlockParser(parsed, rawText);
+    if (enriched) {
+      if (!parsed.booking_type || parsed.booking_type === 'other') {
+        parsed.booking_type = 'flight';
+        bookingType = 'flight';
+      }
+      // Re-classify after enrichment
+      importClassification = classifyCandidate(parsed);
+    }
+  }
 
   // Legacy doc classification for backward compat
   const classification = classifyDocumentLocal(parsed, hasServiceDates);
