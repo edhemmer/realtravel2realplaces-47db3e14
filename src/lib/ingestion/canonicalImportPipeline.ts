@@ -1,5 +1,5 @@
 /**
- * v3.9.25: Canonical Import Pipeline (Line-Break Tolerant Flight Parsing)
+ * v3.9.27: Canonical Import Pipeline (Add Booking Classification Parity Fix)
  * 
  * This is the ONE entry point for all booking/confirmation parsing in the app.
  * Every UI entry point (BookingsTab paste, BookingsTab photo, CreateTripDialog

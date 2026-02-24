@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useBookings, useCreateBooking, useUpdateBooking, useDeleteBooking } from '@/hooks/useBookings';
 import { useCompanions } from '@/hooks/useCompanions';
 import { useBookingCompanionsByTrip, useSetBookingCompanions } from '@/hooks/useBookingCompanions';
@@ -57,6 +58,8 @@ import { extractDatetimeLocalValue } from '@/lib/canonicalTimeNormalizer';
 import { normalizeDatetimeForStorage } from '@/lib/datetimeIntegrity';
 // v3.9.9: Canonical import pipeline — single entry point for all booking parsing
 import { runCanonicalImportPipelineSingle } from '@/lib/ingestion/canonicalImportPipeline';
+// v3.9.27: Unified raw import processor with ImportMode parity
+import { processRawImport } from '@/lib/ingestion/processRawImport';
 // v3.9.28: Receipt cost extraction fallback
 import { enrichParsedBookingCost } from '@/lib/costAttribution';
 // v3.9.9: Flight cost intelligence (multi-currency + declined detection)
@@ -81,6 +84,7 @@ interface BookingsTabProps {
 }
 
 export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: BookingsTabProps) {
+  const queryClient = useQueryClient();
   const { canEdit } = useTripPermission();
   const { data: bookings = [], isLoading } = useBookings(tripId);
   const { data: companions = [] } = useCompanions(tripId);
@@ -322,196 +326,214 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
     toast.info('Parsing booking confirmation...');
 
     try {
-      const { data, error } = await supabase.functions.invoke('parse-booking', {
-        body: { text, type: 'booking' },
+      // v3.9.27: Use canonical processRawImport for classification + persistence parity
+      const importResult = await processRawImport({
+        rawContent: text,
+        mode: 'ATTACH_TO_EXISTING_TRIP',
+        tripId,
+        currency: 'USD',
+        edgeFunctionType: 'booking',
       });
 
-      // Handle network-level errors
-      if (error) {
-        console.error('Network error:', error);
-        toast.error('Connection error. Please try again.');
+      // Network / parse failure
+      if (importResult.error && !importResult.parsed) {
+        toast.error(importResult.error);
         setIsParsing(false);
         return;
       }
 
-      if (data?.success && data?.data) {
-        const parsed = data.data;
-        
-        // v3.9.28: Enrich cost from raw text if AI parser missed it
-        enrichParsedBookingCost(parsed, text);
-        // v3.9.9: Apply flight cost intelligence (multi-currency preference)
-        enrichFlightCostIntelligence(parsed, text, 'USD');
-        // v3.9.9: Run canonical import pipeline for unified classification + validation
-        const pipelineResult = runCanonicalImportPipelineSingle(parsed, text);
-        
-        // Receipt detection — unified through pipeline
-        if (pipelineResult.status === 'RECEIPT_ONLY') {
-          const isFlightReceipt = parsed._email_classification === 'FLIGHT_RECEIPT';
-          const expenseCreated = await createExpenseFromReceipt(parsed);
-          
-          if (expenseCreated) {
-            toast.info(isFlightReceipt ? 'Flight receipt processed' : 'Receipt processed successfully!', {
-              description: isFlightReceipt
-                ? `This is a payment receipt, not a flight itinerary. $${parsed.total_cost?.toFixed(2) || '0.00'} expense created for ${parsed.vendor_name || 'Unknown airline'}. No flight was added to your timeline. To add flight details, upload the full booking confirmation with itinerary.`
-                : `This was treated as a receipt only. $${parsed.total_cost?.toFixed(2) || '0.00'} expense created for ${parsed.vendor_name || 'Unknown vendor'}. No booking was added to your timeline. To add dates and timeline entries, please upload the full booking confirmation.`,
-              duration: 8000,
-            });
-          } else {
-            toast.warning('Could not create expense from receipt. Please add it manually in the Expenses tab.');
-          }
-          
-          setPastedText('');
-          setShowPasteInput(false);
-          setDialogOpen(false);
-          setIsParsing(false);
-          return;
-        }
-        
-        // Check if this is a parking confirmation - redirect to Parking tab
-        if (parsed.booking_type === 'parking') {
-          toast.info('This looks like a parking reservation. Please add it in the Parking tab.', {
-            description: `${parsed.vendor_name || 'Parking'} - ${parsed.confirmation_number || ''}`,
-            duration: 5000,
-          });
-          setPastedText('');
-          setShowPasteInput(false);
-          setDialogOpen(false);
-          return;
-        }
-        
-        // Validate dates before applying
-        const dateValidation = validateBookingDates(parsed.start_datetime, parsed.end_datetime);
-        
-        // v3.9.9: Surface required field issues from pipeline
-        const stagedItem = pipelineResult.stagedItems[0];
-        if (stagedItem?.requiredFieldIssue) {
-          const missingLabels = stagedItem.requiredFieldIssue.missingFields.map((f: string) => {
-            switch (f) {
-              case 'departure_airport_code': return 'departure airport';
-              case 'arrival_airport_code': return 'arrival airport';
-              case 'start_datetime': return 'start date/time';
-              case 'end_datetime': return 'end date/time';
-              default: return f.replace(/_/g, ' ');
-            }
-          });
-          toast.warning('Booking details incomplete', {
-            description: `Missing: ${missingLabels.join(', ')}. Please complete these fields below before saving.`,
-            duration: 10000,
-          });
-          setTimeIsEstimated(true);
-        }
-        
-        // v3.9.9: Time validation from pipeline (replaces inline validateParsedBookingTimes)
-        if (stagedItem?.timeValidation?.isLowConfidence) {
-          setTimeIsEstimated(true);
-          toast.warning('Times need review', {
-            description: `Parsed times may not match the confirmation. ${stagedItem.timeValidation.issuesSummary || 'Please verify times before saving.'}`,
-            duration: 8000,
-          });
-        }
-        
-        // v2.1.30: Enhanced partial parsing feedback
-        // Build a list of what was captured vs what's missing
-        const capturedFields: string[] = [];
-        const missingFields: string[] = [];
-        
-        if (parsed.vendor_name) capturedFields.push('vendor');
-        else missingFields.push('vendor');
-        
-        if (parsed.confirmation_number) capturedFields.push('confirmation #');
-        else missingFields.push('confirmation #');
-        
-        if (dateValidation.valid && dateValidation.startDt) capturedFields.push('dates');
-        else missingFields.push('dates');
-        
-        if (parsed.total_cost) capturedFields.push('cost');
-        else missingFields.push('cost');
-        
-        if (!dateValidation.valid) {
-          // Dates are invalid (end before start) - don't auto-fill date fields
-          const capturedText = capturedFields.length > 0 ? `Found: ${capturedFields.join(', ')}.` : '';
-          const missingText = missingFields.length > 0 ? `Missing: ${missingFields.join(', ')}.` : '';
-          
-          toast.warning("We couldn't fully read this confirmation.", {
-            description: `${capturedText} ${missingText} You can still add details manually.`,
-            duration: 6000,
-          });
-          // Still fill other fields that are valid
-          setBookingType(parsed.booking_type || 'flight');
-          setFormData(prev => ({
-            ...prev,
-            vendor_name: parsed.vendor_name || '',
-            // Leave dates empty for manual entry
-            start_datetime: '',
-            end_datetime: '',
-            confirmation_number: parsed.confirmation_number || '',
-            total_cost: parsed.total_cost?.toString() || '',
-            address: parsed.address || '',
-            airline: parsed.airline || '',
-            passenger_name: parsed.passenger_name || '',
-            property_name: parsed.property_name || '',
-            stay_type: parsed.stay_type || 'hotel',
-            rental_company: parsed.rental_company || '',
-            pickup_location: parsed.pickup_location || '',
-            return_location: parsed.return_location || '',
-            notes: parsed.notes || '',
-          }));
-          setPastedText('');
-          setShowPasteInput(false);
-          return;
-        }
-        
-        setBookingType(parsed.booking_type || 'flight');
-        setFormData(prev => ({
-          ...prev,
-          vendor_name: parsed.vendor_name || '',
-          start_datetime: dateValidation.startDt || '',
-          end_datetime: dateValidation.endDt || '',
-          confirmation_number: parsed.confirmation_number || '',
-          total_cost: parsed.total_cost?.toString() || '',
-          address: parsed.address || '',
-          airline: parsed.airline || '',
-          passenger_name: parsed.passenger_name || '',
-          property_name: parsed.property_name || '',
-          stay_type: parsed.stay_type || 'hotel',
-          rental_company: parsed.rental_company || '',
-          pickup_location: parsed.pickup_location || '',
-          return_location: parsed.return_location || '',
-          notes: parsed.notes || '',
-        }));
-        // Clear paste input and collapse on success
-        setPastedText('');
-        setShowPasteInput(false);
-        // v2.1.3: Check if time was estimated (defaulted or inferred)
-        const hasExplicitTimeInfo = parsed.start_datetime && /T\d{2}:\d{2}/.test(parsed.start_datetime);
-        setTimeIsEstimated(!hasExplicitTimeInfo);
-        
-        // v4.1.0: Adjust success message based on issues
-        if (data.has_issues) {
-          toast.warning(data.message || 'Flight parsed with missing fields. Please complete before saving.', {
-            description: 'Review the highlighted fields below.',
-            duration: 6000,
-          });
-        } else {
-          toast.success(data.message || 'Booking parsed! Review and save.', {
-            description: 'You can edit times, names, or locations after import.',
-            duration: 5000,
-          });
-        }
-      } else {
-        // v2.1.30: Show clearer failure message with edit CTA
+      const parsed = importResult.parsed;
+      if (!parsed) {
         toast.warning("We couldn't fully read this confirmation.", {
           description: "You can still add details manually.",
           duration: 5000,
         });
+        setIsParsing(false);
+        return;
       }
+
+      const pipelineResult = importResult.pipelineResult;
+      const stagedItem = pipelineResult.stagedItems[0];
+
+      // ── ALL_IGNORED: Declined / cancelled / empty ──
+      if (pipelineResult.status === 'ALL_IGNORED') {
+        toast.info('This confirmation was declined, cancelled, or contained no usable data.', {
+          description: 'Nothing was imported.',
+          duration: 6000,
+        });
+        setPastedText('');
+        setShowPasteInput(false);
+        setDialogOpen(false);
+        setIsParsing(false);
+        return;
+      }
+
+      // ── RECEIPT: Expense-only (already persisted by processRawImport) ──
+      if (pipelineResult.status === 'RECEIPT_ONLY') {
+        const isFlightReceipt = parsed._email_classification === 'FLIGHT_RECEIPT';
+        if (importResult.expenseCreated) {
+          toast.info(isFlightReceipt ? 'Flight receipt processed' : 'Receipt processed successfully!', {
+            description: isFlightReceipt
+              ? `This is a payment receipt, not a flight itinerary. $${(parsed.total_cost as number)?.toFixed(2) || '0.00'} expense created for ${parsed.vendor_name || 'Unknown airline'}. No flight was added to your timeline. To add flight details, upload the full booking confirmation with itinerary.`
+              : `This was treated as a receipt only. $${(parsed.total_cost as number)?.toFixed(2) || '0.00'} expense created for ${parsed.vendor_name || 'Unknown vendor'}. No booking was added to your timeline. To add dates and timeline entries, please upload the full booking confirmation.`,
+            duration: 8000,
+          });
+        } else {
+          toast.warning('Could not create expense from receipt. Please add it manually in the Expenses tab.');
+        }
+        setPastedText('');
+        setShowPasteInput(false);
+        setDialogOpen(false);
+        setIsParsing(false);
+        return;
+      }
+
+      // ── BOOKING: Auto-created by processRawImport ──
+      if (importResult.bookingCreated) {
+        // Booking + linked expense already persisted
+        queryClient.invalidateQueries({ queryKey: ['bookings', tripId] });
+        queryClient.invalidateQueries({ queryKey: ['expenses', tripId] });
+
+        // Sync trip dates for flights
+        if ((parsed.booking_type as string) === 'flight') {
+          setTimeout(() => syncTripDates(), 500);
+        }
+
+        toast.success('Booking added from confirmation!', {
+          description: `${parsed.vendor_name || 'Booking'} — ${parsed.confirmation_number || ''}. Review details in the bookings list.`,
+          duration: 6000,
+        });
+        setPastedText('');
+        setShowPasteInput(false);
+        setDialogOpen(false);
+        setIsParsing(false);
+        return;
+      }
+
+      // ── BOOKING but not auto-created (missing start_datetime) — fall back to form ──
+      // Check if this is a parking confirmation - redirect to Parking tab
+      if (parsed.booking_type === 'parking') {
+        toast.info('This looks like a parking reservation. Please add it in the Parking tab.', {
+          description: `${parsed.vendor_name || 'Parking'} - ${parsed.confirmation_number || ''}`,
+          duration: 5000,
+        });
+        setPastedText('');
+        setShowPasteInput(false);
+        setDialogOpen(false);
+        return;
+      }
+
+      // Validate dates before applying to form
+      const dateValidation = validateBookingDates(parsed.start_datetime as string, parsed.end_datetime as string);
+
+      // Surface required field issues from pipeline
+      if (stagedItem?.requiredFieldIssue) {
+        const missingLabels = stagedItem.requiredFieldIssue.missingFields.map((f: string) => {
+          switch (f) {
+            case 'departure_airport_code': return 'departure airport';
+            case 'arrival_airport_code': return 'arrival airport';
+            case 'start_datetime': return 'start date/time';
+            case 'end_datetime': return 'end date/time';
+            default: return f.replace(/_/g, ' ');
+          }
+        });
+        toast.warning('Booking details incomplete', {
+          description: `Missing: ${missingLabels.join(', ')}. Please complete these fields below before saving.`,
+          duration: 10000,
+        });
+        setTimeIsEstimated(true);
+      }
+
+      // Time validation from pipeline
+      if (stagedItem?.timeValidation?.isLowConfidence) {
+        setTimeIsEstimated(true);
+        toast.warning('Times need review', {
+          description: `Parsed times may not match the confirmation. ${stagedItem.timeValidation.issuesSummary || 'Please verify times before saving.'}`,
+          duration: 8000,
+        });
+      }
+
+      // Enhanced partial parsing feedback
+      const capturedFields: string[] = [];
+      const missingFields: string[] = [];
+
+      if (parsed.vendor_name) capturedFields.push('vendor');
+      else missingFields.push('vendor');
+
+      if (parsed.confirmation_number) capturedFields.push('confirmation #');
+      else missingFields.push('confirmation #');
+
+      if (dateValidation.valid && dateValidation.startDt) capturedFields.push('dates');
+      else missingFields.push('dates');
+
+      if (parsed.total_cost) capturedFields.push('cost');
+      else missingFields.push('cost');
+
+      if (!dateValidation.valid) {
+        const capturedText = capturedFields.length > 0 ? `Found: ${capturedFields.join(', ')}.` : '';
+        const missingText = missingFields.length > 0 ? `Missing: ${missingFields.join(', ')}.` : '';
+
+        toast.warning("We couldn't fully read this confirmation.", {
+          description: `${capturedText} ${missingText} You can still add details manually.`,
+          duration: 6000,
+        });
+        setBookingType(((parsed.booking_type as string) || 'flight') as BookingType);
+        setFormData(prev => ({
+          ...prev,
+          vendor_name: (parsed.vendor_name as string) || '',
+          start_datetime: '',
+          end_datetime: '',
+          confirmation_number: (parsed.confirmation_number as string) || '',
+          total_cost: (parsed.total_cost as number)?.toString() || '',
+          address: (parsed.address as string) || '',
+          airline: (parsed.airline as string) || '',
+          passenger_name: (parsed.passenger_name as string) || '',
+          property_name: (parsed.property_name as string) || '',
+           stay_type: ((parsed.stay_type as string) || 'hotel') as StayType,
+          rental_company: (parsed.rental_company as string) || '',
+          pickup_location: (parsed.pickup_location as string) || '',
+          return_location: (parsed.return_location as string) || '',
+          notes: (parsed.notes as string) || '',
+        }));
+        setPastedText('');
+        setShowPasteInput(false);
+        return;
+      }
+
+      setBookingType(((parsed.booking_type as string) || 'flight') as BookingType);
+      setFormData(prev => ({
+        ...prev,
+        vendor_name: (parsed.vendor_name as string) || '',
+        start_datetime: dateValidation.startDt || '',
+        end_datetime: dateValidation.endDt || '',
+        confirmation_number: (parsed.confirmation_number as string) || '',
+        total_cost: (parsed.total_cost as number)?.toString() || '',
+        address: (parsed.address as string) || '',
+        airline: (parsed.airline as string) || '',
+        passenger_name: (parsed.passenger_name as string) || '',
+        property_name: (parsed.property_name as string) || '',
+        stay_type: ((parsed.stay_type as string) || 'hotel') as StayType,
+        rental_company: (parsed.rental_company as string) || '',
+        pickup_location: (parsed.pickup_location as string) || '',
+        return_location: (parsed.return_location as string) || '',
+        notes: (parsed.notes as string) || '',
+      }));
+      setPastedText('');
+      setShowPasteInput(false);
+      const hasExplicitTimeInfo = parsed.start_datetime && /T\d{2}:\d{2}/.test(parsed.start_datetime as string);
+      setTimeIsEstimated(!hasExplicitTimeInfo);
+
+      toast.success('Booking parsed! Review and save.', {
+        description: 'You can edit times, names, or locations after import.',
+        duration: 5000,
+      });
     } catch (err) {
       console.error('Parse error:', err);
       toast.error('Something went wrong. Please enter details manually.');
     } finally {
       setIsParsing(false);
     }
-  }, [tripId, createExpense]);
+  }, [tripId, queryClient, syncTripDates]);
 
   // Drag-and-drop handlers (mirrors Create Trip)
   const handleDialogDragOver = useCallback((e: React.DragEvent) => {
