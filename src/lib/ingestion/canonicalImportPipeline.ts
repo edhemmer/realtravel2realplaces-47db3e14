@@ -231,6 +231,54 @@ function extractVendorFromRaw(rawText: string): string | null {
   return null;
 }
 
+/**
+ * v3.9.27: Promote top-level flight fields from first parsed flight leg.
+ * Some confirmations (e.g., Wizz) return complete flight_legs but omit top-level
+ * start_datetime/airports, which can incorrectly route to RECEIPT.
+ */
+function promoteTopLevelFromFlightLegs(parsed: Record<string, unknown>): boolean {
+  const legs = parsed.flight_legs;
+  if (!Array.isArray(legs) || legs.length === 0) return false;
+
+  const firstLeg = legs[0];
+  if (!firstLeg || typeof firstLeg !== 'object') return false;
+
+  const first = firstLeg as Record<string, unknown>;
+  let changed = false;
+
+  const isMissing = (value: unknown): boolean =>
+    value === null || value === undefined || (typeof value === 'string' && value.trim() === '');
+
+  const promote = (key: string) => {
+    const current = parsed[key];
+    const next = first[key];
+    if (isMissing(current) && typeof next === 'string' && next.trim()) {
+      parsed[key] = next;
+      changed = true;
+    }
+  };
+
+  promote('start_datetime');
+  promote('end_datetime');
+  promote('departure_airport_code');
+  promote('arrival_airport_code');
+  promote('from_location');
+  promote('to_location');
+  promote('flight_number');
+
+  if (isMissing(parsed.airline) && typeof first.airline === 'string' && first.airline.trim()) {
+    parsed.airline = first.airline;
+    changed = true;
+  }
+
+  if ((!parsed.booking_type || parsed.booking_type === 'other') && !isMissing(parsed.start_datetime)) {
+    parsed.booking_type = 'flight';
+    changed = true;
+  }
+
+  return changed;
+}
+
 // ============================================================================
 // STAGING (Step 2)
 // ============================================================================
@@ -240,7 +288,12 @@ function stageItem(
   rawText?: string,
 ): StagedItem {
   let bookingType = (parsed.booking_type as string) || 'other';
-  const hasServiceDates = !!(parsed.start_datetime && String(parsed.start_datetime).trim());
+
+  // v3.9.27: Hydrate top-level flight fields from flight_legs before classification.
+  promoteTopLevelFromFlightLegs(parsed);
+  bookingType = (parsed.booking_type as string) || bookingType;
+
+  let hasServiceDates = !!(parsed.start_datetime && String(parsed.start_datetime).trim());
 
   // v3.9.25b: Block-based flight leg fallback — broadened trigger
   // Try block parser whenever AI missed legs/airports, regardless of booking_type.
@@ -253,6 +306,7 @@ function stageItem(
         parsed.booking_type = 'flight';
         bookingType = 'flight';
       }
+      hasServiceDates = !!(parsed.start_datetime && String(parsed.start_datetime).trim());
       if (import.meta.env.DEV) {
         console.log('[IMPORT_PIPELINE] Block parser enriched candidate', {
           vendor: parsed.vendor_name,
