@@ -1,7 +1,6 @@
 /**
- * v3.12.4: Explore tab wired to canonical context origin resolver.
- * Origin resolved via resolveExploreOriginForContext (trip-level, timeline item, or booking).
- * No Explore engine changes.
+ * v4.10.0: Explore tab with Pre-Explore area picker.
+ * Users can pick any trip location (airport, lodging, etc.) to explore before arriving.
  */
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
@@ -14,13 +13,15 @@ import { getDeviceLocation } from '@/lib/deviceLocation';
 import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
 import { useTripPermission } from '@/pages/TripDetail';
 import { resolveExploreOriginForContext, getExploreOriginSubtitle, hasExploreDestination, ensureExploreOriginGeocode } from '@/lib/location/exploreContext';
-import { getExploreContext, clearExploreContext } from '@/lib/explore/exploreContextStore';
+import { getExploreContext, setExploreContext, clearExploreContext } from '@/lib/explore/exploreContextStore';
 import { buildExploreSections } from '@/lib/exploreRankingSections';
 import { buildNavTarget, openNavTarget } from '@/lib/location/navigationTargets';
 import { ExploreCarousel } from '@/components/trips/explore/ExploreCarousel';
 import { ExploreSectionFeed } from '@/components/trips/explore/ExploreSectionFeed';
+import { ExploreAreaPicker } from '@/components/trips/explore/ExploreAreaPicker';
 import { AddToTimelineModal } from '@/components/trips/explore/AddToTimelineModal';
 import { useExplorePagination } from '@/hooks/useExplorePagination';
+import type { ExplorableArea } from '@/lib/explore/extractTripAreas';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,6 +49,9 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
   const [selectedAttraction, setSelectedAttraction] = useState<AttractionSuggestion | null>(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [refreshCounter, setRefreshCounter] = useState(0);
+
+  // v4.10.0: Pre-explore area selection
+  const [selectedArea, setSelectedArea] = useState<ExplorableArea | null>(null);
 
   // Search state with debounce
   const [searchInput, setSearchInput] = useState('');
@@ -93,8 +97,20 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
   // v3.9.16: Gate check — destination required (not lodging)
   const hasDestination = useMemo(() => hasExploreDestination(trip), [trip]);
 
+  // v4.10.0: If a pre-explore area is selected with coords, use those directly
   const origin = useMemo(() => {
     if (!hasDestination) return null;
+
+    // Pre-explore area override (only for areas with known coords like airports)
+    if (selectedArea && selectedArea.lat !== 0 && selectedArea.lng !== 0) {
+      return {
+        lat: selectedArea.lat,
+        lng: selectedArea.lng,
+        label: selectedArea.label,
+        source: 'DESTINATION' as const,
+      };
+    }
+
     const deviceCoords = deviceLocation.coords
       ? { lat: deviceLocation.coords.lat, lng: deviceLocation.coords.lng }
       : null;
@@ -108,7 +124,7 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
       context: exploreContext,
       deviceLocation: deviceCoords,
     });
-  }, [tripId, trip, bookings, timelineEvents, isActive, exploreContext, deviceLocation.coords, refreshCounter, hasDestination, geocodeReady]);
+  }, [tripId, trip, bookings, timelineEvents, isActive, exploreContext, deviceLocation.coords, refreshCounter, hasDestination, geocodeReady, selectedArea]);
 
   const canFetch = origin !== null;
 
@@ -120,6 +136,25 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
     query: debouncedQuery || undefined,
     enabled: canFetch,
   });
+
+  // v4.10.0: Handle area selection
+  const handleSelectArea = useCallback((area: ExplorableArea) => {
+    if (selectedArea?.key === area.key) {
+      // Deselect — go back to default
+      setSelectedArea(null);
+      clearExploreContext(tripId);
+      setRefreshCounter(c => c + 1);
+    } else {
+      setSelectedArea(area);
+      // If the area has coords, the origin useMemo handles it.
+      // If not (lodging/activity), set booking-level context
+      if (area.lat === 0 && area.lng === 0 && area.key.startsWith('stay:')) {
+        const bookingId = area.key.replace('stay:', '');
+        setExploreContext(tripId, { kind: 'BOOKING_ITEM', id: bookingId });
+      }
+      setRefreshCounter(c => c + 1);
+    }
+  }, [selectedArea, tripId]);
 
   // v3.6.0: Ranking + sectioning
   const { rightNow, sections: rawSections } = useMemo(() => {
@@ -153,6 +188,7 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
   };
 
   const handleRefresh = useCallback(async () => {
+    setSelectedArea(null);
     clearExploreContext(tripId);
     await getDeviceLocation();
     setRefreshCounter((c) => c + 1);
@@ -215,21 +251,28 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
         <div className="flex items-center gap-1.5">
           <OriginIcon className="w-3.5 h-3.5 text-primary shrink-0" />
           <span className="text-sm text-muted-foreground truncate">
-            {getExploreOriginSubtitle(origin.source)}
+            {selectedArea ? `Exploring near ${selectedArea.label}` : getExploreOriginSubtitle(origin.source)}
           </span>
         </div>
 
         {/* Context hint */}
-        {exploreContext.kind !== 'TRIP' && (
+        {(exploreContext.kind !== 'TRIP' || selectedArea) && (
           <button
             type="button"
-            onClick={() => { clearExploreContext(tripId); setRefreshCounter(c => c + 1); }}
+            onClick={() => { setSelectedArea(null); clearExploreContext(tripId); setRefreshCounter(c => c + 1); }}
             className="text-xs text-primary hover:underline"
           >
             ← Back to trip-level explore
           </button>
         )}
       </div>
+
+      {/* v4.10.0: Pre-explore area picker */}
+      <ExploreAreaPicker
+        bookings={bookings}
+        onSelectArea={handleSelectArea}
+        activeAreaKey={selectedArea?.key}
+      />
 
       {/* Search input */}
       <div className="relative px-1">
