@@ -22,8 +22,8 @@ export interface CategoryPageState {
 
 export type CategoryPaginationMap = Record<string, CategoryPageState>;
 
-/** Page size for "More" loads */
-export const CATEGORY_PAGE_SIZE = 10;
+/** Page size for "More" loads — reveals up to 30 results per category */
+export const CATEGORY_PAGE_SIZE = 15;
 
 /** Initial visible count per section (matches ExploreSectionFeed INITIAL_SHOW) */
 export const INITIAL_VISIBLE = 3;

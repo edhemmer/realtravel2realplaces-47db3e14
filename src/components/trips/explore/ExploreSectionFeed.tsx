@@ -31,24 +31,27 @@ export function ExploreSectionFeed({ sections, onNavigate, onAdd, onLoadMore }: 
     <div className="space-y-8">
       {sections.map((section) => (
         <div key={section.id} className="space-y-3">
-          {/* Section header */}
+          {/* Section header with More pill */}
           <div className="flex items-center gap-2 px-1">
             <h3 className="text-base font-semibold text-foreground">
               {section.title}
             </h3>
-            {section.hasMore && section.totalCount ? (
+            <span className="text-xs text-muted-foreground tabular-nums">
+              {section.items.length}{section.totalCount && section.totalCount > section.items.length ? ` of ${section.totalCount}` : ''}
+            </span>
+            {section.hasMore && (
               <button
-                className="text-xs text-primary hover:text-primary/80 font-medium disabled:opacity-50 shrink-0"
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50 shrink-0"
                 disabled={section.isLoadingMore}
                 onClick={() => onLoadMore?.(section.id)}
               >
                 {section.isLoadingMore ? (
                   <Loader2 className="w-3 h-3 animate-spin" />
                 ) : (
-                  `· See all ${section.totalCount}`
+                  `More`
                 )}
               </button>
-            ) : null}
+            )}
           </div>
 
           {/* Cards */}
