@@ -17,6 +17,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { getBookingTypeStyle } from '@/lib/bookingTypeColors';
 import { 
   Plane, 
   Building2, 
@@ -223,7 +224,7 @@ export function BookingCard({
           {/* Icon */}
           <div className={cn(
             "shrink-0 w-10 h-10 rounded-lg flex items-center justify-center",
-            "bg-primary/10 text-primary"
+            getBookingTypeStyle(type).iconContainer
           )}>
             <IconComponent className="w-5 h-5" />
           </div>

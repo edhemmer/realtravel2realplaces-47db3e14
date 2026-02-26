@@ -164,9 +164,17 @@ export function DropzoneIntake({ onTextExtracted, isParsing, onProcessingStart }
       throw new Error(data?.message || 'Could not extract booking from image');
     }
 
-    // PDFs: read as text (best effort), or inform user
+    // PDFs: send as base64 to parse-booking-image (AI vision handles PDF pages)
     if (fileType === 'pdf') {
-      throw new Error('PDF parsing requires opening the file and pasting the text. Use "Paste Confirmation Text".');
+      const base64 = await fileToBase64(file);
+      const { data, error } = await supabase.functions.invoke('parse-booking-image', {
+        body: { image: base64, filename: file.name, mimeType: 'application/pdf' },
+      });
+      if (error) throw new Error('PDF parsing failed');
+      if (data?.success && data?.data) {
+        return JSON.stringify(data.data);
+      }
+      throw new Error(data?.message || 'Could not extract booking from PDF');
     }
 
     throw new Error('Unsupported file type');
@@ -320,10 +328,10 @@ export function DropzoneIntake({ onTextExtracted, isParsing, onProcessingStart }
               isDragActive ? 'text-primary' : 'text-muted-foreground'
             )} />
             <p className="text-sm font-medium">
-              {isDragActive ? 'Drop to parse!' : 'Drop confirmation emails here or click to upload'}
+              {isDragActive ? 'Drop to parse!' : 'Drop confirmation emails or PDFs here, or click to upload'}
             </p>
             <p className="text-xs text-muted-foreground">
-              Upload up to 5 email files (.eml) at once.
+              Upload up to 5 files (.eml, .pdf, images) at once.
             </p>
             <p className="text-xs text-muted-foreground/70">
               Each email is processed individually to keep your trip organized accurately.

@@ -24,6 +24,7 @@ import {
   TrainFront, Bus, TramFront, Ship, Compass
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getBookingTypeStyle } from '@/lib/bookingTypeColors';
 import { resolveMapsDestination, openMapsDestination } from '@/lib/mapsDestination';
 import { buildFlightDisplayLine } from '@/lib/flightDisplayUtils';
 import { buildFlightDisplayModel } from '@/lib/flightDisplayModel';
@@ -969,14 +970,7 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
   };
 
   const getBookingColor = (type: string) => {
-    switch (type) {
-      case 'flight': return 'bg-sky-500/10 text-sky-600';
-      case 'stay': return 'bg-purple-500/10 text-purple-600';
-      case 'car_rental': return 'bg-amber-500/10 text-amber-600';
-      case 'transport': return 'bg-teal-500/10 text-teal-600';
-      case 'activity': return 'bg-rose-500/10 text-rose-600';
-      default: return 'bg-rose-500/10 text-rose-600';
-    }
+    return getBookingTypeStyle(type).iconContainer;
   };
 
   const openInMaps = (booking: Booking) => {
