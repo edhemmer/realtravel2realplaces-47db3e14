@@ -21,7 +21,7 @@ import {
   Plane, Building2, Car, CircleParking, Compass, Ticket, 
   TrainFront, Bus, TramFront, Ship, PartyPopper, Navigation
 } from 'lucide-react';
-import { getModeTheme } from '@/lib/modeTheme';
+
 
 interface TripTimelineProps {
   events: CanonicalTimelineEvent[];
@@ -58,22 +58,22 @@ const getEventIcon = (type: string, transportMode?: string) => {
   }
 };
 
-/** Resolve transport pill theme classes based on event type */
-function getTransportPillClasses(type: string, transportMode?: string): { bg: string; border: string; iconColor: string } {
+/** Resolve icon pill theme classes based on event type — unified with bookingTypeColors */
+function getEventPillClasses(type: string, transportMode?: string): { bg: string; border: string; iconColor: string } {
   if (type === 'flight') {
-    const t = getModeTheme('fly');
-    return { bg: t.gradients.pillBg, border: t.palette.border, iconColor: t.palette.primary };
+    return { bg: 'bg-sky-500/10', border: 'border-sky-400/25', iconColor: 'text-sky-600 dark:text-sky-400' };
   }
-  if (type === 'transport') {
-    if (transportMode === 'train') {
-      const t = getModeTheme('train');
-      return { bg: t.gradients.pillBg, border: t.palette.border, iconColor: t.palette.primary };
-    }
-    // Bus/metro/ferry etc. — use neutral
+  if (type === 'stay') {
+    return { bg: 'bg-purple-500/10', border: 'border-purple-400/25', iconColor: 'text-purple-600 dark:text-purple-400' };
   }
   if (type === 'car_rental') {
-    const t = getModeTheme('drive');
-    return { bg: t.gradients.pillBg, border: t.palette.border, iconColor: t.palette.primary };
+    return { bg: 'bg-amber-500/10', border: 'border-amber-400/25', iconColor: 'text-amber-600 dark:text-amber-400' };
+  }
+  if (type === 'transport') {
+    return { bg: 'bg-teal-500/10', border: 'border-teal-400/25', iconColor: 'text-teal-600 dark:text-teal-400' };
+  }
+  if (type === 'activity') {
+    return { bg: 'bg-rose-500/10', border: 'border-rose-400/25', iconColor: 'text-rose-600 dark:text-rose-400' };
   }
   return { bg: '', border: '', iconColor: '' };
 }
@@ -207,7 +207,7 @@ export function TripTimeline({ events, datetimeFormat, onEventClick, onExploreNe
                     {/* Icon circle - v3.6.1: reduced from w-8 h-8 to w-7 h-7 */}
                     <div className="relative z-10 flex-shrink-0">
                       {(() => {
-                        const pill = getTransportPillClasses(event.bookingType, event.transportMode);
+                        const pill = getEventPillClasses(event.bookingType, event.transportMode);
                         const hasPill = !!pill.bg;
                         return (
                           <div className={`w-7 h-7 rounded-full border-2 border-background flex items-center justify-center ${hasPill ? `${pill.bg} ${pill.iconColor}` : isToday ? 'bg-primary/15 text-primary' : isPast ? 'bg-muted/60 text-muted-foreground' : 'bg-primary/10 text-primary'}`}>
@@ -274,7 +274,20 @@ export function TripTimeline({ events, datetimeFormat, onEventClick, onExploreNe
                         </div>
                       </div>
                       {/* v3.6.1: Navigate + v3.12.4: Explore nearby buttons */}
-                      {(event.address || event.departureAirportCode || event.title) && resolveMapsFromTimelineEvent(event) && (
+                      {(() => {
+                        const dest = resolveMapsFromTimelineEvent(event);
+                        const hasAddress = !!(event.address || event.departureAirportCode);
+                        const canNavigate = !!dest;
+                        if (!canNavigate && !hasAddress) {
+                          // Soft warning: no location data
+                          return (
+                            <p className="mt-1 text-[10px] text-muted-foreground/60 italic">
+                              No address available for navigation
+                            </p>
+                          );
+                        }
+                        if (!canNavigate) return null;
+                        return (
                         <div className="mt-1 flex gap-1.5">
                           <Button
                             size="sm"
@@ -297,7 +310,8 @@ export function TripTimeline({ events, datetimeFormat, onEventClick, onExploreNe
                             </Button>
                           )}
                         </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   </div>
                 );
