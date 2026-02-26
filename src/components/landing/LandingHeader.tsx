@@ -1,7 +1,10 @@
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import rt2rpLogo from '@/assets/rt2rp-logo.png';
 
 export default function LandingHeader() {
+  const { user } = useAuth();
+
   return (
     <header className="landing-header">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -13,18 +16,29 @@ export default function LandingHeader() {
 
           {/* Right-side actions */}
           <div className="flex items-center gap-4 sm:gap-5 flex-shrink-0">
-            <Link 
-              to="/auth" 
-              className="landing-login-link"
-            >
-              Log In
-            </Link>
-            <Link 
-              to="/auth?tab=signup" 
-              className="landing-btn-header"
-            >
-              Start a Trip
-            </Link>
+            {user ? (
+              <Link 
+                to="/dashboard" 
+                className="landing-btn-header"
+              >
+                Go to Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link 
+                  to="/auth" 
+                  className="landing-login-link"
+                >
+                  Log In
+                </Link>
+                <Link 
+                  to="/auth?tab=signup" 
+                  className="landing-btn-header"
+                >
+                  Start a Trip
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>
