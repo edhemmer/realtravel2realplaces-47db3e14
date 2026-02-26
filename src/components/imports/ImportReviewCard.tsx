@@ -22,6 +22,7 @@ import { Plane, Hotel, Car, MapPin, Ticket, Package, AlertCircle, Trash2, Plus, 
 import type { PendingImport } from '@/hooks/usePendingImports';
 import type { Trip } from '@/types/database';
 import { isReceiptClassification, hasParseIssues, getParseIssues, getEntityLabel, type ParseIssue } from '@/lib/parseContract';
+import { getBookingTypeStyle } from '@/lib/bookingTypeColors';
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
   flight: <Plane className="w-4 h-4" />,
@@ -97,7 +98,7 @@ export function ImportReviewCard({
         <CardContent className="p-4 space-y-3">
           {/* Header row */}
           <div className="flex items-start gap-3">
-            <div className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${needsReview || hasMissingFields ? 'bg-orange-500/10 text-orange-600' : isReceipt ? 'bg-blue-500/10 text-blue-600' : 'bg-primary/10 text-primary'}`}>
+            <div className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${needsReview || hasMissingFields ? 'bg-orange-500/10 text-orange-600' : isReceipt ? 'bg-blue-500/10 text-blue-600' : getBookingTypeStyle(bookingType).iconContainer}`}>
               {needsReview || hasMissingFields ? <AlertCircle className="w-4 h-4" /> : TYPE_ICONS[bookingType] || TYPE_ICONS.other}
             </div>
             <div className="flex-1 min-w-0">
