@@ -97,8 +97,29 @@ export function buildMapsUrl(target: NavTarget): string {
  * Open Google Maps in a new tab for a NavTarget.
  */
 export function openNavTarget(target: NavTarget): void {
-  const opener = window.top?.open ? window.top : window;
-  opener.open(buildMapsUrl(target), '_blank', 'noopener,noreferrer');
+  const url = buildMapsUrl(target);
+
+  // 1) Try breakout from iframe/sandbox environments
+  try {
+    const topWin = window.top;
+    if (topWin && typeof topWin.open === 'function') {
+      const opened = topWin.open(url, '_blank', 'noopener,noreferrer');
+      if (opened) return;
+    }
+  } catch {
+    // Cross-origin or sandbox access may throw; fall through.
+  }
+
+  // 2) Fallback to current window popup
+  try {
+    const opened = window.open(url, '_blank', 'noopener,noreferrer');
+    if (opened) return;
+  } catch {
+    // Popup may be blocked; fall through.
+  }
+
+  // 3) Guaranteed fallback so click always does something
+  window.location.assign(url);
 }
 
 /**
