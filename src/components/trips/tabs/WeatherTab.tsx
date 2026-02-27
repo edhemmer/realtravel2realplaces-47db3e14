@@ -385,9 +385,9 @@ function WeatherLocationCard({ location, trip, temperatureUnit }: WeatherLocatio
         {/* Daily forecast grid — scoped to location dates */}
         {scopedEnvelope.length > 0 && (
           <div className="overflow-x-auto -mx-2 px-2 pb-1">
-            <div className="grid gap-1" style={{
-              gridTemplateColumns: `repeat(${Math.min(scopedEnvelope.length, 7)}, minmax(3rem, 1fr))`,
-              minWidth: scopedEnvelope.length > 4 ? `${scopedEnvelope.length * 3.5}rem` : undefined,
+            <div className="grid gap-1.5" style={{
+              gridTemplateColumns: `repeat(${Math.min(scopedEnvelope.length, 7)}, minmax(4rem, 1fr))`,
+              minWidth: scopedEnvelope.length > 4 ? `${scopedEnvelope.length * 4.5}rem` : undefined,
             }}>
               {scopedEnvelope.map((day) => (
                 <DayCell key={day.dateISO} day={day} formatTemp={formatTemp} mode={weather.weatherMode} />
@@ -429,26 +429,54 @@ function DayCell({
   const dayNum = day.dateISO.split('-')[2];
   const isFromForecast = day.source === 'forecast';
 
+  // Single icon: precipitation takes priority, otherwise cloud/sun
+  const mainIcon = (() => {
+    if (day.precipLikelihood !== 'unlikely') {
+      if (day.precipTypeHint === 'snow') return <CloudSnow className="w-5 h-5 text-sky-400" />;
+      if (day.precipTypeHint === 'rain') return <CloudRain className="w-5 h-5 text-sky-500" />;
+      if (day.precipTypeHint === 'mixed') return <CloudSnow className="w-5 h-5 text-sky-400" />;
+      return <CloudRain className="w-5 h-5 text-sky-500" />;
+    }
+    if (day.cloudCoverHint === 'mostly_sunny') return <Sun className="w-5 h-5 text-amber-500" />;
+    if (day.cloudCoverHint === 'mixed') return <CloudSun className="w-5 h-5 text-amber-400" />;
+    if (day.cloudCoverHint === 'mostly_cloudy') return <Cloud className="w-5 h-5 text-muted-foreground" />;
+    return <Sun className="w-5 h-5 text-amber-500" />;
+  })();
+
   return (
-    <div className={`flex flex-col items-center gap-0.5 p-1.5 sm:p-2 rounded-lg text-center min-w-[3rem] ${
+    <div className={`flex flex-col items-center gap-1 p-2 sm:p-2.5 rounded-lg text-center min-w-[4rem] ${
       isFromForecast ? 'bg-emerald-500/5' : 'bg-amber-500/5'
     }`}>
-      <span className="text-[9px] text-muted-foreground font-medium uppercase">{dayOfWeek}</span>
-      <span className="text-[10px] text-muted-foreground">{dayNum}</span>
-      <WeatherIcon cloud={day.cloudCoverHint} precip={day.precipTypeHint} precipLikelihood={day.precipLikelihood} />
-      <span className={`text-[11px] font-semibold ${
-        isFromForecast ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
-      }`}>
-        {formatTemp(day.typicalHigh)}
-      </span>
-      <span className="text-[10px] text-muted-foreground">{formatTemp(day.typicalLow)}</span>
+      {/* Day header */}
+      <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">{dayOfWeek}</span>
+      <span className="text-xs text-muted-foreground font-medium">{parseInt(dayNum)}</span>
+
+      {/* Single weather icon */}
+      <div className="my-0.5">{mainIcon}</div>
+
+      {/* Day (high) temp — labeled */}
+      <div className="flex items-center gap-0.5">
+        <Sun className="w-3 h-3 text-amber-500" />
+        <span className={`text-xs font-bold ${
+          isFromForecast ? 'text-foreground' : 'text-amber-700 dark:text-amber-300'
+        }`}>
+          {formatTemp(day.typicalHigh)}
+        </span>
+      </div>
+
+      {/* Night (low) temp — labeled */}
+      <div className="flex items-center gap-0.5">
+        <Cloud className="w-3 h-3 text-muted-foreground/60" />
+        <span className="text-[11px] text-muted-foreground">
+          {formatTemp(day.typicalLow)}
+        </span>
+      </div>
+
+      {/* Rain/snow % */}
       {day.precipLikelihood !== 'unlikely' && day.precipPercent > 0 && (
-        <div className="flex items-center gap-0.5 mt-0.5">
-          <PrecipIcon hint={day.precipTypeHint} className="w-3 h-3 text-sky-500" />
-          <span className="text-[9px] text-sky-600 dark:text-sky-400 font-medium">
-            {Math.round(day.precipPercent)}%
-          </span>
-        </div>
+        <span className="text-[10px] text-sky-600 dark:text-sky-400 font-medium mt-0.5">
+          💧 {Math.round(day.precipPercent)}%
+        </span>
       )}
     </div>
   );
