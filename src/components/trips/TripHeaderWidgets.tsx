@@ -77,9 +77,9 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
         : '';
       return (
         <div className="space-y-2">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <CalendarDays className="w-3.5 h-3.5" />
-            <span>Seasonal averages for {monthName}</span>
+          <div className="flex items-center gap-2 text-xs">
+            <CalendarDays className="w-3.5 h-3.5 text-amber-500" />
+            <span className="text-amber-600 dark:text-amber-400 font-medium">Seasonal averages for {monthName}</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-lg font-bold">{formatTemp(summary.avgHigh)}</span>
@@ -102,9 +102,9 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
       const fallbackMonth = new Date(weather.windowStart + 'T12:00:00').toLocaleDateString('en-US', { month: 'long' });
       return (
         <div className="space-y-2">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <CalendarDays className="w-3.5 h-3.5" />
-            <span>Seasonal averages for {fallbackMonth}</span>
+          <div className="flex items-center gap-2 text-xs">
+            <CalendarDays className="w-3.5 h-3.5 text-amber-500" />
+            <span className="text-amber-600 dark:text-amber-400 font-medium">Seasonal averages for {fallbackMonth}</span>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-lg font-bold">{formatTemp(summary.avgHigh)}</span>
@@ -145,7 +145,10 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
           })}
         </div>
         {weatherMode === 'FORECAST_BLEND' && (
-          <p className="text-[10px] text-muted-foreground">Blended forecast + seasonal averages</p>
+          <p className="text-[10px] text-sky-600 dark:text-sky-400 font-medium">Blended forecast + seasonal averages</p>
+        )}
+        {weatherMode === 'FORECAST_PRIMARY' && (
+          <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Live forecast</p>
         )}
       </div>
     );
