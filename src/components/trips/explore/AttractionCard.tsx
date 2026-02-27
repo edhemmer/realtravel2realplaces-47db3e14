@@ -1,6 +1,6 @@
 /**
- * Patch 2.1.17 / v2.6.20: Attraction card component for Explore tab
- * v2.6.20: Added Navigate button for immediate directions
+ * Patch 2.1.17 / v2.6.21: Attraction card component for Explore tab
+ * v2.6.21: Navigate uses canonical openNavTarget (iframe-safe)
  */
 
 import { AttractionSuggestion } from '@/types/attraction';
@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, MapPin, Plus, Ticket, Clock, Navigation } from 'lucide-react';
+import { buildNavTarget, openNavTarget } from '@/lib/location/navigationTargets';
 
 interface AttractionCardProps {
   attraction: AttractionSuggestion;
@@ -137,12 +138,13 @@ export function AttractionCard({ attraction, onAddToTrip }: AttractionCardProps)
                 size="sm"
                 className="gap-1.5"
                 onClick={() => {
-                  const query = attraction.locationSummary || attraction.name;
-                  window.open(
-                    `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(query)}`,
-                    '_blank',
-                    'noopener,noreferrer'
-                  );
+                  const target = buildNavTarget({
+                    kind: 'PLACE',
+                    key: attraction.name,
+                    label: attraction.name,
+                    address: attraction.locationSummary || undefined,
+                  });
+                  if (target) openNavTarget(target);
                 }}
               >
                 <Navigation className="w-3.5 h-3.5" />
