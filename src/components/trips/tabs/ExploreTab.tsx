@@ -135,6 +135,7 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
     radiusMiles: parseInt(radius),
     query: debouncedQuery || undefined,
     enabled: canFetch,
+    contextKey: selectedArea?.key,
   });
 
   // v4.10.0: Handle area selection

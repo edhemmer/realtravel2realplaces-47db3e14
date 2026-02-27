@@ -15,6 +15,8 @@ interface UseRealPlacesExploreOptions {
   radiusMiles?: number;
   query?: string;
   enabled?: boolean;
+  /** Optional context key to force query differentiation (e.g. selected area) */
+  contextKey?: string;
 }
 
 /** Categories to query for Explore */
@@ -65,11 +67,12 @@ export function useRealPlacesExplore({
   radiusMiles = 25,
   query,
   enabled = true,
+  contextKey,
 }: UseRealPlacesExploreOptions) {
   const hasCoords = lat !== undefined && lng !== undefined;
 
   return useQuery({
-    queryKey: ['real-places-explore', lat, lng, radiusMiles, query || ''],
+    queryKey: ['real-places-explore', lat, lng, radiusMiles, query || '', contextKey || 'default'],
     queryFn: async (): Promise<AttractionSuggestion[]> => {
       if (!hasCoords || lat === undefined || lng === undefined) return [];
 
