@@ -35,6 +35,8 @@ export interface WeatherDayEnvelope {
   typicalLow: number;
   /** Precipitation likelihood bucket */
   precipLikelihood: 'unlikely' | 'possible' | 'likely' | 'unknown';
+  /** Precipitation percentage (0-100). For seasonal normals, approximated from bucket. */
+  precipPercent: number;
   /** Type of precipitation expected */
   precipTypeHint: PrecipTypeHint;
   /** Cloud cover tendency */
@@ -282,11 +284,15 @@ function getSeasonalNormal(dateISO: string, zone: string): SeasonalNormal {
  * Convert a SeasonalNormal to a WeatherDayEnvelope.
  */
 function normalToEnvelope(dateISO: string, normal: SeasonalNormal): WeatherDayEnvelope {
+  // Approximate % from bucket for seasonal normals
+  const precipPercent = normal.precipLikelihood === 'likely' ? 70
+    : normal.precipLikelihood === 'possible' ? 40 : 10;
   return {
     dateISO,
     typicalHigh: normal.typicalHigh,
     typicalLow: normal.typicalLow,
     precipLikelihood: normal.precipLikelihood,
+    precipPercent,
     precipTypeHint: normal.precipTypeHint,
     cloudCoverHint: normal.cloudCoverHint,
     windHint: 'unknown',
@@ -324,6 +330,7 @@ function forecastToEnvelope(forecast: {
     typicalHigh: forecast.tempHigh,
     typicalLow: forecast.tempLow,
     precipLikelihood,
+    precipPercent: forecast.precipitation,
     precipTypeHint,
     cloudCoverHint,
     windHint: 'unknown',
