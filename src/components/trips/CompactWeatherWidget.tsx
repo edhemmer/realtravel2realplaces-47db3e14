@@ -55,9 +55,21 @@ export function CompactWeatherWidget({ trip, className }: CompactWeatherWidgetPr
         </span>
       </div>
       {weatherMode === 'SEASONAL_NORMALS' && (
-        <div className="flex items-center gap-1 text-muted-foreground text-xs">
-          <CalendarDays className="w-3 h-3" />
-          <span>Seasonal</span>
+        <div className="flex items-center gap-1 text-xs">
+          <CalendarDays className="w-3 h-3 text-amber-500" />
+          <span className="text-amber-600 dark:text-amber-400 font-medium">Seasonal</span>
+        </div>
+      )}
+      {weatherMode === 'FORECAST_BLEND' && (
+        <div className="flex items-center gap-1 text-xs">
+          <CalendarDays className="w-3 h-3 text-sky-500" />
+          <span className="text-sky-600 dark:text-sky-400 font-medium">Blended</span>
+        </div>
+      )}
+      {weatherMode === 'FORECAST_PRIMARY' && (
+        <div className="flex items-center gap-1 text-xs">
+          <CalendarDays className="w-3 h-3 text-emerald-500" />
+          <span className="text-emerald-600 dark:text-emerald-400 font-medium">Live</span>
         </div>
       )}
     </div>
