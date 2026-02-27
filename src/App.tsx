@@ -55,9 +55,8 @@ function ProtectedRoute({ children, skipOnboardingGate }: { children: React.Reac
 
   // v3.8.20: New users go directly to wizard — no intro slides
   // skipOnboardingGate is true for /onboarding and /welcome-choice routes themselves
-  if (!skipOnboardingGate && shouldShowOnboarding) {
-    return <Navigate to="/dashboard" replace state={{ openCreateTrip: true, isOnboarding: true }} />;
-  }
+  // Note: We no longer redirect to /dashboard here because that causes an infinite loop.
+  // Instead, Dashboard itself detects shouldShowOnboarding via its own hook and opens the wizard.
 
   return <>{children}</>;
 }
