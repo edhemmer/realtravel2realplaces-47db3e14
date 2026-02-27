@@ -7,6 +7,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useOnboardingStatus } from '@/hooks/useOnboardingStatus';
 import { useTrips, useDeleteTrip } from '@/hooks/useTrips';
 import { useSharedTrips, SharedTrip } from '@/hooks/useSharedTrips';
 import { useRemoveTripMembership } from '@/hooks/useTripMembers';
@@ -49,14 +50,20 @@ export default function Dashboard() {
   const [tripToRemove, setTripToRemove] = useState<string | null>(null);
 
   // v3.8.20: Auto-open create trip dialog; detect onboarding state
+  const { shouldShowOnboarding } = useOnboardingStatus();
+  
   useEffect(() => {
     const state = location.state as { openCreateTrip?: boolean; isOnboarding?: boolean } | null;
     if (state?.openCreateTrip) {
       setCreateDialogOpen(true);
       setIsOnboarding(!!state.isOnboarding);
       window.history.replaceState({}, document.title);
+    } else if (shouldShowOnboarding) {
+      // New user who hasn't completed onboarding — auto-open create trip wizard
+      setCreateDialogOpen(true);
+      setIsOnboarding(true);
     }
-  }, [location.state]);
+  }, [location.state, shouldShowOnboarding]);
 
   const handleDeleteTrip = useCallback(() => {
     if (tripToDelete) {
