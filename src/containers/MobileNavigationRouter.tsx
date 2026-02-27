@@ -29,6 +29,7 @@ import { CompanionsTab } from '@/components/trips/tabs/CompanionsTab';
 import { MembersTab } from '@/components/trips/tabs/MembersTab';
 import { NotesTab } from '@/components/trips/tabs/NotesTab';
 import { ExploreTab } from '@/components/trips/tabs/ExploreTab';
+import { WeatherTab } from '@/components/trips/tabs/WeatherTab';
 import { TripSummaryReportTab } from '@/components/trips/tabs/TripSummaryReportTab';
 import type { DrillThroughTarget } from '@/pages/TripDetail';
 
@@ -39,6 +40,7 @@ import type { DrillThroughTarget } from '@/pages/TripDetail';
 const MORE_TAB_LABELS: Partial<Record<TripTab, string>> = {
   bookings: 'Bookings',
   tour: 'Tour',
+  weather: 'Weather',
   members: 'Members',
   companions: 'Companions',
   parking: 'Parking',
@@ -239,6 +241,8 @@ export function MobileNavigationRouter({
         );
       case 'packing':
         return <PackingTab tripId={tripId} />;
+      case 'weather':
+        return <WeatherTab tripId={tripId} trip={trip} />;
       case 'alerts':
         return <TripAlertsContainer tripId={tripId} trip={trip} />;
       case 'report':

@@ -33,6 +33,7 @@ import { CompanionsTab } from '@/components/trips/tabs/CompanionsTab';
 import { MembersTab } from '@/components/trips/tabs/MembersTab';
 import { NotesTab } from '@/components/trips/tabs/NotesTab';
 import { ExploreTab } from '@/components/trips/tabs/ExploreTab';
+import { WeatherTab } from '@/components/trips/tabs/WeatherTab';
 import { TripSummaryReportTab } from '@/components/trips/tabs/TripSummaryReportTab';
 import { TripHeaderWidgets } from '@/components/trips/TripHeaderWidgets';
 
@@ -81,6 +82,7 @@ const MOBILE_SECTION_LABELS: Partial<Record<TripTab, string>> = {
   now: 'Now',
   plan: 'Plan',
   explore: 'Explore',
+  weather: 'Weather',
   expenses: 'Expenses',
   bookings: 'Bookings',
   tour: 'Tour',
@@ -400,6 +402,7 @@ export default function TripDetail() {
                         </Badge>
                       )}
                     </TabsTrigger>
+                    <TabsTrigger value="weather">Weather</TabsTrigger>
                     {isPro && (
                       <TabsTrigger value="report">Report</TabsTrigger>
                     )}
@@ -447,6 +450,9 @@ export default function TripDetail() {
                     </TabsContent>
                     <TabsContent value="explore">
                       <ExploreTab tripId={trip.id} trip={trip} />
+                    </TabsContent>
+                    <TabsContent value="weather">
+                      <WeatherTab tripId={trip.id} trip={trip} />
                     </TabsContent>
                     {isPro && (
                       <TabsContent value="report">
