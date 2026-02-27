@@ -36,8 +36,11 @@ import {
   Sun,
   Cloud,
   CloudRain,
+  CloudSun,
+  CloudSnow,
   Wind,
   CalendarDays,
+  Train,
 } from 'lucide-react';
 
 interface WeatherTabProps {
@@ -222,23 +225,32 @@ const MODE_CONFIG: Record<WeatherMode, { label: string; colorClass: string; icon
   },
 };
 
-function PrecipIcon({ hint }: { hint: string }) {
-  if (hint === 'snow') return <Snowflake className="w-3.5 h-3.5" />;
-  if (hint === 'rain') return <CloudRain className="w-3.5 h-3.5" />;
-  return <Droplets className="w-3.5 h-3.5" />;
+function PrecipIcon({ hint, className = "w-3.5 h-3.5" }: { hint: string; className?: string }) {
+  if (hint === 'snow') return <CloudSnow className={className} />;
+  if (hint === 'rain') return <CloudRain className={className} />;
+  if (hint === 'mixed') return <Droplets className={className} />;
+  return <Droplets className={className} />;
 }
 
-function CloudIcon({ hint }: { hint: string }) {
-  if (hint === 'mostly_sunny') return <Sun className="w-3.5 h-3.5" />;
-  if (hint === 'mostly_cloudy') return <Cloud className="w-3.5 h-3.5" />;
-  return <Sun className="w-3.5 h-3.5" />;
+function WeatherIcon({ cloud, precip, precipLikelihood }: { cloud: string; precip: string; precipLikelihood: string }) {
+  // Show precip icon if precipitation is possible or likely
+  if (precipLikelihood !== 'unlikely') {
+    if (precip === 'snow') return <CloudSnow className="w-4 h-4 text-sky-400" />;
+    if (precip === 'rain') return <CloudRain className="w-4 h-4 text-sky-500" />;
+    if (precip === 'mixed') return <Droplets className="w-4 h-4 text-sky-400" />;
+  }
+  // Cloud-based icon
+  if (cloud === 'mostly_sunny') return <Sun className="w-4 h-4 text-amber-500" />;
+  if (cloud === 'mixed') return <CloudSun className="w-4 h-4 text-muted-foreground" />;
+  if (cloud === 'mostly_cloudy') return <Cloud className="w-4 h-4 text-muted-foreground" />;
+  return <CloudSun className="w-4 h-4 text-muted-foreground" />;
 }
 
 const TYPE_ICONS: Record<string, React.ElementType> = {
   airport: Plane,
   lodging: Building2,
   destination: MapPin,
-  transport: Wind,
+  transport: Train,
 };
 
 // ============================================================================
@@ -372,12 +384,15 @@ function WeatherLocationCard({ location, trip, temperatureUnit }: WeatherLocatio
 
         {/* Daily forecast grid — scoped to location dates */}
         {scopedEnvelope.length > 0 && (
-          <div className="grid gap-1" style={{
-            gridTemplateColumns: `repeat(${Math.min(scopedEnvelope.length, 7)}, minmax(0, 1fr))`
-          }}>
-            {scopedEnvelope.map((day) => (
-              <DayCell key={day.dateISO} day={day} formatTemp={formatTemp} mode={weather.weatherMode} />
-            ))}
+          <div className="overflow-x-auto -mx-2 px-2 pb-1">
+            <div className="grid gap-1" style={{
+              gridTemplateColumns: `repeat(${Math.min(scopedEnvelope.length, 7)}, minmax(3rem, 1fr))`,
+              minWidth: scopedEnvelope.length > 4 ? `${scopedEnvelope.length * 3.5}rem` : undefined,
+            }}>
+              {scopedEnvelope.map((day) => (
+                <DayCell key={day.dateISO} day={day} formatTemp={formatTemp} mode={weather.weatherMode} />
+              ))}
+            </div>
           </div>
         )}
 
@@ -410,27 +425,29 @@ function DayCell({
   formatTemp: (f: number) => string;
   mode: WeatherMode;
 }) {
-  const modeConfig = MODE_CONFIG[mode];
   const dayOfWeek = new Date(day.dateISO + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' });
   const dayNum = day.dateISO.split('-')[2];
   const isFromForecast = day.source === 'forecast';
 
   return (
-    <div className={`flex flex-col items-center gap-0.5 p-1.5 rounded-lg text-center ${
+    <div className={`flex flex-col items-center gap-0.5 p-1.5 sm:p-2 rounded-lg text-center min-w-[3rem] ${
       isFromForecast ? 'bg-emerald-500/5' : 'bg-amber-500/5'
     }`}>
       <span className="text-[9px] text-muted-foreground font-medium uppercase">{dayOfWeek}</span>
       <span className="text-[10px] text-muted-foreground">{dayNum}</span>
-      <CloudIcon hint={day.cloudCoverHint} />
+      <WeatherIcon cloud={day.cloudCoverHint} precip={day.precipTypeHint} precipLikelihood={day.precipLikelihood} />
       <span className={`text-[11px] font-semibold ${
         isFromForecast ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
       }`}>
         {formatTemp(day.typicalHigh)}
       </span>
       <span className="text-[10px] text-muted-foreground">{formatTemp(day.typicalLow)}</span>
-      {day.precipLikelihood !== 'unlikely' && (
-        <div className="mt-0.5">
-          <PrecipIcon hint={day.precipTypeHint} />
+      {day.precipLikelihood !== 'unlikely' && day.precipPercent > 0 && (
+        <div className="flex items-center gap-0.5 mt-0.5">
+          <PrecipIcon hint={day.precipTypeHint} className="w-3 h-3 text-sky-500" />
+          <span className="text-[9px] text-sky-600 dark:text-sky-400 font-medium">
+            {Math.round(day.precipPercent)}%
+          </span>
         </div>
       )}
     </div>
