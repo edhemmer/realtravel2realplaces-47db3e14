@@ -53,48 +53,87 @@ interface WeatherLocation {
   city: string;
   state?: string;
   country: string;
-  type: 'airport' | 'lodging' | 'destination';
+  type: 'airport' | 'lodging' | 'destination' | 'transport';
+  /** Date range the traveler is at this location */
+  dateStart: string; // YYYY-MM-DD
+  dateEnd: string;   // YYYY-MM-DD
+}
+
+/** Extract YYYY-MM-DD from an ISO datetime string */
+function toDateOnly(iso: string): string {
+  return iso.substring(0, 10);
 }
 
 /**
- * Extract unique weather-relevant locations from trip + bookings.
+ * Extract unique weather-relevant locations from trip + bookings,
+ * each scoped to the dates the traveler will actually be there.
  */
 function extractWeatherLocations(trip: Trip, bookings: Booking[]): WeatherLocation[] {
   const locations: WeatherLocation[] = [];
   const seen = new Set<string>();
 
-  // 1. Airports (departure + arrival)
+  // 1. Airports — scoped to departure/arrival day
   for (const b of bookings) {
     if (b.booking_type !== 'flight') continue;
-    for (const code of [b.departure_airport_code, b.arrival_airport_code]) {
-      if (!code) continue;
-      const upper = code.toUpperCase();
-      if (seen.has(`airport:${upper}`)) continue;
 
-      const airport = getAirportByCode(upper);
-      if (airport) {
-        locations.push({
-          key: `airport:${upper}`,
-          label: `${upper} – ${airport.city}`,
-          sublabel: airport.name,
-          city: airport.city,
-          state: airport.state,
-          country: airport.country,
-          type: 'airport',
-        });
-        seen.add(`airport:${upper}`);
+    // Departure airport — day of departure
+    if (b.departure_airport_code) {
+      const upper = b.departure_airport_code.toUpperCase();
+      const dayKey = `airport:${upper}:${toDateOnly(b.start_datetime)}`;
+      if (!seen.has(dayKey)) {
+        const airport = getAirportByCode(upper);
+        if (airport) {
+          const day = toDateOnly(b.start_datetime);
+          locations.push({
+            key: dayKey,
+            label: `${upper} – ${airport.city}`,
+            sublabel: `Departure · ${airport.name}`,
+            city: airport.city,
+            state: airport.state,
+            country: airport.country,
+            type: 'airport',
+            dateStart: day,
+            dateEnd: day,
+          });
+          seen.add(dayKey);
+        }
+      }
+    }
+
+    // Arrival airport — day of arrival (or departure day if no end_datetime)
+    if (b.arrival_airport_code) {
+      const upper = b.arrival_airport_code.toUpperCase();
+      const arrDay = b.end_datetime ? toDateOnly(b.end_datetime) : toDateOnly(b.start_datetime);
+      const dayKey = `airport:${upper}:${arrDay}`;
+      if (!seen.has(dayKey)) {
+        const airport = getAirportByCode(upper);
+        if (airport) {
+          locations.push({
+            key: dayKey,
+            label: `${upper} – ${airport.city}`,
+            sublabel: `Arrival · ${airport.name}`,
+            city: airport.city,
+            state: airport.state,
+            country: airport.country,
+            type: 'airport',
+            dateStart: arrDay,
+            dateEnd: arrDay,
+          });
+          seen.add(dayKey);
+        }
       }
     }
   }
 
-  // 2. Lodging (stays)
+  // 2. Lodging — check-in to check-out
   for (const b of bookings) {
     if (b.booking_type !== 'stay') continue;
     const name = b.property_name || b.vendor_name || 'Lodging';
-    const dedup = `stay:${name.toLowerCase()}`;
+    const checkIn = toDateOnly(b.start_datetime);
+    const checkOut = b.end_datetime ? toDateOnly(b.end_datetime) : checkIn;
+    const dedup = `stay:${name.toLowerCase()}:${checkIn}`;
     if (seen.has(dedup)) continue;
 
-    // Try to extract city from location_summary or address
     const locSummary = b.location_summary || b.address || '';
     locations.push({
       key: dedup,
@@ -104,11 +143,37 @@ function extractWeatherLocations(trip: Trip, bookings: Booking[]): WeatherLocati
       state: trip.destination_state || undefined,
       country: trip.destination_country || '',
       type: 'lodging',
+      dateStart: checkIn,
+      dateEnd: checkOut,
     });
     seen.add(dedup);
   }
 
-  // 3. Trip destination (always included as fallback)
+  // 3. Transport (train, bus, ferry) — entire trip range for that booking
+  for (const b of bookings) {
+    if (b.booking_type !== 'transport') continue;
+    const name = b.vendor_name || b.operator || 'Transport';
+    const depDay = toDateOnly(b.start_datetime);
+    const arrDay = b.end_datetime ? toDateOnly(b.end_datetime) : depDay;
+    const dedup = `transport:${name.toLowerCase()}:${depDay}`;
+    if (seen.has(dedup)) continue;
+
+    const fromTo = [b.from_location, b.to_location].filter(Boolean).join(' → ');
+    locations.push({
+      key: dedup,
+      label: name,
+      sublabel: fromTo || 'Transport',
+      city: b.from_location?.split(',')[0]?.trim() || trip.destination_city || '',
+      state: trip.destination_state || undefined,
+      country: trip.destination_country || '',
+      type: 'transport',
+      dateStart: depDay,
+      dateEnd: arrDay,
+    });
+    seen.add(dedup);
+  }
+
+  // 4. Trip destination (fallback — full trip range)
   if (trip.destination_city) {
     const destKey = `dest:${trip.destination_city.toLowerCase()}`;
     if (!seen.has(destKey)) {
@@ -120,9 +185,14 @@ function extractWeatherLocations(trip: Trip, bookings: Booking[]): WeatherLocati
         state: trip.destination_state || undefined,
         country: trip.destination_country || '',
         type: 'destination',
+        dateStart: trip.start_date,
+        dateEnd: trip.end_date,
       });
     }
   }
+
+  // Sort by dateStart
+  locations.sort((a, b) => a.dateStart.localeCompare(b.dateStart));
 
   return locations;
 }
@@ -168,6 +238,7 @@ const TYPE_ICONS: Record<string, React.ElementType> = {
   airport: Plane,
   lodging: Building2,
   destination: MapPin,
+  transport: Wind,
 };
 
 // ============================================================================
@@ -181,14 +252,14 @@ interface WeatherLocationCardProps {
 }
 
 function WeatherLocationCard({ location, trip, temperatureUnit }: WeatherLocationCardProps) {
-  const mode = resolveWeatherMode(trip.start_date);
+  const mode = resolveWeatherMode(location.dateStart);
   const shouldFetchForecast = mode !== 'SEASONAL_NORMALS';
 
   const { tripForecast, isLoading } = useTripWeather(
     shouldFetchForecast ? location.city : '',
     shouldFetchForecast ? location.country : '',
-    trip.start_date,
-    trip.end_date,
+    location.dateStart,
+    location.dateEnd,
     location.state,
     temperatureUnit,
   );
@@ -198,12 +269,19 @@ function WeatherLocationCard({ location, trip, temperatureUnit }: WeatherLocatio
       city: location.city,
       state: location.state,
       country: location.country,
-      startDate: trip.start_date,
-      endDate: trip.end_date,
+      startDate: location.dateStart,
+      endDate: location.dateEnd,
       forecast: shouldFetchForecast && tripForecast.length > 0 ? tripForecast : undefined,
     };
     return resolveWeather(input);
-  }, [location, trip.start_date, trip.end_date, tripForecast, shouldFetchForecast]);
+  }, [location, tripForecast, shouldFetchForecast]);
+
+  // Filter envelope to only the location's date range
+  const scopedEnvelope = useMemo(() => {
+    return weather.envelope.filter(
+      (d) => d.dateISO >= location.dateStart && d.dateISO <= location.dateEnd
+    );
+  }, [weather.envelope, location.dateStart, location.dateEnd]);
 
   const modeConfig = MODE_CONFIG[weather.weatherMode];
   const Icon = TYPE_ICONS[location.type] || MapPin;
@@ -215,6 +293,16 @@ function WeatherLocationCard({ location, trip, temperatureUnit }: WeatherLocatio
     return `${f}°F`;
   };
 
+  // Format date range label
+  const formatDateRange = () => {
+    const fmt = (d: string) => {
+      const [, m, day] = d.split('-');
+      return `${parseInt(m)}/${parseInt(day)}`;
+    };
+    if (location.dateStart === location.dateEnd) return fmt(location.dateStart);
+    return `${fmt(location.dateStart)} – ${fmt(location.dateEnd)}`;
+  };
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-3">
@@ -223,6 +311,7 @@ function WeatherLocationCard({ location, trip, temperatureUnit }: WeatherLocatio
             <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
               location.type === 'airport' ? 'bg-sky-500/10 text-sky-600 dark:text-sky-400'
               : location.type === 'lodging' ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
+              : location.type === 'transport' ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400'
               : 'bg-primary/10 text-primary'
             }`}>
               <Icon className="w-4 h-4" />
@@ -230,10 +319,13 @@ function WeatherLocationCard({ location, trip, temperatureUnit }: WeatherLocatio
             <div className="min-w-0">
               <CardTitle className="text-sm font-semibold truncate">{location.label}</CardTitle>
               <p className="text-xs text-muted-foreground truncate">{location.sublabel}</p>
+              <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+                <CalendarDays className="w-3 h-3 inline mr-0.5 -mt-px" />
+                {formatDateRange()}
+              </p>
             </div>
           </div>
           <Badge variant="outline" className={`shrink-0 text-[10px] font-medium ${modeConfig.colorClass} border-current/20`}>
-            <CalendarDays className={`w-3 h-3 mr-1 ${modeConfig.iconColorClass}`} />
             {modeConfig.label}
           </Badge>
         </div>
@@ -278,16 +370,23 @@ function WeatherLocationCard({ location, trip, temperatureUnit }: WeatherLocatio
           )}
         </div>
 
-        {/* Daily forecast grid */}
-        {weather.envelope.length > 0 && (
-          <div className="grid grid-cols-7 gap-1">
-            {weather.envelope.slice(0, 14).map((day) => (
+        {/* Daily forecast grid — scoped to location dates */}
+        {scopedEnvelope.length > 0 && (
+          <div className="grid gap-1" style={{
+            gridTemplateColumns: `repeat(${Math.min(scopedEnvelope.length, 7)}, minmax(0, 1fr))`
+          }}>
+            {scopedEnvelope.map((day) => (
               <DayCell key={day.dateISO} day={day} formatTemp={formatTemp} mode={weather.weatherMode} />
             ))}
           </div>
         )}
 
-        {/* Loading indicator for live forecast */}
+        {scopedEnvelope.length === 0 && (
+          <p className="text-xs text-muted-foreground italic">
+            No forecast data available for this date range
+          </p>
+        )}
+
         {isLoading && shouldFetchForecast && (
           <p className={`text-[10px] ${modeConfig.colorClass}`}>
             Fetching live forecast…
