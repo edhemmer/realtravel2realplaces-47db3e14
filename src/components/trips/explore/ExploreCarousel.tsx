@@ -1,5 +1,5 @@
 /**
- * v3.6.0: "Right Now" horizontal carousel for Explore
+ * v3.6.1: "Right Now" horizontal carousel for Explore
  * Premium compact cards with photo, name, rating, distance, Navigate CTA
  */
 
@@ -7,6 +7,7 @@ import { useRef } from 'react';
 import { AttractionSuggestion } from '@/types/attraction';
 import { Button } from '@/components/ui/button';
 import { Navigation, Star, MapPin, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { buildNavTarget, openNavTarget } from '@/lib/location/navigationTargets';
 
 interface ExploreCarouselProps {
   items: AttractionSuggestion[];
@@ -114,12 +115,13 @@ export function ExploreCarousel({ items, onAdd }: ExploreCarouselProps) {
                   size="sm"
                   className="flex-1 h-8 text-xs gap-1"
                   onClick={() => {
-                    const query = item.locationSummary || item.name;
-                    window.open(
-                      `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(query)}`,
-                      '_blank',
-                      'noopener,noreferrer'
-                    );
+                    const target = buildNavTarget({
+                      kind: 'PLACE',
+                      key: item.name,
+                      label: item.name,
+                      address: item.locationSummary || undefined,
+                    });
+                    if (target) openNavTarget(target);
                   }}
                 >
                   <Navigation className="w-3 h-3" />

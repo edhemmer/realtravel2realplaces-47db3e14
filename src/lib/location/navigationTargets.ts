@@ -97,7 +97,8 @@ export function buildMapsUrl(target: NavTarget): string {
  * Open Google Maps in a new tab for a NavTarget.
  */
 export function openNavTarget(target: NavTarget): void {
-  window.open(buildMapsUrl(target), '_blank', 'noopener,noreferrer');
+  const opener = window.top?.open ? window.top : window;
+  opener.open(buildMapsUrl(target), '_blank', 'noopener,noreferrer');
 }
 
 /**
