@@ -30,7 +30,8 @@ import {
   Users,
   FileText,
   StickyNote,
-  Bell
+  Bell,
+  CloudSun,
 } from 'lucide-react';
 import { useAccess } from '@/hooks/useAccess';
 import {
@@ -57,6 +58,7 @@ export type TripTab =
   | 'parking'
   | 'packing'
   | 'explore'
+  | 'weather'
   | 'report'
   | 'notes'
   | 'timeline'
@@ -86,6 +88,7 @@ const PRIMARY_NAV_ITEMS: NavItem[] = [
 const MORE_NAV_ITEMS: NavItem[] = [
   { id: 'bookings', label: 'Bookings', icon: <Plane className="w-4 h-4" /> },
   { id: 'tour', label: 'Tour', icon: <MapPin className="w-4 h-4" />, requiresBusiness: true },
+  { id: 'weather', label: 'Weather', icon: <CloudSun className="w-4 h-4" /> },
   { id: 'members', label: 'Members', icon: <Users className="w-4 h-4" /> },
   { id: 'companions', label: 'Companions', icon: <Users className="w-4 h-4" /> },
   { id: 'parking', label: 'Parking', icon: <CircleParking className="w-4 h-4" /> },
