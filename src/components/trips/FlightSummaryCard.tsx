@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
 import { formatLocalDateDirect } from '@/lib/canonicalTimeNormalizer';
 import { getDepartureTimeLabel, getArrivalTimeLabel, hasFlightTime } from '@/lib/timeDisplay';
-import { extractAirportCodes } from '@/lib/airportData';
+import { extractAirportCodes, airports } from '@/lib/airportData';
 import { validateIATA, buildFlightDisplayLine } from '@/lib/flightDisplayUtils';
 import { AirportInfoPill } from './AirportInfoPill';
 import { useAccess } from '@/hooks/useAccess';
@@ -56,21 +56,45 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
     return match ? match[1].replace(/\s+/g, '') : null;
   };
 
+  const lookupAirportName = (code?: string): string | undefined => {
+    if (!code) return undefined;
+    const entry = airports.find(a => a.code === code);
+    return entry?.name;
+  };
+
   const getFlightAirportCodes = (flight: Booking): { origin?: string; destination?: string; originName?: string; destinationName?: string } => {
     const dbOrigin = validateIATA(flight.departure_airport_code);
     const dbDest = validateIATA(flight.arrival_airport_code);
-    const originName = flight.departure_airport_name || undefined;
-    const destinationName = flight.arrival_airport_name || undefined;
+    const originName = flight.departure_airport_name || lookupAirportName(dbOrigin || undefined);
+    const destinationName = flight.arrival_airport_name || lookupAirportName(dbDest || undefined);
     if (dbOrigin || dbDest) {
       return { origin: dbOrigin || undefined, destination: dbDest || undefined, originName, destinationName };
     }
     let codes = extractAirportCodes(flight.notes || '');
-    if (codes.origin || codes.destination) return { ...codes, originName, destinationName };
+    if (codes.origin || codes.destination) {
+      return {
+        ...codes,
+        originName: originName || lookupAirportName(codes.origin),
+        destinationName: destinationName || lookupAirportName(codes.destination),
+      };
+    }
     codes = extractAirportCodes(flight.vendor_name || '');
-    if (codes.origin || codes.destination) return { ...codes, originName, destinationName };
+    if (codes.origin || codes.destination) {
+      return {
+        ...codes,
+        originName: originName || lookupAirportName(codes.origin),
+        destinationName: destinationName || lookupAirportName(codes.destination),
+      };
+    }
     if (flight.pickup_location) {
       codes = extractAirportCodes(flight.pickup_location);
-      if (codes.origin) return { ...codes, originName, destinationName };
+      if (codes.origin) {
+        return {
+          ...codes,
+          originName: originName || lookupAirportName(codes.origin),
+          destinationName: destinationName || lookupAirportName(codes.destination),
+        };
+      }
     }
     return { originName, destinationName };
   };
