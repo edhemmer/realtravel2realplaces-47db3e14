@@ -14,7 +14,7 @@ import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Navigation, Clock, CheckCircle2, CalendarClock, Sparkles, AlertTriangle, Eye } from 'lucide-react';
-import { resolveMapsFromNextStop, openMapsDestination } from '@/lib/mapsDestination';
+import { resolveCanonicalNavigation, openCanonicalNav } from '@/lib/canonicalNavigation';
 import { getLocalNowString } from '@/lib/canonicalNextStop';
 import { resolveCanonicalLifecycle } from '@/lib/canonicalTimePolicy';
 import { useMemo } from 'react';
@@ -315,8 +315,14 @@ export function NextCriticalActionCard({ tripId, trip, resolvedNextAction, buffe
     );
   }
 
-  const mapsDest = resolveMapsFromNextStop(nextStop);
-  const hasLocation = !!mapsDest;
+  const canonicalNav = resolveCanonicalNavigation({
+    address: nextStop.address,
+    locationLabel: nextStop.locationLabel,
+    bookingType: nextStop.type === 'flight' || nextStop.type === 'flight_departure' ? 'flight' : undefined,
+    departureAirportCode: (nextStop as any).departureAirportCode,
+    arrivalAirportCode: (nextStop as any).arrivalAirportCode,
+  });
+  const hasLocation = !!canonicalNav;
   const contextLabel = resolveContextLabel(nextStop.type);
   const timeMicrotext = nextStop.eventLocalTime
     ? resolveTimeMicrotext(nextStop.type, nextStop.eventLocalTime)
@@ -361,7 +367,7 @@ export function NextCriticalActionCard({ tripId, trip, resolvedNextAction, buffe
           disabled={!hasLocation}
           className={buttonStyle.className}
           onClick={() => {
-            if (mapsDest) openMapsDestination(mapsDest);
+            if (canonicalNav) openCanonicalNav(canonicalNav);
           }}
         >
           <Navigation className="w-4 h-4" />

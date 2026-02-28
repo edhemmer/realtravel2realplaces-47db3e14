@@ -13,8 +13,7 @@ import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Compass, Plus, Navigation, Clock, CalendarCheck } from 'lucide-react';
 import { getTodayActionItems, TodayActionItem } from '@/lib/todayActionItems';
-import { resolveAirportRef, getAirportCoords } from '@/lib/location/locationResolver';
-import { buildNavTarget, openNavTarget, buildMapsSearchUrl } from '@/lib/location/navigationTargets';
+import { resolveCanonicalNavigation, openCanonicalNav } from '@/lib/canonicalNavigation';
 import type { CanonicalTimelineEvent } from '@/lib/canonicalTripState';
 
 interface NowExecutionPillsProps {
@@ -29,57 +28,14 @@ interface NowExecutionPillsProps {
  * NEVER sends raw strings like city names or "Nearby" as map queries.
  */
 function handleItemNavigate(item: TodayActionItem) {
-  // 1. Flights: resolve airport coordinates directly
-  if (item.bookingType === 'flight' || item.eventType === 'flight_departure' || item.eventType === 'flight') {
-    const depCode = item.departureAirportCode;
-    const arrCode = item.arrivalAirportCode;
-    // For departure events, prefer departure airport; otherwise arrival
-    const code = (item.eventType === 'flight_departure' ? depCode : arrCode) || depCode || arrCode;
-    if (code) {
-      const coords = getAirportCoords(code);
-      if (coords) {
-        window.open(
-          `https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`,
-          '_blank',
-          'noopener,noreferrer'
-        );
-        return;
-      }
-      // Fallback: canonical airport ref → NavTarget
-      const ref = resolveAirportRef({ iata: code });
-      if (ref) {
-        const target = buildNavTarget(ref);
-        if (target) {
-          window.open(buildMapsSearchUrl(target), '_blank', 'noopener,noreferrer');
-          return;
-        }
-      }
-    }
-  }
-
-  // 2. Address-based: build NavTarget (prefers coords → address → query)
-  if (item.address) {
-    const target = buildNavTarget({
-      kind: 'PLACE',
-      key: item.sourceId,
-      label: item.title,
-      address: item.address,
-    });
-    if (target) {
-      window.open(buildMapsSearchUrl(target), '_blank', 'noopener,noreferrer');
-      return;
-    }
-  }
-
-  // 3. Last resort: use title as query (only when no other data available)
-  const target = buildNavTarget({
-    kind: 'PLACE',
-    key: item.sourceId,
-    label: item.title,
+  const result = resolveCanonicalNavigation({
+    address: item.address,
+    bookingType: item.bookingType === 'flight' || item.eventType === 'flight_departure' || item.eventType === 'flight' ? 'flight' : undefined,
+    departureAirportCode: item.departureAirportCode,
+    arrivalAirportCode: item.arrivalAirportCode,
+    locationLabel: item.title,
   });
-  if (target) {
-    window.open(buildMapsSearchUrl(target), '_blank', 'noopener,noreferrer');
-  }
+  if (result) openCanonicalNav(result);
 }
 
 export function NowExecutionPills({ timelineEvents, onExplore, onAddExpense }: NowExecutionPillsProps) {

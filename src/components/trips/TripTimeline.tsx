@@ -15,7 +15,7 @@ import { DatetimeFormatPreference } from '@/lib/displayFormats';
 import { formatLocalTimeDirect, formatLocalDateDirect } from '@/lib/canonicalTimeNormalizer';
 import { UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
 import { hasFlightTime, getDepartureTimeLabel } from '@/lib/timeDisplay';
-import { resolveMapsFromTimelineEvent, openMapsDestination } from '@/lib/mapsDestination';
+import { resolveCanonicalNavigation, openCanonicalNav } from '@/lib/canonicalNavigation';
 import { buildFlightDisplayModel, buildFlightSubtitleLine } from '@/lib/flightDisplayModel';
 import { 
   Plane, Building2, Car, CircleParking, Compass, Ticket, 
@@ -35,8 +35,15 @@ interface TripTimelineProps {
 
 const openInMapsResolved = (event: CanonicalTimelineEvent, e: React.MouseEvent) => {
   e.stopPropagation();
-  const dest = resolveMapsFromTimelineEvent(event);
-  if (dest) openMapsDestination(dest);
+  const result = resolveCanonicalNavigation({
+    address: event.address,
+    bookingType: event.bookingType,
+    propertyName: event.bookingType === 'stay' ? event.title : undefined,
+    locationLabel: event.subtitle,
+    departureAirportCode: event.departureAirportCode,
+    arrivalAirportCode: event.arrivalAirportCode,
+  });
+  if (result) openCanonicalNav(result);
 };
 
 const getEventIcon = (type: string, transportMode?: string) => {
@@ -275,9 +282,16 @@ export function TripTimeline({ events, datetimeFormat, onEventClick, onExploreNe
                       </div>
                       {/* v3.6.1: Navigate + v3.12.4: Explore nearby buttons */}
                       {(() => {
-                        const dest = resolveMapsFromTimelineEvent(event);
+                        const navResult = resolveCanonicalNavigation({
+                          address: event.address,
+                          bookingType: event.bookingType,
+                          propertyName: event.bookingType === 'stay' ? event.title : undefined,
+                          locationLabel: event.subtitle,
+                          departureAirportCode: event.departureAirportCode,
+                          arrivalAirportCode: event.arrivalAirportCode,
+                        });
                         const hasAddress = !!(event.address || event.departureAirportCode);
-                        const canNavigate = !!dest;
+                        const canNavigate = !!navResult;
                         if (!canNavigate && !hasAddress) {
                           // Soft warning: no location data
                           return (

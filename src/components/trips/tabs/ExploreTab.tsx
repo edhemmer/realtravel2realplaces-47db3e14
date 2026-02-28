@@ -15,7 +15,7 @@ import { useTripPermission } from '@/pages/TripDetail';
 import { resolveExploreOriginForContext, getExploreOriginSubtitle, hasExploreDestination, ensureExploreOriginGeocode } from '@/lib/location/exploreContext';
 import { getExploreContext, setExploreContext, clearExploreContext } from '@/lib/explore/exploreContextStore';
 import { buildExploreSections } from '@/lib/exploreRankingSections';
-import { buildNavTarget, openNavTarget } from '@/lib/location/navigationTargets';
+import { navigateTo } from '@/lib/canonicalNavigation';
 import { ExploreCarousel } from '@/components/trips/explore/ExploreCarousel';
 import { ExploreSectionFeed } from '@/components/trips/explore/ExploreSectionFeed';
 import { ExploreAreaPicker } from '@/components/trips/explore/ExploreAreaPicker';
@@ -177,15 +177,10 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
     // v3.5.3: Build NavTarget for the attraction, using address-based resolution.
     // For individual attractions, address/name is acceptable since these are
     // specific place names (not generic labels). The origin query uses coords-only.
-    const target = buildNavTarget({
-      kind: 'PLACE',
-      key: attraction.name,
-      label: attraction.name,
+    navigateTo({
       address: attraction.locationSummary || undefined,
+      locationLabel: attraction.name,
     });
-    if (target) {
-      openNavTarget(target);
-    }
   };
 
   const handleRefresh = useCallback(async () => {

@@ -13,10 +13,7 @@ import {
   buildDriveSmartUrl,
   type TodayCriticalAction,
 } from '@/lib/canonicalTodayCriticalActions';
-import {
-  resolveMapsDestination,
-  openMapsDestination,
-} from '@/lib/mapsDestination';
+import { navigateTo } from '@/lib/canonicalNavigation';
 
 interface TodayCriticalActionsCardProps {
   /** Pre-sorted critical actions from buildCanonicalTodayExecutionStack */
@@ -55,12 +52,9 @@ function handleNavigate(action: TodayCriticalAction) {
   }
 
   // For checkout / return: use Maps directions
-  const dest = resolveMapsDestination({
+  navigateTo({
     address: action.navTarget.address,
   });
-  if (dest) {
-    openMapsDestination(dest);
-  }
 }
 
 export function TodayCriticalActionsCard({ criticalActions }: TodayCriticalActionsCardProps) {

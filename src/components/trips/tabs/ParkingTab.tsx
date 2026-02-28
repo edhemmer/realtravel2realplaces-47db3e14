@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Plus, Trash2, CircleParking, MapPin, Clock, AlertTriangle, Pencil } from 'lucide-react';
-import { resolveMapsDestination, openMapsDestination } from '@/lib/mapsDestination';
+import { navigateTo } from '@/lib/canonicalNavigation';
 import { ParkingExpirationIndicator } from '@/components/trips/ParkingExpirationIndicator';
 import { cn } from '@/lib/utils';
 import { UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
@@ -169,11 +169,10 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
   };
 
   const openInMaps = (parking: Parking) => {
-    const dest = resolveMapsDestination({
+    navigateTo({
       address: parking.address,
       locationLabel: parking.label,
     });
-    if (dest) openMapsDestination(dest);
   };
 
   const now = new Date();

@@ -39,7 +39,7 @@ import {
 } from '@/lib/driveIntelligenceHelper';
 import { getNextStopFromCanonicalTimeline } from '@/lib/canonicalNextStop';
 import { getLocalNowString } from '@/lib/canonicalNextStop';
-import { resolveMapsDestination, buildMapsDirectionsUrl } from '@/lib/mapsDestination';
+import { resolveCanonicalNavigation, openCanonicalNav } from '@/lib/canonicalNavigation';
 import { BrandedPageLoader } from '@/components/ui/premium-loading';
 
 // ============================================================================
@@ -125,24 +125,12 @@ export default function DriveMode() {
   // Navigate handler
   const handleNavigate = () => {
     if (!navTarget) return;
-    const dest = resolveMapsDestination({
+    const result = resolveCanonicalNavigation({
       address: navTarget.addressString,
+      lat: navTarget.lat,
+      lng: navTarget.lng,
     });
-    if (dest) {
-      const url = buildMapsDirectionsUrl(dest);
-      try {
-        const topWin = window.top;
-        if (topWin && typeof topWin.open === 'function') {
-          const opened = topWin.open(url, '_blank', 'noopener,noreferrer');
-          if (opened) return;
-        }
-      } catch { /* sandbox */ }
-      try {
-        const opened = window.open(url, '_blank', 'noopener,noreferrer');
-        if (opened) return;
-      } catch { /* blocked */ }
-      window.location.assign(url);
-    }
+    if (result) openCanonicalNav(result);
   };
 
   // Loading
