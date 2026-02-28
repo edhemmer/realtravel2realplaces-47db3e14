@@ -99,6 +99,7 @@ interface CityCentroid {
 }
 
 const CITY_CENTROIDS: CityCentroid[] = [
+  // Major cities
   { city: 'Atlanta', state: 'GA', lat: 33.749, lng: -84.388 },
   { city: 'Austin', state: 'TX', lat: 30.267, lng: -97.743 },
   { city: 'Baltimore', state: 'MD', lat: 39.290, lng: -76.612 },
@@ -147,6 +148,52 @@ const CITY_CENTROIDS: CityCentroid[] = [
   { city: 'Tucson', state: 'AZ', lat: 32.222, lng: -110.975 },
   { city: 'Virginia Beach', state: 'VA', lat: 36.853, lng: -75.978 },
   { city: 'Washington', state: 'DC', lat: 38.907, lng: -77.037 },
+
+  // Mid-size cities along major corridors (for fuel stop area labels)
+  { city: 'Bowling Green', state: 'KY', lat: 36.990, lng: -86.444 },
+  { city: 'Chattanooga', state: 'TN', lat: 35.046, lng: -85.309 },
+  { city: 'Clarksville', state: 'TN', lat: 36.530, lng: -87.359 },
+  { city: 'Elizabethtown', state: 'KY', lat: 37.694, lng: -85.859 },
+  { city: 'Evansville', state: 'IN', lat: 37.972, lng: -87.571 },
+  { city: 'Fort Wayne', state: 'IN', lat: 41.079, lng: -85.139 },
+  { city: 'Gary', state: 'IN', lat: 41.593, lng: -87.346 },
+  { city: 'Knoxville', state: 'TN', lat: 35.961, lng: -83.921 },
+  { city: 'Lafayette', state: 'IN', lat: 40.417, lng: -86.875 },
+  { city: 'Lexington', state: 'KY', lat: 38.040, lng: -84.504 },
+  { city: 'Macon', state: 'GA', lat: 32.841, lng: -83.632 },
+  { city: 'Champaign', state: 'IL', lat: 40.116, lng: -88.243 },
+  { city: 'Springfield', state: 'IL', lat: 39.781, lng: -89.650 },
+  { city: 'Terre Haute', state: 'IN', lat: 39.467, lng: -87.414 },
+  { city: 'Bloomington', state: 'IN', lat: 39.165, lng: -86.526 },
+  { city: 'Valdosta', state: 'GA', lat: 30.832, lng: -83.279 },
+  { city: 'Montgomery', state: 'AL', lat: 32.377, lng: -86.300 },
+  { city: 'Tuscaloosa', state: 'AL', lat: 33.210, lng: -87.569 },
+  { city: 'Paducah', state: 'KY', lat: 37.084, lng: -88.600 },
+  { city: 'Dayton', state: 'OH', lat: 39.759, lng: -84.192 },
+  { city: 'Toledo', state: 'OH', lat: 41.654, lng: -83.537 },
+  { city: 'Akron', state: 'OH', lat: 41.081, lng: -81.519 },
+  { city: 'South Bend', state: 'IN', lat: 41.677, lng: -86.252 },
+  { city: 'Savannah', state: 'GA', lat: 32.081, lng: -81.091 },
+  { city: 'Tallahassee', state: 'FL', lat: 30.439, lng: -84.281 },
+  { city: 'Gainesville', state: 'FL', lat: 29.652, lng: -82.325 },
+  { city: 'Columbia', state: 'SC', lat: 34.000, lng: -81.035 },
+  { city: 'Greenville', state: 'SC', lat: 34.852, lng: -82.394 },
+  { city: 'Asheville', state: 'NC', lat: 35.595, lng: -82.551 },
+  { city: 'Waco', state: 'TX', lat: 31.549, lng: -97.147 },
+  { city: 'Little Rock', state: 'AR', lat: 34.746, lng: -92.290 },
+  { city: 'Shreveport', state: 'LA', lat: 32.525, lng: -93.750 },
+  { city: 'Jackson', state: 'MS', lat: 32.299, lng: -90.185 },
+  { city: 'Baton Rouge', state: 'LA', lat: 30.451, lng: -91.187 },
+  { city: 'Mobile', state: 'AL', lat: 30.695, lng: -88.040 },
+  { city: 'Pensacola', state: 'FL', lat: 30.421, lng: -87.217 },
+  { city: 'Albuquerque', state: 'NM', lat: 35.085, lng: -106.651 },
+  { city: 'El Paso', state: 'TX', lat: 31.762, lng: -106.485 },
+  { city: 'Amarillo', state: 'TX', lat: 35.222, lng: -101.831 },
+  { city: 'Lubbock', state: 'TX', lat: 33.577, lng: -101.845 },
+  { city: 'Boise', state: 'ID', lat: 43.615, lng: -116.202 },
+  { city: 'Reno', state: 'NV', lat: 39.530, lng: -119.814 },
+  { city: 'Bakersfield', state: 'CA', lat: 35.373, lng: -119.019 },
+  { city: 'Fresno', state: 'CA', lat: 36.738, lng: -119.786 },
 ];
 
 // State centroids (fallback when city not found)
@@ -195,4 +242,43 @@ export function approximateCityCoords(
   }
 
   return null;
+}
+
+// ============================================================================
+// NEAREST CITY LOOKUP (for fuel stop area labels)
+// ============================================================================
+
+const EARTH_RADIUS_MI = 3959;
+function toRad(deg: number): number { return (deg * Math.PI) / 180; }
+
+function haversineMi(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return EARTH_RADIUS_MI * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/**
+ * Find the nearest known city to a lat/lng within a radius.
+ * Returns a label like "near Bowling Green, KY" or null if nothing close.
+ */
+export function approximateNearestCity(
+  lat: number,
+  lng: number,
+  maxRadiusMiles: number = 40,
+): string | null {
+  let best: CityCentroid | null = null;
+  let bestDist = Infinity;
+
+  for (const c of CITY_CENTROIDS) {
+    const d = haversineMi(lat, lng, c.lat, c.lng);
+    if (d < bestDist && d <= maxRadiusMiles) {
+      best = c;
+      bestDist = d;
+    }
+  }
+
+  if (!best) return null;
+  return `near ${best.city}, ${best.state}`;
 }
