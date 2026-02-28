@@ -8,6 +8,9 @@
 
 import { Layout } from '@/components/Layout';
 import { Helmet } from 'react-helmet-async';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -37,6 +40,22 @@ import {
   Calendar,
   CircleParking,
 } from 'lucide-react';
+
+/* ── Back to Dashboard ── */
+function BackToDashboard() {
+  const navigate = useNavigate();
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="gap-1.5 text-muted-foreground hover:text-foreground -ml-2"
+      onClick={() => navigate('/dashboard')}
+    >
+      <ArrowLeft className="h-4 w-4" />
+      Back to Dashboard
+    </Button>
+  );
+}
 
 /* ── Plan badge helper ── */
 function PlanBadge({ tier }: { tier: 'pro' | 'business' }) {
@@ -1272,11 +1291,14 @@ export default function HelpCenter() {
       <FaqJsonLd />
       <Layout>
         <div className="max-w-3xl mx-auto px-4 py-8 md:py-12 space-y-8">
-          {/* Header */}
-          <header className="text-center space-y-3">
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-              Help Center
-            </h1>
+           {/* Back button */}
+           <BackToDashboard />
+
+           {/* Header */}
+           <header className="text-center space-y-3">
+             <h1 className="text-3xl md:text-4xl font-bold text-foreground">
+               Help Center
+             </h1>
             <p className="text-muted-foreground text-base md:text-lg leading-relaxed max-w-xl mx-auto">
               Complete guide to Real Travel 2 Real Places — your real-time travel command center.
             </p>
