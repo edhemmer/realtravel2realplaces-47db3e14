@@ -1,13 +1,13 @@
 /**
- * v3.8.15: NowCommandCenter Container
+ * v4.0.3: NowCommandCenter Container
  *
  * Mobile-only execution-first command center for the NOW tab.
  * 
  * CANONICAL SINGLE SOURCE: Calls buildCanonicalTodayExecutionStack ONCE
  * and passes pre-sorted output to all child surfaces. No child re-sorts.
  *
- * v3.8.15: Integrates execution windows + next action resolver for
- * deterministic time-to-event intelligence.
+ * v4.0.3: Integrates Drive Mode via driveIntelligenceHelper for
+ * drive segment awareness in quick actions and next action card.
  */
 
 import { useState, useMemo, useCallback } from 'react';
@@ -35,6 +35,7 @@ import { useForegroundResume } from '@/hooks/useForegroundResume';
 import { QuickExpenseDialog } from '@/components/trips/QuickExpenseDialog';
 import { useTripReadiness } from '@/hooks/useTripReadiness';
 import { TripBriefSection } from '@/components/trips/TripBriefSection';
+import { getActiveDriveSegment, getNavigationTarget } from '@/lib/driveIntelligenceHelper';
 import type { TravelAlert } from '@/hooks/useTravelAlerts';
 import type { DriveSignal } from '@/lib/driveEngine';
 
@@ -81,7 +82,7 @@ export function NowCommandCenter({
   onTimeline,
 }: NowCommandCenterProps) {
   const navigate = useNavigate();
-  const { timelineEvents, isLoading } = useCanonicalTripState(tripId, trip);
+  const { timelineEvents, state: canonicalState, isLoading } = useCanonicalTripState(tripId, trip);
   const { data: bookings = [] } = useBookings(tripId);
   const { data: parkingList = [] } = useParking(tripId);
   const { data: userProfile } = useUserProfile();
@@ -104,6 +105,35 @@ export function NowCommandCenter({
 
   const showGas = useMemo(() => isRentalReturnDay(bookings), [bookings]);
   const tripIsActive = useMemo(() => isTripActive(trip), [trip]);
+
+  // v4.0.3: Drive Intelligence — active drive segment + nav target for NOW tab
+  const activeDriveSegment = useMemo(
+    () => getActiveDriveSegment(canonicalState, new Date()),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [canonicalState, resumeTick],
+  );
+
+  const driveNavTarget = useMemo(
+    () => activeDriveSegment ? getNavigationTarget(canonicalState, activeDriveSegment) : null,
+    [canonicalState, activeDriveSegment],
+  );
+
+  // v4.0.3: Drive Mode eligibility — trip within 1 day of start or active
+  const showDriveMode = useMemo(() => {
+    if (!activeDriveSegment) return false;
+    const today = getLocalNowString().substring(0, 10);
+    if (today > trip.end_date) return false;
+    // Check within 1 day before start
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+    return trip.start_date <= tStr;
+  }, [activeDriveSegment, trip]);
+
+  const handleDriveMode = useCallback(() => {
+    navigate(`/trip/${tripId}/drive`);
+  }, [navigate, tripId]);
 
   // v3.9.6: When trip is active, open quick expense dialog in-place instead of navigating
   const handleAddExpense = useCallback(() => {
@@ -228,6 +258,8 @@ export function NowCommandCenter({
         <StickyQuickOpsStrip
           onAddExpense={handleAddExpense}
           onExplore={onExplore}
+          onDriveMode={showDriveMode ? handleDriveMode : null}
+          driveModeLabel={driveNavTarget?.label || null}
         />
       </div>
 
@@ -256,7 +288,14 @@ export function NowCommandCenter({
       <TodayCriticalActionsCard criticalActions={todayExecution.criticalActions} />
 
       {/* 4. NextCriticalActionCard — enhanced with execution intelligence */}
-      <NextCriticalActionCard tripId={tripId} trip={trip} resolvedNextAction={nextAction} bufferStatus={bufferStatus} />
+      <NextCriticalActionCard
+        tripId={tripId}
+        trip={trip}
+        resolvedNextAction={nextAction}
+        bufferStatus={bufferStatus}
+        activeDriveSegment={activeDriveSegment}
+        driveNavTarget={driveNavTarget}
+      />
 
       {/* 5. ActiveAlertsStack — max 3, severity-ordered, merged with Drive Engine signals */}
       {(hasTravelAlerts || driveSignals.length > 0) && (

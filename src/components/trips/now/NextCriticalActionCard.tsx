@@ -11,14 +11,16 @@
 
 import { useNextStop, type NextStopEvent } from '@/hooks/useNextStop';
 import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Navigation, Clock, CheckCircle2, CalendarClock, Sparkles, AlertTriangle, Eye } from 'lucide-react';
+import { Navigation, Clock, CheckCircle2, CalendarClock, Sparkles, AlertTriangle, Eye, Car } from 'lucide-react';
 import { resolveCanonicalNavigation, openCanonicalNav } from '@/lib/canonicalNavigation';
 import { getLocalNowString } from '@/lib/canonicalNextStop';
 import { resolveCanonicalLifecycle } from '@/lib/canonicalTimePolicy';
 import { useMemo } from 'react';
 import type { NextActionCardModel, BufferStatusResult } from '@/lib/execution';
+import type { DriveSegment, DriveNavigationTarget } from '@/lib/driveIntelligenceHelper';
 
 interface NextCriticalActionCardProps {
   tripId: string;
@@ -27,6 +29,10 @@ interface NextCriticalActionCardProps {
   resolvedNextAction?: NextActionCardModel | null;
   /** v3.8.17: Buffer status from buffer intelligence layer */
   bufferStatus?: BufferStatusResult | null;
+  /** v4.0.3: Active drive segment from driveIntelligence */
+  activeDriveSegment?: DriveSegment | null;
+  /** v4.0.3: Navigation target for the active drive segment */
+  driveNavTarget?: DriveNavigationTarget | null;
 }
 
 /**
@@ -156,7 +162,8 @@ function resolveButtonStyle(eventType: string, hasLocation: boolean): { classNam
   };
 }
 
-export function NextCriticalActionCard({ tripId, trip, resolvedNextAction, bufferStatus }: NextCriticalActionCardProps) {
+export function NextCriticalActionCard({ tripId, trip, resolvedNextAction, bufferStatus, activeDriveSegment, driveNavTarget }: NextCriticalActionCardProps) {
+  const navigate = useNavigate();
   const { state } = useCanonicalTripState(tripId, trip);
   const { nextStop } = useNextStop(state);
 
@@ -261,6 +268,42 @@ export function NextCriticalActionCard({ tripId, trip, resolvedNextAction, buffe
   }
 
   // ── Legacy fallback: use nextStop from canonical engine ──
+
+  // v4.0.3: If no nextStop and no resolvedNextAction, but active drive segment exists,
+  // show a Drive Mode variant as the primary card.
+  if (!nextStop && activeDriveSegment && driveNavTarget) {
+    return (
+      <Card className="border-primary/30 bg-gradient-to-br from-primary/8 to-background shadow-md">
+        <CardContent className="py-5 px-4">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-primary/70 mb-1">
+            DRIVE MODE
+          </p>
+          <div className="flex items-center gap-1.5 mb-1">
+            <Car className="w-3.5 h-3.5 text-primary" />
+            <span className="text-xs font-semibold text-primary uppercase tracking-wider">
+              Next Drive
+            </span>
+          </div>
+          <p className="text-base font-bold text-foreground truncate leading-snug">
+            Drive to {driveNavTarget.label}
+          </p>
+          {activeDriveSegment.timeStr && (
+            <p className="text-xs font-medium text-muted-foreground mt-0.5">
+              at {activeDriveSegment.timeStr}
+            </p>
+          )}
+          <Button
+            variant="default"
+            className="w-full h-12 rounded-xl font-semibold shadow-sm mt-3 bg-primary hover:bg-primary/90 text-primary-foreground active:scale-[0.98]"
+            onClick={() => navigate(`/trip/${tripId}/drive`)}
+          >
+            <Car className="w-4 h-4" />
+            Open Drive Mode
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // No next stop — choose message based on canonical lifecycle
   if (!nextStop) {
