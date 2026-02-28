@@ -16,6 +16,7 @@ import ResetPassword from "./pages/ResetPassword";
 import CompleteProfile from "./pages/CompleteProfile";
 import Dashboard from "./pages/Dashboard";
 import TripDetail from "./pages/TripDetail";
+import DriveMode from "./pages/DriveMode";
 import AcceptShare from "./pages/AcceptShare";
 import AcceptInvite from "./pages/AcceptInvite";
 import AdminPlans from "./pages/AdminPlans";
@@ -90,6 +91,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <TripDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/trip/:tripId/drive"
+        element={
+          <ProtectedRoute>
+            <DriveMode />
           </ProtectedRoute>
         }
       />

@@ -36,6 +36,8 @@ import { ExploreTab } from '@/components/trips/tabs/ExploreTab';
 import { WeatherTab } from '@/components/trips/tabs/WeatherTab';
 import { TripSummaryReportTab } from '@/components/trips/tabs/TripSummaryReportTab';
 import { TripHeaderWidgets } from '@/components/trips/TripHeaderWidgets';
+import { DriveModeEntryCard } from '@/components/trips/DriveModeEntryCard';
+import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
 
 import { TripStatusHeroBar } from '@/components/trips/TripStatusHeroBar';
 import { ProRetentionCountdownCard } from '@/components/trips/ProRetentionCountdownCard';
@@ -129,6 +131,9 @@ export default function TripDetail() {
   const hasFlights = useMemo(() => {
     return bookings.some(b => b.booking_type === 'flight');
   }, [bookings]);
+
+  // v4.0.1: Canonical state for Drive Mode entry card
+  const { state: driveModeCanonicalState } = useCanonicalTripState(tripId || '', trip || null);
 
   const isInternational = useMemo(() => {
     const country = trip?.destination_country?.toLowerCase() || '';
@@ -309,6 +314,10 @@ export default function TripDetail() {
       <div className="flex gap-2 overflow-x-auto md:flex-col md:overflow-visible md:space-y-6 md:gap-0 px-0.5 md:px-0 scrollbar-hide pb-1 md:pb-0">
         <div className="shrink-0 md:shrink md:w-full min-w-[280px] md:min-w-0">
           <ProRetentionCountdownCard trip={trip} />
+        </div>
+        {/* v4.0.1: Drive Mode entry card */}
+        <div className="shrink-0 md:shrink md:w-full min-w-[280px] md:min-w-0">
+          <DriveModeEntryCard tripId={trip.id} trip={trip} canonicalState={driveModeCanonicalState} />
         </div>
         <div className="hidden md:block shrink-0 md:shrink md:w-full min-w-[280px] md:min-w-0">
           <MobileNextUpCard tripId={trip.id} trip={trip} />
