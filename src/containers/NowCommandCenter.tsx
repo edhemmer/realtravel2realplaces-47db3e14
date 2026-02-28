@@ -11,6 +11,7 @@
  */
 
 import { useState, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Trip, Booking } from '@/types/database';
 import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
 import { useBookings } from '@/hooks/useBookings';
@@ -79,6 +80,7 @@ export function NowCommandCenter({
   onExplore,
   onTimeline,
 }: NowCommandCenterProps) {
+  const navigate = useNavigate();
   const { timelineEvents, isLoading } = useCanonicalTripState(tripId, trip);
   const { data: bookings = [] } = useBookings(tripId);
   const { data: parkingList = [] } = useParking(tripId);
@@ -111,6 +113,16 @@ export function NowCommandCenter({
       onAddExpense();
     }
   }, [tripIsActive, onAddExpense]);
+
+  // Brief card action handler
+  const handleBriefAction = useCallback((target: string) => {
+    if (target.startsWith('/')) {
+      navigate(target);
+    } else if (target.startsWith('#')) {
+      const el = document.getElementById(target.slice(1));
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [navigate]);
 
   // v3.10.7: Derive active stay address for DRIVE_SMART origin fallback
   const activeStayAddress = useMemo(() => {
@@ -209,7 +221,7 @@ export function NowCommandCenter({
   return (
     <div className="space-y-5 pb-20">
       {/* v3.12.0: Trip Brief */}
-      {tripBrief && <TripBriefSection brief={tripBrief} />}
+      {tripBrief && <TripBriefSection brief={tripBrief} onAction={handleBriefAction} />}
 
       {/* 1. Quick Actions */}
       <div className="mb-1">

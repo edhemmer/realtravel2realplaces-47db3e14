@@ -160,7 +160,7 @@ export function DriveSummaryCard({ trip, drivePlan, onAddGasExpense }: DriveSumm
   };
 
   return (
-    <Card className="shadow-sm">
+    <Card className="shadow-sm" id="drive-suggestions">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-semibold flex items-center justify-between">
           <span className="flex items-center gap-2">

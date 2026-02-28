@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useBookings } from '@/hooks/useBookings';
 import { setExploreContext } from '@/lib/explore/exploreContextStore';
 import { useParking } from '@/hooks/useParking';
@@ -69,6 +70,7 @@ function DriveSummaryCardWrapper({ trip, onAddGasExpense }: { trip: Trip; onAddG
 // v3.8.6: Destination links moved to DestinationInfoCard
 
 export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onViewAllAlerts, onExploreTab }: SummaryTabProps) {
+  const navigate = useNavigate();
   const [gasDialogOpen, setGasDialogOpen] = useState(false);
   const [selectedCompanion, setSelectedCompanion] = useState<Companion | null>(null);
   const [companionDialogOpen, setCompanionDialogOpen] = useState(false);
@@ -102,6 +104,16 @@ export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onV
 
   // v3.12.0: Trip Readiness Brief
   const { brief: tripBrief } = useTripReadiness(tripId, trip);
+
+  // Brief card action handler
+  const handleBriefAction = useCallback((target: string) => {
+    if (target.startsWith('/')) {
+      navigate(target);
+    } else if (target.startsWith('#')) {
+      const el = document.getElementById(target.slice(1));
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [navigate]);
 
   // Determine transportation mode - auto-detect if unspecified
   const hasFlights = canonicalState.hasFlights;
@@ -193,7 +205,7 @@ export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onV
   return (
     <div className="space-y-3 md:space-y-5">
       {/* v3.12.0: Trip Brief */}
-      {tripBrief && <TripBriefSection brief={tripBrief} />}
+      {tripBrief && <TripBriefSection brief={tripBrief} onAction={handleBriefAction} />}
 
       {/* Destination Header */}
       <Card className="bg-gradient-to-br from-primary/10 via-accent/5 to-background border-border/40 shadow-sm">

@@ -26,7 +26,7 @@ import type { WeatherEngineResult } from '@/lib/weatherEngine';
 import { getRoute } from './routeProvider';
 import { resolveMapsDestination, buildMapsDirectionsUrl } from '@/lib/mapsDestination';
 import { projectMileMarker, hasRouteGeometry, type RouteGeometry } from './routeGeometry';
-import { approximateStateName } from './stateGeoLookup';
+import { approximateStateName, approximateCityCoords } from './stateGeoLookup';
 
 // ============================================================================
 // THRESHOLDS (fixed constants — no heuristics)
@@ -403,16 +403,20 @@ export function tripToDriveCanonical(trip: {
   start_date: string;
   estimated_miles?: number | null;
 }): DriveTripCanonical {
-  // Resolve origin
+  // Resolve origin with approximate coordinates
   let origin: LocationRef | undefined;
   if (trip.origin_address && trip.origin_address.trim()) {
+    // Try to resolve coords from the address (city extraction is approximate)
+    const originCoords = approximateCityCoords(trip.origin_address);
     origin = {
       type: 'ADDRESS',
       value: trip.origin_address,
+      ...(originCoords ? { lat: originCoords.lat, lng: originCoords.lng } : {}),
     };
   }
 
-  // Resolve destination
+  // Resolve destination with approximate coordinates
+  const destCoords = approximateCityCoords(trip.destination_city, trip.destination_state);
   const destination: LocationRef = trip.destination_address?.trim()
     ? {
         type: 'ADDRESS',
@@ -420,6 +424,7 @@ export function tripToDriveCanonical(trip: {
         city: trip.destination_city,
         state: trip.destination_state || undefined,
         country: trip.destination_country,
+        ...(destCoords ? { lat: destCoords.lat, lng: destCoords.lng } : {}),
       }
     : {
         type: 'CITY',
@@ -427,6 +432,7 @@ export function tripToDriveCanonical(trip: {
         city: trip.destination_city,
         state: trip.destination_state || undefined,
         country: trip.destination_country,
+        ...(destCoords ? { lat: destCoords.lat, lng: destCoords.lng } : {}),
       };
 
   return {
