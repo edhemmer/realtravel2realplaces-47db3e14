@@ -86,3 +86,113 @@ export function approximateStateName(lat: number, lng: number): string | null {
 
   return best?.name ?? null;
 }
+
+// ============================================================================
+// MAJOR US CITY CENTROIDS (for approximate coordinate resolution)
+// ============================================================================
+
+interface CityCentroid {
+  city: string;
+  state: string;
+  lat: number;
+  lng: number;
+}
+
+const CITY_CENTROIDS: CityCentroid[] = [
+  { city: 'Atlanta', state: 'GA', lat: 33.749, lng: -84.388 },
+  { city: 'Austin', state: 'TX', lat: 30.267, lng: -97.743 },
+  { city: 'Baltimore', state: 'MD', lat: 39.290, lng: -76.612 },
+  { city: 'Birmingham', state: 'AL', lat: 33.521, lng: -86.802 },
+  { city: 'Boston', state: 'MA', lat: 42.360, lng: -71.059 },
+  { city: 'Charlotte', state: 'NC', lat: 35.227, lng: -80.843 },
+  { city: 'Chicago', state: 'IL', lat: 41.878, lng: -87.630 },
+  { city: 'Cincinnati', state: 'OH', lat: 39.103, lng: -84.512 },
+  { city: 'Cleveland', state: 'OH', lat: 41.500, lng: -81.694 },
+  { city: 'Columbus', state: 'OH', lat: 39.961, lng: -82.999 },
+  { city: 'Dallas', state: 'TX', lat: 32.777, lng: -96.797 },
+  { city: 'Denver', state: 'CO', lat: 39.739, lng: -104.990 },
+  { city: 'Detroit', state: 'MI', lat: 42.331, lng: -83.046 },
+  { city: 'Fort Worth', state: 'TX', lat: 32.755, lng: -97.331 },
+  { city: 'Houston', state: 'TX', lat: 29.760, lng: -95.370 },
+  { city: 'Indianapolis', state: 'IN', lat: 39.768, lng: -86.158 },
+  { city: 'Jacksonville', state: 'FL', lat: 30.332, lng: -81.656 },
+  { city: 'Kansas City', state: 'MO', lat: 39.100, lng: -94.578 },
+  { city: 'Las Vegas', state: 'NV', lat: 36.169, lng: -115.140 },
+  { city: 'Los Angeles', state: 'CA', lat: 34.052, lng: -118.244 },
+  { city: 'Louisville', state: 'KY', lat: 38.253, lng: -85.759 },
+  { city: 'Memphis', state: 'TN', lat: 35.150, lng: -90.049 },
+  { city: 'Miami', state: 'FL', lat: 25.762, lng: -80.192 },
+  { city: 'Milwaukee', state: 'WI', lat: 43.039, lng: -87.907 },
+  { city: 'Minneapolis', state: 'MN', lat: 44.978, lng: -93.265 },
+  { city: 'Nashville', state: 'TN', lat: 36.163, lng: -86.781 },
+  { city: 'New Orleans', state: 'LA', lat: 29.951, lng: -90.072 },
+  { city: 'New York', state: 'NY', lat: 40.713, lng: -74.006 },
+  { city: 'Oklahoma City', state: 'OK', lat: 35.468, lng: -97.516 },
+  { city: 'Orlando', state: 'FL', lat: 28.538, lng: -81.379 },
+  { city: 'Philadelphia', state: 'PA', lat: 39.953, lng: -75.164 },
+  { city: 'Phoenix', state: 'AZ', lat: 33.449, lng: -112.074 },
+  { city: 'Pittsburgh', state: 'PA', lat: 40.441, lng: -79.996 },
+  { city: 'Portland', state: 'OR', lat: 45.505, lng: -122.675 },
+  { city: 'Raleigh', state: 'NC', lat: 35.780, lng: -78.639 },
+  { city: 'Richmond', state: 'VA', lat: 37.541, lng: -77.436 },
+  { city: 'Sacramento', state: 'CA', lat: 38.582, lng: -121.494 },
+  { city: 'Salt Lake City', state: 'UT', lat: 40.761, lng: -111.891 },
+  { city: 'San Antonio', state: 'TX', lat: 29.425, lng: -98.495 },
+  { city: 'San Diego', state: 'CA', lat: 32.716, lng: -117.161 },
+  { city: 'San Francisco', state: 'CA', lat: 37.775, lng: -122.419 },
+  { city: 'San Jose', state: 'CA', lat: 37.339, lng: -121.895 },
+  { city: 'Seattle', state: 'WA', lat: 47.606, lng: -122.332 },
+  { city: 'St. Louis', state: 'MO', lat: 38.627, lng: -90.199 },
+  { city: 'Tampa', state: 'FL', lat: 27.951, lng: -82.458 },
+  { city: 'Tucson', state: 'AZ', lat: 32.222, lng: -110.975 },
+  { city: 'Virginia Beach', state: 'VA', lat: 36.853, lng: -75.978 },
+  { city: 'Washington', state: 'DC', lat: 38.907, lng: -77.037 },
+];
+
+// State centroids (fallback when city not found)
+const STATE_CENTROIDS: Record<string, { lat: number; lng: number }> = {};
+for (const box of STATE_BOXES) {
+  STATE_CENTROIDS[box.code] = {
+    lat: (box.minLat + box.maxLat) / 2,
+    lng: (box.minLng + box.maxLng) / 2,
+  };
+  STATE_CENTROIDS[box.name.toLowerCase()] = {
+    lat: (box.minLat + box.maxLat) / 2,
+    lng: (box.minLng + box.maxLng) / 2,
+  };
+}
+
+/**
+ * Resolve approximate lat/lng from a city name and optional state.
+ * Tries exact city match first, falls back to state centroid.
+ * Returns null if unresolvable.
+ */
+export function approximateCityCoords(
+  city: string,
+  state?: string | null,
+): { lat: number; lng: number } | null {
+  const cityLower = city.toLowerCase().trim();
+  const stateUpper = state?.toUpperCase().trim();
+
+  // Try exact city match
+  for (const c of CITY_CENTROIDS) {
+    if (c.city.toLowerCase() === cityLower) {
+      // If state provided, match it too
+      if (stateUpper && c.state !== stateUpper) continue;
+      return { lat: c.lat, lng: c.lng };
+    }
+  }
+
+  // Fallback: state centroid
+  if (stateUpper && STATE_CENTROIDS[stateUpper]) {
+    return STATE_CENTROIDS[stateUpper];
+  }
+  if (state) {
+    const stateLower = state.toLowerCase().trim();
+    if (STATE_CENTROIDS[stateLower]) {
+      return STATE_CENTROIDS[stateLower];
+    }
+  }
+
+  return null;
+}
