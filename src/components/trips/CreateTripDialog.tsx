@@ -1419,54 +1419,44 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
               </p>
             </div>
 
-            <div className="space-y-3">
-              {/* v4.0.3: Full destination address for drive navigation */}
-              <LocationInput
-                label="Where are you headed?"
-                value={driveDestLocation}
-                onChange={(loc) => {
-                  setDriveDestLocation(loc);
-                  setDriveDestination(loc?.cityName || '');
-                }}
-                required
-                placeholder="Search city..."
-              />
-
-              {/* v4.0.3: Full street address for destination (door-to-door navigation) */}
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">
-                  Destination Address <span className="text-muted-foreground/60">(optional — for door-to-door navigation)</span>
-                </Label>
+            <div className="space-y-4">
+              {/* Destination group */}
+              <div className="space-y-2">
+                <LocationInput
+                  label="Where are you headed?"
+                  value={driveDestLocation}
+                  onChange={(loc) => {
+                    setDriveDestLocation(loc);
+                    setDriveDestination(loc?.cityName || '');
+                  }}
+                  required
+                  placeholder="Search city..."
+                />
                 <Input
                   value={watch('destination_address') || ''}
                   onChange={(e) => setValue('destination_address', e.target.value)}
-                  placeholder="e.g. 123 Main St, Nashville, TN 37201"
-                  className="h-9"
+                  placeholder="Street address (optional — for door-to-door nav)"
+                  className="h-9 text-sm"
                   maxLength={500}
                 />
               </div>
 
-              {/* v4.0.3: Full origin with street address */}
-              <LocationInput
-                label="Starting from (optional)"
-                value={driveOriginLocation}
-                onChange={(loc) => {
-                  setDriveOriginLocation(loc);
-                  setDriveOrigin(loc?.cityName || '');
-                }}
-                placeholder="Search city..."
-              />
-
-              {/* v4.0.3: Full street address for origin */}
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">
-                  Starting Address <span className="text-muted-foreground/60">(optional)</span>
-                </Label>
+              {/* Origin group */}
+              <div className="space-y-2">
+                <LocationInput
+                  label="Starting from (optional)"
+                  value={driveOriginLocation}
+                  onChange={(loc) => {
+                    setDriveOriginLocation(loc);
+                    setDriveOrigin(loc?.cityName || '');
+                  }}
+                  placeholder="Search city..."
+                />
                 <Input
                   value={watch('origin_address') || ''}
                   onChange={(e) => setValue('origin_address', e.target.value)}
-                  placeholder="e.g. 456 Oak Ave, Atlanta, GA 30301"
-                  className="h-9"
+                  placeholder="Street address (optional)"
+                  className="h-9 text-sm"
                   maxLength={500}
                 />
               </div>
