@@ -66,28 +66,39 @@ const _geocodeCache = new Map<string, { lat: number; lng: number } | null>();
  * Cached per trip id for the session.
  */
 async function geocodeDestination(trip: Trip): Promise<{ lat: number; lng: number } | null> {
-  const cacheKey = `${trip.id}::${trip.destination_city}::${trip.destination_country}`;
+  const cacheKey = `${trip.id}::${trip.destination_city}::${trip.destination_address}::${trip.destination_country}`;
   if (_geocodeCache.has(cacheKey)) return _geocodeCache.get(cacheKey) ?? null;
 
-  const query = [trip.destination_city, trip.destination_state, trip.destination_country]
-    .filter(Boolean)
-    .join(', ');
-
-  try {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`,
-      { headers: { 'User-Agent': 'RT2RP/3.9' } }
-    );
-    if (!res.ok) throw new Error('geocode failed');
-    const data = await res.json();
-    if (data.length > 0) {
-      const coords = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-      _geocodeCache.set(cacheKey, coords);
-      return coords;
-    }
-  } catch {
-    // Geocode failure is non-fatal
+  // Try destination_address first (more precise, especially for drive trips)
+  const queries: string[] = [];
+  if (trip.destination_address?.trim()) {
+    const addrParts = [trip.destination_address, trip.destination_city, trip.destination_state, trip.destination_country].filter(Boolean);
+    queries.push(addrParts.join(', '));
   }
+  // Fallback: city-level
+  const cityParts = [trip.destination_city, trip.destination_state, trip.destination_country].filter(Boolean);
+  if (cityParts.length > 0) {
+    queries.push(cityParts.join(', '));
+  }
+
+  for (const query of queries) {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`,
+        { headers: { 'User-Agent': 'RT2RP/4.10' } }
+      );
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (data.length > 0) {
+        const coords = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+        _geocodeCache.set(cacheKey, coords);
+        return coords;
+      }
+    } catch {
+      // Geocode failure is non-fatal, try next query
+    }
+  }
+
   _geocodeCache.set(cacheKey, null);
   return null;
 }
@@ -242,12 +253,12 @@ function resolveTripOriginSync(
 
   // 3. Destination coords from cache (geocoded)
   // This is sync — only returns if already cached
-  const cacheKey = `${trip.id}::${trip.destination_city}::${trip.destination_country}`;
+  const cacheKey = `${trip.id}::${trip.destination_city}::${trip.destination_address}::${trip.destination_country}`;
   const cached = _geocodeCache.get(cacheKey);
   if (cached) {
-    const label = [trip.destination_city, trip.destination_state, trip.destination_country]
-      .filter(Boolean)
-      .join(', ');
+    const label = trip.destination_address?.trim()
+      ? [trip.destination_address, trip.destination_city, trip.destination_state].filter(Boolean).join(', ')
+      : [trip.destination_city, trip.destination_state, trip.destination_country].filter(Boolean).join(', ');
     return { lat: cached.lat, lng: cached.lng, label, source: 'DESTINATION' };
   }
 

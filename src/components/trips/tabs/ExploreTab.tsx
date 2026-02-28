@@ -89,7 +89,7 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
       if (!cancelled) setGeocodeReady(true);
     });
     return () => { cancelled = true; };
-  }, [trip.id, trip.destination_city, trip.destination_country]);
+  }, [trip.id, trip.destination_city, trip.destination_address, trip.destination_country]);
 
   // v3.9.16: Canonical context origin resolution
   const exploreContext = useMemo(() => getExploreContext(tripId), [tripId, refreshCounter]);
