@@ -4,6 +4,7 @@ import { useBookings } from '@/hooks/useBookings';
 import { setExploreContext } from '@/lib/explore/exploreContextStore';
 import { useParking } from '@/hooks/useParking';
 import { useExpenses } from '@/hooks/useExpenses';
+import { useEngagementEvents } from '@/hooks/useTripEvents';
 import { useCompanions } from '@/hooks/useCompanions';
 import { useBookingCompanionsByTrip } from '@/hooks/useBookingCompanions';
 import { useTripWeather } from '@/hooks/useWeather';
@@ -81,6 +82,7 @@ export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onV
   const { data: bookingCompanions = [] } = useBookingCompanionsByTrip(tripId);
   const { data: userProfile } = useUserProfile();
   const { isPro } = useAccess();
+  const { data: engagementEvents = [] } = useEngagementEvents(tripId);
   const temperatureUnit = (userProfile?.temperature_unit as 'fahrenheit' | 'celsius') || 'fahrenheit';
   const { tripForecast, weatherAnalysis, isLoading: weatherLoading } = useTripWeather(
     trip.destination_city,
@@ -93,8 +95,8 @@ export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onV
   
   // v2.0.7: Get canonical trip state - SINGLE SOURCE OF TRUTH for dates, times, costs
   const canonicalState = useMemo(() => {
-    return getCanonicalTripState(trip, bookings, expenses, parkingList);
-  }, [trip, bookings, expenses, parkingList]);
+    return getCanonicalTripState(trip, bookings, expenses, parkingList, engagementEvents);
+  }, [trip, bookings, expenses, parkingList, engagementEvents]);
   
   // Extract canonical values
   const { dateRange, timelineEvents: timeline, costs: costSummary } = canonicalState;
