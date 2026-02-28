@@ -243,12 +243,21 @@ export interface BuildDrivePlanInput {
 export function buildDrivePlan(input: BuildDrivePlanInput): DrivePlan {
   const { canonical, weather, routeHasTolls, isPro, avgMilesPerTank } = input;
 
+  // Merge vehicle range into preferences for fuel plan computation
+  const effectivePreferences: DrivePreferences = {
+    ...canonical.preferences,
+    ...(avgMilesPerTank && avgMilesPerTank > 0 ? { vehicleRangeMiles: avgMilesPerTank } : {}),
+  };
+
   // Get route summary
   const routeResult = getRoute(
     canonical.origin,
     canonical.destination,
     canonical.departDateText,
   );
+
+  // Use estimated_miles from trip as fallback when route provider can't compute
+  const effectiveDistanceMiles = routeResult.summary?.distanceMiles ?? canonical.estimatedMiles ?? undefined;
 
   // Build risk flags (deterministic, capped at MAX)
   const riskFlags: DriveRiskFlag[] = [];
@@ -261,8 +270,8 @@ export function buildDrivePlan(input: BuildDrivePlanInput): DrivePlan {
 
   // Fuel plan
   const fuelPlan = computeFuelPlan(
-    routeResult.summary?.distanceMiles,
-    canonical.preferences,
+    effectiveDistanceMiles,
+    effectivePreferences,
   );
 
   // Weather line
@@ -280,7 +289,7 @@ export function buildDrivePlan(input: BuildDrivePlanInput): DrivePlan {
   } else {
     // v3.11.0: Compute stop zones
     const safeRangeMiles = Math.floor(avgMilesPerTank * (1 - RESERVE_FACTOR));
-    const totalDistance = routeResult.summary?.distanceMiles;
+    const totalDistance = effectiveDistanceMiles;
 
     if (!totalDistance) {
       fuelIntelligence = {
@@ -326,13 +335,7 @@ export function buildDrivePlan(input: BuildDrivePlanInput): DrivePlan {
           safeRangeMiles,
           stopZones,
         };
-      }
-      fuelIntelligence = {
-        enabled: true,
-        rangeMiles: avgMilesPerTank,
-        safeRangeMiles,
-        stopZones,
-      };
+    }
     }
   }
 
@@ -418,6 +421,7 @@ export function tripToDriveCanonical(trip: {
     origin,
     destination,
     departDateText: trip.start_date,
+    estimatedMiles: trip.estimated_miles ?? undefined,
     confidence: trip.destination_address ? 'medium' : 'low',
   };
 }

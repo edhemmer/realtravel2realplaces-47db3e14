@@ -312,16 +312,29 @@ function resolveDriveReadinessCard(
     };
   }
 
-  const details: string[] = ['Fuel readiness enabled.'];
+  const details: string[] = [];
+
+  if (drivePlan?.fuelIntelligence.enabled && drivePlan.fuelPlan) {
+    if (drivePlan.fuelPlan.estimatedStops > 0) {
+      details.push(`~${drivePlan.fuelPlan.estimatedStops} fuel stop${drivePlan.fuelPlan.estimatedStops !== 1 ? 's' : ''} recommended (${drivePlan.fuelPlan.tripMiles} mi trip).`);
+    } else {
+      details.push(`No fuel stops needed — within range (${drivePlan.fuelPlan.tripMiles} mi trip).`);
+    }
+  } else if (drivePlan?.fuelIntelligence.enabled && !drivePlan.fuelPlan) {
+    details.push('Fuel readiness enabled. Route distance needed for stop estimates.');
+  } else {
+    details.push('Fuel readiness enabled.');
+  }
+
   if (drivePlan?.fuelIntelligence.enabled && drivePlan.fuelIntelligence.stopZones.length > 0) {
-    details.push(`${drivePlan.fuelIntelligence.stopZones.length} fuel window${drivePlan.fuelIntelligence.stopZones.length !== 1 ? 's' : ''} identified`);
+    details.push(`${drivePlan.fuelIntelligence.stopZones.length} fuel window${drivePlan.fuelIntelligence.stopZones.length !== 1 ? 's' : ''} identified.`);
   }
 
   return {
     type: 'DRIVE_READINESS',
     title: 'Drive Readiness',
     details,
-    actionLabel: 'View fuel options',
+    actionLabel: drivePlan?.fuelPlan ? 'View fuel options' : 'View drive details',
     actionTarget: '#drive-suggestions',
   };
 }
