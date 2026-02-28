@@ -26,6 +26,7 @@ import type { WeatherEngineResult } from '@/lib/weatherEngine';
 import { getRoute } from './routeProvider';
 import { resolveMapsDestination, buildMapsDirectionsUrl } from '@/lib/mapsDestination';
 import { projectMileMarker, hasRouteGeometry, type RouteGeometry } from './routeGeometry';
+import { approximateStateName } from './stateGeoLookup';
 
 // ============================================================================
 // THRESHOLDS (fixed constants — no heuristics)
@@ -163,14 +164,20 @@ function computeFuelStopZones(
   // Deduplicate and sort
   const uniqueMarkers = [...new Set(markers)].sort((a, b) => a - b);
 
-  // v3.11.1: Project each marker onto route geometry
+  // Project each marker onto route geometry and resolve area labels
   return uniqueMarkers.map((m) => {
     const latLng = geometry ? projectMileMarker(geometry, m) : null;
+    let areaLabel: string | undefined;
+    if (latLng) {
+      const state = approximateStateName(latLng.lat, latLng.lng);
+      if (state) areaLabel = `near ${state}`;
+    }
     return {
       id: stableZoneId(m, latLng),
       mileMarker: m,
       targetLatLng: latLng,
       radiusMiles: STOP_ZONE_RADIUS_MILES,
+      areaLabel,
     };
   });
 }
@@ -309,8 +316,23 @@ export function buildDrivePlan(input: BuildDrivePlanInput): DrivePlan {
           : undefined,
       };
 
-      // Check if geometry is available for accurate projection
-      const geoAvailable = hasRouteGeometry(routeGeo);
+      // Check if real geometry is available
+      let geoAvailable = hasRouteGeometry(routeGeo);
+
+      // Fallback: use linear interpolation between origin and destination coords
+      if (!geoAvailable) {
+        const oLat = canonical.origin?.lat;
+        const oLng = canonical.origin?.lng;
+        const dLat = canonical.destination.lat;
+        const dLng = canonical.destination.lng;
+        if (oLat != null && oLng != null && dLat != null && dLng != null) {
+          routeGeo.polyline = [
+            { lat: oLat, lng: oLng },
+            { lat: dLat, lng: dLng },
+          ];
+          geoAvailable = true;
+        }
+      }
 
       const stopZones = computeFuelStopZones(
         totalDistance,
@@ -319,23 +341,13 @@ export function buildDrivePlan(input: BuildDrivePlanInput): DrivePlan {
         geoAvailable ? routeGeo : undefined,
       );
 
-      // If geometry was missing but we still have distance, note it
-      if (!geoAvailable && stopZones.length > 0) {
-        fuelIntelligence = {
-          enabled: true,
-          reason: 'ROUTE_GEOMETRY_MISSING',
-          rangeMiles: avgMilesPerTank,
-          safeRangeMiles,
-          stopZones: [], // No zones without geometry
-        };
-      } else {
-        fuelIntelligence = {
-          enabled: true,
-          rangeMiles: avgMilesPerTank,
-          safeRangeMiles,
-          stopZones,
-        };
-    }
+      fuelIntelligence = {
+        enabled: true,
+        rangeMiles: avgMilesPerTank,
+        safeRangeMiles,
+        stopZones,
+        ...((!geoAvailable && stopZones.length > 0) ? { reason: 'ROUTE_GEOMETRY_MISSING' as const } : {}),
+      };
     }
   }
 

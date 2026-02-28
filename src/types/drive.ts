@@ -106,6 +106,8 @@ export interface FuelStopZone {
   targetLatLng: { lat: number; lng: number } | null;
   /** Search radius in miles */
   radiusMiles: number;
+  /** Human-readable area label (e.g., "near Kentucky") */
+  areaLabel?: string;
 }
 
 export interface DriveRouteSummary {
