@@ -6,6 +6,9 @@
  *
  * Input: { lat, lng, type, radiusMeters, limit }
  * Output: { places: NearbyPlace[] }
+ *
+ * v4.10.1: Uses locationRestriction (hard boundary) instead of locationBias
+ * to ensure results are strictly within the user-selected radius.
  */
 
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
@@ -86,10 +89,10 @@ Deno.serve(async (req) => {
 
     const { textQuery, includedType } = buildTextQuery(type, lat, lng);
 
-    // Use Text Search (New) API for accurate results
+    // Use Text Search (New) API with locationRestriction for strict radius enforcement
     const requestBody: Record<string, unknown> = {
       textQuery,
-      locationBias: {
+      locationRestriction: {
         circle: {
           center: { latitude: lat, longitude: lng },
           radius: Math.min(radiusMeters, 50000),

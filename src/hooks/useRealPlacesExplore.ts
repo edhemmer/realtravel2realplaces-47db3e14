@@ -31,7 +31,19 @@ const EXPLORE_CATEGORIES: { category: PlacesCategory; displayCategory: string; l
   { category: 'grocery', displayCategory: 'Grocery', limit: 20 },
 ];
 
-function placeToAttraction(place: PlaceResult, displayCategory: string, index: number): AttractionSuggestion {
+/** Haversine distance in miles */
+function haversineMi(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 3958.8;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function placeToAttraction(place: PlaceResult, displayCategory: string, originLat: number, originLng: number): AttractionSuggestion {
+  const dist = (place.lat && place.lng) ? haversineMi(originLat, originLng, place.lat, place.lng) : undefined;
   return {
     id: place.placeId,
     name: place.name,
@@ -47,7 +59,7 @@ function placeToAttraction(place: PlaceResult, displayCategory: string, index: n
     locationSummary: place.address,
     rating: place.rating,
     reviewCount: place.reviewCount,
-    distanceMiles: undefined,
+    distanceMiles: dist ? Math.round(dist * 10) / 10 : undefined,
   };
 }
 
@@ -90,19 +102,21 @@ export function useRealPlacesExplore({
 
           if (result.status !== 'OK') return [];
 
-          return result.results.map((place, i) =>
-            placeToAttraction(place, displayCategory, i)
+          return result.results.map((place) =>
+            placeToAttraction(place, displayCategory, lat, lng)
           );
         })
       );
 
-      // Flatten — dedupe within each category but allow same place in different categories
-      // so that e.g. a park that's also a tourist attraction appears in both sections
+      // Flatten — dedupe within each category
       const allItems: AttractionSuggestion[] = [];
       const seenPerCategory = new Map<string, Set<string>>();
       
       for (const categoryResults of results) {
         for (const item of categoryResults) {
+          // Client-side radius enforcement: drop items beyond selected radius
+          if (item.distanceMiles !== undefined && item.distanceMiles > radiusMiles) continue;
+
           const catSet = seenPerCategory.get(item.category) ?? new Set();
           if (catSet.has(item.id)) continue;
           catSet.add(item.id);
