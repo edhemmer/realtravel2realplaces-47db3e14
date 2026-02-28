@@ -25,11 +25,14 @@ Current solutions either try to *plan* trips (TripIt, Google Trips) or are gener
 
 Real Travel 2 Real Places provides:
 
-1. **AI-Powered Ingestion** — Paste or photograph confirmations. AI extracts flights, lodging, car rentals, and activities automatically.
-2. **Unified Trip View** — All bookings, expenses, parking, packing, and notes in one canonical dashboard.
-3. **Execution-First Design** — The NOW tab shows what matters *right now*: next flight, checkout time, parking expiration.
-4. **Cost Clarity** — Real-time expense tracking with per-person splitting, category breakdowns, and business/personal separation.
-5. **Smart Logistics** — Parking expiration alerts, TSA info management, airport context, and weather awareness.
+1. **AI-Powered Ingestion** — Paste or photograph confirmations. AI extracts flights, lodging, car rentals, transport, and activities automatically.
+2. **Multi-Mode Trip Creation** — Create trips by air, car, or train. Drive trips support door-to-door navigation with full street addresses.
+3. **Unified Trip View** — All bookings, expenses, parking, packing, companions, and notes in one canonical dashboard.
+4. **Execution-First Design** — The NOW tab shows what matters *right now*: next flight, checkout time, parking expiration, drive destination.
+5. **Drive Mode** — Focused navigation screen for road trips with route intelligence and one-tap directions.
+6. **EXPLORE** — Discover real places near your destination with photos, ratings, and reviews from Google Places. Add them directly to your timeline.
+7. **Cost Clarity** — Real-time expense tracking with per-person splitting, category breakdowns, receipt OCR, and business/personal separation.
+8. **Smart Logistics** — Parking expiration alerts, weather awareness, calendar export, and configurable reminders.
 
 ---
 
@@ -39,6 +42,7 @@ Real Travel 2 Real Places provides:
 |---------|-----------|----------------|
 | **Families** | Coordinating logistics for 4+ people across flights, hotels, activities | Companion management, cost splitting, trip sharing |
 | **Frequent Travelers** | Managing 10+ trips/year across business and personal | Unlimited trips, timeline events, trip reports |
+| **Road Warriors** | Drive trips with multi-stop routes and gas tracking | Drive Mode, street addresses, gas expense shortcuts |
 | **Field Professionals** | Daily multi-stop routes with scheduled appointments | Tour stops, smart auto-ordering, stop-level expenses |
 | **Touring Professionals** | Bands/crews managing 30+ cities with changing schedules | Bulk import, date-grouped stops, parking tracker |
 
@@ -50,11 +54,9 @@ Three-tier SaaS subscription:
 
 | Tier | Price | Limit | Core Value |
 |------|-------|-------|------------|
-| **Free** | $0 | 5 lifetime trips | Full trip management to prove value |
-| **Pro** | TBD | Unlimited | Advanced intelligence (timeline, alerts, reports) |
-| **Business** | TBD | Unlimited | Tour stops, business expense reporting |
-
-**Monetization strategy**: Free tier demonstrates full value. Pro unlocks intelligence layers (timeline events, health checklist, explore engine). Business unlocks team/field tools.
+| **Free** | $0 | 5 lifetime trips | Full trip management, EXPLORE, timeline, packing, calendar export |
+| **Pro** | TBD | Unlimited | Drive Mode, reports, health checklist, sharing, alerts |
+| **Business** | TBD | Unlimited | Tour stops, business expense reporting, multi-trip reports |
 
 ---
 
@@ -73,7 +75,9 @@ Three-tier SaaS subscription:
 
 - **Canonical Data Architecture**: Single source of truth prevents data drift across views
 - **No-Math Time Policy**: All datetime logic uses string primitives — zero timezone bugs
-- **AI Parsing Pipeline**: Gemini 2.5 Pro for itinerary parsing (with DATE INDEPENDENCE rules for multi-leg accuracy), Gemini Flash for booking/receipt extraction
+- **AI Parsing Pipeline**: Gemini 2.5 Pro for itinerary parsing, Gemini Flash for booking/receipt extraction
+- **Drive Intelligence**: Centralized drive segment resolution with full-address navigation
+- **EXPLORE Engine**: Google Places integration with server-side photo proxy and weather-aware ranking
 - **250+ Unit Tests**: Commercial-grade test coverage for business logic
 - **Security-First**: RLS on all tables, PII masking, session idle logout, CRON auth
 
@@ -86,7 +90,7 @@ Three-tier SaaS subscription:
 | Tables in production | 18+ |
 | Edge functions | 14+ |
 | Unit tests | 250+ |
-| Features shipped | 100+ (see Feature Inventory) |
+| Features shipped | 120+ (see Feature Inventory) |
 | Database functions | 30+ security-definer functions |
 | RLS policies | 50+ row-level security policies |
 

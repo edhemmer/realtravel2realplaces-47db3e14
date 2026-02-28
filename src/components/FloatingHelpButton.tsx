@@ -1,5 +1,5 @@
 /**
- * FloatingHelpButton — v4.8.0
+ * FloatingHelpButton — v4.10.0
  * 
  * Persistent floating help button visible on all authenticated pages.
  * Shows contextual page-level tips in a popover, with a link to the full Help Center.
@@ -24,16 +24,17 @@ const PAGE_HELP: Record<string, PageHelp> = {
   '/dashboard': {
     title: 'Dashboard',
     tips: [
-      'Tap "Create Trip" to start a new trip.',
+      'Tap "Create Trip" to start a new trip — choose Fly, Drive, or Train.',
+      'Paste a confirmation or drop a screenshot to create a trip automatically.',
       'Your active, shared, and past trips all appear here.',
-      'Swipe left on a trip card to delete it.',
     ],
   },
   '/account': {
     title: 'Account Settings',
     tips: [
-      'Update your profile, travel preferences, and notification settings.',
+      'Update your profile, travel preferences, and notification timing.',
       'Set your home airport for smarter flight suggestions.',
+      'Configure vehicle range (tank size, miles per tank) for Drive Trips.',
       'Manage your subscription plan here.',
     ],
   },
@@ -48,28 +49,41 @@ const PAGE_HELP: Record<string, PageHelp> = {
     title: 'Reports',
     tips: [
       'View expense summaries across all your trips.',
+      'Filter by date range, category, or trip.',
       'Export reports as PDF for reimbursement.',
     ],
   },
   '/help': {
     title: 'Help Center',
     tips: [
-      'Browse topics by section or search for keywords.',
+      'Browse by section or tap a topic in the quick nav bar.',
       'Each article shows which plan tier is required.',
+      'Step-by-step guides for every feature.',
     ],
   },
 };
 
 function getTripPageHelp(pathname: string): PageHelp | null {
+  if (pathname.match(/\/trip\/[^/]+\/drive/)) {
+    return {
+      title: 'Drive Mode',
+      tips: [
+        'See your current route and next destination.',
+        'Tap Navigate to open turn-by-turn directions.',
+        'Return to NOW to see your full execution view.',
+      ],
+    };
+  }
   if (pathname.startsWith('/trip/')) {
     return {
       title: 'Trip Detail',
       tips: [
-        'Use NOW to see what\'s happening right now on your trip.',
-        'Switch to PLAN to view your full timeline and bookings.',
-        'EXPLORE discovers real places near your destination.',
-        'Track expenses in the EXPENSES tab.',
-        'Access Bookings, Parking, Packing, and more from the "More" menu.',
+        'NOW shows what\'s happening right now — next action, leave-by time, and quick actions.',
+        'PLAN shows your full timeline with all events grouped by date.',
+        'EXPLORE discovers real places nearby — tap "Add to Timeline" to schedule visits.',
+        'Track expenses in EXPENSES. Upload receipt photos for automatic entry.',
+        'Access Bookings, Parking, Packing, Companions, and more from the MORE menu.',
+        'For Drive Trips: tap Drive Mode in NOW to access focused navigation.',
       ],
     };
   }
