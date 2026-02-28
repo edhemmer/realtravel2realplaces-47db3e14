@@ -1056,6 +1056,12 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
     }
 
     try {
+      // v4.0.3: Use explicit address fields when provided; fall back to formatted location
+      const originAddr = getValues('origin_address')?.trim()
+        || (driveOriginLocation ? driveOriginLocation.formatted : (driveOrigin || undefined));
+      const destAddr = getValues('destination_address')?.trim()
+        || (driveDestLocation?.formatted || undefined);
+
       const trip = await createTrip.mutateAsync({
         name: `Trip to ${destName}`,
         destination_city: destName,
@@ -1064,10 +1070,8 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
         trip_type: 'personal',
         transportation_mode: 'drive',
         destination_type: 'unspecified',
-        origin_address: driveOriginLocation 
-          ? driveOriginLocation.formatted 
-          : (driveOrigin || undefined),
-        destination_address: driveDestLocation?.formatted || undefined,
+        origin_address: originAddr,
+        destination_address: destAddr,
         start_date: frame.startDate,
         end_date: frame.endDate,
       } as any);
@@ -1416,7 +1420,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
             </div>
 
             <div className="space-y-3">
-              {/* v3.8.4: Structured destination with LocationInput */}
+              {/* v4.0.3: Full destination address for drive navigation */}
               <LocationInput
                 label="Where are you headed?"
                 value={driveDestLocation}
@@ -1428,7 +1432,21 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
                 placeholder="Search city..."
               />
 
-              {/* v3.8.4: Structured origin with LocationInput */}
+              {/* v4.0.3: Full street address for destination (door-to-door navigation) */}
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">
+                  Destination Address <span className="text-muted-foreground/60">(optional — for door-to-door navigation)</span>
+                </Label>
+                <Input
+                  value={watch('destination_address') || ''}
+                  onChange={(e) => setValue('destination_address', e.target.value)}
+                  placeholder="e.g. 123 Main St, Nashville, TN 37201"
+                  className="h-9"
+                  maxLength={500}
+                />
+              </div>
+
+              {/* v4.0.3: Full origin with street address */}
               <LocationInput
                 label="Starting from (optional)"
                 value={driveOriginLocation}
@@ -1439,9 +1457,23 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
                 placeholder="Search city..."
               />
 
+              {/* v4.0.3: Full street address for origin */}
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">
+                  Starting Address <span className="text-muted-foreground/60">(optional)</span>
+                </Label>
+                <Input
+                  value={watch('origin_address') || ''}
+                  onChange={(e) => setValue('origin_address', e.target.value)}
+                  placeholder="e.g. 456 Oak Ave, Atlanta, GA 30301"
+                  className="h-9"
+                  maxLength={500}
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label>Arrival Date</Label>
+                  <Label>Departure Date</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
