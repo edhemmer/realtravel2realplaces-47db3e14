@@ -17,35 +17,44 @@ Complete list of implemented features organized by tier and domain.
 
 ### Dashboard
 - Trip list with lifecycle badges (Active, Locked, Closed)
-- Trip creation with destination autocomplete
+- Trip creation wizard with transportation mode selection (Fly, Drive, Train)
 - AI confirmation drop zone (paste/photo → auto-create trip)
 - Past trip visual de-emphasis
 - Trip deletion with confirmation
 - Shared trips section
 
+### Trip Creation Wizard
+- 3-column transportation mode selector: Fly, Drive, Train
+- Fly mode: destination city autocomplete, departure/return dates
+- Drive mode: destination city + optional street address, origin city + optional street address, departure/return dates
+- Train mode: destination city, departure/return dates
+- Trip type selection: Business, Personal, Mixed
+- Disabled-state helper showing missing required fields
+- AI drop zone: paste confirmation text or upload screenshot to auto-create trip with bookings
+
 ### Trip Detail View
-- Tabbed interface (Summary, Bookings, Expenses, Packing, Parking, Notes, Companions)
-- Mobile bottom navigation with labeled icons
+- Tabbed interface (Summary, Bookings, Expenses, Packing, Parking, Notes, Companions, Members, Report)
+- Mobile bottom navigation: NOW, PLAN, EXPLORE, EXPENSES, MORE
 - Desktop tab bar with keyboard navigation
-- Drill-through navigation (click summary → jump to record)
+- Drill-through navigation (click summary → jump to record with highlight)
 
 ### Booking Management
 - 5 booking types: Flight, Lodging, Car Rental, Transport, Activity
-- AI-powered confirmation parsing (paste text or photo)
+- AI-powered confirmation parsing (paste text or upload photo)
 - Manual entry with type-specific forms
 - Per-booking cost tracking (total + my share)
 - Confirmation number storage
 - Vendor links and notes
-- Flight-specific: airline, passenger, TSA PreCheck, frequent flyer, airports
-- Lodging-specific: property type (Hotel/Airbnb/VRBO), check-in/checkout
-- Car rental-specific: company, pickup/return locations
-- Transport-specific: mode (train/bus/metro/ferry), operator, from/to
+- Flight-specific: airline, passenger, TSA PreCheck, frequent flyer, departure/arrival airports
+- Lodging-specific: property type (Hotel/Airbnb/VRBO/Other), check-in/checkout, address
+- Car rental-specific: rental company, pickup/return locations
+- Transport-specific: mode (train/bus/metro/ferry), operator, from/to locations
 - Activity-specific: ticket tracking, booking patterns, advance recommendations
 
 ### Expense Tracking
 - Per-trip expense log
 - 6 categories: Meals, Transport, Activity, Shopping, Parking, Other
-- 25+ sub-categories (breakfast, uber, gas, tips, etc.)
+- 25+ sub-categories (breakfast, lunch, dinner, uber, gas, alcohol, tips, etc.)
 - Receipt photo OCR via AI
 - Per-expense cost with my share
 - Business/personal purpose flag (mixed trips)
@@ -53,16 +62,15 @@ Complete list of implemented features organized by tier and domain.
 - Engagement-linked expenses
 
 ### Packing Lists
-- AI-generated packing suggestions based on trip context
+- AI-generated packing suggestions based on trip context (destination, dates, weather)
 - Multi-leg itinerary intelligence with per-city climate and cultural analysis
 - Laundry Intelligence: caps daily-wear items at 7 for trips >7 nights
-- Color/style tips per item with region-specific fashion advice (e.g., "Dark neutrals for Milan")
+- Color/style tips per item with region-specific fashion advice
 - Per-item `applies_to` location tags (e.g., "Milan", "Barcelona")
 - Per-leg climate summary cards with destination-specific color coding
 - Cultural tips and special notes banner
-- Category color system: each category gets a unique accent color (blue=Clothing, amber=Footwear, rose=Toiletries, violet=Tech, orange=Documents, etc.)
-- Semantic icon mapping: Shirt (Clothing), Footprints (Footwear), ShowerHead (Toiletries), Cable (Tech), BookOpen (Documents), Watch (Accessories)
-- Wearables/Utilities column layout: wearable categories on left, utility categories on right (desktop); interleaved on mobile
+- Category color system: unique accent color per category
+- Semantic icon mapping per category
 - Custom item addition with category pre-fill
 - Pack/unpack toggle per item with green completion states
 - Gradient progress bar with percentage tracking
@@ -76,6 +84,7 @@ Complete list of implemented features organized by tier and domain.
 - Location details: address, level/section/space
 - Cost tracking with my share
 - Local wall-time columns for display accuracy
+- Parking expiration on Timeline
 
 ### Companion Management
 - Name, email, phone, notes
@@ -91,7 +100,7 @@ Complete list of implemented features organized by tier and domain.
 - Important links
 
 ### Trip Sharing & Collaboration
-- Email-based trip invitations with expiring tokens
+- Email-based trip invitations with expiring tokens (7 days)
 - Granular permissions: Read Only, Can Add Expenses, Can Add Lodging
 - Permission management for existing members
 - Guest member removal
@@ -99,46 +108,59 @@ Complete list of implemented features organized by tier and domain.
 
 ### Calendar Export
 - ICS file generation for trip events
+- 30-minute reminders included on all events
+- Compatible with Apple Calendar, Google Calendar, Outlook
+
+### EXPLORE Engine (v4.8.0)
+- Nearby place discovery via Google Places API (New)
+- Real photos, ratings, and review counts from Google Places
+- Photo proxy edge function (API keys server-side)
+- 8 category sections: Signature Attractions, Dining, Cafes & Coffee, Bars & Nightlife, Parks & Gardens, Hiking Trails, Museums & Culture, Grocery & Markets
+- "Right Now" diverse mix: top-scored items from each category with time-of-day and weather biasing
+- Per-section pagination: 3 items initially, "See all N" to expand
+- Add-to-Timeline modal: schedule an Explore place with date, time, and duration
+- Pre-arrival Area Picker for browsing destinations before travel
+- Available on all plans
 
 ---
 
 ## Pro Tier Features
 
 ### Timeline Events System
-- Canonical trip events generated from bookings and parking
+- Canonical trip events generated from bookings, parking, and engagements
 - Event types: Flight Departure, Hotel Check-in/Checkout, Rental Pickup/Return, Parking Expiration, Engagement Start
-- Database trigger-based event sync
+- Database trigger-based event sync (trip_engagements → trip_events)
+- Drill-through from Timeline to source records
 
 ### NOW Tab / Command Center
 - Execution-first "what's happening right now" view
-- Today's critical actions card
-- Next critical action card
-- Compact today timeline
-- Sticky quick-ops strip
+- Next Critical Action card (flight, check-in, drive, stop — priority-ordered)
+- Today's compact timeline
+- Sticky quick-ops strip (Explore, Add Expense, Drive Mode)
+- Leave By / Buffer Intelligence (Comfortable, Tight, High Risk)
 - Active lodging tracking
 - Departure mode detection
+- Drive Mode integration: quick entry pill and Next Action variant for drive segments
+
+### Drive Mode (v4.0.x)
+- Dedicated Drive Mode screen for road trips
+- Active drive segment detection via driveIntelligence helpers
+- Navigation target resolution with full street addresses
+- NOW tab integration: Drive Mode appears when drive segment is active/imminent
+- Drive Summary Card with estimated miles and gas expense shortcut
+- Drive trip creation with origin/destination street addresses for door-to-door navigation
 
 ### Trip Health Checklist
 - Gap analysis for missing information
 - Proactive warnings for upcoming events
+- Fix buttons that navigate to the relevant record
 
 ### Travel Alerts & Intelligence
 - Weather-aware alerts
 - Airport context and information
-- TSA warning cards
 - Parking expiration indicators
 - Expense reminder banners
-
-### Explore Engine (v4.8.0)
-- Nearby attraction discovery via Google Places API (New)
-- Real photos, ratings, and review counts from Google Places (v4.8.0)
-- Photo proxy edge function to keep API keys server-side (v4.8.0)
-- Location-based: lodging address or device GPS
-- 8 category sections: Signature Attractions, Dining, Cafes & Coffee, Bars & Nightlife, Parks & Gardens, Hiking Trails, Museums & Culture, Grocery & Markets (v4.8.0)
-- "Right Now" diverse mix: top-scored items from each category with time-of-day and weather biasing (v4.7.0)
-- Per-section pagination: 3 items initially, "See all N" inline link to expand with fade+slide animation (v4.8.0)
-- Add-to-trip and add-to-timeline modals
-- Pre-arrival hints
+- Flight departure reminders
 
 ### Trip Summary Report
 - Comprehensive trip overview
@@ -154,16 +176,16 @@ Complete list of implemented features organized by tier and domain.
 
 ### Upcoming Events Widget
 - Time-ordered display of next events
-- Flight, lodging, rental, and parking events
+- Flight, lodging, rental, parking, and engagement events
 
 ### Notification System
-- In-app notification bell
+- In-app notification bell with unread count
 - Departure reminders (configurable hours before)
 - Parking expiry reminders (configurable minutes before)
 - Stop reminders (configurable minutes before)
 - Ticket purchase reminders (configurable days before)
 - Expense nudges
-- Notification preferences management
+- Notification preferences management in Account settings
 - Edge function-based notification generation
 
 ---
@@ -188,13 +210,14 @@ Complete list of implemented features organized by tier and domain.
 - Business/personal expense categorization
 - Stop-level expense assignment
 - Business expense summary views
+- Multi-trip reporting
 
 ---
 
 ## Admin Features
 
 ### User Management (RBAC)
-- Admin role via separate `user_roles` table
+- Admin role via `user_roles` table
 - View all users with subscription info
 - Update user subscription tier
 - Update user names
@@ -202,15 +225,13 @@ Complete list of implemented features organized by tier and domain.
 - Trip count tracking
 
 ### Support Tickets
-- User-submitted support tickets
+- User-submitted support tickets with app context
 - Admin ticket management dashboard
 - Status tracking (open/resolved)
-- App version and page context capture
 
 ### Plans Dashboard
 - Subscription tier overview
 - Upgrade intent tracking
-- Usage metrics
 
 ---
 
@@ -236,4 +257,4 @@ Complete list of implemented features organized by tier and domain.
 - Database triggers for event sync, permission validation, trip counting
 - Centralized API client with session expiration handling
 - Lovable AI gateway for AI operations (no user API keys required)
-- Google Places API integration with server-side photo proxy (v4.8.0)
+- Google Places API integration with server-side photo proxy
