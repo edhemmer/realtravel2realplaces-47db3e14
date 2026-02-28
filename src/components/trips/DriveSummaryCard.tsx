@@ -269,7 +269,9 @@ export function DriveSummaryCard({ trip, drivePlan, onAddGasExpense }: DriveSumm
                 disabled={!zone.targetLatLng}
               >
                 <MapPin className="w-3 h-3" />
-                Fuel stop around mile {zone.mileMarker}
+                {zone.areaLabel
+                  ? `Fuel up ${zone.areaLabel} (~mile ${zone.mileMarker})`
+                  : `Fuel stop around mile ${zone.mileMarker}`}
               </button>
             ))}
           </div>

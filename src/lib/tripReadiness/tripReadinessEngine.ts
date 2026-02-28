@@ -327,7 +327,13 @@ function resolveDriveReadinessCard(
   }
 
   if (drivePlan?.fuelIntelligence.enabled && drivePlan.fuelIntelligence.stopZones.length > 0) {
-    details.push(`${drivePlan.fuelIntelligence.stopZones.length} fuel window${drivePlan.fuelIntelligence.stopZones.length !== 1 ? 's' : ''} identified.`);
+    const zones = drivePlan.fuelIntelligence.stopZones;
+    const areaLabels = zones.map(z => z.areaLabel).filter(Boolean);
+    if (areaLabels.length > 0) {
+      details.push(`Plan to fuel up ${areaLabels.join(', ')}.`);
+    } else {
+      details.push(`${zones.length} fuel window${zones.length !== 1 ? 's' : ''} identified.`);
+    }
   }
 
   return {
