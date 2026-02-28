@@ -43,7 +43,7 @@ import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { useTripPermission } from '@/pages/TripDetail';
 import { Trip } from '@/types/database';
-import { resolveMapsDestination, openMapsDestination } from '@/lib/mapsDestination';
+import { navigateTo } from '@/lib/canonicalNavigation';
 import { computeDayOrder, DayOrderMode, OrderableStop } from '@/lib/drive/dayOrder';
 
 // ============================================================================
@@ -329,13 +329,11 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
 
   /** Navigate using address/location (lat/lng when available in future) */
   const openMapsDirections = (stop: Engagement) => {
-    const dest = resolveMapsDestination({
+    const opened = navigateTo({
       address: stop.address,
       locationLabel: stop.location,
     });
-    if (dest) {
-      openMapsDestination(dest);
-    } else {
+    if (!opened) {
       toast.error('No location available for navigation');
     }
   };

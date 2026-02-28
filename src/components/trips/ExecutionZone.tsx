@@ -14,7 +14,7 @@ import { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Compass, Plus, Navigation, Clock, CalendarCheck } from 'lucide-react';
 import { getTodayActionItems, TodayActionItem } from '@/lib/todayActionItems';
-import { resolveMapsDestination, openMapsDestination } from '@/lib/mapsDestination';
+import { navigateTo } from '@/lib/canonicalNavigation';
 import type { CanonicalTimelineEvent } from '@/lib/canonicalTripState';
 
 interface ExecutionZoneProps {
@@ -24,19 +24,10 @@ interface ExecutionZoneProps {
 }
 
 function handleItemNavigate(item: TodayActionItem) {
-  if (item.address) {
-    const dest = resolveMapsDestination({ address: item.address });
-    if (dest) {
-      openMapsDestination(dest);
-      return;
-    }
-  }
-  const query = item.address || item.title;
-  window.open(
-    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`,
-    '_blank',
-    'noopener,noreferrer'
-  );
+  navigateTo({
+    address: item.address,
+    locationLabel: item.title,
+  });
 }
 
 export function ExecutionZone({ timelineEvents, onExplore, onAddExpense }: ExecutionZoneProps) {

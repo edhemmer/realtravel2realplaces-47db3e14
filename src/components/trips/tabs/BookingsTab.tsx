@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getBookingTypeStyle } from '@/lib/bookingTypeColors';
-import { resolveMapsDestination, openMapsDestination } from '@/lib/mapsDestination';
+import { resolveCanonicalNavigation, openCanonicalNav } from '@/lib/canonicalNavigation';
 import { buildFlightDisplayLine } from '@/lib/flightDisplayUtils';
 import { buildFlightDisplayModel } from '@/lib/flightDisplayModel';
 import { GasLocatorPill } from '@/components/trips/GasLocatorPill';
@@ -974,48 +974,18 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
   };
 
   const openInMaps = (booking: Booking) => {
-    // v3.13.2: For flights, use validated IATA codes for navigation
-    if (booking.booking_type === 'flight') {
-      const depCode = booking.departure_airport_code?.trim().toUpperCase();
-      const arrCode = booking.arrival_airport_code?.trim().toUpperCase();
-      const validDep = depCode && /^[A-Z]{3}$/.test(depCode) ? depCode : null;
-      const validArr = arrCode && /^[A-Z]{3}$/.test(arrCode) ? arrCode : null;
-      
-      if (validDep) {
-        openMapsDestination(resolveMapsDestination({ locationLabel: `${validDep} Airport` })!);
-        return;
-      }
-      if (validArr) {
-        openMapsDestination(resolveMapsDestination({ locationLabel: `${validArr} Airport` })!);
-        return;
-      }
-      // Fallback: airport name fields
-      const depName = (booking as any).departure_airport_name;
-      const arrName = (booking as any).arrival_airport_name;
-      if (depName) {
-        openMapsDestination(resolveMapsDestination({ locationLabel: depName })!);
-        return;
-      }
-      if (arrName) {
-        openMapsDestination(resolveMapsDestination({ locationLabel: arrName })!);
-        return;
-      }
-      // Final fallback: trip city
-      if (trip) {
-        const fallback = resolveMapsDestination({
-          locationLabel: `Airport near ${trip.destination_city}${trip.destination_state ? ', ' + trip.destination_state : ''}`,
-        });
-        if (fallback) openMapsDestination(fallback);
-      }
-      return;
-    }
-
-    const dest = resolveMapsDestination({
+    const result = resolveCanonicalNavigation({
       address: booking.address,
+      bookingType: booking.booking_type,
       propertyName: booking.booking_type === 'stay' ? (booking.property_name || undefined) : undefined,
-      locationLabel: booking.pickup_location || booking.location_summary || undefined,
+      departureAirportCode: booking.departure_airport_code,
+      arrivalAirportCode: booking.arrival_airport_code,
+      pickupLocation: booking.pickup_location,
+      locationLabel: booking.location_summary || undefined,
+      city: trip?.destination_city,
+      state: trip?.destination_state,
     });
-    if (dest) openMapsDestination(dest);
+    if (result) openCanonicalNav(result);
   };
 
   // Legacy handler for external drop zone (outside dialog)
