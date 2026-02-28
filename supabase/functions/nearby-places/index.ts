@@ -89,10 +89,11 @@ Deno.serve(async (req) => {
 
     const { textQuery, includedType } = buildTextQuery(type, lat, lng);
 
-    // Use Text Search (New) API with locationRestriction for strict radius enforcement
+    // Use Text Search (New) API with locationBias (circle) to prefer nearby results.
+    // Strict radius enforcement is handled client-side via haversine filter.
     const requestBody: Record<string, unknown> = {
       textQuery,
-      locationRestriction: {
+      locationBias: {
         circle: {
           center: { latitude: lat, longitude: lng },
           radius: Math.min(radiusMeters, 50000),
