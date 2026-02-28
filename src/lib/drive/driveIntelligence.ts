@@ -26,7 +26,7 @@ import type { WeatherEngineResult } from '@/lib/weatherEngine';
 import { getRoute } from './routeProvider';
 import { resolveMapsDestination, buildMapsDirectionsUrl } from '@/lib/mapsDestination';
 import { projectMileMarker, hasRouteGeometry, type RouteGeometry } from './routeGeometry';
-import { approximateStateName, approximateCityCoords } from './stateGeoLookup';
+import { approximateStateName, approximateCityCoords, approximateNearestCity } from './stateGeoLookup';
 
 // ============================================================================
 // THRESHOLDS (fixed constants — no heuristics)
@@ -36,12 +36,10 @@ const LONG_DRIVE_THRESHOLD_MINUTES = 240; // 4 hours
 const WEATHER_RISK_CONDITIONS = ['rain', 'snow', 'mixed'];
 const MAX_RISK_FLAGS = 3;
 
-// v3.11.0: Fuel stop zone constants
-const RESERVE_FACTOR = 0.20;
-const MIN_FIRST_STOP_MILES = 120;
-const FIRST_STOP_RANGE_FACTOR = 0.45;
-const AVOID_ARRIVAL_BUFFER_MILES = 30;
-const STOP_ZONE_RADIUS_MILES = 5;
+// v3.12.1: Fuel stop zone constants — 50-mile reserve buffer per user spec
+const RESERVE_BUFFER_MILES = 50;
+const AVOID_ARRIVAL_BUFFER_MILES = 50;
+const STOP_ZONE_RADIUS_MILES = 10;
 
 // ============================================================================
 // RISK FLAG RESOLVERS
@@ -88,8 +86,10 @@ function computeFuelPlan(
   if (!preferences?.vehicleRangeMiles || !distanceMiles) return null;
 
   const range = preferences.vehicleRangeMiles;
-  if (distanceMiles <= range * 0.8) {
-    // No stops needed — within safe range
+  const usableRange = range - RESERVE_BUFFER_MILES;
+  if (usableRange <= 0) return null;
+
+  if (distanceMiles <= usableRange) {
     return {
       estimatedStops: 0,
       spacingMiles: 0,
@@ -98,9 +98,9 @@ function computeFuelPlan(
     };
   }
 
-  // Fuel up every 80% of range (safety margin)
-  const safeRange = Math.round(range * 0.8);
-  const stops = Math.ceil(distanceMiles / safeRange) - 1;
+  // How many stops needed to keep each leg ≤ usableRange
+  const stops = Math.ceil(distanceMiles / usableRange) - 1;
+  // Even spacing across all legs
   const spacing = stops > 0 ? Math.round(distanceMiles / (stops + 1)) : 0;
 
   return {
@@ -127,8 +127,11 @@ function stableZoneId(mileMarker: number, latLng: { lat: number; lng: number } |
 
 /**
  * Compute fuel stop zones along a route.
- * v3.11.1: Projects onto actual route geometry (steps/polyline) instead of linear interpolation.
- * Returns zones (areas, not specific stations) with mile markers and approximate coordinates.
+ *
+ * Algorithm: Given tank range and 50-mile reserve, the usable range per leg
+ * is (range - 50). We place stops at even intervals so no leg exceeds usable range.
+ * A "top off" zone is added near the destination if the final leg > 60% of usable range
+ * to avoid arriving on fumes.
  */
 function computeFuelStopZones(
   totalDistanceMiles: number,
@@ -139,25 +142,34 @@ function computeFuelStopZones(
   // No stops needed if within safe range
   if (totalDistanceMiles <= safeRangeMiles) return [];
 
-  const firstStopAt = Math.max(MIN_FIRST_STOP_MILES, Math.floor(rangeMiles * FIRST_STOP_RANGE_FACTOR));
-  const repeatEvery = firstStopAt;
-  const arrivalCutoff = totalDistanceMiles - AVOID_ARRIVAL_BUFFER_MILES;
+  // Calculate number of stops needed
+  const numStops = Math.ceil(totalDistanceMiles / safeRangeMiles) - 1;
+  if (numStops <= 0) return [];
 
-  // Generate mile markers
+  // Even spacing: divide trip into (numStops + 1) equal legs
+  const legLength = Math.round(totalDistanceMiles / (numStops + 1));
+
+  // Generate mile markers at each stop point
   const markers: number[] = [];
-  let marker = firstStopAt;
-  while (marker < arrivalCutoff) {
-    markers.push(marker);
-    marker += repeatEvery;
+  for (let i = 1; i <= numStops; i++) {
+    const marker = legLength * i;
+    // Don't place stops within 50 miles of destination
+    if (marker < totalDistanceMiles - AVOID_ARRIVAL_BUFFER_MILES) {
+      markers.push(marker);
+    }
   }
 
-  // Ensure last segment doesn't exceed safe range
+  // If the final leg after last marker is > 70% of safe range,
+  // add a "top off" zone to avoid arriving on fumes
   const lastMarker = markers.length > 0 ? markers[markers.length - 1] : 0;
-  if ((totalDistanceMiles - lastMarker) > safeRangeMiles && lastMarker < arrivalCutoff) {
-    // Insert an additional marker
-    const additional = totalDistanceMiles - safeRangeMiles;
-    if (additional > lastMarker && additional < arrivalCutoff) {
-      markers.push(Math.round(additional));
+  const finalLeg = totalDistanceMiles - lastMarker;
+  // Only add top-off if the final leg would leave less than the reserve buffer
+  // (i.e., the final leg exceeds usable range — shouldn't happen with even spacing,
+  // but catches edge cases from rounding or skipped markers near destination)
+  if (finalLeg > safeRangeMiles && lastMarker > 0) {
+    const topOff = lastMarker + Math.round(safeRangeMiles * 0.75);
+    if (topOff < totalDistanceMiles - 30) {
+      markers.push(topOff);
     }
   }
 
@@ -165,19 +177,25 @@ function computeFuelStopZones(
   const uniqueMarkers = [...new Set(markers)].sort((a, b) => a - b);
 
   // Project each marker onto route geometry and resolve area labels
-  return uniqueMarkers.map((m) => {
+  return uniqueMarkers.map((m, idx) => {
     const latLng = geometry ? projectMileMarker(geometry, m) : null;
     let areaLabel: string | undefined;
     if (latLng) {
-      const state = approximateStateName(latLng.lat, latLng.lng);
-      if (state) areaLabel = `near ${state}`;
+      const cityLabel = approximateNearestCity(latLng.lat, latLng.lng);
+      if (cityLabel) {
+        areaLabel = cityLabel;
+      } else {
+        const state = approximateStateName(latLng.lat, latLng.lng);
+        if (state) areaLabel = `${state} area`;
+      }
     }
+    const isTopOff = idx === uniqueMarkers.length - 1 && uniqueMarkers.length > numStops;
     return {
       id: stableZoneId(m, latLng),
       mileMarker: m,
       targetLatLng: latLng,
       radiusMiles: STOP_ZONE_RADIUS_MILES,
-      areaLabel,
+      areaLabel: isTopOff && areaLabel ? `top off ${areaLabel}` : areaLabel,
     };
   });
 }
@@ -295,7 +313,7 @@ export function buildDrivePlan(input: BuildDrivePlanInput): DrivePlan {
     fuelIntelligence = { enabled: false, reason: 'MISSING_VEHICLE_RANGE', stopZones: [] };
   } else {
     // v3.11.0: Compute stop zones
-    const safeRangeMiles = Math.floor(avgMilesPerTank * (1 - RESERVE_FACTOR));
+    const safeRangeMiles = avgMilesPerTank - RESERVE_BUFFER_MILES;
     const totalDistance = effectiveDistanceMiles;
 
     if (!totalDistance) {

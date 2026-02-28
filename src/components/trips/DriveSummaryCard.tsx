@@ -237,43 +237,45 @@ export function DriveSummaryCard({ trip, drivePlan, onAddGasExpense }: DriveSumm
           </div>
         )}
 
-        {/* Fuel hint (only with vehicle profile + enabled) */}
-        {fuelIntelligence.enabled && fuelPlan && fuelPlan.estimatedStops > 0 && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Fuel className="w-3 h-3" />
-            <span>
-              ~{fuelPlan.estimatedStops} fuel stop{fuelPlan.estimatedStops > 1 ? 's' : ''} recommended
-              {fuelPlan.spacingMiles > 0 ? ` (every ~${fuelPlan.spacingMiles} mi)` : ''}
-            </span>
-          </div>
-        )}
-
-        {/* v3.11.0: Fuel stop zones */}
-        {fuelIntelligence.enabled && fuelIntelligence.stopZones.length > 0 && (
-          <div className="space-y-1">
-            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+        {/* Fuel summary (only with vehicle profile + enabled) */}
+        {fuelIntelligence.enabled && fuelPlan && (
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Fuel className="w-3 h-3" />
-              Suggested fuel stops
-            </p>
-            {fuelIntelligence.stopZones.map((zone) => (
-              <button
-                key={zone.id}
-                className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 pl-[18px]"
-                onClick={() => {
-                  if (zone.targetLatLng) {
-                    const target = { kind: 'COORDS' as const, value: `${zone.targetLatLng.lat},${zone.targetLatLng.lng}`, label: `Gas station near mile ${zone.mileMarker}` };
-                    const url = buildMapsSearchUrl(target);
-                    window.open(url, '_blank', 'noopener,noreferrer');
-                  }
-                }}
-                disabled={!zone.targetLatLng}
-              >
-                <MapPin className="w-3 h-3" />
-                {zone.areaLabel
-                  ? `Fuel up ${zone.areaLabel} (~mile ${zone.mileMarker})`
-                  : `Fuel stop around mile ${zone.mileMarker}`}
-              </button>
-            ))}
+              <span className="font-medium">
+                {fuelPlan.estimatedStops === 0
+                  ? `No fuel stops needed — ${fuelPlan.tripMiles} mi is within your ${fuelPlan.vehicleRangeMiles} mi range.`
+                  : `${fuelPlan.tripMiles} mi trip · ${fuelPlan.vehicleRangeMiles} mi tank · ${fuelPlan.estimatedStops} fuel stop${fuelPlan.estimatedStops > 1 ? 's' : ''} recommended`}
+              </span>
+            </div>
+
+            {/* Fuel stop zones with area labels */}
+            {fuelIntelligence.stopZones.length > 0 && (
+              <div className="space-y-0.5">
+                {fuelIntelligence.stopZones.map((zone) => (
+                  <button
+                    key={zone.id}
+                    className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 pl-[18px]"
+                    onClick={() => {
+                      if (zone.targetLatLng) {
+                        const searchLabel = zone.areaLabel
+                          ? `Gas station ${zone.areaLabel}`
+                          : `Gas station near mile ${zone.mileMarker}`;
+                        const target = { kind: 'COORDS' as const, value: `${zone.targetLatLng.lat},${zone.targetLatLng.lng}`, label: searchLabel };
+                        const url = buildMapsSearchUrl(target);
+                        window.open(url, '_blank', 'noopener,noreferrer');
+                      }
+                    }}
+                    disabled={!zone.targetLatLng}
+                  >
+                    <MapPin className="w-3 h-3" />
+                    {zone.areaLabel
+                      ? `⛽ ${zone.areaLabel} (~mile ${zone.mileMarker})`
+                      : `⛽ Fuel stop around mile ${zone.mileMarker}`}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
