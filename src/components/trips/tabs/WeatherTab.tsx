@@ -454,23 +454,17 @@ function DayCell({
       {/* Single weather icon */}
       <div className="my-0.5">{mainIcon}</div>
 
-      {/* Day (high) temp — labeled */}
-      <div className="flex items-center gap-0.5">
-        <Sun className="w-3 h-3 text-amber-500" />
-        <span className={`text-xs font-bold ${
-          isFromForecast ? 'text-foreground' : 'text-amber-700 dark:text-amber-300'
-        }`}>
-          {formatTemp(day.typicalHigh)}
-        </span>
-      </div>
+      {/* High temp */}
+      <span className={`text-xs font-bold ${
+        isFromForecast ? 'text-foreground' : 'text-amber-700 dark:text-amber-300'
+      }`}>
+        {formatTemp(day.typicalHigh)}
+      </span>
 
-      {/* Night (low) temp — labeled */}
-      <div className="flex items-center gap-0.5">
-        <Cloud className="w-3 h-3 text-muted-foreground/60" />
-        <span className="text-[11px] text-muted-foreground">
-          {formatTemp(day.typicalLow)}
-        </span>
-      </div>
+      {/* Low temp */}
+      <span className="text-[11px] text-muted-foreground">
+        {formatTemp(day.typicalLow)}
+      </span>
 
       {/* Rain/snow % */}
       {day.precipLikelihood !== 'unlikely' && day.precipPercent > 0 && (
