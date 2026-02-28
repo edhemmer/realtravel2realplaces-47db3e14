@@ -391,6 +391,15 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
             </p>
             <div className="flex gap-2">
               {canEdit && (
+                <Button
+                  variant="outline"
+                  onClick={() => setImportDialogOpen(true)}
+                >
+                  <Import className="w-4 h-4 mr-2" />
+                  Import Stops
+                </Button>
+              )}
+              {canEdit && (
                 <Button onClick={openAddDialog} className="bg-gradient-ocean hover:opacity-90">
                   <Plus className="w-4 h-4 mr-2" />
                   Add Stop
