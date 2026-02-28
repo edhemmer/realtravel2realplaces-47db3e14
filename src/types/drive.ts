@@ -34,6 +34,8 @@ export interface DriveTripCanonical {
   departDateText: string;
   /** Time as entered by user — optional */
   departTimeText?: string;
+  /** Estimated miles from trip record (fallback when no route API) */
+  estimatedMiles?: number | null;
   /** Waypoints (future) */
   waypoints?: LocationRef[];
   /** User preferences (future — vehicle profile, avoid tolls, etc.) */
