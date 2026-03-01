@@ -21,6 +21,7 @@ import {
   Plane, Building2, Car, CircleParking, Compass, Ticket, 
   TrainFront, Bus, TramFront, Ship, PartyPopper, Navigation
 } from 'lucide-react';
+import { AirportInfoPill } from './AirportInfoPill';
 
 
 interface TripTimelineProps {
@@ -249,6 +250,17 @@ export function TripTimeline({ events, datetimeFormat, onEventClick, onExploreNe
                                   {event.activitySource === 'explore' ? 'From Explore' : 
                                    event.activitySource === 'confirmation' ? 'From confirmation' : ''}
                                 </span>
+                              )}
+                            </div>
+                          )}
+                          {/* Airport info pills for flights */}
+                          {event.bookingType === 'flight' && (
+                            <div className="flex flex-wrap gap-1.5 mt-1">
+                              {event.departureAirportCode && (
+                                <AirportInfoPill airportCode={event.departureAirportCode} label="Origin" />
+                              )}
+                              {event.arrivalAirportCode && (
+                                <AirportInfoPill airportCode={event.arrivalAirportCode} label="Destination" />
                               )}
                             </div>
                           )}
