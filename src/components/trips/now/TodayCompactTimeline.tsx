@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import type { TodayTimelineRow } from '@/lib/canonicalTodayExecutionStack';
 import { cn } from '@/lib/utils';
+import { AirportInfoPill } from '@/components/trips/AirportInfoPill';
 
 interface TodayCompactTimelineProps {
   /** Pre-sorted today timeline rows from buildCanonicalTodayExecutionStack */
@@ -72,6 +73,17 @@ export function TodayCompactTimeline({ todayTimelineRows }: TodayCompactTimeline
                     <span className="ml-1">· {row.displaySubMeta}</span>
                   )}
                 </p>
+              )}
+              {/* Airport info pills for flight events */}
+              {(row.event.eventType === 'flight' || row.event.eventType === 'flight_departure') && (
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {row.event.departureAirportCode && (
+                    <AirportInfoPill airportCode={row.event.departureAirportCode} label="Origin" />
+                  )}
+                  {row.event.arrivalAirportCode && (
+                    <AirportInfoPill airportCode={row.event.arrivalAirportCode} label="Destination" />
+                  )}
+                </div>
               )}
             </div>
             <span className="text-xs text-muted-foreground tabular-nums shrink-0">
