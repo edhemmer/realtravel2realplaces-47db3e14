@@ -85,7 +85,13 @@ export function MobileNavigationRouter({
   const { data: userProfile } = useUserProfile();
   const datetimeFormat = (userProfile?.preferred_datetime_format as 'MM/DD/YYYY 12h' | 'DD/MM/YYYY 24h') || 'MM/DD/YYYY 12h';
 
-  const [activeTab, setActiveTabRaw] = useState<TripTab>('now');
+  // v4.1.0: Initialize from externalTab so dashboard ?tab= links land correctly
+  const resolveInitialTab = (tab?: TripTab): TripTab => {
+    if (!tab) return 'now';
+    if (tab === 'summary') return 'now';
+    return tab;
+  };
+  const [activeTab, setActiveTabRaw] = useState<TripTab>(resolveInitialTab(externalTab));
   const [planSubView, setPlanSubView] = useState<'timeline' | 'bookings'>('timeline');
 
   const setActiveTab = useCallback((tab: TripTab) => {
