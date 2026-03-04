@@ -120,19 +120,20 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <PageTransition className="space-y-6">
+      <PageTransition className="space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-3">
           <div>
-            <h1 className="font-bold text-4xl tracking-tight">My Trips</h1>
-            <p className="text-muted-foreground mt-1">Manage your travel in one place</p>
+            <h1 className="font-bold text-2xl sm:text-4xl tracking-tight">My Trips</h1>
+            <p className="text-muted-foreground text-sm sm:text-base mt-0.5 sm:mt-1">Manage your travel in one place</p>
           </div>
           <Button 
             onClick={() => setCreateDialogOpen(true)} 
-            className="bg-gradient-ocean hover:opacity-90 transition-opacity h-12 rounded-xl font-semibold shadow-sm"
+            className="bg-gradient-ocean hover:opacity-90 transition-opacity h-10 sm:h-12 rounded-xl font-semibold shadow-sm shrink-0"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            New Trip
+            <Plus className="w-4 h-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">New Trip</span>
+            <span className="sm:hidden">New</span>
           </Button>
         </div>
 
@@ -143,48 +144,46 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <Card className="border-primary/30 bg-primary/5 md:hidden">
-              <CardContent className="py-4 px-5">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <Radio className="w-4 h-4 text-primary" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-primary">Active Trip</p>
-                      <p className="font-semibold truncate">{activeTrip.name}</p>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        {activeTrip.destination_city}, {activeTrip.destination_country}
-                      </p>
-                    </div>
+             <Card className="border-primary/30 bg-primary/5 md:hidden">
+              <CardContent className="py-3 px-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <Radio className="w-4 h-4 text-primary" />
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Button
-                      size="sm"
-                      className="bg-success hover:bg-success/90 text-white h-9 rounded-lg font-semibold shadow-sm active:scale-[0.98]"
-                      onClick={() => navigate(`/trip/${activeTrip.id}?tab=expenses`)}
-                    >
-                      <DollarSign className="w-3.5 h-3.5 mr-1" />
-                      Add Expense
-                    </Button>
-                    <Button
-                      size="sm"
-                      className="bg-primary hover:bg-primary/90 text-primary-foreground h-9 rounded-lg font-semibold shadow-sm active:scale-[0.98]"
-                      onClick={() => navigate(`/trip/${activeTrip.id}?tab=explore`)}
-                    >
-                      <Compass className="w-3.5 h-3.5 mr-1" />
-                      Explore
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-9 rounded-lg font-semibold active:scale-[0.98]"
-                      onClick={() => navigate(`/trip/${activeTrip.id}?tab=now`)}
-                    >
-                      Open NOW
-                    </Button>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Active Trip</p>
+                    <p className="text-sm font-semibold truncate">{activeTrip.name}</p>
+                    <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                      <MapPin className="w-2.5 h-2.5" />
+                      {activeTrip.destination_city}{activeTrip.destination_country ? `, ${activeTrip.destination_country}` : ''}
+                    </p>
                   </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <Button
+                    size="sm"
+                    className="bg-success hover:bg-success/90 text-success-foreground h-10 rounded-xl text-xs font-semibold shadow-sm active:scale-[0.97]"
+                    onClick={() => navigate(`/trip/${activeTrip.id}?tab=expenses`)}
+                  >
+                    <DollarSign className="w-3.5 h-3.5 mr-0.5" />
+                    Expense
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground h-10 rounded-xl text-xs font-semibold shadow-sm active:scale-[0.97]"
+                    onClick={() => navigate(`/trip/${activeTrip.id}?tab=explore`)}
+                  >
+                    <Compass className="w-3.5 h-3.5 mr-0.5" />
+                    Explore
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-10 rounded-xl text-xs font-semibold active:scale-[0.97]"
+                    onClick={() => navigate(`/trip/${activeTrip.id}?tab=now`)}
+                  >
+                    Open NOW
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -383,31 +382,31 @@ const TripCard = React.memo(function TripCard({
       {/* Mode accent strip */}
       <div className={`h-[3px] w-full ${modeTheme.gradients.buttonBg}`} />
 
-      {/* Content area with right padding to protect from absolute button */}
-      <div className="pr-[80px] sm:pr-[88px]">
-        <CardHeader className="pb-2">
-          <div className="flex items-start justify-between">
+      {/* Content area — compact on mobile, right padding for action button on desktop */}
+      <div className="pr-16 sm:pr-[88px]">
+        <CardHeader className="pb-1 sm:pb-2 pt-3 sm:pt-6 px-3 sm:px-6">
+          <div className="flex items-start justify-between gap-1">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <TravelModeIcon mode={tripMode} isPast={isPastTrip} />
-                <CardTitle className="text-lg truncate">
+                <CardTitle className="text-base sm:text-lg truncate">
                   {trip.name}
                 </CardTitle>
                 {isActive && (
-                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-teal-500/15 text-teal-600 dark:text-teal-400 shrink-0">
+                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-teal-500/15 text-teal-600 dark:text-teal-400 shrink-0">
                     <Radio className="w-2.5 h-2.5" />
                     Live
                   </span>
                 )}
               </div>
-              <CardDescription className="flex items-center gap-1 mt-1">
+              <CardDescription className="flex items-center gap-1 mt-0.5 sm:mt-1 text-xs sm:text-sm">
                 <MapPin className="w-3 h-3" />
                 {trip.destination_city}, {trip.destination_country}
               </CardDescription>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
               {isShared && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full bg-muted text-muted-foreground">
+                <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 text-[10px] font-medium rounded-full bg-muted text-muted-foreground">
                   <Users className="w-3 h-3" />
                   Shared
                 </span>
@@ -416,22 +415,25 @@ const TripCard = React.memo(function TripCard({
             </div>
           </div>
         </CardHeader>
-        <CardContent className="pt-2">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-            <Calendar className="w-4 h-4" />
+        <CardContent className="pt-1 sm:pt-2 px-3 sm:px-6 pb-3 sm:pb-6">
+          <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-4">
+            <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             <span>{formatTripDateRange(trip.start_date, trip.end_date)}</span>
           </div>
           <div className="flex items-center justify-between">
-            <div className={`flex items-center gap-1 text-sm font-medium ${modeTheme.palette.primary}`}>
+            <button
+              onClick={handleCardClick}
+              className={`flex items-center gap-0.5 text-xs sm:text-sm font-medium ${modeTheme.palette.primary} hover:underline`}
+            >
               View Trip
-              <ChevronRight className="w-4 h-4" />
-            </div>
+              <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            </button>
             {canDelete && (
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={handleDeleteClick} 
-                className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 h-7 w-7 p-0"
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
@@ -441,7 +443,7 @@ const TripCard = React.memo(function TripCard({
                 variant="ghost" 
                 size="sm" 
                 onClick={handleRemoveClick} 
-                className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 h-7 w-7 p-0"
               >
                 <UserMinus className="w-4 h-4" />
               </Button>
@@ -450,13 +452,13 @@ const TripCard = React.memo(function TripCard({
         </CardContent>
       </div>
 
-      {/* Mode action button — absolutely positioned in right whitespace */}
+      {/* Mode action button — absolutely positioned */}
       <button
         onClick={handleCardClick}
         aria-label={`Open trip: ${trip.name}`}
         className={`
-          absolute right-8 top-1/2 -translate-y-1/2
-          w-[52px] h-[52px] sm:w-[60px] sm:h-[60px] rounded-2xl
+          absolute right-3 sm:right-8 top-1/2 -translate-y-1/2
+          w-10 h-10 sm:w-[60px] sm:h-[60px] rounded-xl sm:rounded-2xl
           flex items-center justify-center
           ${modeTheme.gradients.buttonBg} ${modeTheme.palette.border} border
           shadow-md
@@ -466,7 +468,7 @@ const TripCard = React.memo(function TripCard({
           focus-visible:outline-none focus-visible:ring-2 ${modeTheme.palette.focus}
         `}
       >
-        {React.createElement(MODE_ICONS[tripMode], { className: `w-7 h-7 ${modeTheme.palette.icon}` })}
+        {React.createElement(MODE_ICONS[tripMode], { className: `w-5 h-5 sm:w-7 sm:h-7 ${modeTheme.palette.icon}` })}
       </button>
     </Card>
   );
