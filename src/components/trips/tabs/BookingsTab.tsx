@@ -196,6 +196,10 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
     from_location: '',
     to_location: '',
     operator: '',
+    // Flight airport/flight number
+    departure_airport_code: '',
+    arrival_airport_code: '',
+    flight_number: '',
   });
 
   // Auto-populate booking link when vendor/airline name changes
@@ -239,6 +243,9 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
       operator: '',
       pickup_location: '',
       return_location: '',
+      departure_airport_code: '',
+      arrival_airport_code: '',
+      flight_number: '',
     });
     setBookingType('flight');
     setUrlAutoFilled(false);
@@ -776,6 +783,9 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
       from_location: (booking as any).from_location || '',
       to_location: (booking as any).to_location || '',
       operator: (booking as any).operator || '',
+      departure_airport_code: booking.departure_airport_code || '',
+      arrival_airport_code: booking.arrival_airport_code || '',
+      flight_number: (booking as any).flight_number || '',
     });
     // Load existing companions for this booking
     const existingCompanionIds = bookingCompanions
@@ -814,6 +824,9 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
       from_location: bookingType === 'transport' ? (formData.from_location || null) : null,
       to_location: bookingType === 'transport' ? (formData.to_location || null) : null,
       operator: bookingType === 'transport' ? (formData.operator || null) : null,
+      // Flight airport fields
+      departure_airport_code: bookingType === 'flight' ? (formData.departure_airport_code || null) : null,
+      arrival_airport_code: bookingType === 'flight' ? (formData.arrival_airport_code || null) : null,
     };
 
     if (editingBooking) {
@@ -1635,6 +1648,35 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                     />
                   </div>
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Departure Airport Code</Label>
+                    <Input
+                      value={formData.departure_airport_code}
+                      onChange={(e) => setFormData({ ...formData, departure_airport_code: e.target.value.toUpperCase() })}
+                      placeholder="LAX"
+                      maxLength={4}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Arrival Airport Code</Label>
+                    <Input
+                      value={formData.arrival_airport_code}
+                      onChange={(e) => setFormData({ ...formData, arrival_airport_code: e.target.value.toUpperCase() })}
+                      placeholder="JFK"
+                      maxLength={4}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Flight Number</Label>
+                  <Input
+                    value={formData.flight_number}
+                    onChange={(e) => setFormData({ ...formData, flight_number: e.target.value })}
+                    placeholder="UA 1234"
+                  />
+                </div>
+                {/* Frequent Flyer # - commented out per user request
                 <div className="space-y-2">
                     <Label>Frequent Flyer #</Label>
                     <Input
@@ -1642,6 +1684,7 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                       onChange={(e) => setFormData({ ...formData, frequent_flyer_number: e.target.value })}
                     />
                   </div>
+                */}
               </>
             )}
 
