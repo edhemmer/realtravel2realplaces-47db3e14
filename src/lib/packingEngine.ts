@@ -323,15 +323,14 @@ export function generatePackingRecommendations(
   }
   categories.push(cap({ id: 'toiletries', label: 'Toiletries & Health', icon: 'heart-pulse', items: toiletryItems }));
 
-  // ── 9. Tech & Chargers ──
+  // ── 9. Tech & Chargers (95%+ of travelers carry these) ──
   const techItems: PackingRecommendation[] = [
-    std('Phone charger', 1, 'Tech & Chargers'),
-    std('Portable battery pack', 1, 'Tech & Chargers'),
-    std('Headphones / Earbuds', 1, 'Tech & Chargers'),
+    std('Laptop', 1, 'Tech & Chargers'),
+    std('Laptop Charger', 1, 'Tech & Chargers'),
+    std('Smartphone & Charger', 1, 'Tech & Chargers'),
+    std('Earbuds / Headphones', 1, 'Tech & Chargers'),
+    std('Portable Power Bank', 1, 'Tech & Chargers'),
   ];
-  if (tripType === 'business') {
-    techItems.push(std('Laptop + charger', 1, 'Tech & Chargers'));
-  }
   categories.push(cap({ id: 'tech', label: 'Tech & Chargers', icon: 'zap', items: techItems }));
 
   // ── 10. Documents & Critical Items (always present, concise) ──

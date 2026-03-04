@@ -127,6 +127,14 @@ DESTINATION INTELLIGENCE:
 ${isBeachDestination ? '- BEACH legs: swimsuit ×2, SPF 50+, sandals, cover-up, sun hat.' : ''}
 ${isMountainDestination ? '- MOUNTAIN legs: hiking boots, moisture-wicking layers, waterproof shell.' : ''}
 
+TECH & CHARGERS — MANDATORY ITEMS (95% of travelers carry these):
+- Laptop (quantity 1) — ALWAYS include regardless of trip type
+- Laptop Charger (quantity 1) — ALWAYS include, separate from laptop
+- Smartphone & Charger (quantity 1) — ALWAYS include
+- Earbuds / Headphones (quantity 1) — ALWAYS include
+- Portable Power Bank (quantity 1) — ALWAYS include
+- Universal Power Adapter (quantity 1) — include if crossing outlet-type boundaries
+
 Categories: Clothing Core, Layers & Outerwear, Rain & Wet Weather, Footwear, Accessories, Toiletries & Health, Tech & Chargers, Documents & Critical Items${isBeachDestination ? ', Swimwear & Beach' : ''}${isMountainDestination ? ', Hiking & Outdoor' : ''}${trip_type === 'business' ? ', Business' : ''}`;
 
     const userPrompt = `Generate the packing list now. Remember: underwear=${dailyWearCap}, socks=${dailyWearCap}, NO item above 7. color_tip on EVERY item. applies_to on EVERY item.`;
