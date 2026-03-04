@@ -99,27 +99,17 @@ export function buildMapsUrl(target: NavTarget): string {
 export function openNavTarget(target: NavTarget): void {
   const url = buildMapsUrl(target);
 
-  // 1) Try breakout from iframe/sandbox environments
-  try {
-    const topWin = window.top;
-    if (topWin && typeof topWin.open === 'function') {
-      const opened = topWin.open(url, '_blank', 'noopener,noreferrer');
-      if (opened) return;
-    }
-  } catch {
-    // Cross-origin or sandbox access may throw; fall through.
-  }
-
-  // 2) Fallback to current window popup
-  try {
-    const opened = window.open(url, '_blank', 'noopener,noreferrer');
-    if (opened) return;
-  } catch {
-    // Popup may be blocked; fall through.
-  }
-
-  // 3) Guaranteed fallback so click always does something
-  window.location.assign(url);
+  // Use an anchor element with target="_blank" — works reliably in iframes
+  // where window.open and window.location.assign get blocked by Google.
+  const a = document.createElement('a');
+  a.href = url;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  // Clean up after a tick
+  setTimeout(() => a.remove(), 100);
 }
 
 /**
