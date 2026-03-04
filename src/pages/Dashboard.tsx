@@ -143,7 +143,7 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <Card className="border-primary/30 bg-primary/5">
+            <Card className="border-primary/30 bg-primary/5 md:hidden">
               <CardContent className="py-4 px-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
