@@ -358,7 +358,62 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
       </div>
 
       {/* Content */}
-      {deviceLocation.isLoading ? (
+      {!isOnline() ? (
+        /* v4.0.4: Offline essentials fallback */
+        offlineEssentials && offlineEssentials.places.length > 0 ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <WifiOff className="w-4 h-4 text-orange-500 shrink-0" />
+              <div>
+                <h3 className="text-sm font-semibold">Offline Essentials</h3>
+                <p className="text-xs text-muted-foreground">
+                  Saved nearby places from last connection.
+                </p>
+              </div>
+            </div>
+            {offlineDistanceWarning && (
+              <p className="text-xs text-orange-600 dark:text-orange-400 bg-orange-500/10 rounded-md px-3 py-2">
+                Results may not match current location. Showing saved places from last connection.
+              </p>
+            )}
+            <div className="grid gap-2">
+              {offlineEssentials.places.map((place) => (
+                <Card key={place.id} className="border-orange-200/30 dark:border-orange-800/20">
+                  <CardContent className="py-3 px-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{place.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{place.category}</p>
+                        {place.address && (
+                          <p className="text-xs text-muted-foreground truncate mt-0.5">{place.address}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 text-xs text-muted-foreground">
+                        {place.rating && <span>★ {place.rating}</span>}
+                        {place.distanceMiles && <span>{place.distanceMiles} mi</span>}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <Card className="border-dashed border-muted-foreground/20 bg-muted/30">
+            <CardContent className="py-12 text-center">
+              <div className="flex justify-center mb-4">
+                <div className="p-3 rounded-full bg-muted">
+                  <WifiOff className="w-8 h-8 text-muted-foreground" />
+                </div>
+              </div>
+              <h3 className="text-base font-medium mb-2">Explore unavailable offline</h3>
+              <p className="text-sm text-muted-foreground">
+                No cached places available. Connect to browse nearby attractions.
+              </p>
+            </CardContent>
+          </Card>
+        )
+      ) : deviceLocation.isLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           <span className="ml-2 text-muted-foreground">Getting your location…</span>
