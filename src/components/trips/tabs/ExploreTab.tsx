@@ -137,7 +137,7 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
     });
   }, [tripId, trip, bookings, timelineEvents, isActive, exploreContext, deviceLocation.coords, refreshCounter, hasDestination, geocodeReady, selectedArea]);
 
-  const canFetch = origin !== null;
+  const canFetch = origin !== null && isOnline();
 
   // v4.5.0: Real Places API via placesEngine
   const { data: attractions = [], isLoading, error, refetch } = useRealPlacesExplore({
@@ -148,6 +148,42 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
     enabled: canFetch,
     contextKey: selectedArea?.key,
   });
+
+  // v4.0.4: Save essentials when online results load
+  const originLat = origin?.lat;
+  const originLng = origin?.lng;
+  useEffect(() => {
+    if (isOnline() && attractions.length > 0 && originLat != null && originLng != null) {
+      const locKey = buildLocationKey(originLat, originLng);
+      const essentials = extractEssentials(attractions);
+      if (essentials.length > 0) {
+        saveExploreEssentials(tripId, locKey, essentials);
+      }
+    }
+  }, [attractions, tripId, originLat, originLng]);
+
+  // v4.0.4: Load offline essentials when offline
+  const [offlineEssentials, setOfflineEssentials] = useState<ExploreEssentialsRecord | null>(null);
+  const [offlineDistanceWarning, setOfflineDistanceWarning] = useState(false);
+  useEffect(() => {
+    if (!isOnline() && originLat != null && originLng != null) {
+      const locKey = buildLocationKey(originLat, originLng);
+      loadExploreEssentials(tripId, locKey).then(record => {
+        if (record) {
+          setOfflineEssentials(record);
+          // Check distance from cached location to current device position
+          const deviceCoords = getCachedDeviceLocation();
+          if (deviceCoords) {
+            const [cachedLat, cachedLng] = locKey.split(',').map(Number);
+            const dist = haversineDistanceMiles(deviceCoords.lat, deviceCoords.lng, cachedLat, cachedLng);
+            setOfflineDistanceWarning(dist > DISTANCE_THRESHOLD_MILES);
+          }
+        } else {
+          setOfflineEssentials(null);
+        }
+      });
+    }
+  }, [tripId, originLat, originLng]);
 
   // v4.10.0: Handle area selection
   const handleSelectArea = useCallback((area: ExplorableArea) => {
