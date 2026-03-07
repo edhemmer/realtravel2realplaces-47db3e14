@@ -15,7 +15,7 @@ import { saveTripSnapshot, loadTripSnapshot } from '@/lib/offlineTripCache';
 
 const DB_NAME = 'rt2rp_offline_cache';
 const STORE_NAME = 'expense_queue';
-const DB_VERSION = 2; // bumped from v1 to add expense_queue store
+const DB_VERSION = 3; // bumped to v3 for weather_snapshot + explore_essentials stores
 const MAX_RETRIES = 5;
 
 export type SyncStatus = 'pending' | 'syncing' | 'synced' | 'failed';
@@ -46,6 +46,12 @@ function openDB(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME, { keyPath: 'clientExpenseId' });
+      }
+      if (!db.objectStoreNames.contains('weather_snapshot')) {
+        db.createObjectStore('weather_snapshot', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('explore_essentials')) {
+        db.createObjectStore('explore_essentials', { keyPath: 'id' });
       }
     };
     request.onsuccess = () => resolve(request.result);

@@ -1,6 +1,6 @@
 /**
  * v4.10.0: Explore tab with Pre-Explore area picker.
- * Users can pick any trip location (airport, lodging, etc.) to explore before arriving.
+ * v4.0.4: Offline essentials fallback when device is offline.
  */
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
@@ -9,7 +9,7 @@ import { AttractionSuggestion } from '@/types/attraction';
 import { useRealPlacesExplore } from '@/hooks/useRealPlacesExplore';
 import { useBookings } from '@/hooks/useBookings';
 import { useDeviceLocation } from '@/hooks/useDeviceLocation';
-import { getDeviceLocation } from '@/lib/deviceLocation';
+import { getDeviceLocation, getCachedDeviceLocation } from '@/lib/deviceLocation';
 import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
 import { useTripPermission } from '@/pages/TripDetail';
 import { resolveExploreOriginForContext, getExploreOriginSubtitle, hasExploreDestination, ensureExploreOriginGeocode } from '@/lib/location/exploreContext';
@@ -21,6 +21,17 @@ import { ExploreSectionFeed } from '@/components/trips/explore/ExploreSectionFee
 import { ExploreAreaPicker } from '@/components/trips/explore/ExploreAreaPicker';
 import { AddToTimelineModal } from '@/components/trips/explore/AddToTimelineModal';
 import { useExplorePagination } from '@/hooks/useExplorePagination';
+import { isOnline } from '@/lib/networkStatus';
+import {
+  extractEssentials,
+  saveExploreEssentials,
+  loadExploreEssentials,
+  buildLocationKey,
+  haversineDistanceMiles,
+  DISTANCE_THRESHOLD_MILES,
+  type EssentialPlace,
+  type ExploreEssentialsRecord,
+} from '@/lib/exploreEssentialsCache';
 import type { ExplorableArea } from '@/lib/explore/extractTripAreas';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,7 +40,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import {
   Loader2, AlertCircle,
-  Building2, Navigation, RefreshCw, Search, MapPinned, X, Plane,
+  Building2, Navigation, RefreshCw, Search, MapPinned, X, Plane, WifiOff,
 } from 'lucide-react';
 
 interface ExploreTabProps {
@@ -126,7 +137,7 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
     });
   }, [tripId, trip, bookings, timelineEvents, isActive, exploreContext, deviceLocation.coords, refreshCounter, hasDestination, geocodeReady, selectedArea]);
 
-  const canFetch = origin !== null;
+  const canFetch = origin !== null && isOnline();
 
   // v4.5.0: Real Places API via placesEngine
   const { data: attractions = [], isLoading, error, refetch } = useRealPlacesExplore({
@@ -137,6 +148,42 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
     enabled: canFetch,
     contextKey: selectedArea?.key,
   });
+
+  // v4.0.4: Save essentials when online results load
+  const originLat = origin?.lat;
+  const originLng = origin?.lng;
+  useEffect(() => {
+    if (isOnline() && attractions.length > 0 && originLat != null && originLng != null) {
+      const locKey = buildLocationKey(originLat, originLng);
+      const essentials = extractEssentials(attractions);
+      if (essentials.length > 0) {
+        saveExploreEssentials(tripId, locKey, essentials);
+      }
+    }
+  }, [attractions, tripId, originLat, originLng]);
+
+  // v4.0.4: Load offline essentials when offline
+  const [offlineEssentials, setOfflineEssentials] = useState<ExploreEssentialsRecord | null>(null);
+  const [offlineDistanceWarning, setOfflineDistanceWarning] = useState(false);
+  useEffect(() => {
+    if (!isOnline() && originLat != null && originLng != null) {
+      const locKey = buildLocationKey(originLat, originLng);
+      loadExploreEssentials(tripId, locKey).then(record => {
+        if (record) {
+          setOfflineEssentials(record);
+          // Check distance from cached location to current device position
+          const deviceCoords = getCachedDeviceLocation();
+          if (deviceCoords) {
+            const [cachedLat, cachedLng] = locKey.split(',').map(Number);
+            const dist = haversineDistanceMiles(deviceCoords.lat, deviceCoords.lng, cachedLat, cachedLng);
+            setOfflineDistanceWarning(dist > DISTANCE_THRESHOLD_MILES);
+          }
+        } else {
+          setOfflineEssentials(null);
+        }
+      });
+    }
+  }, [tripId, originLat, originLng]);
 
   // v4.10.0: Handle area selection
   const handleSelectArea = useCallback((area: ExplorableArea) => {
@@ -311,7 +358,62 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
       </div>
 
       {/* Content */}
-      {deviceLocation.isLoading ? (
+      {!isOnline() ? (
+        /* v4.0.4: Offline essentials fallback */
+        offlineEssentials && offlineEssentials.places.length > 0 ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <WifiOff className="w-4 h-4 text-orange-500 shrink-0" />
+              <div>
+                <h3 className="text-sm font-semibold">Offline Essentials</h3>
+                <p className="text-xs text-muted-foreground">
+                  Saved nearby places from last connection.
+                </p>
+              </div>
+            </div>
+            {offlineDistanceWarning && (
+              <p className="text-xs text-orange-600 dark:text-orange-400 bg-orange-500/10 rounded-md px-3 py-2">
+                Results may not match current location. Showing saved places from last connection.
+              </p>
+            )}
+            <div className="grid gap-2">
+              {offlineEssentials.places.map((place) => (
+                <Card key={place.id} className="border-orange-200/30 dark:border-orange-800/20">
+                  <CardContent className="py-3 px-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{place.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{place.category}</p>
+                        {place.address && (
+                          <p className="text-xs text-muted-foreground truncate mt-0.5">{place.address}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 text-xs text-muted-foreground">
+                        {place.rating && <span>★ {place.rating}</span>}
+                        {place.distanceMiles && <span>{place.distanceMiles} mi</span>}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <Card className="border-dashed border-muted-foreground/20 bg-muted/30">
+            <CardContent className="py-12 text-center">
+              <div className="flex justify-center mb-4">
+                <div className="p-3 rounded-full bg-muted">
+                  <WifiOff className="w-8 h-8 text-muted-foreground" />
+                </div>
+              </div>
+              <h3 className="text-base font-medium mb-2">Explore unavailable offline</h3>
+              <p className="text-sm text-muted-foreground">
+                No cached places available. Connect to browse nearby attractions.
+              </p>
+            </CardContent>
+          </Card>
+        )
+      ) : deviceLocation.isLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           <span className="ml-2 text-muted-foreground">Getting your location…</span>

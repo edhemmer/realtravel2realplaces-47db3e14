@@ -7,10 +7,12 @@
  *   Sky = Blended forecast + seasonal (8–14 days)
  *   Amber = Seasonal averages (>14 days)
  *
+ * v4.0.4: Offline degraded mode — shows cached weather snapshot when offline.
+ *
  * Available to all plan tiers.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { Trip, Booking } from '@/types/database';
 import { useBookings } from '@/hooks/useBookings';
 import { useProfileTemperatureUnit } from '@/hooks/useProfileTemperatureUnit';
@@ -24,6 +26,13 @@ import {
   type WeatherDayEnvelope,
 } from '@/lib/weatherEngine';
 import { useTripWeather } from '@/hooks/useWeather';
+import { isOnline } from '@/lib/networkStatus';
+import {
+  saveWeatherSnapshot,
+  loadAllWeatherSnapshots,
+  formatSnapshotTimestamp,
+  type WeatherSnapshotRecord,
+} from '@/lib/weatherSnapshotCache';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -41,6 +50,7 @@ import {
   Wind,
   CalendarDays,
   Train,
+  WifiOff,
 } from 'lucide-react';
 
 interface WeatherTabProps {
@@ -264,8 +274,9 @@ interface WeatherLocationCardProps {
 }
 
 function WeatherLocationCard({ location, trip, temperatureUnit }: WeatherLocationCardProps) {
+  const online = isOnline();
   const mode = resolveWeatherMode(location.dateStart);
-  const shouldFetchForecast = mode !== 'SEASONAL_NORMALS';
+  const shouldFetchForecast = mode !== 'SEASONAL_NORMALS' && online;
 
   const { tripForecast, isLoading } = useTripWeather(
     shouldFetchForecast ? location.city : '',
@@ -287,6 +298,13 @@ function WeatherLocationCard({ location, trip, temperatureUnit }: WeatherLocatio
     };
     return resolveWeather(input);
   }, [location, tripForecast, shouldFetchForecast]);
+
+  // v4.0.4: Save snapshot when online and weather resolves
+  useEffect(() => {
+    if (online && weather && weather.envelope.length > 0) {
+      saveWeatherSnapshot(trip.id, location.key, weather);
+    }
+  }, [online, weather, trip.id, location.key]);
 
   // Filter envelope to only the location's date range
   const scopedEnvelope = useMemo(() => {
@@ -487,8 +505,37 @@ function DayCell({
 export function WeatherTab({ tripId, trip }: WeatherTabProps) {
   const { data: bookings = [] } = useBookings(tripId);
   const { unit: temperatureUnit } = useProfileTemperatureUnit();
+  const online = isOnline();
 
   const locations = useMemo(() => extractWeatherLocations(trip, bookings), [trip, bookings]);
+
+  // v4.0.4: Load cached snapshots when offline
+  const [offlineSnapshots, setOfflineSnapshots] = useState<WeatherSnapshotRecord[]>([]);
+  useEffect(() => {
+    if (!online) {
+      loadAllWeatherSnapshots(tripId).then(setOfflineSnapshots);
+    }
+  }, [online, tripId]);
+
+  // Offline fallback: show cached snapshots if no locations or offline
+  if (!online && locations.length === 0 && offlineSnapshots.length > 0) {
+    return (
+      <div className="space-y-4">
+        <div className="px-1">
+          <h2 className="text-xl font-bold text-foreground tracking-tight">Weather</h2>
+          <div className="flex items-center gap-2 mt-1">
+            <WifiOff className="w-3.5 h-3.5 text-orange-500" />
+            <p className="text-sm text-muted-foreground">
+              Not live. Showing last synced forecast.
+            </p>
+          </div>
+        </div>
+        {offlineSnapshots.map((snap) => (
+          <OfflineWeatherCard key={snap.id} snapshot={snap} temperatureUnit={temperatureUnit} />
+        ))}
+      </div>
+    );
+  }
 
   if (locations.length === 0) {
     return (
@@ -515,6 +562,14 @@ export function WeatherTab({ tripId, trip }: WeatherTabProps) {
         <p className="text-sm text-muted-foreground mt-0.5">
           Forecasts for every location in your trip
         </p>
+        {!online && (
+          <div className="flex items-center gap-2 mt-1">
+            <WifiOff className="w-3.5 h-3.5 text-orange-500" />
+            <p className="text-xs text-muted-foreground">
+              Not live. Showing last synced forecast.
+            </p>
+          </div>
+        )}
         {/* Legend */}
         <div className="flex flex-wrap gap-3 mt-2">
           {Object.entries(MODE_CONFIG).map(([key, config]) => (
@@ -535,5 +590,66 @@ export function WeatherTab({ tripId, trip }: WeatherTabProps) {
         />
       ))}
     </div>
+  );
+}
+
+// ============================================================================
+// OFFLINE WEATHER CARD (cached snapshot display)
+// ============================================================================
+
+function OfflineWeatherCard({
+  snapshot,
+  temperatureUnit,
+}: {
+  snapshot: WeatherSnapshotRecord;
+  temperatureUnit: 'fahrenheit' | 'celsius';
+}) {
+  const { weatherDisplayPayload: weather } = snapshot;
+  const formatTemp = (f: number) => {
+    if (temperatureUnit === 'celsius') return `${Math.round((f - 32) * 5 / 9)}°C`;
+    return `${f}°F`;
+  };
+
+  return (
+    <Card className="overflow-hidden border-orange-200/50 dark:border-orange-800/30">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <CardTitle className="text-sm font-semibold truncate">
+              {weather.locationLabel || 'Weather'}
+            </CardTitle>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              Last updated {formatSnapshotTimestamp(snapshot.lastSyncedAt)}
+            </p>
+          </div>
+          <Badge variant="outline" className="shrink-0 text-[10px] font-medium text-orange-600 dark:text-orange-400 border-orange-300/50">
+            <WifiOff className="w-3 h-3 mr-1" />
+            Cached
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5">
+            <Thermometer className="w-4 h-4 text-orange-500" />
+            <span className="text-lg font-bold">{formatTemp(weather.summary.avgHigh)}</span>
+            <span className="text-sm text-muted-foreground">/</span>
+            <span className="text-sm text-muted-foreground">{formatTemp(weather.summary.avgLow)}</span>
+          </div>
+          {weather.summary.hasRain && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <CloudRain className="w-3.5 h-3.5 text-sky-500" />
+              <span>Rain likely</span>
+            </div>
+          )}
+          {weather.summary.hasSnow && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Snowflake className="w-3.5 h-3.5 text-sky-400" />
+              <span>Snow possible</span>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
