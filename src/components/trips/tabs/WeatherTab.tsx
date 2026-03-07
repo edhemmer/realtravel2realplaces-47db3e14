@@ -7,10 +7,12 @@
  *   Sky = Blended forecast + seasonal (8–14 days)
  *   Amber = Seasonal averages (>14 days)
  *
+ * v4.0.4: Offline degraded mode — shows cached weather snapshot when offline.
+ *
  * Available to all plan tiers.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { Trip, Booking } from '@/types/database';
 import { useBookings } from '@/hooks/useBookings';
 import { useProfileTemperatureUnit } from '@/hooks/useProfileTemperatureUnit';
@@ -24,6 +26,13 @@ import {
   type WeatherDayEnvelope,
 } from '@/lib/weatherEngine';
 import { useTripWeather } from '@/hooks/useWeather';
+import { isOnline } from '@/lib/networkStatus';
+import {
+  saveWeatherSnapshot,
+  loadAllWeatherSnapshots,
+  formatSnapshotTimestamp,
+  type WeatherSnapshotRecord,
+} from '@/lib/weatherSnapshotCache';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -41,6 +50,7 @@ import {
   Wind,
   CalendarDays,
   Train,
+  WifiOff,
 } from 'lucide-react';
 
 interface WeatherTabProps {
@@ -264,8 +274,9 @@ interface WeatherLocationCardProps {
 }
 
 function WeatherLocationCard({ location, trip, temperatureUnit }: WeatherLocationCardProps) {
+  const online = isOnline();
   const mode = resolveWeatherMode(location.dateStart);
-  const shouldFetchForecast = mode !== 'SEASONAL_NORMALS';
+  const shouldFetchForecast = mode !== 'SEASONAL_NORMALS' && online;
 
   const { tripForecast, isLoading } = useTripWeather(
     shouldFetchForecast ? location.city : '',
@@ -288,12 +299,12 @@ function WeatherLocationCard({ location, trip, temperatureUnit }: WeatherLocatio
     return resolveWeather(input);
   }, [location, tripForecast, shouldFetchForecast]);
 
-  // Filter envelope to only the location's date range
-  const scopedEnvelope = useMemo(() => {
-    return weather.envelope.filter(
-      (d) => d.dateISO >= location.dateStart && d.dateISO <= location.dateEnd
-    );
-  }, [weather.envelope, location.dateStart, location.dateEnd]);
+  // v4.0.4: Save snapshot when online and weather resolves
+  useEffect(() => {
+    if (online && weather && weather.envelope.length > 0) {
+      saveWeatherSnapshot(trip.id, location.key, weather);
+    }
+  }, [online, weather, trip.id, location.key]);
 
   const modeConfig = MODE_CONFIG[weather.weatherMode];
   const Icon = TYPE_ICONS[location.type] || MapPin;
