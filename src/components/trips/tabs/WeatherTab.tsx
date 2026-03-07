@@ -306,6 +306,13 @@ function WeatherLocationCard({ location, trip, temperatureUnit }: WeatherLocatio
     }
   }, [online, weather, trip.id, location.key]);
 
+  // Filter envelope to only the location's date range
+  const scopedEnvelope = useMemo(() => {
+    return weather.envelope.filter(
+      (d) => d.dateISO >= location.dateStart && d.dateISO <= location.dateEnd
+    );
+  }, [weather.envelope, location.dateStart, location.dateEnd]);
+
   const modeConfig = MODE_CONFIG[weather.weatherMode];
   const Icon = TYPE_ICONS[location.type] || MapPin;
 
