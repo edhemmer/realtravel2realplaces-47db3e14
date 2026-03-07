@@ -47,6 +47,7 @@ export function Layout({ children }: LayoutProps) {
 
           {user && (
             <div className="flex items-center gap-1">
+              <NetworkStatusIndicator />
               <NotificationBell />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
