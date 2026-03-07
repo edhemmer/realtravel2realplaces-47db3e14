@@ -96,8 +96,16 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then(cache => cache.put('/', clone));
           return response;
         })
-        .catch(() => caches.match('/'))
-        .then(response => response || fetch(request))
+        .catch(() =>
+          caches.match('/').then(cached => {
+            if (cached) return cached;
+            // Last resort: return a minimal offline page
+            return new Response(
+              '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Offline</title></head><body><p>Offline – please reconnect.</p></body></html>',
+              { headers: { 'Content-Type': 'text/html' } }
+            );
+          })
+        )
     );
     return;
   }
