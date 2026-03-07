@@ -47,11 +47,7 @@ interface DestinationInfoCardProps {
 
 export function DestinationInfoCard({ trip }: DestinationInfoCardProps) {
   const { coords: deviceCoords, isLoading: locationLoading } = useDeviceLocation();
-
-  // v4.0.5: Show offline location context when device is offline
-  if (!isOnline()) {
-    return <OfflineLocationContextCard tripId={trip.id} trip={trip} />;
-  }
+  const online = isOnline();
 
   const locationCtx: LocationContext = useMemo(() => ({
     deviceCoords,
@@ -66,6 +62,11 @@ export function DestinationInfoCard({ trip }: DestinationInfoCardProps) {
     trip.destination_country,
     locationCtx
   );
+
+  // v4.0.5: Show offline location context when device is offline
+  if (!online) {
+    return <OfflineLocationContextCard tripId={trip.id} trip={trip} />;
+  }
 
   return (
     <Card className="border-border/40 shadow-sm">
