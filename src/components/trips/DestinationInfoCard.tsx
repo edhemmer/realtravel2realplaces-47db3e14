@@ -1,13 +1,13 @@
 /**
  * v3.8.6: Destination Info & Recommendations Card
- * 
- * Extracted from SummaryTab to live under the Trip header globally.
- * Shows local links, dining, and attractions with device-location awareness.
+ * v4.0.5: Shows OfflineLocationContextCard when device is offline.
  */
 
 import { useMemo } from 'react';
 import { useDeviceLocation } from '@/hooks/useDeviceLocation';
 import { buildGoogleMapsSearchUrl, buildYelpSearchUrl, type LocationContext } from '@/lib/deviceLocation';
+import { isOnline } from '@/lib/networkStatus';
+import { OfflineLocationContextCard } from '@/components/trips/OfflineLocationContextCard';
 import { Trip } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,6 +47,12 @@ interface DestinationInfoCardProps {
 
 export function DestinationInfoCard({ trip }: DestinationInfoCardProps) {
   const { coords: deviceCoords, isLoading: locationLoading } = useDeviceLocation();
+
+  // v4.0.5: Show offline location context when device is offline
+  if (!isOnline()) {
+    return <OfflineLocationContextCard tripId={trip.id} trip={trip} />;
+  }
+
   const locationCtx: LocationContext = useMemo(() => ({
     deviceCoords,
     city: trip.destination_city,
