@@ -13,7 +13,7 @@ import type { CanonicalTripState } from '@/lib/canonicalTripState';
 
 const DB_NAME = 'rt2rp_offline_cache';
 const STORE_NAME = 'trip_cache';
-const DB_VERSION = 1;
+const DB_VERSION = 3;
 
 interface CachedSnapshot {
   tripId: string;
@@ -32,6 +32,15 @@ function openDB(): Promise<IDBDatabase> {
       const db = request.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME, { keyPath: 'tripId' });
+      }
+      if (!db.objectStoreNames.contains('expense_queue')) {
+        db.createObjectStore('expense_queue', { keyPath: 'clientExpenseId' });
+      }
+      if (!db.objectStoreNames.contains('weather_snapshot')) {
+        db.createObjectStore('weather_snapshot', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('explore_essentials')) {
+        db.createObjectStore('explore_essentials', { keyPath: 'id' });
       }
     };
     request.onsuccess = () => resolve(request.result);
