@@ -42,8 +42,10 @@ import {
 } from '@/lib/displayFormats';
 import { 
   Calendar, MapPin, Download,
-  Cloud, Sun, CloudRain, Snowflake, Info, Bell
+  Cloud, Sun, CloudRain, Snowflake, Info, Bell, WifiOff
 } from 'lucide-react';
+import { isOnline } from '@/lib/networkStatus';
+import { getOfflineTimelineWindow } from '@/lib/getOfflineTimelineWindow';
 import { format, parseISO, isAfter, differenceInDays } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -99,7 +101,12 @@ export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onV
   }, [trip, bookings, expenses, parkingList, engagementEvents]);
   
   // Extract canonical values
-  const { dateRange, timelineEvents: timeline, costs: costSummary } = canonicalState;
+  const { dateRange, timelineEvents: fullTimeline, costs: costSummary } = canonicalState;
+  const online = isOnline();
+  const timeline = useMemo(() => {
+    if (online) return fullTimeline;
+    return getOfflineTimelineWindow(canonicalState);
+  }, [online, fullTimeline, canonicalState]);
   
   // Travel alerts for weather changes, departure reminders, parking expiry
   const { alerts, hasAlerts, criticalCount } = useTravelAlerts(trip, bookings, parkingList, temperatureUnit);
@@ -307,7 +314,21 @@ export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onV
           <CardDescription className="text-xs">{tripDays} day{tripDays !== 1 ? 's' : ''} • {timeline.length} event{timeline.length !== 1 ? 's' : ''}</CardDescription>
         </CardHeader>
         <CardContent>
-          {/* v2.1.21: Extracted to TripTimeline component with continuous vertical line */}
+          {!online && timeline.length > 0 && (
+            <div className="flex items-center gap-2 px-3 py-2 mb-3 rounded-lg bg-muted/40 border border-border/30">
+              <WifiOff className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">Offline Mode</p>
+                <p className="text-[11px] text-muted-foreground/70">Showing upcoming trip timeline from cached data.</p>
+              </div>
+            </div>
+          )}
+          {!online && timeline.length === 0 && (
+            <div className="flex items-center gap-2 px-3 py-6 rounded-lg bg-muted/30 border border-border/30 justify-center">
+              <WifiOff className="w-4 h-4 text-muted-foreground/60" />
+              <p className="text-xs text-muted-foreground">Offline — Trip details will appear when a connection is available.</p>
+            </div>
+          )}
           <TripTimeline 
             events={timeline}
             datetimeFormat={userProfile?.preferred_datetime_format as DatetimeFormatPreference}

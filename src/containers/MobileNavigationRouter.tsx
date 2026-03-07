@@ -6,13 +6,16 @@
  * v3.12.4: Explore nearby from timeline sets context + navigates to Explore
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Trip } from '@/types/database';
 import { useAccess } from '@/hooks/useAccess';
 import { useExploreDiscovery } from '@/hooks/useExploreDiscovery';
 import { setExploreContext } from '@/lib/explore/exploreContextStore';
 import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { isOnline } from '@/lib/networkStatus';
+import { getOfflineTimelineWindow } from '@/lib/getOfflineTimelineWindow';
+import { WifiOff } from 'lucide-react';
 import { TripDetailLayout, type TripTab } from '@/components/layout';
 import { MobileSectionHeader } from '@/components/trips/MobileSectionHeader';
 import { TripTimeline } from '@/components/trips/TripTimeline';
@@ -81,8 +84,15 @@ export function MobileNavigationRouter({
 }: MobileNavigationRouterProps) {
   const { isPro, canAccessBusinessFeatures } = useAccess();
   const { hasDiscovered: hasDiscoveredExplore, markDiscovered: markExploreDiscovered } = useExploreDiscovery();
-  const { timelineEvents } = useCanonicalTripState(tripId, trip);
+  const canonicalState = useCanonicalTripState(tripId, trip);
+  const { timelineEvents, state } = canonicalState;
   const { data: userProfile } = useUserProfile();
+
+  const online = isOnline();
+  const displayEvents = useMemo(() => {
+    if (online) return timelineEvents;
+    return getOfflineTimelineWindow(state);
+  }, [online, timelineEvents, state]);
   const datetimeFormat = (userProfile?.preferred_datetime_format as 'MM/DD/YYYY 12h' | 'DD/MM/YYYY 24h') || 'MM/DD/YYYY 12h';
 
   // v4.1.0: Initialize from externalTab so dashboard ?tab= links land correctly
@@ -204,7 +214,24 @@ export function MobileNavigationRouter({
               </button>
             </div>
             {planSubView === 'timeline' ? (
-              <TripTimeline events={timelineEvents} datetimeFormat={datetimeFormat} onExploreNearby={handleExploreNearby} />
+              <>
+                {!online && displayEvents.length > 0 && (
+                  <div className="flex items-center gap-2 px-3 py-2 mb-2 rounded-lg bg-muted/40 border border-border/30">
+                    <WifiOff className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground">Offline Mode</p>
+                      <p className="text-[11px] text-muted-foreground/70">Showing upcoming trip timeline from cached data.</p>
+                    </div>
+                  </div>
+                )}
+                {!online && displayEvents.length === 0 && (
+                  <div className="flex items-center gap-2 px-3 py-6 rounded-lg bg-muted/30 border border-border/30 justify-center">
+                    <WifiOff className="w-4 h-4 text-muted-foreground/60" />
+                    <p className="text-xs text-muted-foreground">Offline — Trip details will appear when a connection is available.</p>
+                  </div>
+                )}
+                <TripTimeline events={displayEvents} datetimeFormat={datetimeFormat} onExploreNearby={handleExploreNearby} />
+              </>
             ) : (
               <TripBookingsContainer tripId={tripId} trip={trip} />
             )}
