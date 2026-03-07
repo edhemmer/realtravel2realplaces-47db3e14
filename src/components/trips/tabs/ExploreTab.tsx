@@ -1,6 +1,6 @@
 /**
  * v4.10.0: Explore tab with Pre-Explore area picker.
- * Users can pick any trip location (airport, lodging, etc.) to explore before arriving.
+ * v4.0.4: Offline essentials fallback when device is offline.
  */
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
@@ -9,7 +9,7 @@ import { AttractionSuggestion } from '@/types/attraction';
 import { useRealPlacesExplore } from '@/hooks/useRealPlacesExplore';
 import { useBookings } from '@/hooks/useBookings';
 import { useDeviceLocation } from '@/hooks/useDeviceLocation';
-import { getDeviceLocation } from '@/lib/deviceLocation';
+import { getDeviceLocation, getCachedDeviceLocation } from '@/lib/deviceLocation';
 import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
 import { useTripPermission } from '@/pages/TripDetail';
 import { resolveExploreOriginForContext, getExploreOriginSubtitle, hasExploreDestination, ensureExploreOriginGeocode } from '@/lib/location/exploreContext';
@@ -21,6 +21,17 @@ import { ExploreSectionFeed } from '@/components/trips/explore/ExploreSectionFee
 import { ExploreAreaPicker } from '@/components/trips/explore/ExploreAreaPicker';
 import { AddToTimelineModal } from '@/components/trips/explore/AddToTimelineModal';
 import { useExplorePagination } from '@/hooks/useExplorePagination';
+import { isOnline } from '@/lib/networkStatus';
+import {
+  extractEssentials,
+  saveExploreEssentials,
+  loadExploreEssentials,
+  buildLocationKey,
+  haversineDistanceMiles,
+  DISTANCE_THRESHOLD_MILES,
+  type EssentialPlace,
+  type ExploreEssentialsRecord,
+} from '@/lib/exploreEssentialsCache';
 import type { ExplorableArea } from '@/lib/explore/extractTripAreas';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,7 +40,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import {
   Loader2, AlertCircle,
-  Building2, Navigation, RefreshCw, Search, MapPinned, X, Plane,
+  Building2, Navigation, RefreshCw, Search, MapPinned, X, Plane, WifiOff,
 } from 'lucide-react';
 
 interface ExploreTabProps {
