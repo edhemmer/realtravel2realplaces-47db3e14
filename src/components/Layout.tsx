@@ -17,6 +17,7 @@ import { ContactSupportDialog } from '@/components/support/ContactSupportDialog'
 import { BrandHeader } from '@/components/BrandHeader';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { FloatingHelpButton } from '@/components/FloatingHelpButton';
+import { NetworkStatusIndicator } from '@/components/NetworkStatusIndicator';
 
 interface LayoutProps {
   children: React.ReactNode;
