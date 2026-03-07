@@ -1,15 +1,18 @@
 /**
- * v2.2.6: Canonical Trip State Hook
+ * v4.0.0: Canonical Trip State Hook
  * 
  * React hook providing canonical trip state as the single source of truth
  * for trip dates, timeline events, costs, and weather.
+ * 
+ * v4.0.0: Offline cache foundation — hydrates from IndexedDB when offline,
+ * saves fresh cloud snapshots for future offline use.
  * 
  * USAGE:
  * All components displaying trip dates, times, costs, or weather should
  * use this hook rather than fetching data independently.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState, useRef } from 'react';
 import { Trip, Booking, Expense, Parking } from '@/types/database';
 import { 
   getCanonicalTripState, 
@@ -33,6 +36,8 @@ import { useParking } from './useParking';
 import { useTripWeather } from './useWeather';
 import { useEngagementEvents } from './useTripEvents';
 import { useProfileTemperatureUnit } from './useProfileTemperatureUnit';
+import { saveTripSnapshot, loadTripSnapshot } from '@/lib/offlineTripCache';
+import { isOnline } from '@/lib/networkStatus';
 
 // Re-export types for convenience
 export type { 
@@ -69,6 +74,9 @@ interface UseCanonicalTripStateResult {
  * Hook to get canonical trip state with automatic data fetching
  * including weather data populated into weatherByKey.
  * 
+ * v4.0.0: Integrates offline cache — loads cached snapshot while cloud
+ * data is fetching, then replaces with fresh data and persists it.
+ * 
  * @param tripId - The trip ID to fetch state for
  * @param trip - The trip record (must be provided)
  * @returns Canonical trip state with loading indicator
@@ -80,12 +88,10 @@ export function useCanonicalTripState(
   const { data: bookings = [], isLoading: bookingsLoading } = useBookings(tripId);
   const { data: expenses = [], isLoading: expensesLoading } = useExpenses(tripId);
   const { data: parkingList = [], isLoading: parkingLoading } = useParking(tripId);
-  // v2.2.5: Fetch engagement-sourced events for canonical timeline (plan-neutral)
   const { data: engagementEvents = [], isLoading: engagementEventsLoading } = useEngagementEvents(tripId);
   
   const { unit: tempUnit } = useProfileTemperatureUnit();
   
-  // Fetch weather for the trip destination
   const { tripForecast, isLoading: weatherLoading } = useTripWeather(
     trip?.destination_city || '',
     trip?.destination_country || '',
@@ -94,21 +100,38 @@ export function useCanonicalTripState(
     trip?.destination_state || undefined,
     tempUnit
   );
+
+  // v4.0.0: Cached snapshot state for offline hydration
+  const [cachedState, setCachedState] = useState<CanonicalTripState | null>(null);
+  const cacheLoadedRef = useRef(false);
+
+  // v4.0.0: Load cached snapshot on mount (once per tripId)
+  useEffect(() => {
+    cacheLoadedRef.current = false;
+    setCachedState(null);
+    let cancelled = false;
+    loadTripSnapshot(tripId).then((snapshot) => {
+      if (!cancelled && snapshot) {
+        setCachedState(snapshot);
+      }
+      cacheLoadedRef.current = true;
+    }).catch(() => {
+      cacheLoadedRef.current = true;
+    });
+    return () => { cancelled = true; };
+  }, [tripId]);
   
-  const isLoading = bookingsLoading || expensesLoading || parkingLoading || engagementEventsLoading || !trip;
+  const cloudDataLoading = bookingsLoading || expensesLoading || parkingLoading || engagementEventsLoading || !trip;
   
-  // Memoize the canonical state calculation + weather integration
-  const state = useMemo(() => {
+  // Compute canonical state from cloud data
+  const cloudState = useMemo(() => {
     if (!trip) return null;
     const base = getCanonicalTripState(trip, bookings, expenses, parkingList, engagementEvents);
     
-    // v2.2.13: If frame is pending validation, do not populate weather snapshots
-    // Weather should not be derived from unconfirmed trip frames
     if (base.framePendingValidation) {
       return base;
     }
     
-    // Populate weatherByKey from forecast data
     if (tripForecast.length > 0) {
       const destId = `dest::${trip.destination_city}`;
       const snapshots = forecastToSnapshots(
@@ -124,6 +147,17 @@ export function useCanonicalTripState(
     
     return base;
   }, [trip, bookings, expenses, parkingList, engagementEvents, tripForecast]);
+
+  // v4.0.0: Persist fresh cloud state to IndexedDB
+  useEffect(() => {
+    if (cloudState && !cloudDataLoading) {
+      saveTripSnapshot(tripId, cloudState);
+    }
+  }, [cloudState, cloudDataLoading, tripId]);
+
+  // v4.0.0: Use cloud state when available, fall back to cache when offline/loading
+  const state = cloudState ?? (cloudDataLoading ? cachedState : null);
+  const isLoading = cloudDataLoading && !cachedState;
   
   return {
     state,
