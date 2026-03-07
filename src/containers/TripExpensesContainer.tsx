@@ -18,7 +18,7 @@
  */
 
 import { Trip } from '@/types/database';
-import { useExpenses } from '@/hooks/useExpenses';
+import { useExpenses, useOfflineExpenseSync } from '@/hooks/useExpenses';
 import { useBookings } from '@/hooks/useBookings';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useBookingExpenseSync } from '@/hooks/useBookingExpenseSync';
@@ -44,7 +44,10 @@ interface TripExpensesContainerProps {
  */
 export function TripExpensesContainer({ tripId, trip, autoOpenAdd, onAutoOpenConsumed }: TripExpensesContainerProps) {
   // Canonical data fetching
-  const { data: expenses = [], isLoading: expensesLoading, error: expensesError } = useExpenses(tripId);
+  const { data: expenses = [], isLoading: expensesLoading, error: expensesError, refreshQueued } = useExpenses(tripId);
+  
+  // v4.0.3: Process offline expense queue on reconnect
+  useOfflineExpenseSync(tripId);
   const { data: bookings = [], isLoading: bookingsLoading, error: bookingsError } = useBookings(tripId);
   const { data: userProfile } = useUserProfile();
   const homeCurrency = userProfile?.preferred_currency || 'USD';
