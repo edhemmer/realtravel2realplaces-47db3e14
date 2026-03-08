@@ -1,146 +1,86 @@
+/**
+ * TravelAlertsCard - Compact banner-style travel alerts
+ * v5.0.0: Compressed from full cards to compact banners
+ */
+
 import { TravelAlert } from '@/hooks/useTravelAlerts';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
   AlertTriangle, Bell, Cloud, MapPin, ExternalLink, 
-  Plane, Car, Hotel, Clock, Package
+  Car, Clock, Package
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface TravelAlertsCardProps {
   alerts: TravelAlert[];
   className?: string;
-  /** v2.6.12: Max alerts to show before progressive disclosure */
   maxVisible?: number;
-  /** v2.6.12: Called when user taps "View all alerts" */
   onViewAllAlerts?: () => void;
 }
 
 const alertIcons: Record<TravelAlert['type'], React.ReactNode> = {
-  weather_change: <Cloud className="w-4 h-4" />,
-  departure_reminder: <Clock className="w-4 h-4" />,
-  parking_expiry: <Car className="w-4 h-4" />,
-  severe_weather: <AlertTriangle className="w-4 h-4" />,
-  packing_update: <Package className="w-4 h-4" />,
+  weather_change: <Cloud className="w-3.5 h-3.5" />,
+  departure_reminder: <Clock className="w-3.5 h-3.5" />,
+  parking_expiry: <Car className="w-3.5 h-3.5" />,
+  severe_weather: <AlertTriangle className="w-3.5 h-3.5" />,
+  packing_update: <Package className="w-3.5 h-3.5" />,
 };
 
 const severityStyles: Record<TravelAlert['severity'], string> = {
-  critical: 'bg-destructive/10 border-destructive/50 text-destructive',
-  warning: 'bg-warning/10 border-warning/50 text-warning',
-  info: 'bg-primary/10 border-primary/50 text-primary',
-};
-
-const severityBadgeStyles: Record<TravelAlert['severity'], string> = {
-  critical: 'bg-destructive text-destructive-foreground',
-  warning: 'bg-warning text-warning-foreground',
-  info: 'bg-primary text-primary-foreground',
+  critical: 'border-destructive/40 bg-destructive/5 text-destructive',
+  warning: 'border-warning/40 bg-warning/5 text-warning',
+  info: 'border-primary/40 bg-primary/5 text-primary',
 };
 
 export function TravelAlertsCard({ alerts, className, maxVisible, onViewAllAlerts }: TravelAlertsCardProps) {
-  if (alerts.length === 0) {
-    return null;
-  }
+  if (alerts.length === 0) return null;
 
-  const criticalAlerts = alerts.filter(a => a.severity === 'critical');
-  const warningAlerts = alerts.filter(a => a.severity === 'warning');
-  const infoAlerts = alerts.filter(a => a.severity === 'info');
-
-  // v2.6.12: Progressive disclosure
   const visibleAlerts = maxVisible ? alerts.slice(0, maxVisible) : alerts;
   const hasMore = maxVisible ? alerts.length > maxVisible : false;
 
   return (
-    <Card className={cn('border-2', className, 
-      criticalAlerts.length > 0 
-        ? 'border-destructive/50 bg-destructive/5' 
-        : warningAlerts.length > 0 
-          ? 'border-warning/50 bg-warning/5'
-          : 'border-primary/50 bg-primary/5'
-    )}>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <Bell className={cn('w-4 h-4', 
-              criticalAlerts.length > 0 
-                ? 'text-destructive animate-pulse' 
-                : warningAlerts.length > 0 
-                  ? 'text-warning' 
-                  : 'text-primary'
-            )} />
-            Travel Alerts
-          </CardTitle>
-          <div className="flex gap-1">
-            {criticalAlerts.length > 0 && (
-              <Badge variant="destructive" className="text-xs">
-                {criticalAlerts.length} Critical
-              </Badge>
-            )}
-            {warningAlerts.length > 0 && (
-              <Badge className="text-xs bg-warning text-warning-foreground">
-                {warningAlerts.length} Warning
-              </Badge>
-            )}
+    <div className={cn('space-y-1.5', className)}>
+      {visibleAlerts.map((alert) => (
+        <div
+          key={alert.id}
+          className={cn(
+            'flex items-center gap-2.5 px-3 py-2 rounded-lg border text-sm',
+            severityStyles[alert.severity]
+          )}
+        >
+          <span className="shrink-0">{alertIcons[alert.type]}</span>
+          <div className="flex-1 min-w-0">
+            <span className="font-medium text-xs">{alert.title}</span>
+            <span className="text-muted-foreground text-[11px] ml-1.5">{alert.message}</span>
           </div>
-        </div>
-        <CardDescription>
-          Active reminders and weather updates
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-2.5">
-        {visibleAlerts.map((alert) => (
-          <div
-            key={alert.id}
-            className={cn(
-              'p-3 rounded-lg border flex gap-3 transition-colors',
-              severityStyles[alert.severity]
-            )}
-          >
-            <div className="shrink-0 mt-0.5">
-              {alertIcons[alert.type]}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm">{alert.title}</p>
-              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                {alert.message}
-              </p>
-              {alert.actionLabel && alert.actionUrl && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 px-2 mt-2 text-xs gap-1"
-                  onClick={() => {
-                    const url = alert.actionUrl!.startsWith('http') 
-                      ? alert.actionUrl! 
-                      : `https://${alert.actionUrl}`;
-                    window.open(url, '_blank', 'noopener,noreferrer');
-                  }}
-                >
-                  <MapPin className="w-3 h-3" />
-                  {alert.actionLabel}
-                  <ExternalLink className="w-3 h-3" />
-                </Button>
-              )}
-            </div>
-            <Badge 
-              className={cn('shrink-0 h-5 text-[10px]', severityBadgeStyles[alert.severity])}
+          {alert.actionLabel && alert.actionUrl && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 px-2 text-[10px] gap-1 shrink-0"
+              onClick={() => {
+                const url = alert.actionUrl!.startsWith('http') 
+                  ? alert.actionUrl! 
+                  : `https://${alert.actionUrl}`;
+                window.open(url, '_blank', 'noopener,noreferrer');
+              }}
             >
-              {alert.severity}
-            </Badge>
-          </div>
-        ))}
-        {/* v2.6.12: Progressive disclosure — link to full alerts view */}
-        {hasMore && onViewAllAlerts && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full h-8 text-xs text-primary font-medium"
-            onClick={onViewAllAlerts}
-          >
-            View all {alerts.length} alerts
-          </Button>
-        )}
-      </CardContent>
-    </Card>
+              {alert.actionLabel}
+            </Button>
+          )}
+        </div>
+      ))}
+      {hasMore && onViewAllAlerts && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full h-7 text-xs text-primary font-medium"
+          onClick={onViewAllAlerts}
+        >
+          View all {alerts.length} alerts
+        </Button>
+      )}
+    </div>
   );
 }

@@ -1,24 +1,17 @@
 /**
  * MobileBottomNav - Bottom navigation bar for mobile viewports
  * 
- * v2.3.x: Intent-based navigation — NOW, PLAN, EXPLORE, EXPENSES, MORE
- * v2.6.9: More dropdown aligned to card surface system
- * v2.6.10: Bottom nav surface, active-tab, and icon-label spacing normalized
- * v3.3.2: Renamed Money→Expenses, removed 'money' TripTab ID
+ * v5.0.0: Simplified navigation — Timeline, Bookings, Explore, Expenses, Packing, More
  * 
  * Surface: bg-card, border-border/60, shadow-lg (no blur/opacity)
  * Active: text-primary font-semibold bg-primary/10
  * Inactive: text-muted-foreground font-medium
- * Icon-label: gap-1, text-[10px] leading-none
+ * Icon-label: gap-0.5, text-[9px] leading-none
  * More dropdown: rounded-xl, w-52, h-10 rows, max-w-[calc(100vw-1rem)]
- * 
- * Primary tabs: NOW, PLAN, EXPLORE, EXPENSES
- * More menu: Bookings, Tour (Business), Members, Companions, Parking, Packing, Alerts, Report (Pro), Notes & Safety
  */
 
 import { cn } from '@/lib/utils';
 import { 
-  Zap,
   CalendarDays,
   Compass,
   DollarSign,
@@ -41,11 +34,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-/**
- * v2.3.x: TripTab includes both mobile intent-based IDs and legacy/desktop IDs.
- * Mobile primary: now, plan, explore, expenses
- * Desktop/shared: summary, bookings, tour, companions, members, expenses, parking, packing, report, notes, timeline, alerts
- */
 export type TripTab = 
   | 'now'
   | 'plan'
@@ -79,42 +67,39 @@ interface NavItem {
 }
 
 const PRIMARY_NAV_ITEMS: NavItem[] = [
-  { id: 'now', label: 'Now', icon: <Zap className="w-5 h-5" /> },
-  { id: 'plan', label: 'Plan', icon: <CalendarDays className="w-5 h-5" /> },
+  { id: 'plan', label: 'Timeline', icon: <CalendarDays className="w-5 h-5" /> },
+  { id: 'bookings', label: 'Bookings', icon: <Plane className="w-5 h-5" /> },
   { id: 'explore', label: 'Explore', icon: <Compass className="w-5 h-5" /> },
   { id: 'expenses', label: 'Expenses', icon: <DollarSign className="w-5 h-5" /> },
+  { id: 'packing', label: 'Packing', icon: <Package className="w-5 h-5" /> },
 ];
 
 const MORE_NAV_ITEMS: NavItem[] = [
-  { id: 'bookings', label: 'Bookings', icon: <Plane className="w-4 h-4" /> },
-  { id: 'tour', label: 'Tour', icon: <MapPin className="w-4 h-4" />, requiresBusiness: true },
+  { id: 'now', label: 'Now', icon: <CalendarDays className="w-4 h-4" /> },
   { id: 'weather', label: 'Weather', icon: <CloudSun className="w-4 h-4" /> },
+  { id: 'parking', label: 'Parking', icon: <CircleParking className="w-4 h-4" /> },
+  { id: 'report', label: 'Report', icon: <FileText className="w-4 h-4" />, requiresPro: true },
   { id: 'members', label: 'Members', icon: <Users className="w-4 h-4" /> },
   { id: 'companions', label: 'Companions', icon: <Users className="w-4 h-4" /> },
-  { id: 'parking', label: 'Parking', icon: <CircleParking className="w-4 h-4" /> },
-  { id: 'packing', label: 'Packing', icon: <Package className="w-4 h-4" /> },
-  { id: 'alerts', label: 'Alerts', icon: <Bell className="w-4 h-4" /> },
-  { id: 'report', label: 'Report', icon: <FileText className="w-4 h-4" />, requiresPro: true },
   { id: 'notes', label: 'Notes & Safety', icon: <StickyNote className="w-4 h-4" /> },
+  { id: 'tour', label: 'Tour', icon: <MapPin className="w-4 h-4" />, requiresBusiness: true },
+  { id: 'alerts', label: 'Alerts', icon: <Bell className="w-4 h-4" /> },
 ];
 
 export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBottomNavProps) {
   const { canAccessBusinessFeatures, isPro } = useAccess();
   
-  // Filter primary items based on access
   const visiblePrimaryItems = PRIMARY_NAV_ITEMS.filter(item => {
     if (item.requiresBusiness) return canAccessBusinessFeatures;
     return true;
   });
 
-  // Filter more items based on access
   const visibleMoreItems = MORE_NAV_ITEMS.filter(item => {
     if (item.requiresBusiness) return canAccessBusinessFeatures;
     if (item.requiresPro) return isPro;
     return true;
   });
 
-  // Check if active tab is in "More" menu
   const isMoreActive = visibleMoreItems.some(item => item.id === activeTab);
 
   return (
@@ -126,13 +111,13 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
         className
       )}
     >
-      <div className="flex items-center justify-around h-16 px-2 pb-safe">
+      <div className="flex items-center justify-around h-14 px-1 pb-safe">
         {visiblePrimaryItems.map((item) => (
           <button
             key={item.id}
             onClick={() => onTabChange(item.id)}
             className={cn(
-              "flex flex-col items-center justify-center gap-1 py-1.5 px-3 rounded-lg transition-colors min-w-[56px] min-h-[44px]",
+              "flex flex-col items-center justify-center gap-0.5 py-1 px-2 rounded-lg transition-colors min-w-[48px] min-h-[40px]",
               "touch-manipulation",
               activeTab === item.id
                 ? "text-primary font-semibold bg-primary/10"
@@ -140,7 +125,7 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
             )}
           >
             {item.icon}
-            <span className="text-[10px] leading-none">{item.label}</span>
+            <span className="text-[9px] leading-none">{item.label}</span>
           </button>
         ))}
         
@@ -149,7 +134,7 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
           <DropdownMenuTrigger asChild>
             <button
               className={cn(
-                "flex flex-col items-center justify-center gap-1 py-1.5 px-3 rounded-lg transition-colors min-w-[56px] min-h-[44px]",
+                "flex flex-col items-center justify-center gap-0.5 py-1 px-2 rounded-lg transition-colors min-w-[48px] min-h-[40px]",
                 "touch-manipulation",
                 isMoreActive
                   ? "text-primary font-semibold bg-primary/10"
@@ -157,7 +142,7 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
               )}
             >
               <MoreHorizontal className="w-5 h-5" />
-              <span className="text-[10px] leading-none">More</span>
+              <span className="text-[9px] leading-none">More</span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent 
