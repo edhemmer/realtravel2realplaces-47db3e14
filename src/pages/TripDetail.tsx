@@ -394,16 +394,8 @@ export default function TripDetail() {
               <div className="mt-4 md:mt-0">
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
                   <TabsList className="w-full justify-start overflow-x-auto flex-nowrap hidden md:flex">
-                    <TabsTrigger value="summary">Summary</TabsTrigger>
+                    <TabsTrigger value="summary">Timeline</TabsTrigger>
                     <TabsTrigger value="bookings">Bookings</TabsTrigger>
-                    {canAccessBusinessFeatures && (
-                      <TabsTrigger value="tour">Tour</TabsTrigger>
-                    )}
-                    <TabsTrigger value="companions">Companions</TabsTrigger>
-                    <TabsTrigger value="members">Members</TabsTrigger>
-                    <TabsTrigger value="expenses">Expenses</TabsTrigger>
-                    <TabsTrigger value="parking">Parking</TabsTrigger>
-                    <TabsTrigger value="packing">Packing</TabsTrigger>
                     <TabsTrigger value="explore" className="relative">
                       Explore
                       {!hasDiscoveredExplore && (
@@ -415,9 +407,17 @@ export default function TripDetail() {
                         </Badge>
                       )}
                     </TabsTrigger>
+                    <TabsTrigger value="expenses">Expenses</TabsTrigger>
+                    <TabsTrigger value="packing">Packing</TabsTrigger>
                     <TabsTrigger value="weather">Weather</TabsTrigger>
+                    <TabsTrigger value="parking">Parking</TabsTrigger>
                     {isPro && (
                       <TabsTrigger value="report">Report</TabsTrigger>
+                    )}
+                    <TabsTrigger value="members">Members</TabsTrigger>
+                    <TabsTrigger value="companions">Companions</TabsTrigger>
+                    {canAccessBusinessFeatures && (
+                      <TabsTrigger value="tour">Tour</TabsTrigger>
                     )}
                     <TabsTrigger value="notes">Notes & Safety</TabsTrigger>
                   </TabsList>
