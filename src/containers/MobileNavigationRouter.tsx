@@ -41,13 +41,12 @@ import type { DrillThroughTarget } from '@/pages/TripDetail';
  * Primary tabs (now, plan, explore, expenses) do NOT get a section header.
  */
 const MORE_TAB_LABELS: Partial<Record<TripTab, string>> = {
-  bookings: 'Bookings',
-  tour: 'Tour',
+  now: 'Now',
   weather: 'Weather',
+  parking: 'Parking',
+  tour: 'Tour',
   members: 'Members',
   companions: 'Companions',
-  parking: 'Parking',
-  packing: 'Packing',
   alerts: 'Alerts',
   report: 'Report',
   notes: 'Notes & Safety',
@@ -97,12 +96,13 @@ export function MobileNavigationRouter({
 
   // v4.1.0: Initialize from externalTab so dashboard ?tab= links land correctly
   const resolveInitialTab = (tab?: TripTab): TripTab => {
-    if (!tab) return 'now';
-    if (tab === 'summary') return 'now';
+    if (!tab) return 'plan';
+    if (tab === 'summary') return 'plan';
+    if (tab === 'now') return 'plan';
     return tab;
   };
   const [activeTab, setActiveTabRaw] = useState<TripTab>(resolveInitialTab(externalTab));
-  const [planSubView, setPlanSubView] = useState<'timeline' | 'bookings'>('timeline');
+  const [planSubView] = useState<'timeline' | 'bookings'>('timeline');
 
   const setActiveTab = useCallback((tab: TripTab) => {
     setActiveTabRaw(tab);
@@ -112,10 +112,11 @@ export function MobileNavigationRouter({
   // Legacy route protection
   useEffect(() => {
     if (activeTab === 'summary') {
-      setActiveTab('now');
+      setActiveTab('plan');
     } else if (activeTab === 'timeline') {
       setActiveTab('plan');
-      setPlanSubView('timeline');
+    } else if (activeTab === 'now') {
+      // 'now' is now in More menu, keep it valid
     }
   }, [activeTab]);
 
@@ -123,9 +124,7 @@ export function MobileNavigationRouter({
   useEffect(() => {
     if (externalTab) {
       if (externalTab === 'summary') {
-        setActiveTab('now');
-      } else if (externalTab === 'expenses') {
-        setActiveTab('expenses');
+        setActiveTab('plan');
       } else {
         setActiveTab(externalTab);
       }
@@ -133,20 +132,18 @@ export function MobileNavigationRouter({
     }
   }, [externalTab, onExternalTabConsumed]);
 
-  // v3.5.1: Canonical tab change — no per-entry origin logic
+  // v3.5.1: Canonical tab change
   const handleTabChange = useCallback((tab: TripTab) => {
     if (tab === 'summary') {
-      setActiveTab('now');
+      setActiveTab('plan');
       return;
     }
     if (tab === 'timeline') {
       setActiveTab('plan');
-      setPlanSubView('timeline');
       return;
     }
     setActiveTab(tab);
     
-    // v3.10.12: Explore available to all tiers
     if (tab === 'explore' && !hasDiscoveredExplore) {
       markExploreDiscovered();
     }
@@ -185,57 +182,38 @@ export function MobileNavigationRouter({
             onViewAllAlerts={() => handleTabChange('alerts')}
             onAddExpense={() => handleTabChange('expenses')}
             onExplore={() => handleTabChange('explore')}
-            onTimeline={() => { handleTabChange('plan'); setPlanSubView('timeline'); }}
+            onTimeline={() => handleTabChange('plan')}
           />
         );
       case 'plan':
         return (
           <div>
-            <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1 mb-3">
-              <button
-                onClick={() => setPlanSubView('timeline')}
-                className={`flex-1 text-xs font-semibold py-2 rounded-md transition-colors ${
-                  planSubView === 'timeline'
-                    ? 'bg-card text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                Timeline
-              </button>
-              <button
-                onClick={() => setPlanSubView('bookings')}
-                className={`flex-1 text-xs font-semibold py-2 rounded-md transition-colors ${
-                  planSubView === 'bookings'
-                    ? 'bg-card text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                Bookings
-              </button>
-            </div>
-            {planSubView === 'timeline' ? (
-              <>
-                {!online && displayEvents.length > 0 && (
-                  <div className="flex items-center gap-2 px-3 py-2 mb-2 rounded-lg bg-muted/40 border border-border/30">
-                    <WifiOff className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                    <div>
-                      <p className="text-xs font-medium text-muted-foreground">Offline Mode</p>
-                      <p className="text-[11px] text-muted-foreground/70">Showing upcoming trip timeline from cached data.</p>
-                    </div>
-                  </div>
-                )}
-                {!online && displayEvents.length === 0 && (
-                  <div className="flex items-center gap-2 px-3 py-6 rounded-lg bg-muted/30 border border-border/30 justify-center">
-                    <WifiOff className="w-4 h-4 text-muted-foreground/60" />
-                    <p className="text-xs text-muted-foreground">Offline — Trip details will appear when a connection is available.</p>
-                  </div>
-                )}
-                <TripTimeline events={displayEvents} datetimeFormat={datetimeFormat} onExploreNearby={handleExploreNearby} />
-              </>
-            ) : (
-              <TripBookingsContainer tripId={tripId} trip={trip} />
+            {!online && displayEvents.length > 0 && (
+              <div className="flex items-center gap-2 px-3 py-2 mb-2 rounded-lg bg-muted/40 border border-border/30">
+                <WifiOff className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground">Offline Mode</p>
+                  <p className="text-[11px] text-muted-foreground/70">Showing upcoming trip timeline from cached data.</p>
+                </div>
+              </div>
             )}
+            {!online && displayEvents.length === 0 && (
+              <div className="flex items-center gap-2 px-3 py-6 rounded-lg bg-muted/30 border border-border/30 justify-center">
+                <WifiOff className="w-4 h-4 text-muted-foreground/60" />
+                <p className="text-xs text-muted-foreground">Offline — Trip details will appear when a connection is available.</p>
+              </div>
+            )}
+            <TripTimeline events={displayEvents} datetimeFormat={datetimeFormat} onExploreNearby={handleExploreNearby} />
           </div>
+        );
+      case 'bookings':
+        return (
+          <TripBookingsContainer 
+            tripId={tripId}
+            trip={trip}
+            highlightId={drillTarget?.tab === 'bookings' ? drillTarget.recordId : undefined}
+            onHighlightConsumed={clearDrillTarget}
+          />
         );
       case 'explore':
         return <ExploreTab tripId={tripId} trip={trip} />;
@@ -246,16 +224,6 @@ export function MobileNavigationRouter({
             trip={trip} 
             autoOpenAdd={autoOpenExpense} 
             onAutoOpenConsumed={onAutoOpenConsumed} 
-          />
-        );
-
-      case 'bookings':
-        return (
-          <TripBookingsContainer 
-            tripId={tripId}
-            trip={trip}
-            highlightId={drillTarget?.tab === 'bookings' ? drillTarget.recordId : undefined}
-            onHighlightConsumed={clearDrillTarget}
           />
         );
       case 'tour':
@@ -282,7 +250,6 @@ export function MobileNavigationRouter({
         return isPro ? <TripSummaryReportTab tripId={tripId} /> : null;
       case 'notes':
         return <NotesTab tripId={tripId} />;
-
       default:
         return (
           <NowCommandCenter
@@ -293,7 +260,7 @@ export function MobileNavigationRouter({
             onViewAllAlerts={() => handleTabChange('alerts')}
             onAddExpense={() => handleTabChange('expenses')}
             onExplore={() => handleTabChange('explore')}
-            onTimeline={() => { handleTabChange('plan'); setPlanSubView('timeline'); }}
+            onTimeline={() => handleTabChange('plan')}
           />
         );
     }

@@ -119,7 +119,7 @@ export default function TripDetail() {
 
   // v2.0.7: Tab and drill-through state (desktop only — mobile uses MobileNavigationRouter)
   // v4.1.0: Read ?tab= query param so dashboard buttons land on the correct tab
-  const initialTab = (searchParams.get('tab') as TripTab) || (isMobile ? 'now' : 'summary');
+  const initialTab = (searchParams.get('tab') as TripTab) || (isMobile ? 'plan' : 'summary');
   const [activeTab, setActiveTab] = useState<TripTab>(initialTab);
   const [drillTarget, setDrillTarget] = useState<DrillThroughTarget>(null);
   // v2.3.5: Signal to auto-open Add Expense dialog on tab switch
@@ -129,7 +129,7 @@ export default function TripDetail() {
     searchParams.get('tab') ? (searchParams.get('tab') as TripTab) : undefined
   );
   // v2.6.21: Track mobile active tab for header section title
-  const [mobileActiveTab, setMobileActiveTab] = useState<TripTab>(initialTab === 'summary' ? 'now' : initialTab);
+  const [mobileActiveTab, setMobileActiveTab] = useState<TripTab>(initialTab === 'summary' ? 'plan' : initialTab);
 
   // v2.5.0: Determine if trip has flights or is international for Travel Guide context
   const hasFlights = useMemo(() => {
@@ -394,16 +394,8 @@ export default function TripDetail() {
               <div className="mt-4 md:mt-0">
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
                   <TabsList className="w-full justify-start overflow-x-auto flex-nowrap hidden md:flex">
-                    <TabsTrigger value="summary">Summary</TabsTrigger>
+                    <TabsTrigger value="summary">Timeline</TabsTrigger>
                     <TabsTrigger value="bookings">Bookings</TabsTrigger>
-                    {canAccessBusinessFeatures && (
-                      <TabsTrigger value="tour">Tour</TabsTrigger>
-                    )}
-                    <TabsTrigger value="companions">Companions</TabsTrigger>
-                    <TabsTrigger value="members">Members</TabsTrigger>
-                    <TabsTrigger value="expenses">Expenses</TabsTrigger>
-                    <TabsTrigger value="parking">Parking</TabsTrigger>
-                    <TabsTrigger value="packing">Packing</TabsTrigger>
                     <TabsTrigger value="explore" className="relative">
                       Explore
                       {!hasDiscoveredExplore && (
@@ -415,9 +407,17 @@ export default function TripDetail() {
                         </Badge>
                       )}
                     </TabsTrigger>
+                    <TabsTrigger value="expenses">Expenses</TabsTrigger>
+                    <TabsTrigger value="packing">Packing</TabsTrigger>
                     <TabsTrigger value="weather">Weather</TabsTrigger>
+                    <TabsTrigger value="parking">Parking</TabsTrigger>
                     {isPro && (
                       <TabsTrigger value="report">Report</TabsTrigger>
+                    )}
+                    <TabsTrigger value="members">Members</TabsTrigger>
+                    <TabsTrigger value="companions">Companions</TabsTrigger>
+                    {canAccessBusinessFeatures && (
+                      <TabsTrigger value="tour">Tour</TabsTrigger>
                     )}
                     <TabsTrigger value="notes">Notes & Safety</TabsTrigger>
                   </TabsList>

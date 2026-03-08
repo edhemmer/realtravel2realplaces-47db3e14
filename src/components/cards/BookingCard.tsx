@@ -1,18 +1,10 @@
 /**
- * BookingCard - Shared presentational card for booking entities
+ * BookingCard - Compact presentational card for booking entities
  * 
- * Patch 2.2.3: Mobile-first layout shell & shared cards
- * 
- * A "dumb" component that receives typed props and renders UI.
- * Does NOT call domain hooks - receives all data from containers.
- * 
- * Design principles:
- * - Mobile-first with touch-friendly targets
- * - Consistent padding and spacing
- * - Clear visual hierarchy
+ * v5.0.0: 40-50% height reduction — single-line metadata, tighter padding
  */
 
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -42,52 +34,31 @@ export type BookingCardType = 'flight' | 'stay' | 'car_rental' | 'activity' | 't
 export type TransportMode = 'train' | 'bus' | 'metro' | 'ferry' | 'other';
 
 export interface BookingCardProps {
-  /** Unique identifier */
   id: string;
-  /** Type of booking */
   type: BookingCardType;
-  /** Primary display name (vendor, airline, property) */
   title: string;
-  /** Secondary info line */
   subtitle?: string;
-  /** Start datetime ISO string */
   startDatetime: string;
-  /** End datetime ISO string (optional) */
   endDatetime?: string | null;
-  /** Confirmation number */
   confirmationNumber?: string | null;
-  /** Display cost (already formatted, e.g., "$150.00") */
   displayCost?: string | null;
-  /** My share cost if different from total */
   myShareCost?: string | null;
-  /** Location/address */
   location?: string | null;
-  /** For transport: from location */
   fromLocation?: string | null;
-  /** For transport: to location */
   toLocation?: string | null;
-  /** Transport mode for transport bookings */
   transportMode?: TransportMode | null;
-  /** Whether this card is highlighted (drill-through) */
   isHighlighted?: boolean;
-  /** Can user edit this booking */
   canEdit?: boolean;
-  /** Callback for edit action */
   onEdit?: () => void;
-  /** Callback for delete action */
   onDelete?: () => void;
-  /** Callback for maps navigation */
   onOpenMaps?: () => void;
-  /** Callback for external link */
   onOpenLink?: () => void;
-  /** External link URL (for showing link icon) */
   linkUrl?: string | null;
-  /** Additional badge content */
   badge?: ReactNode;
-  /** Additional content to render in card body */
   children?: ReactNode;
-  /** Additional class names */
   className?: string;
+  /** Traveler names for compressed display */
+  travelers?: string[];
 }
 
 const TYPE_ICONS: Record<BookingCardType, React.ComponentType<{ className?: string }>> = {
@@ -130,14 +101,14 @@ export function BookingCard({
   badge,
   children,
   className,
+  travelers,
 }: BookingCardProps) {
-  // Determine the icon to use
+  const [showAllTravelers, setShowAllTravelers] = useState(false);
+
   const IconComponent = type === 'transport' && transportMode 
     ? TRANSPORT_MODE_ICONS[transportMode] 
     : TYPE_ICONS[type];
 
-  // Format dates for display
-  // v2.2.4: Use direct digit extraction to avoid browser timezone shifts.
   const formatDateTime = (datetime: string) => {
     const datePart = formatLocalDateDirect(datetime);
     const timePart = hasExplicitTime(datetime)
@@ -147,176 +118,140 @@ export function BookingCard({
   };
 
   const formatDateOnly = (datetime: string) => {
-    // Extract YYYY-MM-DD and format without Date object
     const datePart = datetime.substring(0, 10);
     const match = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (!match) return datetime;
     const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const month = parseInt(match[2], 10);
     const day = parseInt(match[3], 10);
-    return `${MONTHS[month - 1]} ${day}, ${match[1]}`;
+    return `${MONTHS[month - 1]} ${day}`;
   };
 
-  // Determine date display based on booking type
-  const renderDateInfo = () => {
+  const renderDateCompact = () => {
     if (type === 'flight' || type === 'transport') {
-      return (
-        <span className="flex items-center gap-1">
-          <Clock className="w-3 h-3" />
-          {formatDateTime(startDatetime)}
-          {endDatetime && ` → ${formatDateTime(endDatetime)}`}
-        </span>
-      );
+      return formatDateTime(startDatetime) + (endDatetime ? ` → ${formatDateTime(endDatetime)}` : '');
     }
-    
     if (type === 'stay' || type === 'car_rental') {
-      return (
-        <span className="flex items-center gap-1">
-          <Clock className="w-3 h-3" />
-          {formatDateOnly(startDatetime)}
-          {endDatetime && ` – ${formatDateOnly(endDatetime)}`}
-        </span>
-      );
+      return formatDateOnly(startDatetime) + (endDatetime ? ` – ${formatDateOnly(endDatetime)}` : '');
     }
+    return formatDateTime(startDatetime);
+  };
 
+  const renderRoute = () => {
+    if (fromLocation && toLocation) return `${fromLocation} → ${toLocation}`;
+    if (location) return location;
+    return null;
+  };
+
+  const renderTravelers = () => {
+    if (!travelers || travelers.length === 0) return null;
+    if (showAllTravelers || travelers.length <= 2) {
+      return travelers.join(', ');
+    }
+    const visible = travelers.slice(0, 2);
     return (
-      <span className="flex items-center gap-1">
-        <Clock className="w-3 h-3" />
-        {formatDateTime(startDatetime)}
+      <span>
+        {visible.join(', ')} 
+        <button 
+          onClick={(e) => { e.stopPropagation(); setShowAllTravelers(true); }}
+          className="text-primary ml-1 hover:underline"
+        >
+          +{travelers.length - 2}
+        </button>
       </span>
     );
   };
 
-  // Render location info
-  const renderLocation = () => {
-    if (fromLocation && toLocation) {
-      return (
-        <span className="flex items-center gap-1 truncate">
-          <MapPin className="w-3 h-3 shrink-0" />
-          <span className="truncate">{fromLocation} → {toLocation}</span>
-        </span>
-      );
-    }
-    
-    if (location) {
-      return (
-        <span className="flex items-center gap-1 truncate">
-          <MapPin className="w-3 h-3 shrink-0" />
-          <span className="truncate">{location}</span>
-        </span>
-      );
-    }
-
-    return null;
-  };
+  const route = renderRoute();
 
   return (
     <Card 
       className={cn(
-        "transition-all duration-200",
-        "hover:shadow-md",
+        "transition-all duration-150",
         isHighlighted && "ring-2 ring-primary animate-pulse",
         className
       )}
     >
-      <CardContent className="p-3 sm:p-4">
-        <div className="flex items-start gap-3">
-          {/* Icon */}
+      <CardContent className="p-2.5 sm:p-3">
+        <div className="flex items-center gap-2.5">
+          {/* Icon — smaller */}
           <div className={cn(
-            "shrink-0 w-10 h-10 rounded-lg flex items-center justify-center",
+            "shrink-0 w-8 h-8 rounded-md flex items-center justify-center",
             getBookingTypeStyle(type).iconContainer
           )}>
-            <IconComponent className="w-5 h-5" />
+            <IconComponent className="w-4 h-4" />
           </div>
 
-          {/* Content */}
-          <div className="flex-1 min-w-0 space-y-1">
-            {/* Title row with badge */}
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <h4 className="font-medium text-sm sm:text-base truncate">{title}</h4>
-                {subtitle && (
-                  <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
-                )}
-              </div>
-              {badge}
-            </div>
-
-            {/* Metadata row */}
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-              {renderDateInfo()}
-              {renderLocation()}
+          {/* Content — compressed */}
+          <div className="flex-1 min-w-0">
+            {/* Line 1: Title + confirmation */}
+            <div className="flex items-center gap-2">
+              <h4 className="font-medium text-sm truncate">{title}</h4>
               {confirmationNumber && (
-                <Badge variant="outline" className="text-[10px] font-mono">
+                <Badge variant="outline" className="text-[9px] font-mono h-4 px-1 shrink-0">
                   {confirmationNumber}
                 </Badge>
               )}
+              {badge}
+            </div>
+            
+            {/* Line 2: Route + Date + Cost — single line */}
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mt-0.5 truncate">
+              {route && (
+                <>
+                  <MapPin className="w-3 h-3 shrink-0" />
+                  <span className="truncate">{route}</span>
+                  <span className="text-muted-foreground/30">·</span>
+                </>
+              )}
+              <Clock className="w-3 h-3 shrink-0" />
+              <span className="truncate">{renderDateCompact()}</span>
+              {displayCost && (
+                <>
+                  <span className="text-muted-foreground/30">·</span>
+                  <span className="font-medium text-foreground">{displayCost}</span>
+                  {myShareCost && myShareCost !== displayCost && (
+                    <span className="text-muted-foreground/60">({myShareCost})</span>
+                  )}
+                </>
+              )}
             </div>
 
-            {/* Cost display */}
-            {(displayCost || myShareCost) && (
-              <div className="flex items-center gap-2 text-sm font-medium">
-                {displayCost && <span>{displayCost}</span>}
-                {myShareCost && myShareCost !== displayCost && (
-                  <span className="text-muted-foreground text-xs">
-                    (Your share: {myShareCost})
-                  </span>
-                )}
-              </div>
+            {/* Line 3: Travelers summary (compressed) */}
+            {travelers && travelers.length > 0 && (
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {renderTravelers()}
+              </p>
             )}
-
-            {/* Additional content */}
-            {children}
           </div>
 
-          {/* Action buttons */}
-          <div className="flex items-center gap-1 shrink-0">
+          {/* Actions — inline icons */}
+          <div className="flex items-center gap-0.5 shrink-0">
             {onOpenMaps && location && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onOpenMaps}
-                className="h-8 w-8 text-primary hover:text-primary"
-                title="Open in Maps"
-              >
-                <Navigation className="h-4 w-4" />
+              <Button variant="ghost" size="icon" onClick={onOpenMaps} className="h-7 w-7 text-primary" title="Maps">
+                <Navigation className="h-3.5 w-3.5" />
               </Button>
             )}
             {onOpenLink && linkUrl && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onOpenLink}
-                className="h-8 w-8"
-                title="Open booking link"
-              >
-                <ExternalLink className="h-4 w-4" />
+              <Button variant="ghost" size="icon" onClick={onOpenLink} className="h-7 w-7" title="Link">
+                <ExternalLink className="h-3.5 w-3.5" />
               </Button>
             )}
             {canEdit && onEdit && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onEdit}
-                className="h-8 w-8"
-                title="Edit"
-              >
-                <Pencil className="h-4 w-4" />
+              <Button variant="ghost" size="icon" onClick={onEdit} className="h-7 w-7" title="Edit">
+                <Pencil className="h-3.5 w-3.5" />
               </Button>
             )}
             {canEdit && onDelete && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onDelete}
-                className="h-8 w-8 text-destructive hover:text-destructive"
-                title="Delete"
-              >
-                <Trash2 className="h-4 w-4" />
+              <Button variant="ghost" size="icon" onClick={onDelete} className="h-7 w-7 text-destructive" title="Delete">
+                <Trash2 className="h-3.5 w-3.5" />
               </Button>
             )}
           </div>
         </div>
+
+        {/* Additional content */}
+        {children}
       </CardContent>
     </Card>
   );
