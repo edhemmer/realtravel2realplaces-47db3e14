@@ -237,14 +237,6 @@ export function MobileNavigationRouter({
             onHighlightConsumed={clearDrillTarget}
           />
         );
-      case 'tour':
-        return canAccessBusinessFeatures ? <TripTourContainer tripId={tripId} trip={trip} /> : null;
-      case 'companions':
-        return <CompanionsTab tripId={tripId} />;
-      case 'members':
-        return <MembersTab tripId={tripId} />;
-      case 'parking':
-        return (
           <ParkingTab 
             tripId={tripId}
             highlightId={drillTarget?.tab === 'parking' ? drillTarget.recordId : undefined}
@@ -272,7 +264,7 @@ export function MobileNavigationRouter({
             onViewAllAlerts={() => handleTabChange('alerts')}
             onAddExpense={() => handleTabChange('expenses')}
             onExplore={() => handleTabChange('explore')}
-            onTimeline={() => { handleTabChange('plan'); setPlanSubView('timeline'); }}
+            onTimeline={() => handleTabChange('plan')}
           />
         );
     }
