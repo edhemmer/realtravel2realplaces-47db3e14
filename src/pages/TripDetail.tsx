@@ -119,7 +119,7 @@ export default function TripDetail() {
 
   // v2.0.7: Tab and drill-through state (desktop only — mobile uses MobileNavigationRouter)
   // v4.1.0: Read ?tab= query param so dashboard buttons land on the correct tab
-  const initialTab = (searchParams.get('tab') as TripTab) || (isMobile ? 'now' : 'summary');
+  const initialTab = (searchParams.get('tab') as TripTab) || (isMobile ? 'plan' : 'summary');
   const [activeTab, setActiveTab] = useState<TripTab>(initialTab);
   const [drillTarget, setDrillTarget] = useState<DrillThroughTarget>(null);
   // v2.3.5: Signal to auto-open Add Expense dialog on tab switch
@@ -129,7 +129,7 @@ export default function TripDetail() {
     searchParams.get('tab') ? (searchParams.get('tab') as TripTab) : undefined
   );
   // v2.6.21: Track mobile active tab for header section title
-  const [mobileActiveTab, setMobileActiveTab] = useState<TripTab>(initialTab === 'summary' ? 'now' : initialTab);
+  const [mobileActiveTab, setMobileActiveTab] = useState<TripTab>(initialTab === 'summary' ? 'plan' : initialTab);
 
   // v2.5.0: Determine if trip has flights or is international for Travel Guide context
   const hasFlights = useMemo(() => {

@@ -41,13 +41,12 @@ import type { DrillThroughTarget } from '@/pages/TripDetail';
  * Primary tabs (now, plan, explore, expenses) do NOT get a section header.
  */
 const MORE_TAB_LABELS: Partial<Record<TripTab, string>> = {
-  bookings: 'Bookings',
-  tour: 'Tour',
+  now: 'Now',
   weather: 'Weather',
+  parking: 'Parking',
+  tour: 'Tour',
   members: 'Members',
   companions: 'Companions',
-  parking: 'Parking',
-  packing: 'Packing',
   alerts: 'Alerts',
   report: 'Report',
   notes: 'Notes & Safety',
