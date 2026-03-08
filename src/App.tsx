@@ -31,6 +31,7 @@ import Onboarding from "./pages/Onboarding";
 import WelcomeChoice from "./pages/WelcomeChoice";
 import HelpCenter from "./pages/HelpCenter";
 import NotFound from "./pages/NotFound";
+import InstallApp from "./pages/InstallApp";
 
 const queryClient = new QueryClient();
 
@@ -166,6 +167,8 @@ function AppRoutes() {
       
       {/* Legacy route redirect */}
       <Route path="/login" element={<Navigate to="/auth" replace />} />
+      <Route path="/install" element={<InstallApp />} />
+      <Route path="*" element={<NotFound />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
