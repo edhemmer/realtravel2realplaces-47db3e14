@@ -227,16 +227,14 @@ export function MobileNavigationRouter({
             onAutoOpenConsumed={onAutoOpenConsumed} 
           />
         );
-
-      case 'bookings':
+      case 'tour':
+        return canAccessBusinessFeatures ? <TripTourContainer tripId={tripId} trip={trip} /> : null;
+      case 'companions':
+        return <CompanionsTab tripId={tripId} />;
+      case 'members':
+        return <MembersTab tripId={tripId} />;
+      case 'parking':
         return (
-          <TripBookingsContainer 
-            tripId={tripId}
-            trip={trip}
-            highlightId={drillTarget?.tab === 'bookings' ? drillTarget.recordId : undefined}
-            onHighlightConsumed={clearDrillTarget}
-          />
-        );
           <ParkingTab 
             tripId={tripId}
             highlightId={drillTarget?.tab === 'parking' ? drillTarget.recordId : undefined}
@@ -253,7 +251,6 @@ export function MobileNavigationRouter({
         return isPro ? <TripSummaryReportTab tripId={tripId} /> : null;
       case 'notes':
         return <NotesTab tripId={tripId} />;
-
       default:
         return (
           <NowCommandCenter
