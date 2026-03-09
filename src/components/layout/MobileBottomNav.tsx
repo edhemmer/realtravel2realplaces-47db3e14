@@ -1,13 +1,9 @@
 /**
- * MobileBottomNav - Bottom navigation bar for mobile viewports
+ * MobileBottomNav - v6.0.0 Ultra-premium bottom navigation
  * 
- * v5.0.0: Simplified navigation — Timeline, Bookings, Explore, Expenses, Packing, More
- * 
- * Surface: bg-card, border-border/60, shadow-lg (no blur/opacity)
- * Active: text-primary font-semibold bg-primary/10
- * Inactive: text-muted-foreground font-medium
- * Icon-label: gap-0.5, text-[9px] leading-none
- * More dropdown: rounded-xl, w-52, h-10 rows, max-w-[calc(100vw-1rem)]
+ * Premium surface with frosted glass, refined spacing, smooth interactions.
+ * Active: primary with subtle background tint
+ * Inactive: muted with hover feedback
  */
 
 import { cn } from '@/lib/utils';
@@ -106,26 +102,27 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
     <nav 
       className={cn(
         "fixed bottom-0 left-0 right-0 z-50",
-        "bg-card border-t border-border/60 shadow-lg",
+        "bg-card/90 backdrop-blur-xl supports-[backdrop-filter]:bg-card/80",
+        "shadow-nav",
         "pb-safe",
         className
       )}
     >
-      <div className="flex items-center justify-around h-14 px-1 pb-safe">
+      <div className="flex items-center justify-around h-[56px] px-1.5">
         {visiblePrimaryItems.map((item) => (
           <button
             key={item.id}
             onClick={() => onTabChange(item.id)}
             className={cn(
-              "flex flex-col items-center justify-center gap-0.5 py-1 px-2 rounded-lg transition-colors min-w-[48px] min-h-[40px]",
+              "flex flex-col items-center justify-center gap-0.5 py-1.5 px-2.5 rounded-xl transition-all duration-200 min-w-[50px] min-h-[44px]",
               "touch-manipulation",
               activeTab === item.id
-                ? "text-primary font-semibold bg-primary/10"
-                : "text-muted-foreground font-medium hover:text-foreground hover:bg-muted/50"
+                ? "text-primary font-semibold bg-primary/8"
+                : "text-muted-foreground font-medium active:scale-95"
             )}
           >
             {item.icon}
-            <span className="text-[9px] leading-none">{item.label}</span>
+            <span className="text-[10px] leading-none tracking-tight">{item.label}</span>
           </button>
         ))}
         
@@ -134,21 +131,21 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
           <DropdownMenuTrigger asChild>
             <button
               className={cn(
-                "flex flex-col items-center justify-center gap-0.5 py-1 px-2 rounded-lg transition-colors min-w-[48px] min-h-[40px]",
+                "flex flex-col items-center justify-center gap-0.5 py-1.5 px-2.5 rounded-xl transition-all duration-200 min-w-[50px] min-h-[44px]",
                 "touch-manipulation",
                 isMoreActive
-                  ? "text-primary font-semibold bg-primary/10"
-                  : "text-muted-foreground font-medium hover:text-foreground hover:bg-muted/50"
+                  ? "text-primary font-semibold bg-primary/8"
+                  : "text-muted-foreground font-medium active:scale-95"
               )}
             >
               <MoreHorizontal className="w-5 h-5" />
-              <span className="text-[9px] leading-none">More</span>
+              <span className="text-[10px] leading-none tracking-tight">More</span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent 
             side="top" 
             align="end" 
-            className="w-52 mb-2 rounded-xl border-border/60 bg-card shadow-lg p-1.5 max-w-[calc(100vw-1rem)]"
+            className="w-56 mb-2 rounded-2xl border-border/50 bg-card/95 backdrop-blur-xl shadow-xl p-1.5 max-w-[calc(100vw-1rem)]"
             sideOffset={8}
           >
             {visibleMoreItems.map((item) => (
@@ -156,8 +153,8 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
                 key={item.id}
                 onClick={() => onTabChange(item.id)}
                 className={cn(
-                  "cursor-pointer h-10 gap-3 px-3 rounded-lg text-sm font-medium",
-                  activeTab === item.id && "bg-primary/10 text-primary"
+                  "cursor-pointer h-11 gap-3 px-3 rounded-xl text-sm font-medium transition-colors",
+                  activeTab === item.id && "bg-primary/8 text-primary"
                 )}
               >
                 <span className="w-4 h-4 shrink-0 flex items-center justify-center">{item.icon}</span>

@@ -1,8 +1,8 @@
 /**
  * Dashboard - My Trips listing page
  * 
- * v2.1.28: Performance hardening
- * v3.0.0: Premium polish — framer-motion transitions, skeleton loading, card elevation
+ * v6.0.0: Ultra-premium SaaS layout with refined depth, layered shadows,
+ * premium card elevation, and polished visual hierarchy.
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
@@ -33,14 +33,8 @@ import { motion } from 'framer-motion';
 export default function Dashboard() {
   const navigate = useNavigate();
   const location = useLocation();
-  const {
-    data: trips,
-    isLoading
-  } = useTrips();
-  const {
-    data: sharedTrips = [],
-    isLoading: sharedLoading
-  } = useSharedTrips();
+  const { data: trips, isLoading } = useTrips();
+  const { data: sharedTrips = [], isLoading: sharedLoading } = useSharedTrips();
   const deleteTrip = useDeleteTrip();
   const removeMembership = useRemoveTripMembership();
   const { isPro } = useAccess();
@@ -49,7 +43,6 @@ export default function Dashboard() {
   const [tripToDelete, setTripToDelete] = useState<string | null>(null);
   const [tripToRemove, setTripToRemove] = useState<string | null>(null);
 
-  // v3.8.20: Auto-open create trip dialog; detect onboarding state
   const { shouldShowOnboarding } = useOnboardingStatus();
   
   useEffect(() => {
@@ -59,7 +52,6 @@ export default function Dashboard() {
       setIsOnboarding(!!state.isOnboarding);
       window.history.replaceState({}, document.title);
     } else if (shouldShowOnboarding) {
-      // New user who hasn't completed onboarding — auto-open create trip wizard
       setCreateDialogOpen(true);
       setIsOnboarding(true);
     }
@@ -79,7 +71,6 @@ export default function Dashboard() {
     }
   }, [tripToRemove, removeMembership]);
   
-  
   const handleNavigate = useCallback((id: string) => {
     navigate(`/trip/${id}`);
   }, [navigate]);
@@ -92,7 +83,6 @@ export default function Dashboard() {
     setTripToRemove(id);
   }, []);
 
-  // v3.9.3: Canonical active trip resolver — consumption only
   const todayStr = useMemo(() => getTodayDateOnly(), []);
   const activeTrip = useMemo(() => {
     if (!trips || trips.length === 0) return null;
@@ -101,7 +91,6 @@ export default function Dashboard() {
       .sort((a: Trip, b: Trip) => a.start_date < b.start_date ? -1 : 1)[0] ?? null;
   }, [trips, todayStr]);
 
-  // v3.9.3: Elevate active trip to index 0
   const sortedTrips = useMemo(() => {
     if (!trips || trips.length === 0) return [];
     if (!activeTrip) return trips;
@@ -120,40 +109,45 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <PageTransition className="space-y-4 sm:space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between gap-3">
+      <PageTransition className="space-y-6 sm:space-y-8">
+        {/* Premium Header */}
+        <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="font-bold text-2xl sm:text-4xl tracking-tight">My Trips</h1>
-            <p className="text-muted-foreground text-sm sm:text-base mt-0.5 sm:mt-1">Manage your travel in one place</p>
+            <h1 className="font-extrabold text-2xl sm:text-4xl tracking-tight text-foreground">
+              My Trips
+            </h1>
+            <p className="text-muted-foreground text-sm sm:text-base mt-1">
+              Manage your travel in one place
+            </p>
           </div>
           <Button 
             onClick={() => setCreateDialogOpen(true)} 
-            className="bg-gradient-ocean hover:opacity-90 transition-opacity h-10 sm:h-12 rounded-xl font-semibold shadow-sm shrink-0"
+            className="bg-gradient-ocean hover:opacity-90 transition-all h-10 sm:h-12 rounded-2xl font-semibold shadow-md hover:shadow-lg shrink-0"
           >
-            <Plus className="w-4 h-4 mr-1 sm:mr-2" />
+            <Plus className="w-4 h-4 mr-1.5 sm:mr-2" />
             <span className="hidden sm:inline">New Trip</span>
             <span className="sm:hidden">New</span>
           </Button>
         </div>
 
-        {/* v3.9.3: Active Trip Execution Card */}
+        {/* Active Trip Execution Card — mobile only */}
         {activeTrip && (
           <motion.div
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-             <Card className="border-primary/30 bg-primary/5 md:hidden">
-              <CardContent className="py-3 px-4">
+            <Card className="border-primary/20 bg-primary/[0.03] shadow-card md:hidden rounded-2xl overflow-hidden">
+              <div className="h-[2px] w-full bg-gradient-premium" />
+              <CardContent className="py-3.5 px-4">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                     <Radio className="w-4 h-4 text-primary" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Active Trip</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Active Trip</p>
                     <p className="text-sm font-semibold truncate">{activeTrip.name}</p>
-                    <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                    <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
                       <MapPin className="w-2.5 h-2.5" />
                       {activeTrip.destination_city}{activeTrip.destination_country ? `, ${activeTrip.destination_country}` : ''}
                     </p>
@@ -179,7 +173,7 @@ export default function Dashboard() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-10 rounded-xl text-xs font-semibold active:scale-[0.97]"
+                    className="h-10 rounded-xl text-xs font-semibold active:scale-[0.97] border-border/60"
                     onClick={() => navigate(`/trip/${activeTrip.id}?tab=now`)}
                   >
                     Open NOW
@@ -190,14 +184,14 @@ export default function Dashboard() {
           </motion.div>
         )}
 
-        {/* Pending Email Imports — hidden via feature flag */}
+        {/* Pending Email Imports */}
         {EMAIL_FORWARDING_ENABLED && <PendingImportsSection />}
 
         {/* My Trips */}
         {sortedTrips.length > 0 && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold" />
-            <StaggerContainer className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <StaggerContainer className="grid gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
               {sortedTrips.map((trip: Trip) => (
                 <FadeInItem key={trip.id}>
                   <TripCard
@@ -216,11 +210,13 @@ export default function Dashboard() {
         {/* Shared Trips */}
         {sharedTrips.length > 0 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Users className="w-5 h-5 text-primary" />
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Users className="w-4 h-4 text-primary" />
+              </div>
               Shared With Me
             </h2>
-            <StaggerContainer className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <StaggerContainer className="grid gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
               {sharedTrips.map((trip: SharedTrip) => (
                 <FadeInItem key={trip.id}>
                   <TripCard
@@ -237,29 +233,29 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* First-Trip Empty State */}
+        {/* First-Trip Empty State — premium */}
         {!hasTrips && (
           <motion.div
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number] }}
           >
-            <Card className="border-dashed border-2">
-              <CardContent className="flex flex-col items-center justify-center py-16">
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-                  <Plane className="w-8 h-8 text-primary" />
+            <Card className="border-dashed border-2 border-border/60 rounded-2xl shadow-card">
+              <CardContent className="flex flex-col items-center justify-center py-16 sm:py-20">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-premium flex items-center justify-center mb-5 shadow-md">
+                  <Plane className="w-8 h-8 text-primary-foreground" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">No trips yet</h3>
-                <p className="text-muted-foreground text-center mb-6 max-w-md">
+                <h3 className="text-xl sm:text-2xl font-bold mb-2 tracking-tight">No trips yet</h3>
+                <p className="text-muted-foreground text-center mb-8 max-w-md text-sm sm:text-base leading-relaxed">
                   Your trips will appear here once created. Add your first trip to start
                   tracking bookings, expenses, and travel details in one place.
                 </p>
                 <Button 
                   onClick={() => setCreateDialogOpen(true)} 
                   size="lg" 
-                  className="bg-gradient-ocean hover:opacity-90 h-12 rounded-xl font-semibold shadow-sm"
+                  className="bg-gradient-ocean hover:opacity-90 h-12 sm:h-14 rounded-2xl font-semibold shadow-md hover:shadow-lg px-8 text-base"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus className="w-5 h-5 mr-2" />
                   Create Your First Trip
                 </Button>
               </CardContent>
@@ -271,7 +267,7 @@ export default function Dashboard() {
       <CreateTripDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} isOnboarding={isOnboarding} />
 
       <AlertDialog open={!!tripToDelete} onOpenChange={() => setTripToDelete(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Trip</AlertDialogTitle>
             <AlertDialogDescription>
@@ -279,17 +275,16 @@ export default function Dashboard() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteTrip} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteTrip} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* v3.9.8: Remove shared trip membership confirm */}
       <AlertDialog open={!!tripToRemove} onOpenChange={() => setTripToRemove(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle>Remove from My Trips</AlertDialogTitle>
             <AlertDialogDescription>
@@ -297,8 +292,8 @@ export default function Dashboard() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleRemoveMembership}>
+            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleRemoveMembership} className="rounded-xl">
               Remove
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -309,7 +304,7 @@ export default function Dashboard() {
 }
 
 /**
- * TravelModeIcon — Uses canonical getModeTheme() for all mode styling.
+ * TravelModeIcon — canonical mode theme styling
  */
 const MODE_ICONS: Record<TripMode, React.ComponentType<{ className?: string }>> = {
   fly: Plane,
@@ -331,7 +326,7 @@ function TravelModeIcon({ mode, isPast }: { mode: TripMode; isPast: boolean }) {
 }
 
 /** 
- * TripCard — Memoized card with premium hover elevation
+ * TripCard — premium card with layered shadow depth
  */
 const TripCard = React.memo(function TripCard({
   trip,
@@ -373,40 +368,40 @@ const TripCard = React.memo(function TripCard({
   }, [onRemove, trip.id]);
 
   const pastTripStyles = isPastTrip ? 'opacity-60' : '';
-  const activeBorder = isActive ? 'border-success/50 ring-1 ring-success/20' : '';
+  const activeBorder = isActive ? 'ring-1 ring-success/30' : '';
 
-    return (
+  return (
     <Card 
-      className={`group relative transition-all duration-200 overflow-hidden border-border/50 hover:shadow-lg ${cardClassName} ${pastTripStyles} ${activeBorder}`}
+      className={`group relative transition-all duration-300 overflow-hidden rounded-2xl shadow-card hover:shadow-card-hover border-border/40 ${cardClassName} ${pastTripStyles} ${activeBorder}`}
     >
       {/* Mode accent strip */}
-      <div className={`h-[3px] w-full ${modeTheme.gradients.buttonBg}`} />
+      <div className={`h-[2px] w-full ${modeTheme.gradients.buttonBg}`} />
 
-      {/* Content area — compact on mobile, right padding for action button on desktop */}
+      {/* Content area */}
       <div className="pr-16 sm:pr-[88px]">
-        <CardHeader className="pb-1 sm:pb-2 pt-3 sm:pt-6 px-3 sm:px-6">
+        <CardHeader className="pb-1 sm:pb-2 pt-3.5 sm:pt-6 px-4 sm:px-6">
           <div className="flex items-start justify-between gap-1">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <TravelModeIcon mode={tripMode} isPast={isPastTrip} />
-                <CardTitle className="text-base sm:text-lg truncate">
+                <CardTitle className="text-base sm:text-lg truncate font-bold">
                   {trip.name}
                 </CardTitle>
                 {isActive && (
-                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-teal-500/15 text-teal-600 dark:text-teal-400 shrink-0">
+                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-success/10 text-success shrink-0">
                     <Radio className="w-2.5 h-2.5" />
                     Live
                   </span>
                 )}
               </div>
-              <CardDescription className="flex items-center gap-1 mt-0.5 sm:mt-1 text-xs sm:text-sm">
+              <CardDescription className="flex items-center gap-1 mt-1 text-xs sm:text-sm">
                 <MapPin className="w-3 h-3" />
                 {trip.destination_city}, {trip.destination_country}
               </CardDescription>
             </div>
             <div className="flex items-center gap-1 sm:gap-2 shrink-0">
               {isShared && (
-                <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 text-[10px] font-medium rounded-full bg-muted text-muted-foreground">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full bg-secondary text-muted-foreground">
                   <Users className="w-3 h-3" />
                   Shared
                 </span>
@@ -415,15 +410,15 @@ const TripCard = React.memo(function TripCard({
             </div>
           </div>
         </CardHeader>
-        <CardContent className="pt-1 sm:pt-2 px-3 sm:px-6 pb-3 sm:pb-6">
-          <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-4">
+        <CardContent className="pt-1 sm:pt-2 px-4 sm:px-6 pb-3.5 sm:pb-6">
+          <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
             <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             <span>{formatTripDateRange(trip.start_date, trip.end_date)}</span>
           </div>
           <div className="flex items-center justify-between">
             <button
               onClick={handleCardClick}
-              className={`flex items-center gap-0.5 text-xs sm:text-sm font-medium ${modeTheme.palette.primary} hover:underline`}
+              className={`flex items-center gap-0.5 text-xs sm:text-sm font-semibold ${modeTheme.palette.primary} hover:underline transition-colors`}
             >
               View Trip
               <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -433,7 +428,7 @@ const TripCard = React.memo(function TripCard({
                 variant="ghost" 
                 size="sm" 
                 onClick={handleDeleteClick} 
-                className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 h-7 w-7 p-0"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 h-7 w-7 p-0 rounded-lg"
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
@@ -443,7 +438,7 @@ const TripCard = React.memo(function TripCard({
                 variant="ghost" 
                 size="sm" 
                 onClick={handleRemoveClick} 
-                className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 h-7 w-7 p-0"
+                className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 h-7 w-7 p-0 rounded-lg"
               >
                 <UserMinus className="w-4 h-4" />
               </Button>
@@ -462,7 +457,7 @@ const TripCard = React.memo(function TripCard({
           flex items-center justify-center
           ${modeTheme.gradients.buttonBg} ${modeTheme.palette.border} border
           shadow-md
-          transition-all duration-200
+          transition-all duration-300
           hover:-translate-y-[calc(50%+2px)] hover:shadow-lg
           active:scale-[0.97]
           focus-visible:outline-none focus-visible:ring-2 ${modeTheme.palette.focus}
