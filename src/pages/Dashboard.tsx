@@ -124,8 +124,8 @@ export default function Dashboard() {
         {/* Header */}
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h1 className="font-bold text-2xl sm:text-4xl tracking-tight">My Trips</h1>
-            <p className="text-muted-foreground text-sm sm:text-base mt-0.5 sm:mt-1">Manage your travel in one place</p>
+            <h1 className="font-bold text-[28px] leading-[1.2] tracking-tight">My Trips</h1>
+            <p className="text-muted-foreground text-sm font-normal opacity-65 mt-1">Manage your travel in one place</p>
           </div>
           <Button 
             onClick={() => setCreateDialogOpen(true)} 
@@ -377,34 +377,36 @@ const TripCard = React.memo(function TripCard({
 
     return (
     <Card 
-      className={`group relative transition-all duration-200 overflow-hidden border-border/50 hover:shadow-lg ${cardClassName} ${pastTripStyles} ${activeBorder}`}
+      className={`group relative transition-all duration-150 ease-out overflow-hidden border-border/50 hover:shadow-lg hover:-translate-y-0.5 ${cardClassName} ${pastTripStyles} ${activeBorder}`}
     >
       {/* Mode accent strip */}
       <div className={`h-[3px] w-full ${modeTheme.gradients.buttonBg}`} />
 
       {/* Content area — compact on mobile, right padding for action button on desktop */}
       <div className="pr-16 sm:pr-[88px]">
-        <CardHeader className="pb-1 sm:pb-2 pt-3 sm:pt-6 px-3 sm:px-6">
+        <CardHeader className="pb-1 sm:pb-2 pt-4 sm:pt-5 px-4 sm:px-5">
           <div className="flex items-start justify-between gap-1">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <TravelModeIcon mode={tripMode} isPast={isPastTrip} />
-                <CardTitle className="text-base sm:text-lg truncate">
+                <CardTitle className="text-[16px] sm:text-[18px] font-semibold leading-[1.3] truncate">
                   {trip.name}
                 </CardTitle>
-                {isActive && (
-                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-teal-500/15 text-teal-600 dark:text-teal-400 shrink-0">
-                    <Radio className="w-2.5 h-2.5" />
-                    Live
-                  </span>
-                )}
+                <div className="flex items-center gap-1.5 ml-1 shrink-0">
+                  {isActive && (
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-teal-500/15 text-teal-600 dark:text-teal-400">
+                      <Radio className="w-2.5 h-2.5" />
+                      Live
+                    </span>
+                  )}
+                </div>
               </div>
-              <CardDescription className="flex items-center gap-1 mt-0.5 sm:mt-1 text-xs sm:text-sm">
+              <CardDescription className="flex items-center gap-1 mt-1 text-sm font-normal opacity-80">
                 <MapPin className="w-3 h-3" />
                 {trip.destination_city}, {trip.destination_country}
               </CardDescription>
             </div>
-            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-2">
               {isShared && (
                 <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 text-[10px] font-medium rounded-full bg-muted text-muted-foreground">
                   <Users className="w-3 h-3" />
@@ -415,15 +417,15 @@ const TripCard = React.memo(function TripCard({
             </div>
           </div>
         </CardHeader>
-        <CardContent className="pt-1 sm:pt-2 px-3 sm:px-6 pb-3 sm:pb-6">
-          <div className="flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-4">
-            <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+        <CardContent className="pt-1 sm:pt-2 px-4 sm:px-5 pb-4 sm:pb-5">
+          <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground opacity-75 mb-2 sm:mb-3">
+            <Calendar className="w-3.5 h-3.5" />
             <span>{formatTripDateRange(trip.start_date, trip.end_date)}</span>
           </div>
           <div className="flex items-center justify-between">
             <button
               onClick={handleCardClick}
-              className={`flex items-center gap-0.5 text-xs sm:text-sm font-medium ${modeTheme.palette.primary} hover:underline`}
+              className={`flex items-center gap-0.5 text-sm font-medium ${modeTheme.palette.primary} hover:underline`}
             >
               View Trip
               <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -458,7 +460,7 @@ const TripCard = React.memo(function TripCard({
         aria-label={`Open trip: ${trip.name}`}
         className={`
           absolute right-3 sm:right-8 top-1/2 -translate-y-1/2
-          w-10 h-10 sm:w-[60px] sm:h-[60px] rounded-xl sm:rounded-2xl
+          w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl
           flex items-center justify-center
           ${modeTheme.gradients.buttonBg} ${modeTheme.palette.border} border
           shadow-md
