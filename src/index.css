@@ -31,16 +31,16 @@
     --accent: 210 40% 98%;
     --accent-foreground: 215 19% 34%;
 
-    /* Background & Surface */
-    --background: 209 40% 96%;
+    /* Background & Surface — premium two-layer system */
+    --background: 220 20% 97%;
     --foreground: 222 47% 11%;
 
-    /* Cards */
-    --card: 210 40% 98%;
+    /* Cards — pure white surface */
+    --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
 
     /* Popovers */
-    --popover: 214 31% 91%;
+    --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
     /* Secondary - Slate */
@@ -68,7 +68,7 @@
     --input: 212 26% 83%;
     --ring: 200 98% 39%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
     /* Sidebar */
     --sidebar-background: 187 35% 97%;
@@ -86,9 +86,9 @@
     --gradient-dawn: linear-gradient(135deg, hsl(210 20% 98%), hsl(187 25% 95%));
 
     /* Custom shadows */
-    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
-    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.05), 0 1px 2px -1px hsl(0 0% 0% / 0.05);
+    --shadow-md: 0 4px 14px 0px hsl(0 0% 0% / 0.06);
+    --shadow-lg: 0 10px 28px 0px hsl(0 0% 0% / 0.10);
     --shadow-glow: 0 0 20px hsl(187 65% 35% / 0.25);
     --chart-1: 198 93% 59%;
     --chart-2: 213 93% 67%;
