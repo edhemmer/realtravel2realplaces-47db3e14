@@ -12,3 +12,11 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /admin*
+Disallow: /reset-password
+Disallow: /complete-profile
+Disallow: /onboarding
+Disallow: /accept-share/*
+Disallow: /accept-invite/*
+
+Sitemap: https://realtravel2realplaces.lovable.app/sitemap.xml
