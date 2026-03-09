@@ -34,9 +34,11 @@ Complete list of implemented features organized by tier and domain.
 
 ### Trip Detail View
 - Tabbed interface (Summary, Bookings, Expenses, Packing, Parking, Notes, Companions, Members, Report)
-- Mobile bottom navigation: NOW, PLAN, EXPLORE, EXPENSES, MORE
+- Mobile bottom navigation with compressed 5+More structure (v5.0.0)
 - Desktop tab bar with keyboard navigation
 - Drill-through navigation (click summary → jump to record with highlight)
+- Compact booking cards with ~50% height reduction (v5.0.0)
+- Compressed alert banners (v5.0.0)
 
 ### Booking Management
 - 5 booking types: Flight, Lodging, Car Rental, Transport, Activity
@@ -50,6 +52,7 @@ Complete list of implemented features organized by tier and domain.
 - Car rental-specific: rental company, pickup/return locations
 - Transport-specific: mode (train/bus/metro/ferry), operator, from/to locations
 - Activity-specific: ticket tracking, booking patterns, advance recommendations
+- Compact traveler display with summary format: "Edward, Paula +2" (v5.0.0)
 
 ### Expense Tracking
 - Per-trip expense log
@@ -122,6 +125,15 @@ Complete list of implemented features organized by tier and domain.
 - Pre-arrival Area Picker for browsing destinations before travel
 - Available on all plans
 
+### Progressive Web App (PWA)
+- Installable on mobile (iOS/Android) and desktop (Chrome/Edge)
+- Offline-capable with Workbox precaching of all static assets
+- Auto-updating service worker (`registerType: "autoUpdate"`)
+- Web App Manifest with standalone display mode
+- Dedicated `/install` page with platform-specific instructions
+- iOS Share → Add to Home Screen guidance
+- Android/Chrome `beforeinstallprompt` native install prompt
+
 ---
 
 ## Pro Tier Features
@@ -161,6 +173,7 @@ Complete list of implemented features organized by tier and domain.
 - Parking expiration indicators
 - Expense reminder banners
 - Flight departure reminders
+- Compact banner-style alert display (v5.0.0)
 
 ### Trip Summary Report
 - Comprehensive trip overview
@@ -249,6 +262,20 @@ Complete list of implemented features organized by tier and domain.
 
 ---
 
+## SEO & Discoverability
+
+- XML sitemap at `/sitemap.xml` with all public routes
+- `robots.txt` with crawler directives and private route exclusions
+- Open Graph meta tags on landing page and index.html
+- Twitter Card meta tags
+- JSON-LD structured data: `SoftwareApplication` (index.html) + `FAQPage` (landing FAQ)
+- Canonical URLs
+- Preconnect hints for Google Fonts and backend API
+- Semantic HTML with single H1 per page
+- `react-helmet-async` for per-route meta management
+
+---
+
 ## Infrastructure
 
 - 14+ Edge Functions (AI parsing, notifications, lifecycle, admin, places)
@@ -258,3 +285,4 @@ Complete list of implemented features organized by tier and domain.
 - Centralized API client with session expiration handling
 - Lovable AI gateway for AI operations (no user API keys required)
 - Google Places API integration with server-side photo proxy
+- PWA with Workbox service worker and auto-update

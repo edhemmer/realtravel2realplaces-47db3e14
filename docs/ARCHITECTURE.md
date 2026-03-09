@@ -16,6 +16,8 @@ This document provides an overview of the application architecture for developer
 8. [Database Schema](#database-schema)
 9. [Container Architecture](#container-architecture)
 10. [Performance](#performance)
+11. [PWA Architecture](#pwa-architecture)
+12. [SEO Architecture](#seo-architecture)
 
 ---
 
@@ -30,6 +32,8 @@ This document provides an overview of the application architecture for developer
 | Backend | Lovable Cloud (PostgreSQL + Edge Functions) |
 | AI Services | Lovable AI (Gemini 2.5 Pro for itinerary parsing, Gemini Flash for other parsers) |
 | Auth | Email/password with session management |
+| PWA | vite-plugin-pwa + Workbox (auto-update service worker) |
+| SEO | react-helmet-async, JSON-LD structured data, sitemap.xml |
 
 ---
 
@@ -83,6 +87,14 @@ src/
 │   └── supabase/        # client.ts, types.ts (read-only)
 └── main.tsx
 
+public/
+├── favicon.png          # App icon
+├── pwa-icon-192.png     # PWA icon 192×192
+├── pwa-icon-512.png     # PWA icon 512×512
+├── robots.txt           # Crawler directives with Sitemap reference
+├── sitemap.xml          # XML sitemap for search engines
+└── rt2rp-logo.png       # Brand logo
+
 supabase/
 ├── functions/           # 14+ Edge Functions
 │   ├── _shared/         # Shared utilities (CORS, auth, AI client)
@@ -128,6 +140,16 @@ Key mobile features:
 - Surface styling aligned with card system: `bg-card`, `border-border/60`, `shadow-lg`
 - Section mode title in primary color
 - ExecutionZone: execution-first Command Center at top of NOW tab
+
+### Navigation Compression (v5.0.0)
+
+Mobile bottom nav uses a compressed 5+More structure:
+
+**Primary tabs:** Timeline, Bookings, Explore, Expenses, Packing
+
+**More menu:** NOW, Weather, Parking, Report, Members, Companions, Notes & Safety, Tour, Alerts
+
+Desktop tabs follow the same priority order with all tabs visible.
 
 ---
 
@@ -295,6 +317,8 @@ const { isPro, canAccessBusinessFeatures } = useAccess();
 | `support_tickets` | User support requests |
 | `upgrade_intents` | Upgrade intent tracking |
 | `user_roles` | RBAC admin roles |
+| `email_ingestion_addresses` | Inbound email forwarding addresses |
+| `pending_imports` | Queued import records for review |
 
 ### 30+ Security-Definer Functions
 Including: `user_owns_trip`, `user_has_trip_access`, `user_is_pro`, `trip_owner_is_pro`, `has_role`, `is_admin`, `get_bookings_safe`, `get_companions_safe`, `run_trip_lifecycle_enforcement`, `accept_trip_invite`, `create_trip_invite`, `update_member_permissions`, and more.
@@ -348,6 +372,48 @@ Including: `user_owns_trip`, `user_has_trip_access`, `user_is_pro`, `trip_owner_
 | Flight dates extracted independently | DATE INDEPENDENCE prompt rule (v4.4.3) |
 | Missing data stays blank | `hasExplicitTime()` guards |
 | Explore shows real data counts | `totalCount` from actual API results, not query limits (v4.8.0) |
+
+---
+
+## PWA Architecture
+
+### Configuration
+- **Plugin**: `vite-plugin-pwa` with `registerType: "autoUpdate"`
+- **Service Worker**: Workbox-generated, precaches all static assets
+- **Manifest**: `name: "Real Travel 2 Real Places"`, `short_name: "RT2RP"`, `display: "standalone"`, `start_url: "/dashboard"`
+- **Icons**: 192×192 and 512×512 PNG icons (regular + maskable)
+
+### Caching Strategy
+| Resource | Strategy | Cache Name |
+|----------|----------|------------|
+| App shell (JS/CSS/HTML) | Precache (Workbox) | workbox-precache |
+| Google Fonts stylesheets | CacheFirst (1 year) | google-fonts-cache |
+| Google Fonts files | CacheFirst (1 year) | gstatic-fonts-cache |
+
+### Key Configurations
+- `maximumFileSizeToCacheInBytes`: 5MB
+- `navigateFallbackDenylist`: `[/^\/~oauth/]` — excludes OAuth callbacks from SPA fallback
+- Auto-update: `registerSW({ immediate: true })` in `main.tsx`
+
+### Install Flow
+- `/install` page with `beforeinstallprompt` API support (Chrome/Android)
+- iOS Safari step-by-step instructions with Share → Add to Home Screen
+
+---
+
+## SEO Architecture
+
+### Meta Tags
+- `index.html`: Base SEO with title, description, Open Graph, Twitter Cards, JSON-LD `SoftwareApplication`
+- `LandingPage.tsx`: Override via `react-helmet-async` with landing-specific meta and canonical URL
+- `LandingFAQ.tsx`: Inline JSON-LD `FAQPage` schema for FAQ rich results
+
+### Technical SEO
+- `public/sitemap.xml`: All public routes (/, /auth, /privacy, /terms, /plans, /install, /help)
+- `public/robots.txt`: Allows all crawlers, disallows private routes (/admin*, /reset-password, /complete-profile, /onboarding, /accept-share/*, /accept-invite/*), includes Sitemap directive
+- Preconnect hints for `fonts.googleapis.com`, `fonts.gstatic.com`
+- DNS prefetch for backend API domain
+- Canonical URL on landing page and index.html
 
 ---
 
