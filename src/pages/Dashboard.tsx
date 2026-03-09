@@ -125,7 +125,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="font-bold text-[28px] leading-[1.2] tracking-tight">My Trips</h1>
-            <p className="text-muted-foreground text-sm font-normal opacity-65 mt-1">Manage your travel in one place</p>
+            <p className="text-muted-foreground text-sm font-normal opacity-[0.85] mt-1">Manage your travel in one place</p>
           </div>
           <Button 
             onClick={() => setCreateDialogOpen(true)} 
