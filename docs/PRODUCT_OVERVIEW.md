@@ -33,6 +33,7 @@ Real Travel 2 Real Places provides:
 6. **EXPLORE** — Discover real places near your destination with photos, ratings, and reviews from Google Places. Add them directly to your timeline.
 7. **Cost Clarity** — Real-time expense tracking with per-person splitting, category breakdowns, receipt OCR, and business/personal separation.
 8. **Smart Logistics** — Parking expiration alerts, weather awareness, calendar export, and configurable reminders.
+9. **Installable PWA** — Full Progressive Web App with offline caching, home screen install, and auto-updating service worker.
 
 ---
 
@@ -56,7 +57,7 @@ Three-tier SaaS subscription:
 |------|-------|-------|------------|
 | **Free** | $0 | 5 lifetime trips | Full trip management, EXPLORE, timeline, packing, calendar export |
 | **Pro** | TBD | Unlimited | Drive Mode, reports, health checklist, sharing, alerts |
-| **Business** | TBD | Unlimited | Tour stops, business expense reporting, multi-trip reports |
+| **Business** | TBD | Unlimited | All Pro + tour stops, business expense reporting |
 
 ---
 
@@ -78,6 +79,8 @@ Three-tier SaaS subscription:
 - **AI Parsing Pipeline**: Gemini 2.5 Pro for itinerary parsing, Gemini Flash for booking/receipt extraction
 - **Drive Intelligence**: Centralized drive segment resolution with full-address navigation
 - **EXPLORE Engine**: Google Places integration with server-side photo proxy and weather-aware ranking
+- **Progressive Web App**: Installable on mobile/desktop with offline support and auto-updating service worker via Workbox
+- **SEO Optimized**: Sitemap, structured data (JSON-LD), Open Graph, Twitter Cards, preconnect hints
 - **250+ Unit Tests**: Commercial-grade test coverage for business logic
 - **Security-First**: RLS on all tables, PII masking, session idle logout, CRON auth
 
@@ -87,6 +90,7 @@ Three-tier SaaS subscription:
 
 | Metric | Value |
 |--------|-------|
+| Build version | rt2rp-5100 |
 | Tables in production | 18+ |
 | Edge functions | 14+ |
 | Unit tests | 250+ |

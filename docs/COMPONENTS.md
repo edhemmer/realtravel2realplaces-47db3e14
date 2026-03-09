@@ -19,6 +19,19 @@ This document provides reference documentation for key components.
 
 ## Page Components
 
+### LandingPage (`src/pages/LandingPage.tsx`)
+
+Public-facing marketing and conversion surface.
+
+**Features:**
+- Modular section architecture (Hero, Pain, Solution, WhyDuringTrip, MovingParts, WhoItsFor, FAQ, FinalCTA)
+- SEO via `react-helmet-async` with Open Graph, Twitter Cards, and canonical URL
+- JSON-LD `FAQPage` schema in FAQ section
+- Sticky header with conditional auth-aware CTA
+- Premium dark theme via `landing.css` custom properties
+
+---
+
 ### Dashboard (`src/pages/Dashboard.tsx`)
 
 Main trips list page showing owned and shared trips.
@@ -29,13 +42,6 @@ Main trips list page showing owned and shared trips.
 - Delete trip confirmation
 - Past trip visual de-emphasis (v2.1.2)
 
-**Key Logic:**
-```typescript
-// Past trip detection
-const isPastTrip = isBefore(tripEndDate, startOfDay(new Date()));
-// Applied as: className={isPastTrip ? 'opacity-60' : ''}
-```
-
 ---
 
 ### TripDetail (`src/pages/TripDetail.tsx`)
@@ -45,18 +51,16 @@ Main trip view with mobile-first tabbed interface.
 **Props:** Route param `tripId`
 
 **Features:**
-- Mobile bottom navigation (Patch 2.2.3)
-- Desktop top tabs (Patch 2.6.25)
+- Mobile bottom navigation with compressed 5+More structure (v5.0.0)
+- Desktop top tabs with reordered priority (v5.0.0)
 - Tab navigation (Summary, Bookings, Parking, Expenses, etc.)
 - Drill-through navigation between tabs
 - Record highlighting on navigation
-- Mobile header: section mode title in primary color (v2.6.25), spacing-driven hierarchy with no divider (v2.6.27)
-- TripHeaderWidgets hidden on mobile header; rendered inside NOW tab via ExecutionZone (v2.6.28)
 
-**Mobile Navigation:**
-On viewports < 768px, navigation switches from top tabs to a fixed bottom navigation bar with:
-- Primary tabs: NOW, PLAN, EXPLORE, EXPENSES, MORE
-- "More" dropdown: Bookings, Tour (Business), Members, Companions, Parking, Packing, Alerts, Report (Pro), Notes & Safety
+**Mobile Navigation (v5.0.0):**
+On viewports < 768px, navigation uses a fixed bottom bar with:
+- Primary tabs: Timeline, Bookings, Explore, Expenses, Packing
+- "More" dropdown: NOW, Weather, Parking, Report, Members, Companions, Notes & Safety, Tour, Alerts
 
 **Drill-Through Target Type:**
 ```typescript
@@ -68,11 +72,23 @@ export type DrillThroughTarget = {
 
 ---
 
+### InstallApp (`src/pages/InstallApp.tsx`)
+
+PWA installation guide page.
+
+**Features:**
+- Platform detection (iOS Safari vs Chrome/Android)
+- `beforeinstallprompt` API integration for native install
+- Step-by-step iOS installation instructions
+- Already-installed detection
+
+---
+
 ## Layout Components
 
 ### TripDetailLayout (`src/components/layout/TripDetailLayout.tsx`)
 
-Mobile-first layout wrapper for trip detail pages (Patch 2.2.3).
+Mobile-first layout wrapper for trip detail pages.
 
 **Props:**
 ```typescript
@@ -84,16 +100,11 @@ interface TripDetailLayoutProps {
 }
 ```
 
-**Features:**
-- Automatic mobile detection
-- Bottom padding for mobile nav
-- Wraps MobileBottomNav
-
 ---
 
 ### MobileBottomNav (`src/components/layout/MobileBottomNav.tsx`)
 
-Fixed bottom navigation bar for mobile viewports (Patch 2.2.3, refined v2.6.9–v2.6.10).
+Fixed bottom navigation bar for mobile viewports (v5.0.0 compressed structure).
 
 **Props:**
 ```typescript
@@ -107,375 +118,137 @@ interface MobileBottomNavProps {
 **Features:**
 - Safe area handling (iOS home indicator)
 - Touch-optimized targets (min 56×44px)
-- "More" dropdown for secondary tabs
+- 5 primary tabs + "More" dropdown for secondary tabs
 - Plan-based tab visibility (Tour = Business, Report = Pro)
-
-**Surface Styling (v2.6.10):**
-- `bg-card` background, `border-border/60` top border, `shadow-lg` depth
-- No blur or opacity—matches card surface system
-- Active tab: `text-primary font-semibold bg-primary/10`
-- Inactive tab: `text-muted-foreground font-medium`
-- Icon-label spacing: `gap-1` with `leading-none` labels
-
-**More Dropdown (v2.6.9):**
-- `rounded-xl border-border/60 bg-card shadow-lg` container
-- `w-52` width, clamped to `max-w-[calc(100vw-1rem)]`
-- Menu rows: `h-10 gap-3 px-3 rounded-lg`
-- Icon container: `w-4 h-4 shrink-0`
 
 ---
 
 ## Shared Card Components
 
-Located in `src/components/cards/`. These are "dumb" presentational components that receive typed props and render UI. They do NOT call domain hooks (Patch 2.2.3).
+Located in `src/components/cards/`. These are "dumb" presentational components that receive typed props and render UI. They do NOT call domain hooks.
 
 ### BookingCard (`src/components/cards/BookingCard.tsx`)
 
-Consistent card for booking entities across all screens.
+Compact booking card with ~50% height reduction (v5.0.0).
 
-**Props:**
-```typescript
-interface BookingCardProps {
-  id: string;
-  type: 'flight' | 'stay' | 'car_rental' | 'activity' | 'transport';
-  title: string;
-  subtitle?: string;
-  startDatetime: string;
-  endDatetime?: string | null;
-  confirmationNumber?: string | null;
-  displayCost?: string | null;
-  myShareCost?: string | null;
-  location?: string | null;
-  canEdit?: boolean;
-  onEdit?: () => void;
-  onDelete?: () => void;
-  onOpenMaps?: () => void;
-}
-```
+**Features:**
+- Single-line metadata display
+- Compressed traveler summary ("Edward, Paula +2" with expand)
+- Smaller icons (32px)
+- Type-specific color coding preserved
 
 ---
 
 ### TourStopCard (`src/components/cards/TourStopCard.tsx`)
 
-Consistent card for tour stop/engagement entities.
-
-**Note:** Tours are NON-MONETARY - this card never shows cost fields.
-
-**Props:**
-```typescript
-interface TourStopCardProps {
-  id: string;
-  name: string;
-  date: string;
-  startTime: string;
-  endTime?: string | null;
-  location?: string | null;
-  address?: string | null;
-  storeNumber?: string | null;
-  origin?: 'parsed' | 'manual';
-  hasReminder?: boolean;
-  canEdit?: boolean;
-  onEdit?: () => void;
-  onDelete?: () => void;
-  onOpenMaps?: () => void;
-}
-```
+Card for tour stop/engagement entities. Tours are NON-MONETARY — this card never shows cost fields.
 
 ---
 
 ### ExpenseCard (`src/components/cards/ExpenseCard.tsx`)
 
-Consistent card for expense entities.
-
-**Props:**
-```typescript
-interface ExpenseCardProps {
-  id: string;
-  date: string;
-  category: 'meals' | 'transport' | 'activity' | 'shopping' | 'parking' | 'other';
-  subCategory?: string | null;
-  description?: string | null;
-  displayAmount: string;
-  myShareAmount?: string | null;
-  expensePurpose?: 'business' | 'personal' | null;
-  isAutoGenerated?: boolean;
-  canEdit?: boolean;
-  onEdit?: () => void;
-  onDelete?: () => void;
-}
-```
+Card for expense entities with category badges and cost display.
 
 ---
 
 ## Trip Components
 
-### TripHeaderWidgets (`src/components/trips/TripHeaderWidgets.tsx`)
+### TravelAlertsCard (`src/components/trips/TravelAlertsCard.tsx`)
 
-Widget container for trip overview data. Desktop: rendered in trip header. Mobile: rendered inside NOW tab below ExecutionZone (v2.6.28).
+Compact banner-style alerts (v5.0.0). Replaced full-sized cards with single-line banners featuring inline actions.
 
-**Props:**
-- `trip: Trip`
-
-**Includes:**
-- Weather widget
-- Cost summary
-- Parking status
+**Features:**
+- Compressed single-line format: icon + message + action button
+- Alert colors preserved from original design
+- Reduced vertical footprint
 
 ---
 
 ### ExecutionZone (`src/components/trips/ExecutionZone.tsx`)
 
-v2.6.28: Mobile-only Command Center rendered at the top of the NOW tab. Execution-first: actions appear before informational widgets.
-
-**Props:**
-```typescript
-interface ExecutionZoneProps {
-  timelineEvents: CanonicalTimelineEvent[];
-  onExplore: () => void;
-  onAddExpense: () => void;
-}
-```
+Mobile-only Command Center at the top of the NOW tab.
 
 **Sections:**
-- A) Primary Action Row (always visible): Explore (primary/blue) + Add Expense (success/green)
-- B) Conditional Timeline Action Row: today-relevant actionable items with Navigate buttons
+- A) Primary Action Row: Explore (primary) + Add Expense (success)
+- B) Conditional Timeline Action Row: today-relevant actionable items
 - C) Empty State: "No scheduled actions today."
-
-**Button Standardization (v2.6.30/v2.6.33):**
-- Explore = `bg-primary` (ocean teal blue) everywhere
-- Add Expense = `bg-success` (emerald green) everywhere
-- All primary actions: `h-12 rounded-xl font-semibold shadow-sm`
-- Consistent across NOW tab, Expenses tab, and all mobile contexts
 
 ---
 
 ### CreateTripDialog (`src/components/trips/CreateTripDialog.tsx`)
 
-Modal for creating new trips.
-
-**Props:**
-- `open: boolean`
-- `onOpenChange: (open: boolean) => void`
-
-**Features:**
-- Form validation
-- Destination autocomplete
-- Trip type selection
+Modal for creating new trips with form validation and destination autocomplete.
 
 ---
 
 ## Tab Components
 
-### SummaryTab (`src/components/trips/tabs/SummaryTab.tsx`)
+### SummaryTab
+Main trip summary with timeline, overview, and drill-through navigation.
 
-Main trip summary view with timeline and overview.
+### BookingsTab
+Booking management for all 5 types with AI parsing.
 
-**Props:**
-```typescript
-interface SummaryTabProps {
-  tripId: string;
-  trip: Trip;
-  onDrillThrough?: (target: DrillThroughTarget) => void;
-}
-```
+### ExpensesTab
+Expense tracking with receipt OCR and category filtering.
 
-**Sections:**
-1. Destination header with Upcoming Events (Pro)
-2. Expense reminder banner
-3. Travel alerts
-4. TSA warnings
-5. Flight/Drive summary
-6. Trip Health Checklist (Pro)
-7. Destination info links
-8. Timeline
-9. Weather forecast
+### PackingTab
+AI-powered packing list with category color system and quantity steppers.
 
----
+### ParkingTab
+Parking entry management with expiration tracking.
 
-### BookingsTab (`src/components/trips/tabs/BookingsTab.tsx`)
+### TourTab
+Business stops with auto-draft, import pipeline, and date-grouped layout.
 
-Booking management (flights, stays, rentals, transport, activities).
+### ExploreTab
+Google Places discovery with photos, ratings, and Add-to-Timeline.
 
-**Booking Types:**
-- ✈️ Flight - Airlines with passenger and TSA info
-- 🏨 Stay - Hotels, Airbnb, VRBO
-- 🚗 Car Rental - Rental vehicles
-- 🚆 Transport - Train, bus, metro, ferry (v2.1.37)
-- 🎉 Activity - Tours and events
+### WeatherTab
+Weather forecast for trip destination.
 
-**Features:**
-- Add booking via AI parsing
-- Manual booking creation
-- Edit/delete bookings
-- Companion assignment
-- Drill-through highlighting (v2.0.7)
+### NotesTab
+Free-text notes, emergency numbers, and important links.
 
-**Transport Mode Fields (v2.1.37):**
-```typescript
-// Transport-specific form fields
-transport_mode: 'train' | 'bus' | 'metro' | 'ferry' | 'other'
-from_location: string  // Origin city/station
-to_location: string    // Destination city/station  
-operator: string       // e.g., "SNCB", "Eurostar"
-```
+### CompanionsTab
+Traveler management with PII and booking linking.
+
+### MembersTab
+Trip sharing with permission management.
+
+### TripSummaryReportTab
+Comprehensive trip report with PDF generation (Pro).
 
 ---
 
-### ExpensesTab (`src/components/trips/tabs/ExpensesTab.tsx`)
+## Container Components
 
-Expense tracking and categorization.
-
-**Features:**
-- Manual expense entry
-- Receipt image upload (OCR)
-- Category/subcategory filtering
-- Cost breakdown
-- Parse origin hints (v2.1.3): "From receipt", "From email"
-
----
-
-### PackingTab (`src/components/trips/tabs/PackingTab.tsx`)
-
-AI-powered packing list with premium category-colored UI.
-
-**Props:**
-```typescript
-interface PackingTabProps {
-  tripId: string;
-}
-```
-
-**Features:**
-- AI packing list generation via `generate-packing-list` edge function
-- Multi-leg itinerary context with per-city climate cards
-- Laundry Intelligence: caps daily-wear quantities at 7 for trips >7 nights
-- Category color system with unique accent colors per category (blue=Clothing, amber=Footwear, rose=Toiletries, violet=Tech, orange=Documents, etc.)
-- Semantic icons: Shirt (Clothing), Footprints (Footwear), ShowerHead (Toiletries), Cable (Tech), BookOpen (Documents), Watch (Accessories)
-- Wearables left / Utilities right 2-column layout (desktop); interleaved single column (mobile)
-- Per-item color/style tips and `applies_to` location tags
-- Gradient progress bar with packed percentage
-- Per-category "+" add button with category pre-fill
-- Quantity stepper (min 1) with immediate persistence
-- Custom items preserved on regeneration
-- Copy-to-clipboard export
-- Green completion states for fully packed categories
-
-**Category Theme System:**
-```typescript
-// Each category has: icon, border color, background, text color, icon background
-const categoryThemes: Record<string, { icon, border, bg, text, iconBg }> = {
-  'Clothing Core': { border: 'border-l-blue-500', ... },
-  'Footwear':      { border: 'border-l-amber-500', ... },
-  'Toiletries':    { border: 'border-l-rose-500', ... },
-  // ... 18 categories total
-};
-```
-
-**Mobile Optimization:**
-- Single-column layout with wearable/utility categories interleaved for natural packing flow
-- Touch-optimized checkboxes (16px) and quantity steppers (24px)
-- Horizontal scrolling leg summary cards
-- Mobile-friendly dialogs (sm:max-w-sm)
-
----
-
-### ParkingTab (`src/components/trips/tabs/ParkingTab.tsx`)
-
-Parking entry management.
-
-**Features:**
-- Add parking records
-- Expiration tracking
-- Location details
-
----
-
-### TourTab (`src/components/trips/tabs/TourTab.tsx`)
-
-Business stops/work locations (Business tier).
-
-**Features:**
-- Auto-draft from bookings via canonical events (v2.1.6)
-- "Regenerate from bookings" action
-- Manual stop creation
-- Import via itinerary parsing (text/email/spreadsheet)
-- Source hints (v2.1.3): "From flight", "From stay", "Imported from text"
-- Compressed date headers with inline stop count and optimization status (v3.8.11)
-- Increased card density for execution-first layout (v3.8.11)
-- Consistent icon colors: Navigate (blue), Edit (neutral), Delete (red) (v3.8.11)
-
-**Architectural Note (v2.1.6):**
-TourTab does NOT import booking types/hooks directly. It uses `generateTourDraftFromCanonicalEvents()` to create independent stop records.
+| Container | Purpose |
+|-----------|---------|
+| `DesktopTripShell` | Canonical desktop trip context provider |
+| `NowCommandCenter` | NOW tab execution engine |
+| `TripSummaryContainer` | Summary data wiring |
+| `TripBookingsContainer` | Bookings data wiring |
+| `TripTourContainer` | Tour data wiring |
+| `TripExpensesContainer` | Expenses data wiring |
+| `TripAlertsContainer` | Alerts data wiring |
+| `MobileNavigationRouter` | Mobile tab routing |
 
 ---
 
 ## Pro-Only Components
 
-These components are gated to Pro subscribers.
+### UpcomingEventsWidget
+Next 3-5 upcoming TripEvents with drill-through.
 
-### UpcomingEventsWidget (`src/components/trips/UpcomingEventsWidget.tsx`)
-
-Displays next 3-5 upcoming TripEvents.
-
-**Props:**
-```typescript
-interface UpcomingEventsWidgetProps {
-  tripId: string;
-  onDrillThrough?: (target: DrillThroughTarget) => void;
-}
-```
-
-**Features:**
-- Filters events where `event_datetime > now`
-- Shows icon, label, and formatted time
-- Clickable rows navigate to source record
-- User's preferred datetime format
-- "No upcoming events" empty state
-
-**Event Types:**
-- `flight_departure` - Plane icon
-- `hotel_checkin` / `hotel_checkout` - Building icon
-- `rental_pickup` / `rental_return` - Car icon
-- `parking_expiration` - Parking icon
-
----
-
-### TripHealthChecklist (`src/components/trips/TripHealthChecklist.tsx`)
-
-Identifies missing or incomplete trip details.
-
-**Props:**
-```typescript
-interface TripHealthChecklistProps {
-  trip: Trip;
-  bookings: Booking[];
-  parkingList: Parking[];
-  expenses: Expense[];
-  preferredCurrency?: string | null;
-  onNavigate: (target: DrillThroughTarget) => void;
-}
-```
-
-**Checks:**
-- Missing flight departure times
-- Missing stay check-in/check-out times
-- Missing stay addresses
-- Missing rental pickup/return times
-- Missing parking end times
-- Uncategorized expenses (for mixed trips)
-
-**Display:**
-- "Trip Health: All clear" when no issues
-- "Trip Health: X items to review" with issue list
-- Each issue has icon, description, and "Fix" button
+### TripHealthChecklist
+Gap analysis for missing trip details with "Fix" navigation.
 
 ---
 
 ## UI Components
 
-Located in `src/components/ui/`. These are shadcn/ui components.
-
-### Common Components
+Located in `src/components/ui/`. shadcn/ui components.
 
 | Component | Usage |
 |-----------|-------|
@@ -488,72 +261,16 @@ Located in `src/components/ui/`. These are shadcn/ui components.
 | `Tabs` | Tab navigation |
 | `Toast` | Notifications (via sonner) |
 
-### Usage Example
-
-```tsx
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-
-<Card>
-  <CardHeader>
-    <CardTitle className="flex items-center gap-2">
-      <Icon className="w-4 h-4" />
-      Title
-      <Badge variant="secondary">Pro</Badge>
-    </CardTitle>
-  </CardHeader>
-  <CardContent>
-    Content here
-    <Button onClick={handleAction}>Action</Button>
-  </CardContent>
-</Card>
-```
-
 ---
 
 ## Component Creation Guidelines
 
-When creating new components:
-
-1. **Location**: Place in appropriate directory
-   - Trip-related: `src/components/trips/`
-   - Tab content: `src/components/trips/tabs/`
-   - Reusable UI: `src/components/ui/`
-
-2. **Naming**: Use PascalCase, descriptive names
-   - `TripHealthChecklist.tsx`
-   - `UpcomingEventsWidget.tsx`
-
-3. **Exports**: Use named exports
-   ```typescript
-   export function MyComponent() { ... }
-   ```
-
-4. **Props Interface**: Define explicit interface
-   ```typescript
-   interface MyComponentProps {
-     tripId: string;
-     onComplete?: () => void;
-   }
-   ```
-
-5. **Pro Gating**: For Pro features, gate at component level
-   ```typescript
-   const isPro = useIsPro();
-   if (!isPro) return null;
-   ```
-
-6. **Documentation**: Add JSDoc comment
-   ```typescript
-   /**
-    * v2.1.1: Pro-only Upcoming Events strip
-    * 
-    * - Shows next 3-5 TripEvents
-    * - Clickable for drill-through navigation
-    */
-   export function UpcomingEventsWidget() { ... }
-   ```
+1. **Location**: Place in appropriate directory (`trips/`, `trips/tabs/`, `ui/`)
+2. **Naming**: PascalCase, descriptive names
+3. **Exports**: Named exports
+4. **Props**: Define explicit interface
+5. **Pro Gating**: Gate at component level with `useIsPro()`
+6. **Documentation**: Add JSDoc comment with version tag
 
 ---
 
