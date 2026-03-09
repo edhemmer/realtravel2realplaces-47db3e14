@@ -30,7 +30,6 @@ export function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const [supportDialogOpen, setSupportDialogOpen] = useState(false);
 
-  // v2.1.39: Auto-logout after 2 hours of inactivity
   useIdleLogout();
 
   const handleSignOut = async () => {
@@ -40,60 +39,61 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75">
-        <div className="container flex h-16 items-center justify-between px-4">
+      {/* Premium Header — refined depth with layered shadow */}
+      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-xl supports-[backdrop-filter]:bg-card/80 shadow-header">
+        <div className="container flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6">
           <BrandHeader variant="app">
 
           {user && (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-0.5 sm:gap-1">
               <NetworkStatusIndicator />
               <NotificationBell />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <User className="w-4 h-4 text-primary" />
+                  <Button variant="ghost" size="icon" className="rounded-full hover:bg-secondary transition-colors">
+                    <div className="w-8 h-8 rounded-full bg-gradient-premium flex items-center justify-center shadow-sm">
+                      <User className="w-4 h-4 text-primary-foreground" />
                     </div>
                   </Button>
                 </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <div className="px-2 py-1.5 text-sm text-muted-foreground">
+              <DropdownMenuContent align="end" className="w-60 rounded-2xl shadow-xl border-border/50 p-1.5">
+                <div className="px-3 py-2 text-sm text-muted-foreground font-medium">
                   {user.email}
                 </div>
-                <DropdownMenuItem onClick={() => navigate('/account')} className="cursor-pointer">
-                  <Settings className="w-4 h-4 mr-2" />
+                <DropdownMenuSeparator className="my-1" />
+                <DropdownMenuItem onClick={() => navigate('/account')} className="cursor-pointer rounded-xl h-10 gap-3 px-3 font-medium">
+                  <Settings className="w-4 h-4" />
                   Account Settings
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/help')} className="cursor-pointer">
-                  <MessageCircleQuestion className="w-4 h-4 mr-2" />
+                <DropdownMenuItem onClick={() => navigate('/help')} className="cursor-pointer rounded-xl h-10 gap-3 px-3 font-medium">
+                  <MessageCircleQuestion className="w-4 h-4" />
                   Help Center
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setSupportDialogOpen(true)} className="cursor-pointer">
-                  <MessageCircleQuestion className="w-4 h-4 mr-2" />
+                <DropdownMenuItem onClick={() => setSupportDialogOpen(true)} className="cursor-pointer rounded-xl h-10 gap-3 px-3 font-medium">
+                  <MessageCircleQuestion className="w-4 h-4" />
                   Contact Support
                 </DropdownMenuItem>
                 {canAccessBusinessFeatures && (
                   <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => navigate('/reports')} className="cursor-pointer">
-                      <BarChart3 className="w-4 h-4 mr-2" />
+                    <DropdownMenuSeparator className="my-1" />
+                    <DropdownMenuItem onClick={() => navigate('/reports')} className="cursor-pointer rounded-xl h-10 gap-3 px-3 font-medium">
+                      <BarChart3 className="w-4 h-4" />
                       Reports
                     </DropdownMenuItem>
                   </>
                 )}
                 {isAdmin && (
                   <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => navigate('/admin/users')} className="cursor-pointer">
-                      <ShieldCheck className="w-4 h-4 mr-2" />
+                    <DropdownMenuSeparator className="my-1" />
+                    <DropdownMenuItem onClick={() => navigate('/admin/users')} className="cursor-pointer rounded-xl h-10 gap-3 px-3 font-medium">
+                      <ShieldCheck className="w-4 h-4" />
                       Admin
                     </DropdownMenuItem>
                   </>
                 )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
-                  <LogOut className="w-4 h-4 mr-2" />
+                <DropdownMenuSeparator className="my-1" />
+                <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer rounded-xl h-10 gap-3 px-3 font-medium">
+                  <LogOut className="w-4 h-4" />
                   Sign Out
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -105,7 +105,7 @@ export function Layout({ children }: LayoutProps) {
       </header>
 
       {/* Main Content */}
-      <main className="container px-4 py-6">
+      <main className="container px-4 sm:px-6 py-6 sm:py-8">
         {children}
       </main>
 
