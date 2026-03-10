@@ -133,19 +133,22 @@ export function useTravelAlerts(
       }
     }
 
-    // Check for severe weather in forecast
+    // Check for severe weather in forecast — require high precipitation probability
+    // to avoid false positives from generic condition strings
     const severeConditions = tripForecast.filter(day => 
-      day.condition.includes('Thunderstorm') || 
-      day.condition.includes('Snow') && day.precipitation > 70
+      (day.condition.includes('Thunderstorm') && day.precipitation >= 60) || 
+      (day.condition.includes('Snow') && day.precipitation >= 70)
     );
+
+    const alertCity = trip?.destination_city || 'your destination';
 
     if (severeConditions.length > 0) {
       alerts.push({
         id: `severe-weather-${Date.now()}`,
         type: 'severe_weather',
         severity: 'critical',
-        title: '⚠️ Severe Weather Alert',
-        message: `Severe weather expected on ${severeConditions.map(d => format(parseISO(d.date), 'MMM d')).join(', ')}. Check local advisories.`,
+        title: `⚠️ Severe Weather Alert — ${alertCity}`,
+        message: `Severe weather expected in ${alertCity} on ${severeConditions.map(d => format(parseISO(d.date), 'MMM d')).join(', ')}. Check local advisories.`,
         timestamp: new Date(),
       });
     }
