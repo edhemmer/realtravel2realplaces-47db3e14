@@ -231,8 +231,8 @@ export function MobileNavigationRouter({
           <TripExpensesContainer
             tripId={tripId} 
             trip={trip} 
-            autoOpenAdd={autoOpenExpense} 
-            onAutoOpenConsumed={onAutoOpenConsumed} 
+            autoOpenAdd={effectiveAutoOpen} 
+            onAutoOpenConsumed={handleAutoOpenConsumed} 
           />
         );
       case 'tour':
