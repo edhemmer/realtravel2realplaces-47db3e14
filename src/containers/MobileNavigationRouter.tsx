@@ -82,12 +82,20 @@ export function MobileNavigationRouter({
   onExternalTabConsumed,
   onActiveTabChange,
 }: MobileNavigationRouterProps) {
+  const [searchParams] = useSearchParams();
   const { isPro, canAccessBusinessFeatures } = useAccess();
   const { hasDiscovered: hasDiscoveredExplore, markDiscovered: markExploreDiscovered } = useExploreDiscovery();
   const canonicalState = useCanonicalTripState(tripId, trip);
   const { timelineEvents, state } = canonicalState;
   const { data: userProfile } = useUserProfile();
-
+  // v5.1: Recover auto-open signal from URL in case prop was consumed before mobile mounted
+  const urlWantsAddExpense = searchParams.get('addExpense') === '1';
+  const [localAutoOpen, setLocalAutoOpen] = useState(urlWantsAddExpense);
+  const effectiveAutoOpen = autoOpenExpense || localAutoOpen;
+  const handleAutoOpenConsumed = useCallback(() => {
+    setLocalAutoOpen(false);
+    onAutoOpenConsumed();
+  }, [onAutoOpenConsumed]);
   const online = isOnline();
   const displayEvents = useMemo(() => {
     if (online) return timelineEvents;
