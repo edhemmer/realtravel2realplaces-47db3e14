@@ -123,7 +123,7 @@ export default function TripDetail() {
   const [activeTab, setActiveTab] = useState<TripTab>(initialTab);
   const [drillTarget, setDrillTarget] = useState<DrillThroughTarget>(null);
   // v2.3.5: Signal to auto-open Add Expense dialog on tab switch
-  const [autoOpenExpense, setAutoOpenExpense] = useState(searchParams.get('tab') === 'expenses');
+  const [autoOpenExpense, setAutoOpenExpense] = useState(searchParams.get('addExpense') === '1' || searchParams.get('tab') === 'expenses');
   // v2.3.x: External tab override for mobile router
   const [mobileExternalTab, setMobileExternalTab] = useState<TripTab | undefined>(
     searchParams.get('tab') ? (searchParams.get('tab') as TripTab) : undefined

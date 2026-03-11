@@ -7,6 +7,7 @@
  */
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Trip } from '@/types/database';
 import { useAccess } from '@/hooks/useAccess';
 import { useExploreDiscovery } from '@/hooks/useExploreDiscovery';
@@ -81,12 +82,20 @@ export function MobileNavigationRouter({
   onExternalTabConsumed,
   onActiveTabChange,
 }: MobileNavigationRouterProps) {
+  const [searchParams] = useSearchParams();
   const { isPro, canAccessBusinessFeatures } = useAccess();
   const { hasDiscovered: hasDiscoveredExplore, markDiscovered: markExploreDiscovered } = useExploreDiscovery();
   const canonicalState = useCanonicalTripState(tripId, trip);
   const { timelineEvents, state } = canonicalState;
   const { data: userProfile } = useUserProfile();
-
+  // v5.1: Recover auto-open signal from URL in case prop was consumed before mobile mounted
+  const urlWantsAddExpense = searchParams.get('addExpense') === '1';
+  const [localAutoOpen, setLocalAutoOpen] = useState(urlWantsAddExpense);
+  const effectiveAutoOpen = autoOpenExpense || localAutoOpen;
+  const handleAutoOpenConsumed = useCallback(() => {
+    setLocalAutoOpen(false);
+    onAutoOpenConsumed();
+  }, [onAutoOpenConsumed]);
   const online = isOnline();
   const displayEvents = useMemo(() => {
     if (online) return timelineEvents;
@@ -222,8 +231,8 @@ export function MobileNavigationRouter({
           <TripExpensesContainer
             tripId={tripId} 
             trip={trip} 
-            autoOpenAdd={autoOpenExpense} 
-            onAutoOpenConsumed={onAutoOpenConsumed} 
+            autoOpenAdd={effectiveAutoOpen} 
+            onAutoOpenConsumed={handleAutoOpenConsumed} 
           />
         );
       case 'tour':
