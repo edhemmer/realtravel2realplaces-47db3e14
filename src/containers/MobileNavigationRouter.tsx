@@ -7,6 +7,7 @@
  */
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Trip } from '@/types/database';
 import { useAccess } from '@/hooks/useAccess';
 import { useExploreDiscovery } from '@/hooks/useExploreDiscovery';
