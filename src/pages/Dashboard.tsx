@@ -163,7 +163,7 @@ export default function Dashboard() {
                   <Button
                     size="sm"
                     className="bg-success hover:bg-success/90 text-success-foreground h-10 rounded-xl text-xs font-semibold shadow-sm active:scale-[0.97]"
-                    onClick={() => navigate(`/trip/${activeTrip.id}?tab=expenses`)}
+                    onClick={() => navigate(`/trip/${activeTrip.id}?tab=expenses&addExpense=1`)}
                   >
                     <DollarSign className="w-3.5 h-3.5 mr-0.5" />
                     Expense
