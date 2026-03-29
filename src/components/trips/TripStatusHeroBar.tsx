@@ -1,11 +1,13 @@
 import { useState, useMemo } from 'react';
 import { Trip, TripState } from '@/types/database';
 import { useAccess } from '@/hooks/useAccess';
+import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Lock, Archive, Clock, Moon, CalendarCog, CalendarClock, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EditTripDatesDialog } from './EditTripDatesDialog';
+import { TripAskDialog } from './TripAskDialog';
 import { resolveCanonicalLifecycle, daysBetween, getTodayDateOnly } from '@/lib/canonicalTimePolicy';
 import { getTripMode, getModeTheme } from '@/lib/modeTheme';
 
@@ -18,7 +20,9 @@ interface TripStatusHeroBarProps {
  */
 export function TripStatusHeroBar({ trip }: TripStatusHeroBarProps) {
    const { isPro } = useAccess();
+   const { state: canonicalState } = useCanonicalTripState(trip.id, trip);
    const [editDatesOpen, setEditDatesOpen] = useState(false);
+   const [askOpen, setAskOpen] = useState(false);
    const tripState = (trip.trip_state || 'active') as TripState;
 
    const lifecycle = useMemo(
@@ -111,6 +115,17 @@ export function TripStatusHeroBar({ trip }: TripStatusHeroBarProps) {
              >
                <CalendarCog className="w-3.5 h-3.5" />
                <span className="hidden sm:inline">Edit Dates</span>
+              </Button>
+
+             {/* v5.2.0: Ask AI assistant */}
+             <Button
+               variant="ghost"
+               size="sm"
+               className="shrink-0 text-xs gap-1.5 text-primary hover:text-primary/80 h-8"
+               onClick={() => setAskOpen(true)}
+             >
+               <Sparkles className="w-3.5 h-3.5" />
+               <span className="hidden sm:inline">Ask</span>
              </Button>
 
              {/* Status Badge */}
@@ -152,6 +167,14 @@ export function TripStatusHeroBar({ trip }: TripStatusHeroBarProps) {
         open={editDatesOpen}
         onOpenChange={setEditDatesOpen}
         trip={trip}
+      />
+
+      {/* v5.2.0: AI Trip Assistant dialog */}
+      <TripAskDialog
+        open={askOpen}
+        onOpenChange={setAskOpen}
+        trip={trip}
+        canonicalState={canonicalState}
       />
     </>
     );
