@@ -20,7 +20,7 @@ import { useTravelAlerts } from '@/hooks/useTravelAlerts';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useDriveEngine } from '@/hooks/useDriveEngine';
 import { TravelAlertsCard } from '@/components/trips/TravelAlertsCard';
-import { CalendarDays, ChevronRight, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { GasExpenseDialog } from '@/components/trips/GasExpenseDialog';
 import { NextCriticalActionCard } from '@/components/trips/now/NextCriticalActionCard';
 import { TodayCompactTimeline } from '@/components/trips/now/TodayCompactTimeline';
