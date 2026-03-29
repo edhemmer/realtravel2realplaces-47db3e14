@@ -84,13 +84,13 @@ export function MoveTab({ tripId, trip }: MoveTabProps) {
       const p: MoveOption = {
         kind: 'drive',
         label: 'Drive Mode',
-        reason: driveTarget?.label || 'Navigate your route',
+        reason: driveTarget?.label ? `Your fastest option right now — head to ${driveTarget.label}` : 'Your most direct option for the current leg',
         isDrive: true,
       };
       const s: MoveOption | null = nextBooking ? {
         kind: 'booking',
         label: `${getTransportLabel(nextBooking.booking_type)}: ${nextBooking.vendor_name}`,
-        reason: nextBooking.confirmation_number ? `Conf ${nextBooking.confirmation_number}` : 'Alternative transport',
+        reason: nextBooking.confirmation_number ? `Confirmation ${nextBooking.confirmation_number} — a scheduled alternative` : 'A scheduled alternative if plans change',
         booking: nextBooking,
       } : null;
       return { primary: p, secondary: s };
@@ -101,18 +101,17 @@ export function MoveTab({ tripId, trip }: MoveTabProps) {
       const p: MoveOption = {
         kind: 'booking',
         label: `${getTransportLabel(nextBooking.booking_type)}: ${nextBooking.vendor_name}`,
-        reason: nextBooking.confirmation_number ? `Conf ${nextBooking.confirmation_number}` : 'Your next transport',
+        reason: nextBooking.confirmation_number ? `Confirmation ${nextBooking.confirmation_number} — your scheduled transport` : 'Your next scheduled transport option',
         booking: nextBooking,
       };
-      // Secondary: drive mode if available, else alt booking
       let s: MoveOption | null = null;
       if (isDriveTrip && activeDrive) {
-        s = { kind: 'drive', label: 'Drive Mode', reason: driveTarget?.label || 'Navigate your route', isDrive: true };
+        s = { kind: 'drive', label: 'Drive Mode', reason: driveTarget?.label ? `Drive to ${driveTarget.label} instead — avoids the booking logistics` : 'Drive yourself if you prefer flexibility over the scheduled option', isDrive: true };
       } else if (altBooking) {
         s = {
           kind: 'booking',
           label: `${getTransportLabel(altBooking.booking_type)}: ${altBooking.vendor_name}`,
-          reason: altBooking.confirmation_number ? `Conf ${altBooking.confirmation_number}` : 'Alternative option',
+          reason: altBooking.confirmation_number ? `Confirmation ${altBooking.confirmation_number} — a backup if timing shifts` : 'Available as a backup if your plans change',
           booking: altBooking,
         };
       }
@@ -122,7 +121,7 @@ export function MoveTab({ tripId, trip }: MoveTabProps) {
     // Drive-only fallback
     if (isDriveTrip && activeDrive) {
       return {
-        primary: { kind: 'drive', label: 'Drive Mode', reason: driveTarget?.label || 'Navigate your route', isDrive: true },
+        primary: { kind: 'drive', label: 'Drive Mode', reason: driveTarget?.label ? `Head to ${driveTarget.label} — your only transport option right now` : 'Your only transport option for this leg', isDrive: true },
         secondary: null,
       };
     }
@@ -134,8 +133,8 @@ export function MoveTab({ tripId, trip }: MoveTabProps) {
     return (
       <div className="text-center py-12 pb-20">
         <Car className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
-        <p className="text-sm text-muted-foreground">No transport options available.</p>
-        <p className="text-xs text-muted-foreground/60 mt-1">Add flights, rentals, or drives to see them here.</p>
+        <p className="text-sm text-muted-foreground">No transport options to show yet.</p>
+        <p className="text-xs text-muted-foreground/60 mt-1">Once you add flights, rentals, or set up a drive, your options will appear here.</p>
       </div>
     );
   }
