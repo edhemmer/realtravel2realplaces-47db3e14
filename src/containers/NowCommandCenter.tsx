@@ -38,6 +38,7 @@ import { TripBriefSection } from '@/components/trips/TripBriefSection';
 import { getActiveDriveSegment, getNavigationTarget } from '@/lib/driveIntelligenceHelper';
 import { computeProactiveInsights } from '@/lib/proactiveInsightEngine';
 import { ProactiveInsightsCard } from '@/components/trips/now/ProactiveInsightsCard';
+import { computeOrchestratedContext } from '@/lib/ai/aiOrchestrationEngine';
 import type { TravelAlert } from '@/hooks/useTravelAlerts';
 import type { DriveSignal } from '@/lib/driveEngine';
 
@@ -214,6 +215,12 @@ export function NowCommandCenter({
     [canonicalState, resumeTick]
   );
 
+  // v5.4.0: AI Orchestration — cohesive context above deterministic layers
+  const orchestratedContext = useMemo(
+    () => computeOrchestratedContext(canonicalState, proactiveInsights),
+    [canonicalState, proactiveInsights]
+  );
+
   // v3.8.17: Buffer Intelligence — cross-engine reasoning
   const bufferStatus = useMemo(
     () => computeBufferStatus(nextAction, drivePlan),
@@ -303,6 +310,16 @@ export function NowCommandCenter({
           }
         }}
       />
+
+      {/* v5.4.0: AI Orchestrated Context — primary focus + summary */}
+      {orchestratedContext && (
+        <div className="px-4 py-3 rounded-xl bg-primary/5 border border-primary/15">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">
+            {orchestratedContext.primaryFocus}
+          </p>
+          <p className="text-sm text-foreground leading-snug">{orchestratedContext.summary}</p>
+        </div>
+      )}
 
       {/* 3. DECISION BLOCK — exactly 2 lines, deterministic, inline logic */}
       {(() => {
