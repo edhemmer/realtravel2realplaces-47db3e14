@@ -1,11 +1,13 @@
 import { useState, useMemo } from 'react';
 import { Trip, TripState } from '@/types/database';
 import { useAccess } from '@/hooks/useAccess';
+import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Lock, Archive, Clock, Moon, CalendarCog, CalendarClock, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EditTripDatesDialog } from './EditTripDatesDialog';
+import { TripAskDialog } from './TripAskDialog';
 import { resolveCanonicalLifecycle, daysBetween, getTodayDateOnly } from '@/lib/canonicalTimePolicy';
 import { getTripMode, getModeTheme } from '@/lib/modeTheme';
 
