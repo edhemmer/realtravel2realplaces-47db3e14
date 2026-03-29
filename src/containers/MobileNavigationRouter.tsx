@@ -114,9 +114,10 @@ export function MobileNavigationRouter({
 
   // v4.1.0: Initialize from externalTab so dashboard ?tab= links land correctly
   const resolveInitialTab = (tab?: TripTab): TripTab => {
-    if (!tab) return 'plan';
-    if (tab === 'summary') return 'plan';
-    if (tab === 'now') return 'plan';
+    if (!tab) return 'today';
+    if (tab === 'summary') return 'today';
+    if (tab === 'now') return 'today';
+    if (tab === 'plan') return 'flow';
     return tab;
   };
   const [activeTab, setActiveTabRaw] = useState<TripTab>(resolveInitialTab(externalTab));
@@ -130,19 +131,23 @@ export function MobileNavigationRouter({
   // Legacy route protection
   useEffect(() => {
     if (activeTab === 'summary') {
-      setActiveTab('plan');
+      setActiveTab('today');
     } else if (activeTab === 'timeline') {
-      setActiveTab('plan');
+      setActiveTab('flow');
+    } else if (activeTab === 'plan') {
+      setActiveTab('flow');
     } else if (activeTab === 'now') {
-      // 'now' is now in More menu, keep it valid
+      setActiveTab('today');
     }
   }, [activeTab]);
 
   // Consume external tab changes
   useEffect(() => {
     if (externalTab) {
-      if (externalTab === 'summary') {
-        setActiveTab('plan');
+      if (externalTab === 'summary' || externalTab === 'now') {
+        setActiveTab('today');
+      } else if (externalTab === 'plan' || externalTab === 'timeline') {
+        setActiveTab('flow');
       } else {
         setActiveTab(externalTab);
       }
@@ -152,12 +157,12 @@ export function MobileNavigationRouter({
 
   // v3.5.1: Canonical tab change
   const handleTabChange = useCallback((tab: TripTab) => {
-    if (tab === 'summary') {
-      setActiveTab('plan');
+    if (tab === 'summary' || tab === 'now') {
+      setActiveTab('today');
       return;
     }
-    if (tab === 'timeline') {
-      setActiveTab('plan');
+    if (tab === 'timeline' || tab === 'plan') {
+      setActiveTab('flow');
       return;
     }
     setActiveTab(tab);
