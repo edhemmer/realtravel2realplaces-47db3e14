@@ -20,7 +20,9 @@ interface TripStatusHeroBarProps {
  */
 export function TripStatusHeroBar({ trip }: TripStatusHeroBarProps) {
    const { isPro } = useAccess();
+   const { state: canonicalState } = useCanonicalTripState(trip.id, trip);
    const [editDatesOpen, setEditDatesOpen] = useState(false);
+   const [askOpen, setAskOpen] = useState(false);
    const tripState = (trip.trip_state || 'active') as TripState;
 
    const lifecycle = useMemo(
