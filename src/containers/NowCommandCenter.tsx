@@ -311,6 +311,16 @@ export function NowCommandCenter({
         }}
       />
 
+      {/* v5.4.0: AI Orchestrated Context — primary focus + summary */}
+      {orchestratedContext && (
+        <div className="px-4 py-3 rounded-xl bg-primary/5 border border-primary/15">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">
+            {orchestratedContext.primaryFocus}
+          </p>
+          <p className="text-sm text-foreground leading-snug">{orchestratedContext.summary}</p>
+        </div>
+      )}
+
       {/* 3. DECISION BLOCK — exactly 2 lines, deterministic, inline logic */}
       {(() => {
         if (!nextAction) return null;
