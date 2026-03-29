@@ -27,6 +27,8 @@ import {
   TripAlertsContainer,
 } from '@/containers';
 import { NowCommandCenter } from '@/containers/NowCommandCenter';
+import { MoveTab } from '@/components/trips/tabs/MoveTab';
+import { GuideTab } from '@/components/trips/tabs/GuideTab';
 import { ParkingTab } from '@/components/trips/tabs/ParkingTab';
 import { PackingTab } from '@/components/trips/tabs/PackingTab';
 import { CompanionsTab } from '@/components/trips/tabs/CompanionsTab';
