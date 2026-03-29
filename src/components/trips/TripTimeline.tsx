@@ -128,15 +128,47 @@ export function TripTimeline({ events, datetimeFormat, onEventClick, onExploreNe
   const grouped: { date: string; events: CanonicalTimelineEvent[] }[] = [];
   const use24h = datetimeFormat === 'DD/MM/YYYY 24h';
 
+  // v5.0.0: Sort events into day groups with correct ordering:
+  // today → execution order (ascending by time)
+  // future → ascending by date+time
+  // past → descending by date+time
+  // Multi-leg: all segments pass through — no collapsing or merging.
+
+  // First group by date
+  const rawGrouped: { date: string; events: CanonicalTimelineEvent[] }[] = [];
   for (const event of events) {
     const dateStr = event.eventLocalDateTime ? event.eventLocalDateTime.substring(0, 10) : '';
-    const lastGroup = grouped[grouped.length - 1];
+    const lastGroup = rawGrouped[rawGrouped.length - 1];
     if (lastGroup && lastGroup.date === dateStr) {
       lastGroup.events.push(event);
     } else {
-      grouped.push({ date: dateStr, events: [event] });
+      rawGrouped.push({ date: dateStr, events: [event] });
     }
   }
+
+  // Separate into past, today, and future groups
+  const pastGroups: typeof rawGrouped = [];
+  const todayGroup: typeof rawGrouped = [];
+  const futureGroups: typeof rawGrouped = [];
+
+  for (const group of rawGrouped) {
+    if (group.date === todayStr) {
+      todayGroup.push(group);
+    } else if (group.date < todayStr) {
+      pastGroups.push(group);
+    } else {
+      futureGroups.push(group);
+    }
+  }
+
+  // Past: reverse order (most recent past day first)
+  pastGroups.sort((a, b) => b.date.localeCompare(a.date));
+
+  // Future: ascending order (already should be, but ensure)
+  futureGroups.sort((a, b) => a.date.localeCompare(b.date));
+
+  // Final order: today first, then future, then past
+  grouped.push(...todayGroup, ...futureGroups, ...pastGroups);
 
   return (
     <div className="relative">
