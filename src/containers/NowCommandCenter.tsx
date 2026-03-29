@@ -290,7 +290,19 @@ export function NowCommandCenter({
       />
 
       {/* 2b. PROACTIVE INSIGHTS — max 3 deterministic insights */}
-      <ProactiveInsightsCard insights={proactiveInsights} />
+      <ProactiveInsightsCard
+        insights={proactiveInsights}
+        onExplore={onExplore}
+        onWeather={onTimeline}
+        onOpenEvent={(eventId) => {
+          const el = document.getElementById(`event-${eventId}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          } else {
+            onViewFullTimeline();
+          }
+        }}
+      />
 
       {/* 3. DECISION BLOCK — exactly 2 lines, deterministic, inline logic */}
       {(() => {
