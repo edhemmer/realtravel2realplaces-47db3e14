@@ -62,14 +62,14 @@ export function GuideTab({ tripId, trip }: GuideTabProps) {
         items.push({
           id: 'timing-urgent',
           icon: 'timing',
-          text: `${next.title} in ${diffMin} minutes — leave soon.`,
+          text: `You're ${diffMin} minutes away from ${next.title} — best to start heading out now.`,
           priority: 0,
         });
       } else {
         items.push({
           id: 'timing-upcoming',
           icon: 'timing',
-          text: `${next.title} in about ${Math.round(diffMin / 15) * 15} minutes.`,
+          text: `${next.title} is coming up in about ${Math.round(diffMin / 15) * 15} minutes — comfortable but worth keeping in mind.`,
           priority: 1,
         });
       }
@@ -84,7 +84,7 @@ export function GuideTab({ tripId, trip }: GuideTabProps) {
         items.push({
           id: 'compression',
           icon: 'timing',
-          text: `${threeHrEvents.length} events in the next 3 hours — stay on pace.`,
+          text: `You have ${threeHrEvents.length} things lined up over the next few hours — staying on pace will keep the day smooth.`,
           priority: 2,
         });
       }
@@ -99,7 +99,7 @@ export function GuideTab({ tripId, trip }: GuideTabProps) {
         items.push({
           id: 'transition-tight',
           icon: 'timing',
-          text: `Tight transition: only ${gapMin} min between ${upcoming[0].title} and ${upcoming[1].title}.`,
+          text: `There's only ${gapMin} minutes between ${upcoming[0].title} and ${upcoming[1].title} — allow extra time for that transition.`,
           priority: 1,
         });
       }
@@ -115,28 +115,28 @@ export function GuideTab({ tripId, trip }: GuideTabProps) {
         items.push({
           id: 'weather-variation',
           icon: 'weather',
-          text: `Temperature range: ${low}°–${high}° today — layer clothing.`,
+          text: `Expect a wide temperature swing today (${low}°–${high}°) — layering will keep you comfortable through the day.`,
           priority: 5,
         });
       } else if (snap.condition && snap.condition.toLowerCase().includes('rain')) {
         items.push({
           id: 'weather-rain',
           icon: 'weather',
-          text: `Rain expected — bring an umbrella or rain gear.`,
+          text: `Rain is in the forecast — having an umbrella or rain layer handy will save you later.`,
           priority: 4,
         });
       } else if (high !== undefined && high >= 90) {
         items.push({
           id: 'weather-hot',
           icon: 'weather',
-          text: `High of ${high}° expected — stay hydrated.`,
+          text: `It's going to be a warm one today (high of ${high}°) — stay hydrated and take shade breaks when you can.`,
           priority: 5,
         });
       } else if (low !== undefined && low <= 40) {
         items.push({
           id: 'weather-cold',
           icon: 'weather',
-          text: `Low of ${low}° — dress warmly.`,
+          text: `Temperatures will dip to ${low}° — dress warmly, especially if you'll be outside later.`,
           priority: 5,
         });
       }
@@ -170,8 +170,8 @@ export function GuideTab({ tripId, trip }: GuideTabProps) {
     return (
       <div className="text-center py-12 pb-20">
         <CloudSun className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
-        <p className="text-sm text-muted-foreground">No guidance needed right now.</p>
-        <p className="text-xs text-muted-foreground/60 mt-1">Guidance appears when you have upcoming events or weather changes.</p>
+        <p className="text-sm text-muted-foreground">Everything looks good — nothing to flag right now.</p>
+        <p className="text-xs text-muted-foreground/60 mt-1">Guidance will appear when something needs your attention.</p>
       </div>
     );
   }

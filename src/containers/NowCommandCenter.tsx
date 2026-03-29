@@ -313,24 +313,23 @@ export function NowCommandCenter({
         const bufferLevel = bufferStatus?.status;
 
         if (minutesUntil <= 15) {
-          recommendation = `Leave now for ${nextAction.title}`;
-          reason = 'Less than 15 minutes until your next commitment.';
+          recommendation = `You're on a tight window — leave soon for ${nextAction.title}`;
+          reason = 'Every minute counts right now to stay on schedule.';
         } else if (minutesUntil <= 45) {
-          recommendation = `Prepare to leave within ${minutesUntil} minutes`;
-          reason = bufferLevel === 'HIGH_RISK' ? 'Tight window — allow extra time for delays.' : `Stay on schedule for ${nextAction.title}.`;
+          recommendation = `Start wrapping up — ${nextAction.title} is coming up shortly`;
+          reason = bufferLevel === 'HIGH_RISK' ? 'The window is tighter than usual, so allow extra time for the unexpected.' : `You have about ${minutesUntil} minutes, which should be comfortable if you head out soon.`;
         } else if (bufferLevel === 'TIGHT') {
-          recommendation = 'Tight transition ahead — allow extra time';
-          reason = `${nextAction.title} is coming up with limited buffer.`;
+          recommendation = 'Your next transition is tighter than ideal';
+          reason = `Give yourself extra cushion before ${nextAction.title} to avoid feeling rushed.`;
         } else if (isDenseSchedule) {
-          recommendation = 'Busy stretch ahead — stay on pace';
-          reason = `${nearEvents.length} events in the next few hours.`;
+          recommendation = 'You have a packed stretch ahead — keep momentum';
+          reason = `${nearEvents.length} things are lined up over the next few hours, so stay aware of timing.`;
         } else if (minutesUntil <= 120) {
-          recommendation = `${nextAction.title} in about ${Math.round(minutesUntil / 15) * 15} minutes`;
-          reason = 'Comfortable buffer — no rush.';
+          recommendation = `You have time before ${nextAction.title}`;
+          reason = `About ${Math.round(minutesUntil / 15) * 15} minutes — no need to rush, but keep it on your radar.`;
         } else {
-          // Relaxed pacing
-          recommendation = 'Relaxed pacing — no immediate actions';
-          reason = `Next up: ${nextAction.title}${nextAction.rawTimeText ? ` at ${nextAction.rawTimeText}` : ''}.`;
+          recommendation = 'Nothing pressing right now — you have breathing room';
+          reason = `Your next thing is ${nextAction.title}${nextAction.rawTimeText ? ` at ${nextAction.rawTimeText}` : ''}.`;
         }
 
         if (!recommendation) return null;
