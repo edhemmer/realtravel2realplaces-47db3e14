@@ -38,6 +38,7 @@ import { TripBriefSection } from '@/components/trips/TripBriefSection';
 import { getActiveDriveSegment, getNavigationTarget } from '@/lib/driveIntelligenceHelper';
 import { computeProactiveInsights } from '@/lib/proactiveInsightEngine';
 import { ProactiveInsightsCard } from '@/components/trips/now/ProactiveInsightsCard';
+import { computeOrchestratedContext } from '@/lib/ai/aiOrchestrationEngine';
 import type { TravelAlert } from '@/hooks/useTravelAlerts';
 import type { DriveSignal } from '@/lib/driveEngine';
 
