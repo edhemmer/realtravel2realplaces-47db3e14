@@ -1,11 +1,15 @@
 /**
- * v5.2.2: Proactive Insight Engine
+ * v5.3.0: Proactive Insight Engine
  *
  * Deterministic, phase-aware insight generation using ONLY
  * canonicalTripState and canonicalWeather. No AI, no polling,
  * no persistence, no new data sources.
  *
  * v5.2.2: Adds deterministic action metadata for tap-to-act execution.
+ * v5.2.3: Refined message wording for clarity and trust.
+ * v5.3.0: Adds predictive forward-awareness for the next 2 eligible events
+ *         within 120 minutes, suppressed when a current-state insight of the
+ *         same type already exists.
  */
 
 import type { CanonicalTripState, CanonicalTimelineEvent } from '@/lib/canonicalTripState';
@@ -292,12 +296,129 @@ function riskInsight(eligible: CanonicalTimelineEvent[]): ProactiveInsight | nul
 // HELPERS
 // ============================================================================
 
+const priorityOrder: Record<ProactiveInsight['priority'], number> = { high: 0, medium: 1, low: 2 };
+
 function parseMinutes(localDateTime: string): number | null {
   if (!localDateTime || localDateTime.length < 16) return null;
   const h = parseInt(localDateTime.substring(11, 13), 10);
   const m = parseInt(localDateTime.substring(14, 16), 10);
   if (isNaN(h) || isNaN(m)) return null;
   return h * 60 + m;
+}
+
+function safeGapMinutes(a: string, b: string): number | null {
+  const aM = parseMinutes(a);
+  const bM = parseMinutes(b);
+  if (aM === null || bM === null) return null;
+  if (a.substring(0, 10) !== b.substring(0, 10)) return null;
+  return bM - aM;
+}
+
+// ============================================================================
+// PREDICTIVE RULES (v5.3.0)
+// ============================================================================
+
+function getUpcomingPair(eligible: CanonicalTimelineEvent[]): {
+  first: CanonicalTimelineEvent;
+  second: CanonicalTimelineEvent;
+} | null {
+  const todayStr = getLocalNowString().substring(0, 10);
+  const upcoming: CanonicalTimelineEvent[] = [];
+
+  for (const ev of eligible) {
+    if (!ev.eventLocalDateTime) continue;
+    if (ev.eventLocalDateTime.substring(0, 10) !== todayStr) continue;
+    const mins = safeMinutesUntil(ev.eventLocalDateTime);
+    if (mins === null || mins < 0) continue;
+    if (mins > 120) continue;
+    upcoming.push(ev);
+    if (upcoming.length === 2) break;
+  }
+
+  if (upcoming.length < 2) return null;
+  return { first: upcoming[0], second: upcoming[1] };
+}
+
+function predictiveTimeInsight(eligible: CanonicalTimelineEvent[]): ProactiveInsight | null {
+  const pair = getUpcomingPair(eligible);
+  if (!pair) return null;
+  const gap = safeGapMinutes(pair.first.eventLocalDateTime!, pair.second.eventLocalDateTime!);
+  if (gap === null || gap > 30) return null;
+
+  const locationLabel = resolveLocationLabel(pair.first);
+  const action: ProactiveInsightAction | undefined = locationLabel
+    ? { actionType: 'navigate', destinationLabel: locationLabel }
+    : undefined;
+
+  return {
+    id: 'pred-time-compression',
+    type: 'time',
+    priority: 'medium',
+    message: 'Upcoming timing looks tight — keep the next steps moving',
+    action,
+  };
+}
+
+function predictiveLogisticsInsight(eligible: CanonicalTimelineEvent[]): ProactiveInsight | null {
+  const pair = getUpcomingPair(eligible);
+  if (!pair) return null;
+  const gap = safeGapMinutes(pair.first.eventLocalDateTime!, pair.second.eventLocalDateTime!);
+  if (gap === null || gap > 15) return null;
+
+  const action: ProactiveInsightAction | undefined = pair.first.id
+    ? { actionType: 'open_event', eventId: pair.first.id }
+    : undefined;
+
+  return {
+    id: 'pred-logistics-overlap',
+    type: 'logistics',
+    priority: 'high',
+    message: 'Back-to-back events coming up — delays are more likely',
+    action,
+  };
+}
+
+function predictiveWeatherInsight(weatherByKey: Record<string, WeatherSnapshot>): ProactiveInsight | null {
+  const todayStr = getLocalNowString().substring(0, 10);
+  const todaySnapshots = Object.values(weatherByKey).filter((w) => w.dateISO === todayStr);
+  if (todaySnapshots.length === 0) return null;
+
+  const rainy = todaySnapshots.find((w) => (w.precipChance ?? 0) >= 50);
+  const maxHigh = Math.max(...todaySnapshots.map((w) => w.high));
+  const minLow = Math.min(...todaySnapshots.map((w) => w.low));
+  const hasTempSwing = maxHigh - minLow >= 10;
+
+  if (!rainy && !hasTempSwing) return null;
+
+  return {
+    id: 'pred-weather-impact',
+    type: 'weather',
+    priority: 'medium',
+    message: 'Weather may affect upcoming plans — prepare early',
+    action: { actionType: 'open_weather' },
+  };
+}
+
+function predictiveRiskInsight(eligible: CanonicalTimelineEvent[]): ProactiveInsight | null {
+  const pair = getUpcomingPair(eligible);
+  if (!pair) return null;
+
+  const ev = pair.second;
+  const missingLocation = !ev.address && !ev.departureAirportCode && !ev.arrivalAirportCode;
+  const missingTime = !ev.eventLocalDateTime || ev.eventLocalDateTime.length < 16;
+  if (!missingLocation && !missingTime) return null;
+
+  const action: ProactiveInsightAction | undefined = ev.id
+    ? { actionType: 'open_event', eventId: ev.id }
+    : undefined;
+
+  return {
+    id: `pred-risk-${ev.id}`,
+    type: 'risk',
+    priority: 'low',
+    message: 'An upcoming step is missing details — review it early',
+    action,
+  };
 }
 
 // ============================================================================
@@ -314,39 +435,76 @@ export function computeProactiveInsights(
 
   const eligible = state.timelineEvents.filter(isEligible);
 
-  const allInsights: ProactiveInsight[] = [];
+  // ---- Current-state insights ----
+  const currentInsights: ProactiveInsight[] = [];
 
   const weather = weatherInsight(state.weatherByKey);
-  if (weather) allInsights.push(weather);
+  if (weather) currentInsights.push(weather);
 
   const risk = riskInsight(eligible);
-  if (risk) allInsights.push(risk);
+  if (risk) currentInsights.push(risk);
 
+  let currentTime: ProactiveInsight | null = null;
   if (phase === 'active') {
-    const time = timeInsight(eligible);
-    if (time) allInsights.push(time);
+    currentTime = timeInsight(eligible);
+    if (currentTime) currentInsights.push(currentTime);
 
     const logistics = logisticsInsights(eligible);
-
-    if (time) {
+    if (currentTime) {
       logistics.forEach((l) => {
-        if (l.priority === 'high') allInsights.push(l);
+        if (l.priority === 'high') currentInsights.push(l);
       });
     } else {
-      allInsights.push(...logistics);
+      currentInsights.push(...logistics);
     }
   }
 
-  const priorityOrder = { high: 0, medium: 1, low: 2 };
-  const byType = new Map<string, ProactiveInsight>();
-  for (const insight of allInsights) {
-    const existing = byType.get(insight.type);
+  // Deduplicate current: one per type, highest priority wins
+  const currentByType = new Map<string, ProactiveInsight>();
+  for (const insight of currentInsights) {
+    const existing = currentByType.get(insight.type);
     if (!existing || priorityOrder[insight.priority] < priorityOrder[existing.priority]) {
-      byType.set(insight.type, insight);
+      currentByType.set(insight.type, insight);
     }
   }
 
-  const deduped = Array.from(byType.values());
-  deduped.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+  // ---- Predictive insights (v5.3.0) — active phase only ----
+  const predictive: ProactiveInsight[] = [];
+
+  if (phase === 'active') {
+    if (!currentByType.has('time')) {
+      const p = predictiveTimeInsight(eligible);
+      if (p) predictive.push(p);
+    }
+    if (!currentByType.has('logistics')) {
+      const p = predictiveLogisticsInsight(eligible);
+      if (p) predictive.push(p);
+    }
+    if (!currentByType.has('weather')) {
+      const p = predictiveWeatherInsight(state.weatherByKey);
+      if (p) predictive.push(p);
+    }
+    if (!currentByType.has('risk')) {
+      const p = predictiveRiskInsight(eligible);
+      if (p) predictive.push(p);
+    }
+  }
+
+  // ---- Merge: current wins per type, then predictive fills gaps ----
+  const mergedByType = new Map<string, ProactiveInsight>(currentByType);
+  for (const pred of predictive) {
+    if (!mergedByType.has(pred.type)) {
+      mergedByType.set(pred.type, pred);
+    }
+  }
+
+  // Sort: priority first, current-state before predictive at same priority
+  const currentIds = new Set(Array.from(currentByType.values()).map((i) => i.id));
+  const deduped = Array.from(mergedByType.values());
+  deduped.sort((a, b) => {
+    const pDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
+    if (pDiff !== 0) return pDiff;
+    return (currentIds.has(a.id) ? 0 : 1) - (currentIds.has(b.id) ? 0 : 1);
+  });
   return deduped.slice(0, 3);
 }
