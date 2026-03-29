@@ -310,7 +310,7 @@ export function NowCommandCenter({
         const isDenseSchedule = nearEvents.length >= 3;
 
         // Buffer status integration
-        const bufferLevel = bufferStatus?.level;
+        const bufferLevel = bufferStatus?.status;
 
         if (minutesUntil <= 15) {
           recommendation = `Leave now for ${nextAction.title}`;
