@@ -36,6 +36,8 @@ import { QuickExpenseDialog } from '@/components/trips/QuickExpenseDialog';
 import { useTripReadiness } from '@/hooks/useTripReadiness';
 import { TripBriefSection } from '@/components/trips/TripBriefSection';
 import { getActiveDriveSegment, getNavigationTarget } from '@/lib/driveIntelligenceHelper';
+import { computeProactiveInsights } from '@/lib/proactiveInsightEngine';
+import { ProactiveInsightsCard } from '@/components/trips/now/ProactiveInsightsCard';
 import type { TravelAlert } from '@/hooks/useTravelAlerts';
 import type { DriveSignal } from '@/lib/driveEngine';
 
@@ -205,6 +207,13 @@ export function NowCommandCenter({
     [executionWindows, trip.trip_type]
   );
 
+  // v5.2.1: Proactive Insights — deterministic, phase-aware
+  const proactiveInsights = useMemo(
+    () => computeProactiveInsights(canonicalState),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [canonicalState, resumeTick]
+  );
+
   // v3.8.17: Buffer Intelligence — cross-engine reasoning
   const bufferStatus = useMemo(
     () => computeBufferStatus(nextAction, drivePlan),
@@ -279,6 +288,9 @@ export function NowCommandCenter({
         activeDriveSegment={activeDriveSegment}
         driveNavTarget={driveNavTarget}
       />
+
+      {/* 2b. PROACTIVE INSIGHTS — max 3 deterministic insights */}
+      <ProactiveInsightsCard insights={proactiveInsights} />
 
       {/* 3. DECISION BLOCK — exactly 2 lines, deterministic, inline logic */}
       {(() => {
