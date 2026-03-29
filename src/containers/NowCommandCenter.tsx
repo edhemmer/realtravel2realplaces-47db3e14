@@ -280,6 +280,69 @@ export function NowCommandCenter({
         driveNavTarget={driveNavTarget}
       />
 
+      {/* 3. DECISION BLOCK — exactly 2 lines, deterministic, inline logic */}
+      {(() => {
+        if (!nextAction) return null;
+
+        // Derive recommendation + reason from existing execution data
+        let recommendation = '';
+        let reason = '';
+
+        // Parse countdown for minutes-based logic
+        const countdownStr = nextAction.countdown;
+        let minutesUntil = Infinity;
+        if (countdownStr) {
+          const hMatch = countdownStr.match(/(\d+)\s*h/);
+          const mMatch = countdownStr.match(/(\d+)\s*m/);
+          minutesUntil = (hMatch ? parseInt(hMatch[1]) * 60 : 0) + (mMatch ? parseInt(mMatch[1]) : 0);
+          if (minutesUntil === 0 && countdownStr.includes('now')) minutesUntil = 0;
+        }
+
+        // Check schedule density: count events in next 3 hours
+        const nowMs = Date.now();
+        const threeHoursMs = 3 * 60 * 60 * 1000;
+        const nearEvents = timelineEvents.filter(e => {
+          if (!e.eventLocalDateTime) return false;
+          const evDate = new Date(e.eventLocalDateTime);
+          const diff = evDate.getTime() - nowMs;
+          return diff > 0 && diff < threeHoursMs;
+        });
+        const isDenseSchedule = nearEvents.length >= 3;
+
+        // Buffer status integration
+        const bufferLevel = bufferStatus?.status;
+
+        if (minutesUntil <= 15) {
+          recommendation = `Leave now for ${nextAction.title}`;
+          reason = 'Less than 15 minutes until your next commitment.';
+        } else if (minutesUntil <= 45) {
+          recommendation = `Prepare to leave within ${minutesUntil} minutes`;
+          reason = bufferLevel === 'HIGH_RISK' ? 'Tight window — allow extra time for delays.' : `Stay on schedule for ${nextAction.title}.`;
+        } else if (bufferLevel === 'TIGHT') {
+          recommendation = 'Tight transition ahead — allow extra time';
+          reason = `${nextAction.title} is coming up with limited buffer.`;
+        } else if (isDenseSchedule) {
+          recommendation = 'Busy stretch ahead — stay on pace';
+          reason = `${nearEvents.length} events in the next few hours.`;
+        } else if (minutesUntil <= 120) {
+          recommendation = `${nextAction.title} in about ${Math.round(minutesUntil / 15) * 15} minutes`;
+          reason = 'Comfortable buffer — no rush.';
+        } else {
+          // Relaxed pacing
+          recommendation = 'Relaxed pacing — no immediate actions';
+          reason = `Next up: ${nextAction.title}${nextAction.rawTimeText ? ` at ${nextAction.rawTimeText}` : ''}.`;
+        }
+
+        if (!recommendation) return null;
+
+        return (
+          <div className="px-4 py-3 rounded-xl bg-primary/5 border border-primary/15">
+            <p className="text-sm font-semibold text-foreground leading-snug">{recommendation}</p>
+            <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{reason}</p>
+          </div>
+        );
+      })()}
+
       {/* 3. Critical Today Actions (if any) */}
       <TodayCriticalActionsCard criticalActions={todayExecution.criticalActions} />
 

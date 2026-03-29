@@ -1,22 +1,19 @@
 /**
- * v5.0.0: GUIDE Tab
+ * v5.0.1: GUIDE Tab — Hard Prioritized
  *
- * Light guidance view using ONLY existing data:
- * - Timing awareness (upcoming transitions from canonical timeline)
- * - Weather awareness (from canonicalWeather via useCanonicalTripState)
- * - Basic alerts (from useTravelAlerts)
- *
- * No AI. No new systems. No integrations.
+ * Displays max 3 items, each a single sentence.
+ * Priority: timing risk > transition proximity > weather.
+ * Uses ONLY existing canonical data. No AI. No new systems.
  */
 
 import { useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Clock, CloudSun, AlertTriangle, CheckCircle2, Thermometer } from 'lucide-react';
+import { Clock, CloudSun, AlertTriangle, Thermometer } from 'lucide-react';
 import { Trip } from '@/types/database';
 import { useCanonicalTripState, deriveWeatherPills, type WeatherPill } from '@/hooks/useCanonicalTripState';
 import { useBookings } from '@/hooks/useBookings';
 import { useParking } from '@/hooks/useParking';
-import { useTravelAlerts, type TravelAlert } from '@/hooks/useTravelAlerts';
+import { useTravelAlerts } from '@/hooks/useTravelAlerts';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { getLocalNowString } from '@/lib/canonicalNextStop';
 import type { CanonicalTimelineEvent } from '@/lib/canonicalTripState';
@@ -26,26 +23,15 @@ interface GuideTabProps {
   trip: Trip;
 }
 
-/** Get upcoming transitions (next 3 events from now) */
-function getUpcomingTransitions(events: CanonicalTimelineEvent[], nowStr: string): CanonicalTimelineEvent[] {
-  return events
-    .filter(e => e.eventLocalDateTime && e.eventLocalDateTime >= nowStr)
-    .slice(0, 3);
-}
-
-function getTransitionLabel(event: CanonicalTimelineEvent): string {
-  switch (event.bookingType) {
-    case 'flight': return 'Flight';
-    case 'stay': return event.eventType === 'hotel_checkout' ? 'Check-out' : 'Check-in';
-    case 'car_rental': return event.eventType === 'rental_dropoff' ? 'Return Rental' : 'Pick Up Rental';
-    case 'activity': return 'Activity';
-    case 'transport': return 'Transport';
-    default: return 'Event';
-  }
+interface GuideItem {
+  id: string;
+  icon: 'timing' | 'weather' | 'alert';
+  text: string;
+  priority: number; // lower = higher priority
 }
 
 export function GuideTab({ tripId, trip }: GuideTabProps) {
-  const { timelineEvents, weatherByKey, state } = useCanonicalTripState(tripId, trip);
+  const { timelineEvents, weatherByKey } = useCanonicalTripState(tripId, trip);
   const { data: bookings = [] } = useBookings(tripId);
   const { data: parkingList = [] } = useParking(tripId);
   const { data: userProfile } = useUserProfile();
@@ -53,152 +39,157 @@ export function GuideTab({ tripId, trip }: GuideTabProps) {
   const { alerts } = useTravelAlerts(trip, bookings, parkingList, temperatureUnit);
 
   const nowStr = getLocalNowString();
-
-  // Upcoming transitions
-  const transitions = useMemo(
-    () => getUpcomingTransitions(timelineEvents, nowStr),
-    [timelineEvents, nowStr],
-  );
-
-  // Weather pills from first available snapshot
-  const weatherPills = useMemo((): WeatherPill[] => {
-    const snapshots = Object.values(weatherByKey);
-    if (snapshots.length === 0) return [];
-    // Use first snapshot for pills
-    return deriveWeatherPills(snapshots[0]);
-  }, [weatherByKey]);
-
-  // Active alerts (max 3)
-  const activeAlerts = useMemo(
-    () => alerts.slice(0, 3),
-    [alerts],
-  );
-
   const todayStr = nowStr.substring(0, 10);
-  const isTripActive = todayStr >= trip.start_date && todayStr <= trip.end_date;
+
+  // Build prioritized guide items (max 3)
+  const guideItems = useMemo((): GuideItem[] => {
+    const items: GuideItem[] = [];
+    const nowMs = Date.now();
+
+    // 1. Timing risk — upcoming events within 2 hours
+    const upcoming = timelineEvents.filter(e => {
+      if (!e.eventLocalDateTime) return false;
+      const evMs = new Date(e.eventLocalDateTime).getTime();
+      const diff = evMs - nowMs;
+      return diff > 0 && diff < 2 * 60 * 60 * 1000;
+    });
+
+    if (upcoming.length > 0) {
+      const next = upcoming[0];
+      const diffMin = Math.round((new Date(next.eventLocalDateTime!).getTime() - nowMs) / 60000);
+
+      if (diffMin <= 30) {
+        items.push({
+          id: 'timing-urgent',
+          icon: 'timing',
+          text: `${next.title} in ${diffMin} minutes — leave soon.`,
+          priority: 0,
+        });
+      } else {
+        items.push({
+          id: 'timing-upcoming',
+          icon: 'timing',
+          text: `${next.title} in about ${Math.round(diffMin / 15) * 15} minutes.`,
+          priority: 1,
+        });
+      }
+
+      // Schedule compression: multiple events within 3 hours
+      const threeHrEvents = timelineEvents.filter(e => {
+        if (!e.eventLocalDateTime) return false;
+        const diff = new Date(e.eventLocalDateTime).getTime() - nowMs;
+        return diff > 0 && diff < 3 * 60 * 60 * 1000;
+      });
+      if (threeHrEvents.length >= 3) {
+        items.push({
+          id: 'compression',
+          icon: 'timing',
+          text: `${threeHrEvents.length} events in the next 3 hours — stay on pace.`,
+          priority: 2,
+        });
+      }
+    }
+
+    // 2. Transition proximity — check gaps between consecutive upcoming events
+    if (upcoming.length >= 2) {
+      const first = new Date(upcoming[0].eventLocalDateTime!).getTime();
+      const second = new Date(upcoming[1].eventLocalDateTime!).getTime();
+      const gapMin = Math.round((second - first) / 60000);
+      if (gapMin <= 30) {
+        items.push({
+          id: 'transition-tight',
+          icon: 'timing',
+          text: `Tight transition: only ${gapMin} min between ${upcoming[0].title} and ${upcoming[1].title}.`,
+          priority: 1,
+        });
+      }
+    }
+
+    // 3. Weather — from first snapshot
+    const snapshots = Object.values(weatherByKey);
+    if (snapshots.length > 0) {
+      const snap = snapshots[0];
+      const high = snap.high;
+      const low = snap.low;
+      if (high !== undefined && low !== undefined && high - low >= 15) {
+        items.push({
+          id: 'weather-variation',
+          icon: 'weather',
+          text: `Temperature range: ${low}°–${high}° today — layer clothing.`,
+          priority: 5,
+        });
+      } else if (snap.condition && snap.condition.toLowerCase().includes('rain')) {
+        items.push({
+          id: 'weather-rain',
+          icon: 'weather',
+          text: `Rain expected — bring an umbrella or rain gear.`,
+          priority: 4,
+        });
+      } else if (high !== undefined && high >= 90) {
+        items.push({
+          id: 'weather-hot',
+          icon: 'weather',
+          text: `High of ${high}° expected — stay hydrated.`,
+          priority: 5,
+        });
+      } else if (low !== undefined && low <= 40) {
+        items.push({
+          id: 'weather-cold',
+          icon: 'weather',
+          text: `Low of ${low}° — dress warmly.`,
+          priority: 5,
+        });
+      }
+    }
+
+    // 4. Critical alerts (severity-based)
+    const critAlerts = alerts.filter(a => a.severity === 'critical' || a.severity === 'warning');
+    if (critAlerts.length > 0) {
+      items.push({
+        id: `alert-${critAlerts[0].id}`,
+        icon: 'alert',
+        text: critAlerts[0].message,
+        priority: critAlerts[0].severity === 'critical' ? 0 : 3,
+      });
+    }
+
+    // Sort by priority, take top 3
+    items.sort((a, b) => a.priority - b.priority);
+    return items.slice(0, 3);
+  }, [timelineEvents, weatherByKey, alerts]);
+
+  const getIcon = (type: GuideItem['icon']) => {
+    switch (type) {
+      case 'timing': return <Clock className="w-4 h-4 text-primary" />;
+      case 'weather': return <Thermometer className="w-4 h-4 text-muted-foreground" />;
+      case 'alert': return <AlertTriangle className="w-4 h-4 text-orange-500" />;
+    }
+  };
+
+  if (guideItems.length === 0) {
+    return (
+      <div className="text-center py-12 pb-20">
+        <CloudSun className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
+        <p className="text-sm text-muted-foreground">No guidance needed right now.</p>
+        <p className="text-xs text-muted-foreground/60 mt-1">Guidance appears when you have upcoming events or weather changes.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-4 pb-20">
-      {/* Status */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-              isTripActive ? 'bg-success/10' : 'bg-muted/60'
-            }`}>
-              <CheckCircle2 className={`w-5 h-5 ${isTripActive ? 'text-success' : 'text-muted-foreground'}`} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold">
-                {isTripActive ? 'Trip Active' : todayStr < trip.start_date ? 'Upcoming Trip' : 'Trip Completed'}
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {trip.destination_city}, {trip.destination_country}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Timing Awareness — Upcoming Transitions */}
-      {transitions.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">
-            Coming Up
-          </h3>
-          {transitions.map(event => {
-            const timeStr = event.eventLocalDateTime?.substring(11, 16) || '';
-            const dateStr = event.eventLocalDateTime?.substring(0, 10) || '';
-            const isToday = dateStr === todayStr;
-            return (
-              <Card key={event.id}>
-                <CardContent className="p-3.5">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <Clock className="w-4 h-4 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                        {getTransitionLabel(event)}
-                      </p>
-                      <p className="text-sm font-medium truncate mt-0.5">{event.title}</p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      {timeStr && (
-                        <p className="text-sm font-semibold tabular-nums">{timeStr}</p>
-                      )}
-                      <p className="text-[11px] text-muted-foreground">
-                        {isToday ? 'Today' : dateStr}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Weather Awareness */}
-      {weatherPills.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">
-            Weather
-          </h3>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex flex-wrap gap-3">
-                {weatherPills.slice(0, 5).map((pill, i) => (
-                  <div key={i} className="flex items-center gap-2 bg-muted/40 rounded-lg px-3 py-2">
-                    <Thermometer className="w-3.5 h-3.5 text-muted-foreground" />
-                    <div>
-                      <p className="text-xs font-medium">{pill.label}</p>
-                      <p className="text-[11px] text-muted-foreground">{pill.label}</p>
-                    </div>
-                  </div>
-                ))}
+    <div className="space-y-2 pb-20">
+      {guideItems.map(item => (
+        <Card key={item.id}>
+          <CardContent className="p-3.5">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-muted/40 flex items-center justify-center shrink-0 mt-0.5">
+                {getIcon(item.icon)}
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Alerts */}
-      {activeAlerts.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">
-            Alerts
-          </h3>
-          {activeAlerts.map(alert => (
-            <Card key={alert.id} className={
-              alert.severity === 'critical' ? 'border-destructive/30' : 
-              alert.severity === 'warning' ? 'border-orange-400/30' : ''
-            }>
-              <CardContent className="p-3.5">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className={`w-4 h-4 shrink-0 mt-0.5 ${
-                    alert.severity === 'critical' ? 'text-destructive' : 
-                    alert.severity === 'warning' ? 'text-orange-500' : 'text-muted-foreground'
-                  }`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{alert.title}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{alert.message}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* No weather, no alerts, no transitions */}
-      {transitions.length === 0 && weatherPills.length === 0 && activeAlerts.length === 0 && (
-        <div className="text-center py-12">
-          <CloudSun className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">No guidance available yet.</p>
-          <p className="text-xs text-muted-foreground/60 mt-1">Add bookings to get timing and weather guidance.</p>
-        </div>
-      )}
+              <p className="text-sm text-foreground leading-relaxed">{item.text}</p>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 }
