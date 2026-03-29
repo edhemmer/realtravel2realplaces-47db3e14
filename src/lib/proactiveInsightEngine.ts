@@ -112,9 +112,17 @@ function timeInsight(eligible: CanonicalTimelineEvent[]): ProactiveInsight | nul
     if (mins > 90) continue;
 
     let priority: ProactiveInsight['priority'];
-    if (mins <= 30) priority = 'high';
-    else if (mins <= 60) priority = 'medium';
-    else priority = 'low';
+    let message: string;
+    if (mins <= 30) {
+      priority = 'high';
+      message = 'Leave soon — timing is tight';
+    } else if (mins <= 60) {
+      priority = 'medium';
+      message = `Leave in ~${mins} min — stay on schedule`;
+    } else {
+      priority = 'low';
+      message = 'Next step is coming up — you are on track';
+    }
 
     const locationLabel = resolveLocationLabel(ev);
     const action: ProactiveInsightAction | undefined = locationLabel
@@ -125,7 +133,7 @@ function timeInsight(eligible: CanonicalTimelineEvent[]): ProactiveInsight | nul
       id: `time-${ev.id}`,
       type: 'time',
       priority,
-      message: `Leave in ~${mins} minutes to stay on time`,
+      message,
       action,
     };
   }
@@ -148,7 +156,7 @@ function weatherInsight(weatherByKey: Record<string, WeatherSnapshot>): Proactiv
       id: 'weather-rain',
       type: 'weather',
       priority: 'high',
-      message: 'Rain likely today — consider bringing an umbrella or adjusting plans',
+      message: 'Rain likely later — plan accordingly',
       action: weatherAction,
     };
   }
@@ -160,7 +168,7 @@ function weatherInsight(weatherByKey: Record<string, WeatherSnapshot>): Proactiv
       id: 'weather-temp',
       type: 'weather',
       priority: 'medium',
-      message: 'Conditions changing later — consider appropriate preparation',
+      message: 'Cooler conditions later — bring a layer',
       action: weatherAction,
     };
   }
@@ -172,7 +180,7 @@ function weatherInsight(weatherByKey: Record<string, WeatherSnapshot>): Proactiv
       id: 'weather-night',
       type: 'weather',
       priority: 'low',
-      message: 'Evening approaching — temperatures will drop, plan for cooler conditions',
+      message: 'It will be darker later — plan accordingly',
       action: weatherAction,
     };
   }
@@ -214,7 +222,9 @@ function logisticsInsights(eligible: CanonicalTimelineEvent[]): ProactiveInsight
           id: 'logistics-density',
           type: 'logistics',
           priority: hasOverlap ? 'high' : 'medium',
-          message: 'Tight schedule — allow buffer or adjust plans',
+          message: hasOverlap
+            ? 'Very tight schedule — delays are more likely'
+            : 'Tight schedule — multiple stops are close together',
           action,
         });
         break;
@@ -231,7 +241,7 @@ function logisticsInsights(eligible: CanonicalTimelineEvent[]): ProactiveInsight
         id: 'logistics-gap',
         type: 'logistics',
         priority: 'low',
-        message: 'You have free time — consider exploring nearby',
+        message: 'You have a free window — good time to explore',
         action: { actionType: 'open_explore' },
       });
       break;
@@ -256,11 +266,20 @@ function riskInsight(eligible: CanonicalTimelineEvent[]): ProactiveInsight | nul
         ? { actionType: 'open_event', eventId: ev.id }
         : undefined;
 
+      let riskMessage: string;
+      if (missingLocation && missingTime) {
+        riskMessage = 'Missing key details — review before the next step';
+      } else if (missingLocation) {
+        riskMessage = 'Missing location details — review before the next step';
+      } else {
+        riskMessage = 'Missing time details — review before the next step';
+      }
+
       return {
         id: `risk-${ev.id}`,
         type: 'risk',
         priority: 'high',
-        message: 'Missing key details — review upcoming step',
+        message: riskMessage,
         action,
       };
     }
