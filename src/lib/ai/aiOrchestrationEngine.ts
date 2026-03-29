@@ -1,0 +1,327 @@
+/**
+ * v5.4.0: AI Orchestration Engine
+ *
+ * Single canonical AI orchestration layer that sits above deterministic systems
+ * and converts structured trip state into cohesive, human-useful guidance.
+ *
+ * ARCHITECTURE BOUNDARY:
+ * - Deterministic systems (canonicalTripState, proactiveInsightEngine) remain
+ *   the source of truth for data, triggers, and safety.
+ * - This layer summarizes, prioritizes, and explains — it does NOT replace
+ *   canonical truth, modify state, or invent unsupported facts.
+ *
+ * INPUTS: canonicalTripState, canonicalWeather, proactive insight outputs
+ * NO new APIs, NO persistence, NO background agents, NO polling.
+ */
+
+import type { CanonicalTripState, CanonicalTimelineEvent } from '@/lib/canonicalTripState';
+import type { ProactiveInsight, ProactiveInsightAction } from '@/lib/proactiveInsightEngine';
+import { getLocalNowString } from '@/lib/canonicalNextStop';
+
+// ============================================================================
+// OUTPUT TYPES
+// ============================================================================
+
+export type AIOrchestratedGuidanceItem = {
+  id: string;
+  title: string;
+  message: string;
+  priority: 'high' | 'medium' | 'low';
+  type: 'time' | 'weather' | 'logistics' | 'risk' | 'expense' | 'explore' | 'general';
+  actionHint?: string;
+};
+
+export type AIOrchestratedAction = {
+  id: string;
+  label: string;
+  actionType: 'navigate' | 'open_event' | 'open_explore' | 'open_weather' | 'open_expenses' | 'review';
+  actionPayload?: Record<string, unknown>;
+};
+
+export type AIOrchestratedContext = {
+  phase: 'pre-trip' | 'in-transit' | 'active' | 'post-trip';
+  primaryFocus: string;
+  summary: string;
+  prioritizedGuidance: AIOrchestratedGuidanceItem[];
+  recommendedActions: AIOrchestratedAction[];
+};
+
+// ============================================================================
+// PHASE DETECTION
+// ============================================================================
+
+function resolvePhase(state: CanonicalTripState): AIOrchestratedContext['phase'] {
+  const today = getLocalNowString().substring(0, 10);
+  const start = state.trip.start_date;
+  const end = state.trip.end_date;
+  if (today > end) return 'post-trip';
+  if (today >= start) return 'active';
+  return 'pre-trip';
+}
+
+// ============================================================================
+// SAFE TIME HELPERS (reuse canonical string approach)
+// ============================================================================
+
+function safeMinutesUntilEvent(eventLocalDateTime: string): number | null {
+  if (!eventLocalDateTime || eventLocalDateTime.length < 16) return null;
+  const timePart = eventLocalDateTime.substring(11, 16);
+  if (!/^\d{2}:\d{2}$/.test(timePart)) return null;
+
+  const nowStr = getLocalNowString();
+  if (nowStr.substring(0, 10) !== eventLocalDateTime.substring(0, 10)) return null;
+
+  const nowH = parseInt(nowStr.substring(11, 13), 10);
+  const nowM = parseInt(nowStr.substring(14, 16), 10);
+  const evH = parseInt(timePart.substring(0, 2), 10);
+  const evM = parseInt(timePart.substring(3, 5), 10);
+
+  if (isNaN(nowH) || isNaN(nowM) || isNaN(evH) || isNaN(evM)) return null;
+  const diff = (evH * 60 + evM) - (nowH * 60 + nowM);
+  return diff >= 0 ? diff : null;
+}
+
+// ============================================================================
+// PRIMARY FOCUS RESOLVER
+// ============================================================================
+
+function resolvePrimaryFocus(
+  phase: AIOrchestratedContext['phase'],
+  state: CanonicalTripState,
+  insights: ProactiveInsight[],
+): string {
+  if (phase === 'post-trip') return 'Trip complete — review your experience';
+  if (phase === 'pre-trip') {
+    const daysUntil = daysBetween(getLocalNowString().substring(0, 10), state.trip.start_date);
+    if (daysUntil <= 1) return 'Final preparations before departure';
+    if (daysUntil <= 3) return 'Getting ready for your trip';
+    return 'Planning ahead for your upcoming trip';
+  }
+
+  // Active phase: derive from highest-priority insight
+  const highInsight = insights.find((i) => i.priority === 'high');
+  if (highInsight) {
+    switch (highInsight.type) {
+      case 'time': return 'Making the next arrival on time';
+      case 'risk': return 'Reviewing missing details for upcoming steps';
+      case 'logistics': return 'Handling a tight transition';
+      case 'weather': return 'Adapting to changing conditions';
+    }
+  }
+
+  // Check for upcoming events
+  const todayStr = getLocalNowString().substring(0, 10);
+  const todayEvents = state.timelineEvents.filter(
+    (e) => e.eventLocalDateTime && e.eventLocalDateTime.substring(0, 10) === todayStr
+  );
+
+  if (todayEvents.length === 0) return 'Using available free time';
+  
+  const nextEvent = todayEvents.find((e) => {
+    const mins = e.eventLocalDateTime ? safeMinutesUntilEvent(e.eventLocalDateTime) : null;
+    return mins !== null && mins >= 0;
+  });
+
+  if (!nextEvent) return 'Wrapping up the day';
+  
+  const mins = safeMinutesUntilEvent(nextEvent.eventLocalDateTime!);
+  if (mins !== null && mins <= 60) return 'Preparing for the next step';
+  return 'On track with the current plan';
+}
+
+// ============================================================================
+// SUMMARY GENERATOR
+// ============================================================================
+
+function generateSummary(
+  phase: AIOrchestratedContext['phase'],
+  state: CanonicalTripState,
+  insights: ProactiveInsight[],
+): string {
+  if (phase === 'post-trip') {
+    return `Your trip to ${state.trip.destination_city || state.trip.name} is complete.`;
+  }
+
+  if (phase === 'pre-trip') {
+    const daysUntil = daysBetween(getLocalNowString().substring(0, 10), state.trip.start_date);
+    const destination = state.trip.destination_city || state.trip.name;
+    if (daysUntil <= 1) return `Departing for ${destination} tomorrow — finalize your preparations.`;
+    return `${destination} is ${daysUntil} days away.`;
+  }
+
+  // Active phase
+  const todayStr = getLocalNowString().substring(0, 10);
+  const todayEvents = state.timelineEvents.filter(
+    (e) => e.eventLocalDateTime && e.eventLocalDateTime.substring(0, 10) === todayStr
+  );
+  const upcomingCount = todayEvents.filter((e) => {
+    const mins = e.eventLocalDateTime ? safeMinutesUntilEvent(e.eventLocalDateTime) : null;
+    return mins !== null && mins >= 0;
+  }).length;
+
+  const highInsight = insights.find((i) => i.priority === 'high');
+
+  if (highInsight?.type === 'time') {
+    return `Timing is tight — stay focused on your next step.`;
+  }
+  if (highInsight?.type === 'risk') {
+    return `An upcoming event needs attention before you proceed.`;
+  }
+
+  if (upcomingCount === 0) return 'No more scheduled events today.';
+  if (upcomingCount === 1) return 'One more thing on your schedule today.';
+  return `${upcomingCount} events remaining today.`;
+}
+
+// ============================================================================
+// GUIDANCE CONVERTER
+// ============================================================================
+
+function convertInsightsToGuidance(
+  insights: ProactiveInsight[],
+): AIOrchestratedGuidanceItem[] {
+  return insights.slice(0, 3).map((insight, idx) => {
+    let title: string;
+    switch (insight.type) {
+      case 'time': title = 'Timing'; break;
+      case 'weather': title = 'Weather'; break;
+      case 'logistics': title = 'Schedule'; break;
+      case 'risk': title = 'Attention needed'; break;
+      default: title = 'Update';
+    }
+
+    return {
+      id: `guidance-${insight.id}-${idx}`,
+      title,
+      message: insight.message,
+      priority: insight.priority,
+      type: insight.type,
+      actionHint: insight.action ? describeAction(insight.action) : undefined,
+    };
+  });
+}
+
+function describeAction(action: ProactiveInsightAction): string {
+  switch (action.actionType) {
+    case 'navigate': return `Navigate to ${action.destinationLabel}`;
+    case 'open_event': return 'View event details';
+    case 'open_explore': return 'Explore nearby';
+    case 'open_weather': return 'Check weather';
+  }
+}
+
+// ============================================================================
+// ACTION RECOMMENDER
+// ============================================================================
+
+function recommendActions(
+  phase: AIOrchestratedContext['phase'],
+  state: CanonicalTripState,
+  insights: ProactiveInsight[],
+): AIOrchestratedAction[] {
+  const actions: AIOrchestratedAction[] = [];
+
+  if (phase === 'post-trip') return actions;
+
+  // From high-priority insights, derive action suggestions
+  for (const insight of insights) {
+    if (actions.length >= 3) break;
+    if (!insight.action) continue;
+
+    switch (insight.action.actionType) {
+      case 'navigate':
+        actions.push({
+          id: `action-nav-${insight.id}`,
+          label: `Navigate to ${insight.action.destinationLabel}`,
+          actionType: 'navigate',
+          actionPayload: { destinationLabel: insight.action.destinationLabel },
+        });
+        break;
+      case 'open_event':
+        actions.push({
+          id: `action-event-${insight.id}`,
+          label: 'Review upcoming event',
+          actionType: 'open_event',
+          actionPayload: { eventId: insight.action.eventId },
+        });
+        break;
+      case 'open_explore':
+        actions.push({
+          id: `action-explore-${insight.id}`,
+          label: 'Explore nearby',
+          actionType: 'open_explore',
+        });
+        break;
+      case 'open_weather':
+        actions.push({
+          id: `action-weather-${insight.id}`,
+          label: 'Check weather',
+          actionType: 'open_weather',
+        });
+        break;
+    }
+  }
+
+  // If active and no expense action yet, suggest reviewing expenses
+  if (phase === 'active' && actions.length < 3) {
+    const todayStr = getLocalNowString().substring(0, 10);
+    const todayEvents = state.timelineEvents.filter(
+      (e) => e.eventLocalDateTime && e.eventLocalDateTime.substring(0, 10) === todayStr
+    );
+    const upcomingCount = todayEvents.filter((e) => {
+      const mins = e.eventLocalDateTime ? safeMinutesUntilEvent(e.eventLocalDateTime) : null;
+      return mins !== null && mins >= 0;
+    }).length;
+
+    // Suggest explore if low density
+    if (upcomingCount === 0 && !actions.some((a) => a.actionType === 'open_explore')) {
+      actions.push({
+        id: 'action-explore-idle',
+        label: 'Explore nearby',
+        actionType: 'open_explore',
+      });
+    }
+  }
+
+  return actions.slice(0, 3);
+}
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+function daysBetween(dateA: string, dateB: string): number {
+  const a = new Date(dateA + 'T00:00:00');
+  const b = new Date(dateB + 'T00:00:00');
+  return Math.max(0, Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24)));
+}
+
+// ============================================================================
+// MAIN ENGINE
+// ============================================================================
+
+/**
+ * Compute the AI-orchestrated context from canonical trip state and
+ * existing proactive insights. This is a pure, deterministic function
+ * with no side effects, no API calls, and no persistence.
+ */
+export function computeOrchestratedContext(
+  state: CanonicalTripState | null,
+  insights: ProactiveInsight[],
+): AIOrchestratedContext | null {
+  if (!state) return null;
+
+  const phase = resolvePhase(state);
+  const primaryFocus = resolvePrimaryFocus(phase, state, insights);
+  const summary = generateSummary(phase, state, insights);
+  const prioritizedGuidance = convertInsightsToGuidance(insights);
+  const recommendedActions = recommendActions(phase, state, insights);
+
+  return {
+    phase,
+    primaryFocus,
+    summary,
+    prioritizedGuidance,
+    recommendedActions,
+  };
+}
