@@ -45,6 +45,10 @@ import type { DrillThroughTarget } from '@/pages/TripDetail';
  */
 const MORE_TAB_LABELS: Partial<Record<TripTab, string>> = {
   now: 'Now',
+  today: 'Today',
+  flow: 'Flow',
+  move: 'Move',
+  guide: 'Guide',
   weather: 'Weather',
   parking: 'Parking',
   tour: 'Tour',
@@ -53,6 +57,9 @@ const MORE_TAB_LABELS: Partial<Record<TripTab, string>> = {
   alerts: 'Alerts',
   report: 'Report',
   notes: 'Notes & Safety',
+  bookings: 'Bookings',
+  explore: 'Explore',
+  packing: 'Packing',
 };
 
 interface MobileNavigationRouterProps {
