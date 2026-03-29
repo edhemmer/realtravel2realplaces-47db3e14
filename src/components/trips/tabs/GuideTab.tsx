@@ -37,7 +37,7 @@ function getTransitionLabel(event: CanonicalTimelineEvent): string {
   switch (event.bookingType) {
     case 'flight': return 'Flight';
     case 'stay': return event.eventType === 'hotel_checkout' ? 'Check-out' : 'Check-in';
-    case 'car_rental': return event.eventType === 'rental_return' ? 'Return Rental' : 'Pick Up Rental';
+    case 'car_rental': return event.eventType === 'rental_dropoff' ? 'Return Rental' : 'Pick Up Rental';
     case 'activity': return 'Activity';
     case 'transport': return 'Transport';
     default: return 'Event';
@@ -60,11 +60,12 @@ export function GuideTab({ tripId, trip }: GuideTabProps) {
     [timelineEvents, nowStr],
   );
 
-  // Weather pills
-  const weatherPills = useMemo(
-    () => deriveWeatherPills(weatherByKey),
-    [weatherByKey],
-  );
+  // Weather pills from snapshots
+  const weatherPills = useMemo((): WeatherPill[] => {
+    const snapshots = Object.values(weatherByKey);
+    if (snapshots.length === 0) return [];
+    return deriveWeatherPills(snapshots);
+  }, [weatherByKey]);
 
   // Active alerts (max 3)
   const activeAlerts = useMemo(
@@ -151,7 +152,7 @@ export function GuideTab({ tripId, trip }: GuideTabProps) {
                     <Thermometer className="w-3.5 h-3.5 text-muted-foreground" />
                     <div>
                       <p className="text-xs font-medium">{pill.label}</p>
-                      <p className="text-[11px] text-muted-foreground">{pill.summary}</p>
+                      <p className="text-[11px] text-muted-foreground">{pill.label}</p>
                     </div>
                   </div>
                 ))}
