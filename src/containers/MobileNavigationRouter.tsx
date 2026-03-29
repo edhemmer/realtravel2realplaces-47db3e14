@@ -195,19 +195,21 @@ export function MobileNavigationRouter({
 
   const renderActiveTab = () => {
     switch (activeTab) {
+      case 'today':
       case 'now':
         return (
           <NowCommandCenter
             tripId={tripId}
             trip={trip}
-            onViewFullTimeline={() => handleTabChange('plan')}
+            onViewFullTimeline={() => handleTabChange('flow')}
             onParking={() => handleTabChange('parking')}
             onViewAllAlerts={() => handleTabChange('alerts')}
             onAddExpense={() => handleTabChange('expenses')}
             onExplore={() => handleTabChange('explore')}
-            onTimeline={() => handleTabChange('plan')}
+            onTimeline={() => handleTabChange('flow')}
           />
         );
+      case 'flow':
       case 'plan':
         return (
           <div>
@@ -229,6 +231,10 @@ export function MobileNavigationRouter({
             <TripTimeline events={displayEvents} datetimeFormat={datetimeFormat} onExploreNearby={handleExploreNearby} />
           </div>
         );
+      case 'move':
+        return <MoveTab tripId={tripId} trip={trip} />;
+      case 'guide':
+        return <GuideTab tripId={tripId} trip={trip} />;
       case 'bookings':
         return (
           <TripBookingsContainer 
@@ -278,12 +284,12 @@ export function MobileNavigationRouter({
           <NowCommandCenter
             tripId={tripId}
             trip={trip}
-            onViewFullTimeline={() => handleTabChange('plan')}
+            onViewFullTimeline={() => handleTabChange('flow')}
             onParking={() => handleTabChange('parking')}
             onViewAllAlerts={() => handleTabChange('alerts')}
             onAddExpense={() => handleTabChange('expenses')}
             onExplore={() => handleTabChange('explore')}
-            onTimeline={() => handleTabChange('plan')}
+            onTimeline={() => handleTabChange('flow')}
           />
         );
     }
