@@ -215,6 +215,12 @@ export function NowCommandCenter({
     [canonicalState, resumeTick]
   );
 
+  // v5.4.0: AI Orchestration — cohesive context above deterministic layers
+  const orchestratedContext = useMemo(
+    () => computeOrchestratedContext(canonicalState, proactiveInsights),
+    [canonicalState, proactiveInsights]
+  );
+
   // v3.8.17: Buffer Intelligence — cross-engine reasoning
   const bufferStatus = useMemo(
     () => computeBufferStatus(nextAction, drivePlan),
