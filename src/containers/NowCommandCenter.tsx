@@ -20,7 +20,7 @@ import { useTravelAlerts } from '@/hooks/useTravelAlerts';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useDriveEngine } from '@/hooks/useDriveEngine';
 import { TravelAlertsCard } from '@/components/trips/TravelAlertsCard';
-import { CalendarDays, ChevronRight, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { GasExpenseDialog } from '@/components/trips/GasExpenseDialog';
 import { NextCriticalActionCard } from '@/components/trips/now/NextCriticalActionCard';
 import { TodayCompactTimeline } from '@/components/trips/now/TodayCompactTimeline';
@@ -249,11 +249,8 @@ export function NowCommandCenter({
   }
 
   return (
-    <div className="space-y-5 pb-20">
-      {/* v3.12.0: Trip Brief */}
-      {tripBrief && <TripBriefSection brief={tripBrief} onAction={handleBriefAction} />}
-
-      {/* 1. Quick Actions */}
+    <div className="space-y-4 pb-20">
+      {/* 1. Quick Actions — Expense + Explore */}
       <div className="mb-1">
         <StickyQuickOpsStrip
           onAddExpense={handleAddExpense}
@@ -262,17 +259,6 @@ export function NowCommandCenter({
           driveModeLabel={driveNavTarget?.label || null}
         />
       </div>
-
-      {/* 2. Timeline secondary row */}
-      <button
-        className="md:hidden w-full flex items-center gap-3 px-4 h-12 bg-primary/5 border border-border/40 rounded-xl hover:bg-primary/10 active:bg-primary/15 transition-colors"
-        onClick={onTimeline}
-        aria-label="View Timeline"
-      >
-        <CalendarDays className="w-5 h-5 text-primary" />
-        <span className="flex-1 text-left text-sm font-medium text-foreground">Timeline</span>
-        <ChevronRight className="w-4 h-4 text-primary/60" />
-      </button>
 
       {/* v3.10.9: Departure Mode label bar */}
       {todayExecution.isExecutionMode && (
@@ -284,10 +270,7 @@ export function NowCommandCenter({
         </div>
       )}
 
-      {/* 3. Critical Today Actions — from canonical stack (pre-sorted, no re-sort) */}
-      <TodayCriticalActionsCard criticalActions={todayExecution.criticalActions} />
-
-      {/* 4. NextCriticalActionCard — enhanced with execution intelligence */}
+      {/* 2. NEXT ACTION — Primary Focus, visually dominant */}
       <NextCriticalActionCard
         tripId={tripId}
         trip={trip}
@@ -297,16 +280,19 @@ export function NowCommandCenter({
         driveNavTarget={driveNavTarget}
       />
 
-      {/* 5. ActiveAlertsStack — max 3, severity-ordered, merged with Drive Engine signals */}
+      {/* 3. Critical Today Actions (if any) */}
+      <TodayCriticalActionsCard criticalActions={todayExecution.criticalActions} />
+
+      {/* 4. Alerts — max 2 for today focus */}
       {(hasTravelAlerts || driveSignals.length > 0) && (
         <TravelAlertsCard
           alerts={mergedAlerts}
-          maxVisible={3}
+          maxVisible={2}
           onViewAllAlerts={onViewAllAlerts}
         />
       )}
 
-      {/* 6. TodayCompactTimeline — from canonical stack (pre-sorted, no re-sort) */}
+      {/* 5. Upcoming preview — next items only */}
       <TodayCompactTimeline todayTimelineRows={todayExecution.todayTimelineRows} />
 
       {/* Gas Expense Dialog */}
@@ -316,7 +302,7 @@ export function NowCommandCenter({
         onOpenChange={setGasDialogOpen}
       />
 
-      {/* v3.9.6: Quick Expense Dialog — in-place for active trips */}
+      {/* Quick Expense Dialog */}
       <QuickExpenseDialog
         tripId={tripId}
         open={quickExpenseOpen}

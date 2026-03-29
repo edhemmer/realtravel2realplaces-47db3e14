@@ -36,7 +36,11 @@ import {
 
 export type TripTab = 
   | 'now'
+  | 'today'
   | 'plan'
+  | 'flow'
+  | 'move'
+  | 'guide'
   | 'summary' 
   | 'bookings' 
   | 'tour' 
@@ -67,15 +71,17 @@ interface NavItem {
 }
 
 const PRIMARY_NAV_ITEMS: NavItem[] = [
-  { id: 'plan', label: 'Timeline', icon: <CalendarDays className="w-5 h-5" /> },
-  { id: 'bookings', label: 'Bookings', icon: <Plane className="w-5 h-5" /> },
-  { id: 'explore', label: 'Explore', icon: <Compass className="w-5 h-5" /> },
+  { id: 'today', label: 'Today', icon: <CalendarDays className="w-5 h-5" /> },
+  { id: 'flow', label: 'Flow', icon: <CalendarDays className="w-5 h-5" /> },
+  { id: 'move', label: 'Move', icon: <Compass className="w-5 h-5" /> },
+  { id: 'guide', label: 'Guide', icon: <Bell className="w-5 h-5" /> },
   { id: 'expenses', label: 'Expenses', icon: <DollarSign className="w-5 h-5" /> },
-  { id: 'packing', label: 'Packing', icon: <Package className="w-5 h-5" /> },
 ];
 
 const MORE_NAV_ITEMS: NavItem[] = [
-  { id: 'now', label: 'Now', icon: <CalendarDays className="w-4 h-4" /> },
+  { id: 'bookings', label: 'Bookings', icon: <Plane className="w-4 h-4" /> },
+  { id: 'explore', label: 'Explore', icon: <Compass className="w-4 h-4" /> },
+  { id: 'packing', label: 'Packing', icon: <Package className="w-4 h-4" /> },
   { id: 'weather', label: 'Weather', icon: <CloudSun className="w-4 h-4" /> },
   { id: 'parking', label: 'Parking', icon: <CircleParking className="w-4 h-4" /> },
   { id: 'report', label: 'Report', icon: <FileText className="w-4 h-4" />, requiresPro: true },

@@ -27,6 +27,8 @@ import {
   TripAlertsContainer,
 } from '@/containers';
 import { NowCommandCenter } from '@/containers/NowCommandCenter';
+import { MoveTab } from '@/components/trips/tabs/MoveTab';
+import { GuideTab } from '@/components/trips/tabs/GuideTab';
 import { ParkingTab } from '@/components/trips/tabs/ParkingTab';
 import { PackingTab } from '@/components/trips/tabs/PackingTab';
 import { CompanionsTab } from '@/components/trips/tabs/CompanionsTab';
@@ -43,6 +45,10 @@ import type { DrillThroughTarget } from '@/pages/TripDetail';
  */
 const MORE_TAB_LABELS: Partial<Record<TripTab, string>> = {
   now: 'Now',
+  today: 'Today',
+  flow: 'Flow',
+  move: 'Move',
+  guide: 'Guide',
   weather: 'Weather',
   parking: 'Parking',
   tour: 'Tour',
@@ -51,6 +57,9 @@ const MORE_TAB_LABELS: Partial<Record<TripTab, string>> = {
   alerts: 'Alerts',
   report: 'Report',
   notes: 'Notes & Safety',
+  bookings: 'Bookings',
+  explore: 'Explore',
+  packing: 'Packing',
 };
 
 interface MobileNavigationRouterProps {
@@ -105,9 +114,10 @@ export function MobileNavigationRouter({
 
   // v4.1.0: Initialize from externalTab so dashboard ?tab= links land correctly
   const resolveInitialTab = (tab?: TripTab): TripTab => {
-    if (!tab) return 'plan';
-    if (tab === 'summary') return 'plan';
-    if (tab === 'now') return 'plan';
+    if (!tab) return 'today';
+    if (tab === 'summary') return 'today';
+    if (tab === 'now') return 'today';
+    if (tab === 'plan') return 'flow';
     return tab;
   };
   const [activeTab, setActiveTabRaw] = useState<TripTab>(resolveInitialTab(externalTab));
@@ -121,19 +131,23 @@ export function MobileNavigationRouter({
   // Legacy route protection
   useEffect(() => {
     if (activeTab === 'summary') {
-      setActiveTab('plan');
+      setActiveTab('today');
     } else if (activeTab === 'timeline') {
-      setActiveTab('plan');
+      setActiveTab('flow');
+    } else if (activeTab === 'plan') {
+      setActiveTab('flow');
     } else if (activeTab === 'now') {
-      // 'now' is now in More menu, keep it valid
+      setActiveTab('today');
     }
   }, [activeTab]);
 
   // Consume external tab changes
   useEffect(() => {
     if (externalTab) {
-      if (externalTab === 'summary') {
-        setActiveTab('plan');
+      if (externalTab === 'summary' || externalTab === 'now') {
+        setActiveTab('today');
+      } else if (externalTab === 'plan' || externalTab === 'timeline') {
+        setActiveTab('flow');
       } else {
         setActiveTab(externalTab);
       }
@@ -143,12 +157,12 @@ export function MobileNavigationRouter({
 
   // v3.5.1: Canonical tab change
   const handleTabChange = useCallback((tab: TripTab) => {
-    if (tab === 'summary') {
-      setActiveTab('plan');
+    if (tab === 'summary' || tab === 'now') {
+      setActiveTab('today');
       return;
     }
-    if (tab === 'timeline') {
-      setActiveTab('plan');
+    if (tab === 'timeline' || tab === 'plan') {
+      setActiveTab('flow');
       return;
     }
     setActiveTab(tab);
@@ -181,19 +195,21 @@ export function MobileNavigationRouter({
 
   const renderActiveTab = () => {
     switch (activeTab) {
+      case 'today':
       case 'now':
         return (
           <NowCommandCenter
             tripId={tripId}
             trip={trip}
-            onViewFullTimeline={() => handleTabChange('plan')}
+            onViewFullTimeline={() => handleTabChange('flow')}
             onParking={() => handleTabChange('parking')}
             onViewAllAlerts={() => handleTabChange('alerts')}
             onAddExpense={() => handleTabChange('expenses')}
             onExplore={() => handleTabChange('explore')}
-            onTimeline={() => handleTabChange('plan')}
+            onTimeline={() => handleTabChange('flow')}
           />
         );
+      case 'flow':
       case 'plan':
         return (
           <div>
@@ -215,6 +231,10 @@ export function MobileNavigationRouter({
             <TripTimeline events={displayEvents} datetimeFormat={datetimeFormat} onExploreNearby={handleExploreNearby} />
           </div>
         );
+      case 'move':
+        return <MoveTab tripId={tripId} trip={trip} />;
+      case 'guide':
+        return <GuideTab tripId={tripId} trip={trip} />;
       case 'bookings':
         return (
           <TripBookingsContainer 
@@ -264,12 +284,12 @@ export function MobileNavigationRouter({
           <NowCommandCenter
             tripId={tripId}
             trip={trip}
-            onViewFullTimeline={() => handleTabChange('plan')}
+            onViewFullTimeline={() => handleTabChange('flow')}
             onParking={() => handleTabChange('parking')}
             onViewAllAlerts={() => handleTabChange('alerts')}
             onAddExpense={() => handleTabChange('expenses')}
             onExplore={() => handleTabChange('explore')}
-            onTimeline={() => handleTabChange('plan')}
+            onTimeline={() => handleTabChange('flow')}
           />
         );
     }
