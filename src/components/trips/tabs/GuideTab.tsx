@@ -60,11 +60,12 @@ export function GuideTab({ tripId, trip }: GuideTabProps) {
     [timelineEvents, nowStr],
   );
 
-  // Weather pills from snapshots
+  // Weather pills from first available snapshot
   const weatherPills = useMemo((): WeatherPill[] => {
     const snapshots = Object.values(weatherByKey);
     if (snapshots.length === 0) return [];
-    return deriveWeatherPills(snapshots);
+    // Use first snapshot for pills
+    return deriveWeatherPills(snapshots[0]);
   }, [weatherByKey]);
 
   // Active alerts (max 3)
