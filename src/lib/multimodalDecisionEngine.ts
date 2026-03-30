@@ -23,6 +23,7 @@ import {
   type TransitIntelligence,
   type TransitAdvisoryFlag,
 } from '@/lib/transitIntelligenceEngine';
+import { shouldFetchSource } from '@/lib/movementCallGovernance';
 
 // ============================================================================
 // OUTPUT TYPES
