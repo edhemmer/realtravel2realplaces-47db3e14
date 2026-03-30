@@ -1,5 +1,5 @@
 /**
- * v5.8.3: AI Orchestration Engine
+ * v5.8.4: AI Orchestration Engine
  *
  * Single canonical AI orchestration layer that sits above deterministic systems
  * and converts structured trip state into cohesive, human-useful guidance.
@@ -620,6 +620,132 @@ function applyTransitionToFocus(
 }
 
 // ============================================================================
+// v5.8.4: EXECUTION CONTEXT DERIVATION
+// ============================================================================
+
+/**
+ * Lightweight execution-environment signal derived from canonical event types.
+ * Used to refine guidance during movement-heavy periods.
+ *
+ * All flags default to false when event type is unclear.
+ * No external APIs, no simulated data, no inferred types.
+ */
+type ExecutionContext = {
+  hasUpcomingMovement: boolean;
+  hasUpcomingFlight: boolean;
+  hasUpcomingLodging: boolean;
+  isTravelHeavyWindow: boolean;
+};
+
+/** Known movement booking types from canonical event structure */
+const MOVEMENT_TYPES = new Set(['transport', 'car_rental']);
+const FLIGHT_TYPES = new Set(['flight']);
+const LODGING_TYPES = new Set(['stay']);
+
+/** Known movement event types */
+const MOVEMENT_EVENT_TYPES = new Set(['flight_departure', 'rental_pickup', 'rental_return']);
+const LODGING_EVENT_TYPES = new Set(['hotel_checkin', 'hotel_checkout']);
+
+function deriveExecutionContext(
+  state: CanonicalTripState,
+  activeSequence: ActionSequence | null,
+  sequencePressure: SequencePressure,
+): ExecutionContext {
+  const todayStr = getLocalNowString().substring(0, 10);
+
+  // Get next upcoming event (today, future only)
+  const nextEvent = state.timelineEvents.find((e) => {
+    if (!e.eventLocalDateTime || e.eventLocalDateTime.substring(0, 10) !== todayStr) return false;
+    const mins = safeMinutesUntilEvent(e.eventLocalDateTime);
+    return mins !== null && mins > 0;
+  });
+
+  // Collect event types to check: next event + sequence step events
+  const typesToCheck: Array<{ bookingType: string; eventType: string }> = [];
+
+  if (nextEvent) {
+    typesToCheck.push({ bookingType: nextEvent.bookingType, eventType: nextEvent.eventType });
+  }
+
+  if (activeSequence) {
+    for (const step of activeSequence.steps) {
+      if (!step.targetId) continue;
+      const ev = state.timelineEvents.find((e) => e.sourceId === step.targetId);
+      if (ev) {
+        typesToCheck.push({ bookingType: ev.bookingType, eventType: ev.eventType });
+      }
+    }
+  }
+
+  const hasUpcomingMovement = typesToCheck.some(
+    (t) => MOVEMENT_TYPES.has(t.bookingType) || MOVEMENT_EVENT_TYPES.has(t.eventType)
+  );
+  const hasUpcomingFlight = typesToCheck.some(
+    (t) => FLIGHT_TYPES.has(t.bookingType) || t.eventType === 'flight_departure'
+  );
+  const hasUpcomingLodging = typesToCheck.some(
+    (t) => LODGING_TYPES.has(t.bookingType) || LODGING_EVENT_TYPES.has(t.eventType)
+  );
+
+  const isTravelHeavyWindow =
+    !!activeSequence &&
+    (sequencePressure === 'high' || sequencePressure === 'medium') &&
+    (hasUpcomingMovement || hasUpcomingFlight);
+
+  return { hasUpcomingMovement, hasUpcomingFlight, hasUpcomingLodging, isTravelHeavyWindow };
+}
+
+/**
+ * Apply execution-context-based action filtering.
+ *
+ * When isTravelHeavyWindow = true:
+ * - Move generic explore/review actions to end (deprioritize)
+ *
+ * This is the lowest-priority signal (below sequencePressure and transitionState).
+ * It only refines; it never removes or creates actions.
+ */
+function applyExecutionContextToActions(
+  actions: AIOrchestratedAction[],
+  execCtx: ExecutionContext,
+): AIOrchestratedAction[] {
+  if (!execCtx.isTravelHeavyWindow || actions.length <= 1) return actions;
+
+  // Deprioritize explore/review during travel-heavy windows
+  const focused = actions.filter(
+    (a) => a.actionType !== 'open_explore' && a.actionType !== 'review'
+  );
+  const deprioritized = actions.filter(
+    (a) => a.actionType === 'open_explore' || a.actionType === 'review'
+  );
+  return [...focused, ...deprioritized].slice(0, 3);
+}
+
+/**
+ * Lightly refine summary wording based on execution context.
+ *
+ * Only activates when isTravelHeavyWindow is true AND no higher-priority
+ * signal (sequencePressure, transitionState) has already refined the summary.
+ *
+ * Adds subtle movement emphasis without changing length or creating narrative.
+ */
+function applyExecutionContextToSummary(
+  currentSummary: string,
+  execCtx: ExecutionContext,
+  sequencePressure: SequencePressure,
+  transitionState: TransitionState,
+): string {
+  // Only refine when no higher signal has shaped the summary
+  if (sequencePressure === 'high' || sequencePressure === 'medium') return currentSummary;
+  if (transitionState !== null) return currentSummary;
+  if (!execCtx.isTravelHeavyWindow) return currentSummary;
+
+  // Light prefix to indicate movement context — keep it short
+  if (execCtx.hasUpcomingFlight) return `Travel ahead — ${currentSummary.charAt(0).toLowerCase()}${currentSummary.slice(1)}`;
+  if (execCtx.hasUpcomingMovement) return `On the move — ${currentSummary.charAt(0).toLowerCase()}${currentSummary.slice(1)}`;
+  return currentSummary;
+}
+
+// ============================================================================
 // HELPERS
 // ============================================================================
 
@@ -679,14 +805,24 @@ export function computeOrchestratedContext(
   const transitionState = phase === 'active' ? resolveTransitionState(state) : null;
   const hasHighInsight = insights.some((i) => i.priority === 'high');
 
+  // v5.8.4: Derive execution context from canonical event types.
+  const execCtx = phase === 'active'
+    ? deriveExecutionContext(state, activeSequence, sequencePressure)
+    : { hasUpcomingMovement: false, hasUpcomingFlight: false, hasUpcomingLodging: false, isTravelHeavyWindow: false };
+
+  // v5.8.4: Apply execution-context action refinement (lowest priority signal).
+  const contextActions = applyExecutionContextToActions(pressuredActions, execCtx);
+
   // v5.8.2 + v5.8.3: Build final summary.
-  // Sequence pressure takes priority, then transition refinement, then base.
   let finalSummary: string;
   if ((sequencePressure === 'high' || sequencePressure === 'medium') && activeSequence && activeSequence.steps.length >= 2) {
     finalSummary = `${activeSequence.steps[0].label} → ${activeSequence.steps[1].label}`;
   } else {
     finalSummary = applyTransitionToSummary(summary, transitionState, state, sequencePressure);
   }
+
+  // v5.8.4: Apply execution-context summary refinement (lowest priority).
+  finalSummary = applyExecutionContextToSummary(finalSummary, execCtx, sequencePressure, transitionState);
 
   // v5.8.3: Refine primaryFocus with transition awareness (secondary signal).
   const finalFocus = phase === 'active'
@@ -698,7 +834,7 @@ export function computeOrchestratedContext(
     primaryFocus: finalFocus,
     summary: finalSummary,
     prioritizedGuidance,
-    recommendedActions: pressuredActions,
+    recommendedActions: contextActions,
     activeSequence,
   };
 }
