@@ -158,6 +158,41 @@ export function NowCommandCenter({
     }
   }, [navigate]);
 
+  // v5.5.0: Handle AI orchestrated action taps
+  const handleOrchestratedAction = useCallback((action: AIOrchestratedAction) => {
+    switch (action.actionType) {
+      case 'navigate':
+        if (action.actionPayload?.destinationLabel) {
+          const label = action.actionPayload.destinationLabel as string;
+          const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(label)}`;
+          window.open(url, '_blank');
+        }
+        break;
+      case 'open_event':
+        if (action.actionPayload?.eventId) {
+          const el = document.getElementById(`event-${action.actionPayload.eventId}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          } else {
+            onViewFullTimeline();
+          }
+        }
+        break;
+      case 'open_explore':
+        onExplore();
+        break;
+      case 'open_weather':
+        onTimeline();
+        break;
+      case 'open_expenses':
+        onAddExpense();
+        break;
+      case 'review':
+        onViewFullTimeline();
+        break;
+    }
+  }, [navigate, onViewFullTimeline, onExplore, onTimeline, onAddExpense]);
+
   // v3.10.7: Derive active stay address for DRIVE_SMART origin fallback
   const activeStayAddress = useMemo(() => {
     const todayDate = getLocalNowString().substring(0, 10);
@@ -287,107 +322,30 @@ export function NowCommandCenter({
         </div>
       )}
 
-      {/* 2. NEXT ACTION — Primary Focus, visually dominant */}
-      <NextCriticalActionCard
-        tripId={tripId}
-        trip={trip}
-        resolvedNextAction={nextAction}
-        bufferStatus={bufferStatus}
-        activeDriveSegment={activeDriveSegment}
-        driveNavTarget={driveNavTarget}
-      />
-
-      {/* 2b. PROACTIVE INSIGHTS — max 3 deterministic insights */}
-      <ProactiveInsightsCard
-        insights={proactiveInsights}
-        onExplore={onExplore}
-        onWeather={onTimeline}
-        onOpenEvent={(eventId) => {
-          const el = document.getElementById(`event-${eventId}`);
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          } else {
-            onViewFullTimeline();
-          }
-        }}
-      />
-
-      {/* v5.4.0: AI Orchestrated Context — primary focus + summary */}
+      {/* v5.5.0: AI ORCHESTRATED BLOCK — primary NOW experience */}
       {orchestratedContext && (
-        <div className="px-4 py-3 rounded-xl bg-primary/5 border border-primary/15">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">
-            {orchestratedContext.primaryFocus}
-          </p>
-          <p className="text-sm text-foreground leading-snug">{orchestratedContext.summary}</p>
-        </div>
+        <AIOrchestratedBlock
+          context={orchestratedContext}
+          onAction={handleOrchestratedAction}
+        />
       )}
 
-      {/* 3. DECISION BLOCK — exactly 2 lines, deterministic, inline logic */}
-      {(() => {
-        if (!nextAction) return null;
+      {/* NEXT ACTION — secondary, shown when AI context unavailable */}
+      {!orchestratedContext && (
+        <NextCriticalActionCard
+          tripId={tripId}
+          trip={trip}
+          resolvedNextAction={nextAction}
+          bufferStatus={bufferStatus}
+          activeDriveSegment={activeDriveSegment}
+          driveNavTarget={driveNavTarget}
+        />
+      )}
 
-        // Derive recommendation + reason from existing execution data
-        let recommendation = '';
-        let reason = '';
-
-        // Parse countdown for minutes-based logic
-        const countdownStr = nextAction.countdown;
-        let minutesUntil = Infinity;
-        if (countdownStr) {
-          const hMatch = countdownStr.match(/(\d+)\s*h/);
-          const mMatch = countdownStr.match(/(\d+)\s*m/);
-          minutesUntil = (hMatch ? parseInt(hMatch[1]) * 60 : 0) + (mMatch ? parseInt(mMatch[1]) : 0);
-          if (minutesUntil === 0 && countdownStr.includes('now')) minutesUntil = 0;
-        }
-
-        // Check schedule density: count events in next 3 hours
-        const nowMs = Date.now();
-        const threeHoursMs = 3 * 60 * 60 * 1000;
-        const nearEvents = timelineEvents.filter(e => {
-          if (!e.eventLocalDateTime) return false;
-          const evDate = new Date(e.eventLocalDateTime);
-          const diff = evDate.getTime() - nowMs;
-          return diff > 0 && diff < threeHoursMs;
-        });
-        const isDenseSchedule = nearEvents.length >= 3;
-
-        // Buffer status integration
-        const bufferLevel = bufferStatus?.status;
-
-        if (minutesUntil <= 15) {
-          recommendation = `You're on a tight window — leave soon for ${nextAction.title}`;
-          reason = 'Every minute counts right now to stay on schedule.';
-        } else if (minutesUntil <= 45) {
-          recommendation = `Start wrapping up — ${nextAction.title} is coming up shortly`;
-          reason = bufferLevel === 'HIGH_RISK' ? 'The window is tighter than usual, so allow extra time for the unexpected.' : `You have about ${minutesUntil} minutes, which should be comfortable if you head out soon.`;
-        } else if (bufferLevel === 'TIGHT') {
-          recommendation = 'Your next transition is tighter than ideal';
-          reason = `Give yourself extra cushion before ${nextAction.title} to avoid feeling rushed.`;
-        } else if (isDenseSchedule) {
-          recommendation = 'You have a packed stretch ahead — keep momentum';
-          reason = `${nearEvents.length} things are lined up over the next few hours, so stay aware of timing.`;
-        } else if (minutesUntil <= 120) {
-          recommendation = `You have time before ${nextAction.title}`;
-          reason = `About ${Math.round(minutesUntil / 15) * 15} minutes — no need to rush, but keep it on your radar.`;
-        } else {
-          recommendation = 'Nothing pressing right now — you have breathing room';
-          reason = `Your next thing is ${nextAction.title}${nextAction.rawTimeText ? ` at ${nextAction.rawTimeText}` : ''}.`;
-        }
-
-        if (!recommendation) return null;
-
-        return (
-          <div className="px-4 py-3 rounded-xl bg-primary/5 border border-primary/15">
-            <p className="text-sm font-semibold text-foreground leading-snug">{recommendation}</p>
-            <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{reason}</p>
-          </div>
-        );
-      })()}
-
-      {/* 3. Critical Today Actions (if any) */}
+      {/* Critical Today Actions (if any) */}
       <TodayCriticalActionsCard criticalActions={todayExecution.criticalActions} />
 
-      {/* 4. Alerts — max 2 for today focus */}
+      {/* Alerts — critical only, suppressed if already in guidance */}
       {(hasTravelAlerts || driveSignals.length > 0) && (
         <TravelAlertsCard
           alerts={mergedAlerts}
