@@ -208,6 +208,9 @@ async function fetchFromHere(
   // Duplicate request guard
   if (_inFlightRequests.has(routeKey)) return null;
 
+  // Governance lock
+  if (!acquireLock('traffic', routeKey)) return null;
+
   _inFlightRequests.add(routeKey);
 
   try {
