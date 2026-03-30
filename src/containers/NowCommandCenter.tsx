@@ -197,7 +197,7 @@ export function NowCommandCenter({
         onViewFullTimeline();
         break;
     }
-  }, [navigate, onViewFullTimeline, onExplore, onTimeline, onAddExpense]);
+  }, [navigate, onViewFullTimeline, onExplore, onTimeline, onAddExpense, orchestratedContext?.phase]);
 
   // v3.10.7: Derive active stay address for DRIVE_SMART origin fallback
   const activeStayAddress = useMemo(() => {
