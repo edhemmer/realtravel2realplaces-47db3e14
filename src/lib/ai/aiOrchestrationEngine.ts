@@ -1320,6 +1320,16 @@ export function computeOrchestratedContext(
     }
   }
 
+  // v5.10.1: Resolve multimodal movement decision.
+  const { guidance: multimodalGuidance, decision: multimodalDecision } =
+    phase === 'active' ? buildMultimodalGuidance(state) : { guidance: null, decision: null };
+  if (multimodalGuidance) {
+    const hasExistingMultimodal = prioritizedGuidance.some((g) => g.id.startsWith('multimodal-'));
+    if (!hasExistingMultimodal && prioritizedGuidance.length < 3) {
+      prioritizedGuidance.push(multimodalGuidance);
+    }
+  }
+
   // v5.8.2 + v5.8.3: Build final summary.
   let finalSummary: string;
   if ((sequencePressure === 'high' || sequencePressure === 'medium') && activeSequence && activeSequence.steps.length >= 2) {
@@ -1343,8 +1353,11 @@ export function computeOrchestratedContext(
   // v5.9.1: Apply leave-timing summary refinement.
   finalSummary = applyLeaveTimingToSummary(finalSummary, leaveTiming, sequencePressure, transitionState, execRisk, extSignals, primaryDriveSignal);
 
-  // v5.10.0: Apply transit summary refinement (lowest priority).
+  // v5.10.0: Apply transit summary refinement.
   finalSummary = applyTransitToSummary(finalSummary, transitGuidance, sequencePressure, transitionState, execRisk, extSignals, primaryDriveSignal, leaveTiming);
+
+  // v5.10.1: Apply multimodal summary refinement (lowest priority).
+  finalSummary = applyMultimodalToSummary(finalSummary, multimodalDecision, sequencePressure, transitionState, execRisk, extSignals, primaryDriveSignal, leaveTiming, transitGuidance);
 
   // v5.8.3: Refine primaryFocus with transition awareness (secondary signal).
   const finalFocus = phase === 'active'
