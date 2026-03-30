@@ -22,6 +22,7 @@ import { generatePredictiveActions, type PredictiveAction } from '@/lib/ai/predi
 import { generateSequence, type ActionSequence } from '@/lib/ai/sequenceEngine';
 import { resolveExternalSignals, NO_SIGNAL, type ExternalSignals, type FlightIdentifier } from '@/lib/ai/externalSignalResolver';
 import { resolveDriveSignals, getPrimaryDriveSignal, type DriveSignal as DriveRouteSignal } from '@/lib/ai/driveSignalEngine';
+import { computeLeaveTimingRecommendation, type LeaveTimingRecommendation } from '@/lib/ai/leaveTimingEngine';
 
 // ============================================================================
 // OUTPUT TYPES
@@ -955,6 +956,54 @@ function applyDriveSignalToSummary(
 }
 
 // ============================================================================
+// v5.9.1: LEAVE TIMING REFINEMENT
+// ============================================================================
+
+/**
+ * Apply leave-timing refinement to actions.
+ * When leave_now or leave_soon, prioritize navigate/open_event actions.
+ * Lowest-priority signal layer — only activates when no higher signal dominates.
+ */
+function applyLeaveTimingToActions(
+  actions: AIOrchestratedAction[],
+  leaveTiming: LeaveTimingRecommendation | null,
+): AIOrchestratedAction[] {
+  if (!leaveTiming || leaveTiming.status === 'on_track' || actions.length <= 1) return actions;
+
+  const urgent = actions.filter(
+    (a) => a.actionType === 'navigate' || a.actionType === 'open_event'
+  );
+  const rest = actions.filter(
+    (a) => a.actionType !== 'navigate' && a.actionType !== 'open_event'
+  );
+  return [...urgent, ...rest].slice(0, 3);
+}
+
+/**
+ * Apply leave-timing refinement to summary.
+ * Only activates when status is leave_now or leave_soon AND no higher-priority
+ * signal has already refined the summary.
+ */
+function applyLeaveTimingToSummary(
+  currentSummary: string,
+  leaveTiming: LeaveTimingRecommendation | null,
+  sequencePressure: SequencePressure,
+  transitionState: TransitionState,
+  execRisk: ExecutionRisk,
+  extSignals: ExternalSignals,
+  driveSignal: DriveRouteSignal | null,
+): string {
+  if (sequencePressure === 'high' || sequencePressure === 'medium') return currentSummary;
+  if (transitionState !== null) return currentSummary;
+  if (execRisk.riskConfidence === 'high') return currentSummary;
+  if (extSignals.confidence === 'high') return currentSummary;
+  if (driveSignal && driveSignal.routeState !== 'stable') return currentSummary;
+  if (!leaveTiming || leaveTiming.status === 'on_track') return currentSummary;
+
+  return leaveTiming.message;
+}
+
+// ============================================================================
 // HELPERS
 // ============================================================================
 
@@ -1082,7 +1131,15 @@ export function computeOrchestratedContext(
   const primaryDriveSignal = getPrimaryDriveSignal(driveSignals);
 
   // v5.9.0: Apply drive-signal action refinement.
-  const finalActions = applyDriveSignalToActions(extActions, primaryDriveSignal);
+  const driveActions = applyDriveSignalToActions(extActions, primaryDriveSignal);
+
+  // v5.9.1: Compute leave timing recommendation from drive signals.
+  const leaveTiming = phase === 'active'
+    ? computeLeaveTimingRecommendation(state, driveSignals)
+    : null;
+
+  // v5.9.1: Apply leave-timing action refinement (lowest priority).
+  const finalActions = applyLeaveTimingToActions(driveActions, leaveTiming);
 
   // v5.8.2 + v5.8.3: Build final summary.
   let finalSummary: string;
@@ -1101,8 +1158,11 @@ export function computeOrchestratedContext(
   // v5.8.6: Apply external-signal summary refinement.
   finalSummary = applyExternalSignalsToSummary(finalSummary, extSignals, sequencePressure, transitionState, execRisk);
 
-  // v5.9.0: Apply drive-signal summary refinement (lowest priority).
+  // v5.9.0: Apply drive-signal summary refinement.
   finalSummary = applyDriveSignalToSummary(finalSummary, primaryDriveSignal, sequencePressure, transitionState, execRisk, extSignals);
+
+  // v5.9.1: Apply leave-timing summary refinement (lowest priority).
+  finalSummary = applyLeaveTimingToSummary(finalSummary, leaveTiming, sequencePressure, transitionState, execRisk, extSignals, primaryDriveSignal);
 
   // v5.8.3: Refine primaryFocus with transition awareness (secondary signal).
   const finalFocus = phase === 'active'
