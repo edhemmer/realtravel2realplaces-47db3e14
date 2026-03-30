@@ -1,22 +1,18 @@
 /**
- * v5.8.8: External Signal Resolver — Flight Status Provider Integration
+ * v5.8.8.1: External Signal Resolver — Stability & Cache Hardening
  *
- * Canonical helper for optional external signal intake.
- * Returns a safe, normalized object representing any already-available
- * external signals (flight status changes, drive timing disruptions).
+ * Flight-keyed deterministic cache with duplicate request guards,
+ * stability filtering, and conditional fetch triggers.
  *
  * RULES:
  * - Never blocks the app
  * - Never throws uncaught errors
  * - Degrades to NO_SIGNAL cleanly
- * - Does not simulate, fabricate, or infer external conditions
- * - Only surfaces signals from a controlled, authenticated provider
- * - Flight matching requires exact flight number + departure date
- * - No fuzzy matching, no guessing
- *
- * Provider: AviationStack via edge function proxy (flight-status)
- * The edge function holds the API key server-side.
- * If the key is not configured, the function returns null signal cleanly.
+ * - Flight-keyed cache (flightNumber + departureDate)
+ * - No duplicate in-flight requests per flight
+ * - Stability filter prevents signal oscillation
+ * - Fetch only on explicit trigger conditions
+ * - No polling, no intervals, no loops
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -46,9 +42,10 @@ export const NO_SIGNAL: ExternalSignals = {
   confidence: 'none',
 };
 
-/**
- * Validates that a flight identifier has all required fields for exact matching.
- */
+// ---------------------------------------------------------------------------
+// Validation
+// ---------------------------------------------------------------------------
+
 function isMatchableFlightId(id: FlightIdentifier | null | undefined): id is FlightIdentifier {
   if (!id) return false;
   if (!id.flightNumber || typeof id.flightNumber !== 'string') return false;
@@ -58,40 +55,127 @@ function isMatchableFlightId(id: FlightIdentifier | null | undefined): id is Fli
 }
 
 // ---------------------------------------------------------------------------
-// Async prefetch cache — orchestration reads synchronously from cache.
-// The prefetch fires once per set of flight identifiers and stores the result.
-// This ensures orchestration is NEVER blocked by network calls.
+// Flight-keyed cache
 // ---------------------------------------------------------------------------
 
-type CachedSignalResult = {
-  key: string;
+type CachedFlightEntry = {
   signal: ExternalSignals;
-  fetchedAt: number;
+  lastFetchedAt: number;
+  lastSignalType: string | null; // for stability filter
+  lastSignalChangedAt: number;   // when signal type last changed
 };
 
-let _cachedResult: CachedSignalResult | null = null;
-let _pendingFetch: boolean = false;
+const _flightCache = new Map<string, CachedFlightEntry>();
+const _inFlightRequests = new Set<string>();
 
-/** Cache TTL: 5 minutes — don't re-fetch too often */
-const CACHE_TTL_MS = 5 * 60 * 1000;
+/** Minimum gap between fetches for a single flight: 90 seconds */
+const MIN_REFRESH_GAP_MS = 90 * 1000;
 
-/**
- * Build a stable cache key from flight identifiers to detect changes.
- */
-function buildCacheKey(flights: FlightIdentifier[]): string {
-  return flights
-    .map(f => `${f.flightNumber}:${f.departureDate}`)
-    .sort()
-    .join('|');
+/** Stability filter window: reject rapid signal changes within 60s */
+const STABILITY_WINDOW_MS = 60 * 1000;
+
+/** Execution window: flight within 12 hours of now */
+const EXECUTION_WINDOW_MS = 12 * 60 * 60 * 1000;
+
+function flightCacheKey(id: FlightIdentifier): string {
+  return `${id.flightNumber.replace(/\s/g, '').toUpperCase()}:${id.departureDate}`;
 }
 
-/**
- * Fire-and-forget async fetch of flight status via edge function.
- * Updates _cachedResult when complete. Never throws.
- */
-async function prefetchFlightSignal(flight: FlightIdentifier, cacheKey: string): Promise<void> {
-  if (_pendingFetch) return;
-  _pendingFetch = true;
+function isInExecutionWindow(departureDate: string): boolean {
+  try {
+    const depStart = new Date(`${departureDate}T00:00:00`).getTime();
+    const depEnd = new Date(`${departureDate}T23:59:59`).getTime();
+    const now = Date.now();
+    // Within 12h before departure day start OR during departure day
+    return now >= depStart - EXECUTION_WINDOW_MS && now <= depEnd + EXECUTION_WINDOW_MS;
+  } catch {
+    return false;
+  }
+}
+
+function shouldFetch(key: string, flight: FlightIdentifier): boolean {
+  const entry = _flightCache.get(key);
+
+  // A: No cached signal exists
+  if (!entry) return true;
+
+  const age = Date.now() - entry.lastFetchedAt;
+
+  // Enforce minimum refresh gap — never re-fetch too soon
+  if (age < MIN_REFRESH_GAP_MS) return false;
+
+  // B: Flight in execution window AND cache is stale (> min gap)
+  if (isInExecutionWindow(flight.departureDate)) return true;
+
+  // C: Previous signal indicated disruption — confirm stability
+  if (entry.signal.hasFlightStatusChange && age >= MIN_REFRESH_GAP_MS) return true;
+
+  // Otherwise no fetch needed
+  return false;
+}
+
+// ---------------------------------------------------------------------------
+// Stability filter
+// ---------------------------------------------------------------------------
+
+function applyStabilityFilter(
+  key: string,
+  newSignal: ExternalSignals
+): ExternalSignals {
+  const entry = _flightCache.get(key);
+  if (!entry) return newSignal;
+
+  const newType = newSignal.flightSignal?.type ?? null;
+  const prevType = entry.lastSignalType;
+
+  // If signal type hasn't changed, accept it
+  if (newType === prevType) return newSignal;
+
+  // Signal changed — check stability window
+  const timeSinceLastChange = Date.now() - entry.lastSignalChangedAt;
+  if (timeSinceLastChange < STABILITY_WINDOW_MS) {
+    // Rapid flip detected — keep previous stable signal
+    return entry.signal;
+  }
+
+  // Change is outside stability window — accept new signal
+  return newSignal;
+}
+
+// ---------------------------------------------------------------------------
+// Build signal from edge function response
+// ---------------------------------------------------------------------------
+
+const VALID_SIGNAL_TYPES = ['delay', 'gate_change', 'cancellation'];
+
+function buildSignalFromResponse(data: unknown): ExternalSignals | null {
+  if (!data || typeof data !== 'object') return null;
+
+  const d = data as Record<string, unknown>;
+  const sig = d.signal as Record<string, unknown> | undefined;
+  if (!sig || !sig.type || !sig.flightNumber) return null;
+  if (!VALID_SIGNAL_TYPES.includes(sig.type as string)) return null;
+
+  return {
+    hasFlightStatusChange: true,
+    hasDriveTimingDisruption: false,
+    confidence: sig.confidence === 'high' ? 'high' : 'low',
+    flightSignal: {
+      type: sig.type as FlightStatusSignal['type'],
+      flightNumber: sig.flightNumber as string,
+      confidence: sig.confidence === 'high' ? 'high' : 'low',
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Async prefetch — fire-and-forget, never throws
+// ---------------------------------------------------------------------------
+
+async function prefetchFlightSignal(flight: FlightIdentifier, key: string): Promise<void> {
+  // Duplicate request guard
+  if (_inFlightRequests.has(key)) return;
+  _inFlightRequests.add(key);
 
   try {
     const { data, error } = await supabase.functions.invoke('flight-status', {
@@ -102,53 +186,80 @@ async function prefetchFlightSignal(flight: FlightIdentifier, cacheKey: string):
     });
 
     if (error || !data) {
-      _cachedResult = { key: cacheKey, signal: NO_SIGNAL, fetchedAt: Date.now() };
+      // On failure: keep existing cached signal if available
+      if (!_flightCache.has(key)) {
+        writeCache(key, NO_SIGNAL, null);
+      } else {
+        // Update lastFetchedAt to prevent immediate retry
+        const existing = _flightCache.get(key)!;
+        existing.lastFetchedAt = Date.now();
+      }
       return;
     }
 
-    const sig = data.signal;
-    if (!sig || !sig.type || !sig.flightNumber) {
-      _cachedResult = { key: cacheKey, signal: NO_SIGNAL, fetchedAt: Date.now() };
-      return;
-    }
+    const rawSignal = buildSignalFromResponse(data);
+    const newSignal = rawSignal ?? NO_SIGNAL;
+    const newType = newSignal.flightSignal?.type ?? null;
 
-    // Validate signal type
-    const validTypes = ['delay', 'gate_change', 'cancellation'];
-    if (!validTypes.includes(sig.type)) {
-      _cachedResult = { key: cacheKey, signal: NO_SIGNAL, fetchedAt: Date.now() };
-      return;
-    }
+    // Apply stability filter before writing
+    const stableSignal = applyStabilityFilter(key, newSignal);
+    const stableType = stableSignal.flightSignal?.type ?? null;
 
-    _cachedResult = {
-      key: cacheKey,
-      signal: {
-        hasFlightStatusChange: true,
-        hasDriveTimingDisruption: false,
-        confidence: sig.confidence === 'high' ? 'high' : 'low',
-        flightSignal: {
-          type: sig.type as FlightStatusSignal['type'],
-          flightNumber: sig.flightNumber,
-          confidence: sig.confidence === 'high' ? 'high' : 'low',
-        },
-      },
-      fetchedAt: Date.now(),
-    };
+    writeCache(key, stableSignal, stableType);
   } catch {
-    // Fail closed — cache NO_SIGNAL to prevent repeated failed fetches
-    _cachedResult = { key: cacheKey, signal: NO_SIGNAL, fetchedAt: Date.now() };
+    // Fail closed — preserve existing cache or write NO_SIGNAL
+    if (!_flightCache.has(key)) {
+      writeCache(key, NO_SIGNAL, null);
+    } else {
+      const existing = _flightCache.get(key)!;
+      existing.lastFetchedAt = Date.now();
+    }
   } finally {
-    _pendingFetch = false;
+    _inFlightRequests.delete(key);
   }
 }
 
+function writeCache(key: string, signal: ExternalSignals, signalType: string | null): void {
+  const existing = _flightCache.get(key);
+  const now = Date.now();
+
+  // Cache write rule: don't overwrite stable signal with weak/no signal
+  if (
+    existing &&
+    existing.signal.hasFlightStatusChange &&
+    existing.signal.confidence === 'high' &&
+    !signal.hasFlightStatusChange
+  ) {
+    // Only overwrite if enough time has passed (stability confirmation)
+    const age = now - existing.lastFetchedAt;
+    if (age < MIN_REFRESH_GAP_MS * 2) {
+      existing.lastFetchedAt = now;
+      return;
+    }
+  }
+
+  const prevType = existing?.lastSignalType ?? null;
+  const signalChangedAt =
+    signalType !== prevType ? now : (existing?.lastSignalChangedAt ?? now);
+
+  _flightCache.set(key, {
+    signal,
+    lastFetchedAt: now,
+    lastSignalType: signalType,
+    lastSignalChangedAt: signalChangedAt,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Public API — SYNCHRONOUS, non-blocking
+// ---------------------------------------------------------------------------
+
 /**
- * Resolve external signals. This is SYNCHRONOUS and non-blocking.
+ * Resolve external signals. Synchronous and non-blocking.
  *
- * Returns cached result if available and fresh.
- * Kicks off an async prefetch in the background if cache is stale or missing.
- * Always returns NO_SIGNAL if no cached data is ready yet.
- *
- * @param upcomingFlights - Flight identifiers from canonical bookings (optional)
+ * Returns cached result per-flight if available and fresh.
+ * Kicks off async prefetch in background if fetch conditions are met.
+ * Always returns NO_SIGNAL if no cached data ready.
  */
 export function resolveExternalSignals(
   upcomingFlights?: FlightIdentifier[]
@@ -163,23 +274,19 @@ export function resolveExternalSignals(
       return NO_SIGNAL;
     }
 
-    const cacheKey = buildCacheKey(matchable);
+    // Use first matchable flight as primary lookup target
+    const primary = matchable[0];
+    const key = flightCacheKey(primary);
 
-    // Check cache freshness
-    if (_cachedResult && _cachedResult.key === cacheKey) {
-      const age = Date.now() - _cachedResult.fetchedAt;
-      if (age < CACHE_TTL_MS) {
-        return _cachedResult.signal;
-      }
+    // Check if fetch should be triggered
+    if (shouldFetch(key, primary)) {
+      prefetchFlightSignal(primary, key);
     }
 
-    // Cache is stale or missing — kick off async prefetch for the first matchable flight
-    // Use the first upcoming flight as the primary lookup target
-    prefetchFlightSignal(matchable[0], cacheKey);
-
-    // Return cached result if it exists (even if slightly stale), otherwise NO_SIGNAL
-    if (_cachedResult && _cachedResult.key === cacheKey) {
-      return _cachedResult.signal;
+    // Return cached entry if exists
+    const entry = _flightCache.get(key);
+    if (entry) {
+      return entry.signal;
     }
 
     return NO_SIGNAL;
