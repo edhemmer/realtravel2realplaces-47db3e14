@@ -900,6 +900,61 @@ function applyExternalSignalsToSummary(
 }
 
 // ============================================================================
+// v5.9.0: DRIVE SIGNAL REFINEMENT
+// ============================================================================
+
+/**
+ * Apply drive-signal refinement to actions.
+ * When a drive signal indicates tightening or delayed route state,
+ * prioritize navigate/open_event actions.
+ * Lowest-priority signal layer — only activates when no higher signal dominates.
+ */
+function applyDriveSignalToActions(
+  actions: AIOrchestratedAction[],
+  driveSignal: DriveRouteSignal | null,
+): AIOrchestratedAction[] {
+  if (!driveSignal || driveSignal.routeState === 'stable' || actions.length <= 1) return actions;
+
+  // Tightening or delayed: prioritize navigate/event actions
+  const urgent = actions.filter(
+    (a) => a.actionType === 'navigate' || a.actionType === 'open_event'
+  );
+  const rest = actions.filter(
+    (a) => a.actionType !== 'navigate' && a.actionType !== 'open_event'
+  );
+  return [...urgent, ...rest].slice(0, 3);
+}
+
+/**
+ * Apply drive-signal refinement to summary.
+ * Only activates when route is tightening/delayed AND no higher-priority
+ * signal has already refined the summary.
+ * Never claims live traffic data — describes timing awareness only.
+ */
+function applyDriveSignalToSummary(
+  currentSummary: string,
+  driveSignal: DriveRouteSignal | null,
+  sequencePressure: SequencePressure,
+  transitionState: TransitionState,
+  execRisk: ExecutionRisk,
+  extSignals: ExternalSignals,
+): string {
+  if (sequencePressure === 'high' || sequencePressure === 'medium') return currentSummary;
+  if (transitionState !== null) return currentSummary;
+  if (execRisk.riskConfidence === 'high') return currentSummary;
+  if (extSignals.confidence === 'high') return currentSummary;
+  if (!driveSignal || driveSignal.routeState === 'stable') return currentSummary;
+
+  if (driveSignal.routeState === 'delayed') {
+    return `Drive timing is tight — consider leaving soon (est. ${driveSignal.etaMinutes} min).`;
+  }
+  if (driveSignal.routeState === 'tightening') {
+    return `Route may take ~${driveSignal.etaMinutes} min — stay ahead of schedule.`;
+  }
+  return currentSummary;
+}
+
+// ============================================================================
 // HELPERS
 // ============================================================================
 
