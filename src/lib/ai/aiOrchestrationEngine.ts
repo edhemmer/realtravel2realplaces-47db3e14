@@ -908,6 +908,49 @@ function daysBetween(dateA: string, dateB: string): number {
   return Math.max(0, Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
+/**
+ * v5.8.7: Extract upcoming flight identifiers from canonical timeline events.
+ * Only returns flights with exact flight number and departure date.
+ */
+function extractUpcomingFlightIds(state: CanonicalTripState): FlightIdentifier[] {
+  const now = getLocalNowString();
+  const flights: FlightIdentifier[] = [];
+
+  try {
+    for (const evt of state.timelineEvents) {
+      // Only consider future flight events
+      if (evt.type !== 'flight' || !evt.startDatetime || evt.startDatetime < now) continue;
+
+      const raw = evt.rawBooking;
+      if (!raw) continue;
+
+      // Extract airline + flight number — require both to be present
+      const airline = typeof raw.airline === 'string' ? raw.airline.trim() : '';
+      const vendorName = typeof raw.vendor_name === 'string' ? raw.vendor_name.trim() : '';
+      const confirmationNumber = typeof raw.confirmation_number === 'string' ? raw.confirmation_number.trim() : '';
+
+      // Try to derive a flight number from vendor_name or confirmation_number
+      // Only accept if it looks like a real flight number (e.g., "AA1234")
+      const flightNumberCandidate = vendorName || confirmationNumber;
+      if (!flightNumberCandidate) continue;
+
+      // Extract departure date (YYYY-MM-DD) from start_datetime
+      const depDate = evt.startDatetime.substring(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(depDate)) continue;
+
+      flights.push({
+        flightNumber: flightNumberCandidate,
+        departureDate: depDate,
+        airline: airline || undefined,
+      });
+    }
+  } catch {
+    // Fail closed
+  }
+
+  return flights;
+}
+
 // ============================================================================
 // MAIN ENGINE
 // ============================================================================
