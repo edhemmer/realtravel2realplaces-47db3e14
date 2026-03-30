@@ -20,6 +20,7 @@ import { getLocalNowString } from '@/lib/canonicalNextStop';
 import { computePreferenceWeights, reorderActionsWithPreference } from '@/lib/ai/aiFeedbackEngine';
 import { generatePredictiveActions, type PredictiveAction } from '@/lib/ai/predictiveActionEngine';
 import { generateSequence, type ActionSequence } from '@/lib/ai/sequenceEngine';
+import { resolveExternalSignals, NO_SIGNAL, type ExternalSignals } from '@/lib/ai/externalSignalResolver';
 
 // ============================================================================
 // OUTPUT TYPES
@@ -851,6 +852,53 @@ function applyExecutionRiskToSummary(
 }
 
 // ============================================================================
+// v5.8.6: EXTERNAL SIGNAL REFINEMENT
+// ============================================================================
+
+/**
+ * Apply external-signal refinement to actions.
+ * Lowest-priority signal — only activates when a real signal exists
+ * and no higher signal has already shaped the output.
+ */
+function applyExternalSignalsToActions(
+  actions: AIOrchestratedAction[],
+  signals: ExternalSignals,
+): AIOrchestratedAction[] {
+  if (signals.confidence === 'none' || actions.length <= 1) return actions;
+
+  // When a real signal exists, favor navigate/open_event over explore/review
+  const urgent = actions.filter(
+    (a) => a.actionType === 'navigate' || a.actionType === 'open_event'
+  );
+  const rest = actions.filter(
+    (a) => a.actionType !== 'navigate' && a.actionType !== 'open_event'
+  );
+  return [...urgent, ...rest].slice(0, 3);
+}
+
+/**
+ * Apply external-signal refinement to summary.
+ * Only activates when confidence is high and no higher-priority signal
+ * has already refined the summary. Never claims live data.
+ */
+function applyExternalSignalsToSummary(
+  currentSummary: string,
+  signals: ExternalSignals,
+  sequencePressure: SequencePressure,
+  transitionState: TransitionState,
+  execRisk: ExecutionRisk,
+): string {
+  if (sequencePressure === 'high' || sequencePressure === 'medium') return currentSummary;
+  if (transitionState !== null) return currentSummary;
+  if (execRisk.riskConfidence === 'high') return currentSummary;
+  if (signals.confidence !== 'high') return currentSummary;
+
+  if (signals.hasFlightStatusChange) return 'Flight timing may be affected — allow extra buffer.';
+  if (signals.hasDriveTimingDisruption) return 'Drive timing may be affected — stay ahead of changes.';
+  return currentSummary;
+}
+
+// ============================================================================
 // HELPERS
 // ============================================================================
 
@@ -923,8 +971,14 @@ export function computeOrchestratedContext(
     ? deriveExecutionRisk(state, activeSequence, sequencePressure, transitionState, execCtx)
     : EXECUTION_RISK_NONE;
 
-  // v5.8.5: Apply execution-risk action refinement (lowest priority signal).
+  // v5.8.5: Apply execution-risk action refinement.
   const riskActions = applyExecutionRiskToActions(contextActions, execRisk);
+
+  // v5.8.6: Resolve external signals (lowest-priority, non-blocking).
+  const extSignals = phase === 'active' ? resolveExternalSignals() : NO_SIGNAL;
+
+  // v5.8.6: Apply external-signal action refinement.
+  const finalActions = applyExternalSignalsToActions(riskActions, extSignals);
 
   // v5.8.2 + v5.8.3: Build final summary.
   let finalSummary: string;
@@ -937,8 +991,11 @@ export function computeOrchestratedContext(
   // v5.8.4: Apply execution-context summary refinement.
   finalSummary = applyExecutionContextToSummary(finalSummary, execCtx, sequencePressure, transitionState);
 
-  // v5.8.5: Apply execution-risk summary refinement (lowest priority).
+  // v5.8.5: Apply execution-risk summary refinement.
   finalSummary = applyExecutionRiskToSummary(finalSummary, execRisk, sequencePressure, transitionState);
+
+  // v5.8.6: Apply external-signal summary refinement (lowest priority).
+  finalSummary = applyExternalSignalsToSummary(finalSummary, extSignals, sequencePressure, transitionState, execRisk);
 
   // v5.8.3: Refine primaryFocus with transition awareness (secondary signal).
   const finalFocus = phase === 'active'
@@ -950,7 +1007,7 @@ export function computeOrchestratedContext(
     primaryFocus: finalFocus,
     summary: finalSummary,
     prioritizedGuidance,
-    recommendedActions: riskActions,
+    recommendedActions: finalActions,
     activeSequence,
   };
 }
