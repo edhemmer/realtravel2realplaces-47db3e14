@@ -18,6 +18,7 @@ import type { CanonicalTripState, CanonicalTimelineEvent } from '@/lib/canonical
 import type { ProactiveInsight, ProactiveInsightAction } from '@/lib/proactiveInsightEngine';
 import { getLocalNowString } from '@/lib/canonicalNextStop';
 import { computePreferenceWeights, reorderActionsWithPreference } from '@/lib/ai/aiFeedbackEngine';
+import { generatePredictiveActions, type PredictiveAction } from '@/lib/ai/predictiveActionEngine';
 
 // ============================================================================
 // OUTPUT TYPES

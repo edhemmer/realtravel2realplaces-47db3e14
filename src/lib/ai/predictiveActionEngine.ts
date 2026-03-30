@@ -138,7 +138,7 @@ function hasWeatherConcern(
 
   // Only flag if precipitation probability is high or conditions are severe
   return (
-    (snapshot.precipitationProbability != null && snapshot.precipitationProbability >= 60) ||
+    (snapshot.precipChance != null && snapshot.precipChance >= 60) ||
     (snapshot.condition?.toLowerCase().includes('storm') ?? false) ||
     (snapshot.condition?.toLowerCase().includes('rain') ?? false)
   );
