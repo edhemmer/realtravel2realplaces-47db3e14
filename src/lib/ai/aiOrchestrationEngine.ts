@@ -1075,7 +1075,14 @@ export function computeOrchestratedContext(
   const extSignals = phase === 'active' ? resolveExternalSignals(upcomingFlights) : NO_SIGNAL;
 
   // v5.8.6: Apply external-signal action refinement.
-  const finalActions = applyExternalSignalsToActions(riskActions, extSignals);
+  const extActions = applyExternalSignalsToActions(riskActions, extSignals);
+
+  // v5.9.0: Resolve bounded drive signals for route timing awareness.
+  const driveSignals = phase === 'active' ? resolveDriveSignals(state) : [];
+  const primaryDriveSignal = getPrimaryDriveSignal(driveSignals);
+
+  // v5.9.0: Apply drive-signal action refinement.
+  const finalActions = applyDriveSignalToActions(extActions, primaryDriveSignal);
 
   // v5.8.2 + v5.8.3: Build final summary.
   let finalSummary: string;
@@ -1091,8 +1098,11 @@ export function computeOrchestratedContext(
   // v5.8.5: Apply execution-risk summary refinement.
   finalSummary = applyExecutionRiskToSummary(finalSummary, execRisk, sequencePressure, transitionState);
 
-  // v5.8.6: Apply external-signal summary refinement (lowest priority).
+  // v5.8.6: Apply external-signal summary refinement.
   finalSummary = applyExternalSignalsToSummary(finalSummary, extSignals, sequencePressure, transitionState, execRisk);
+
+  // v5.9.0: Apply drive-signal summary refinement (lowest priority).
+  finalSummary = applyDriveSignalToSummary(finalSummary, primaryDriveSignal, sequencePressure, transitionState, execRisk, extSignals);
 
   // v5.8.3: Refine primaryFocus with transition awareness (secondary signal).
   const finalFocus = phase === 'active'
