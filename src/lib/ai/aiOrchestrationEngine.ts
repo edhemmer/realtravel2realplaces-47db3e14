@@ -20,7 +20,7 @@ import { getLocalNowString } from '@/lib/canonicalNextStop';
 import { computePreferenceWeights, reorderActionsWithPreference } from '@/lib/ai/aiFeedbackEngine';
 import { generatePredictiveActions, type PredictiveAction } from '@/lib/ai/predictiveActionEngine';
 import { generateSequence, type ActionSequence } from '@/lib/ai/sequenceEngine';
-import { resolveExternalSignals, NO_SIGNAL, type ExternalSignals } from '@/lib/ai/externalSignalResolver';
+import { resolveExternalSignals, NO_SIGNAL, type ExternalSignals, type FlightIdentifier } from '@/lib/ai/externalSignalResolver';
 
 // ============================================================================
 // OUTPUT TYPES
