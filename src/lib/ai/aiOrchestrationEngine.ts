@@ -23,6 +23,7 @@ import { generateSequence, type ActionSequence } from '@/lib/ai/sequenceEngine';
 import { resolveExternalSignals, NO_SIGNAL, type ExternalSignals, type FlightIdentifier } from '@/lib/ai/externalSignalResolver';
 import { resolveDriveSignals, getPrimaryDriveSignal, type DriveSignal as DriveRouteSignal } from '@/lib/ai/driveSignalEngine';
 import { computeLeaveTimingRecommendation, type LeaveTimingRecommendation } from '@/lib/ai/leaveTimingEngine';
+import type { TrafficIntelligence } from '@/lib/trafficIntelligenceEngine';
 
 // ============================================================================
 // OUTPUT TYPES
