@@ -162,8 +162,10 @@ export function NowCommandCenter({
   // v5.5.0: Handle AI orchestrated action taps
   // v5.6.0: Record action interaction for feedback-based reordering
   const handleOrchestratedAction = useCallback((action: AIOrchestratedAction) => {
-    // Record the tap for preference learning
-    const phase = orchestratedContext?.phase ?? 'active';
+    // Derive phase from trip dates for feedback recording
+    const today = getLocalNowString().substring(0, 10);
+    const phase: 'pre-trip' | 'active' | 'post-trip' =
+      today > trip.end_date ? 'post-trip' : today >= trip.start_date ? 'active' : 'pre-trip';
     recordActionInteraction(action.actionType, phase);
 
     switch (action.actionType) {
