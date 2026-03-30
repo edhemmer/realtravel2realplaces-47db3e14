@@ -248,12 +248,14 @@ async function fetchFromHere(
     };
 
     writeCache(routeKey, intelligence);
+    recordCall('traffic', routeKey);
     return intelligence;
   } catch (err) {
     console.warn('[TrafficIntelligence] Fetch error:', err);
     return null;
   } finally {
     _inFlightRequests.delete(routeKey);
+    releaseLock('traffic', routeKey);
   }
 }
 
