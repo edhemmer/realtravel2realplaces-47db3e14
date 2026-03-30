@@ -25,6 +25,7 @@ import { resolveDriveSignals, getPrimaryDriveSignal, type DriveSignal as DriveRo
 import { computeLeaveTimingRecommendation, type LeaveTimingRecommendation } from '@/lib/ai/leaveTimingEngine';
 import type { TrafficIntelligence } from '@/lib/trafficIntelligenceEngine';
 import { getTransitIntelligence, type TransitIntelligence, type TransitAdvisoryFlag } from '@/lib/transitIntelligenceEngine';
+import { getMultimodalDecision, type MultimodalDecision, type MovementMode } from '@/lib/multimodalDecisionEngine';
 
 // ============================================================================
 // OUTPUT TYPES
