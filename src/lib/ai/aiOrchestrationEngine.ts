@@ -20,7 +20,7 @@ import { getLocalNowString } from '@/lib/canonicalNextStop';
 import { computePreferenceWeights, reorderActionsWithPreference } from '@/lib/ai/aiFeedbackEngine';
 import { generatePredictiveActions, type PredictiveAction } from '@/lib/ai/predictiveActionEngine';
 import { generateSequence, type ActionSequence } from '@/lib/ai/sequenceEngine';
-import { resolveExternalSignals, NO_SIGNAL, type ExternalSignals } from '@/lib/ai/externalSignalResolver';
+import { resolveExternalSignals, NO_SIGNAL, type ExternalSignals, type FlightIdentifier } from '@/lib/ai/externalSignalResolver';
 
 // ============================================================================
 // OUTPUT TYPES
@@ -908,6 +908,42 @@ function daysBetween(dateA: string, dateB: string): number {
   return Math.max(0, Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
+/**
+ * v5.8.7: Extract upcoming flight identifiers from canonical timeline events.
+ * Only returns flights with exact flight number and departure date.
+ */
+function extractUpcomingFlightIds(state: CanonicalTripState): FlightIdentifier[] {
+  const now = new Date();
+  const flights: FlightIdentifier[] = [];
+
+  try {
+    for (const evt of state.timelineEvents) {
+      if (evt.bookingType !== 'flight' || !evt.datetime || evt.datetime < now) continue;
+
+      // Require confirmation number as flight identifier
+      const flightId = evt.confirmationNumber?.trim();
+      if (!flightId) continue;
+
+      // Extract departure date (YYYY-MM-DD)
+      const depDate = evt.datetime.toISOString().substring(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(depDate)) continue;
+
+      // Use title for airline hint
+      const airline = evt.title?.trim() || undefined;
+
+      flights.push({
+        flightNumber: flightId,
+        departureDate: depDate,
+        airline,
+      });
+    }
+  } catch {
+    // Fail closed
+  }
+
+  return flights;
+}
+
 // ============================================================================
 // MAIN ENGINE
 // ============================================================================
@@ -974,8 +1010,13 @@ export function computeOrchestratedContext(
   // v5.8.5: Apply execution-risk action refinement.
   const riskActions = applyExecutionRiskToActions(contextActions, execRisk);
 
-  // v5.8.6: Resolve external signals (lowest-priority, non-blocking).
-  const extSignals = phase === 'active' ? resolveExternalSignals() : NO_SIGNAL;
+  // v5.8.7: Extract flight identifiers from canonical state for signal matching.
+  const upcomingFlights: FlightIdentifier[] = phase === 'active'
+    ? extractUpcomingFlightIds(state)
+    : [];
+
+  // v5.8.6/v5.8.7: Resolve external signals with flight identifiers.
+  const extSignals = phase === 'active' ? resolveExternalSignals(upcomingFlights) : NO_SIGNAL;
 
   // v5.8.6: Apply external-signal action refinement.
   const finalActions = applyExternalSignalsToActions(riskActions, extSignals);
