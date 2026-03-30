@@ -805,14 +805,24 @@ export function computeOrchestratedContext(
   const transitionState = phase === 'active' ? resolveTransitionState(state) : null;
   const hasHighInsight = insights.some((i) => i.priority === 'high');
 
+  // v5.8.4: Derive execution context from canonical event types.
+  const execCtx = phase === 'active'
+    ? deriveExecutionContext(state, activeSequence, sequencePressure)
+    : { hasUpcomingMovement: false, hasUpcomingFlight: false, hasUpcomingLodging: false, isTravelHeavyWindow: false };
+
+  // v5.8.4: Apply execution-context action refinement (lowest priority signal).
+  const contextActions = applyExecutionContextToActions(pressuredActions, execCtx);
+
   // v5.8.2 + v5.8.3: Build final summary.
-  // Sequence pressure takes priority, then transition refinement, then base.
   let finalSummary: string;
   if ((sequencePressure === 'high' || sequencePressure === 'medium') && activeSequence && activeSequence.steps.length >= 2) {
     finalSummary = `${activeSequence.steps[0].label} → ${activeSequence.steps[1].label}`;
   } else {
     finalSummary = applyTransitionToSummary(summary, transitionState, state, sequencePressure);
   }
+
+  // v5.8.4: Apply execution-context summary refinement (lowest priority).
+  finalSummary = applyExecutionContextToSummary(finalSummary, execCtx, sequencePressure, transitionState);
 
   // v5.8.3: Refine primaryFocus with transition awareness (secondary signal).
   const finalFocus = phase === 'active'
@@ -824,7 +834,7 @@ export function computeOrchestratedContext(
     primaryFocus: finalFocus,
     summary: finalSummary,
     prioritizedGuidance,
-    recommendedActions: pressuredActions,
+    recommendedActions: contextActions,
     activeSequence,
   };
 }
