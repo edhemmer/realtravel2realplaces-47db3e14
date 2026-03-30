@@ -284,7 +284,7 @@ export function computeLeaveTimingRecommendation(
     const buffer = minutesToEvent - signal.etaMinutes;
 
     // Classify
-    const { status, urgency } = classifyLeaveStatus(buffer, signal.routeState);
+    const { status, urgency } = classifyLeaveStatus(buffer, signal.routeState, signal);
 
     // Build event label from canonical data
     const eventLabel = event.title || event.bookingType || 'next stop';
