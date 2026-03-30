@@ -1005,6 +1005,35 @@ function applyLeaveTimingToSummary(
 }
 
 // ============================================================================
+// v5.9.2: INCIDENT AWARENESS
+// ============================================================================
+
+/**
+ * Build an incident guidance item from drive signal traffic intelligence.
+ * Returns null if no incident is detected.
+ * Max 1 incident advisory per route.
+ */
+function buildIncidentGuidance(
+  driveSignal: DriveRouteSignal | null,
+): AIOrchestratedGuidanceItem | null {
+  if (!driveSignal?.trafficIntelligence?.hasIncident) return null;
+
+  const traffic = driveSignal.trafficIntelligence;
+  const delayText = traffic.delayMinutes > 0
+    ? ` Expect ~${traffic.delayMinutes} min delay.`
+    : '';
+
+  return {
+    id: `incident-${driveSignal.eventId}`,
+    title: 'Route alert',
+    message: `Incident reported on your route.${delayText}`,
+    priority: 'high',
+    type: 'risk',
+    actionHint: 'Check route conditions',
+  };
+}
+
+// ============================================================================
 // HELPERS
 // ============================================================================
 
