@@ -1,5 +1,5 @@
 /**
- * v5.10.3: Contextual Execution Intelligence
+ * v5.10.3.1: Contextual Execution Intelligence
  *
  * Advisory surfacing layer that decides WHEN to present an already-available
  * movement action to the user. Consumes governed outputs only — never
