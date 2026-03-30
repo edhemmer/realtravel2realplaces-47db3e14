@@ -13,6 +13,14 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import {
+  checkCallAllowed,
+  recordCall,
+  acquireLock,
+  releaseLock,
+  type CallPriority,
+  type FreshnessTier,
+} from '@/lib/movementCallGovernance';
 
 // ============================================================================
 // OUTPUT TYPE
@@ -200,6 +208,9 @@ async function fetchFromHere(
   // Duplicate request guard
   if (_inFlightRequests.has(routeKey)) return null;
 
+  // Governance lock
+  if (!acquireLock('traffic', routeKey)) return null;
+
   _inFlightRequests.add(routeKey);
 
   try {
@@ -237,12 +248,14 @@ async function fetchFromHere(
     };
 
     writeCache(routeKey, intelligence);
+    recordCall('traffic', routeKey);
     return intelligence;
   } catch (err) {
     console.warn('[TrafficIntelligence] Fetch error:', err);
     return null;
   } finally {
     _inFlightRequests.delete(routeKey);
+    releaseLock('traffic', routeKey);
   }
 }
 
@@ -267,6 +280,7 @@ export function getTrafficIntelligence(
   originLng: number,
   destLat: number,
   destLng: number,
+  options?: { priority?: CallPriority; freshnessTier?: FreshnessTier; timeSensitive?: boolean },
 ): TrafficIntelligence {
   const routeKey = generateRouteKey(originLat, originLng, destLat, destLng);
 
@@ -276,11 +290,18 @@ export function getTrafficIntelligence(
     if (cached) return cached.intelligence;
   }
 
-  // Step 2: Trigger background fetch (non-blocking)
-  if (!_inFlightRequests.has(routeKey)) {
-    fetchFromHere(originLat, originLng, destLat, destLng, routeKey).catch(() => {
-      // Silently handled — fallback chain covers this
-    });
+  // Step 2: Governance check before triggering fetch
+  const governance = checkCallAllowed({
+    source: 'traffic',
+    routeKey,
+    priority: options?.priority ?? 'medium',
+    freshnessTier: options?.freshnessTier ?? 'active',
+    timeSensitive: options?.timeSensitive,
+  });
+
+  // Step 3: Trigger background fetch only if governance allows
+  if (governance.allowed && !_inFlightRequests.has(routeKey)) {
+    fetchFromHere(originLat, originLng, destLat, destLng, routeKey).catch(() => {});
   }
 
   // Step 3: Return stale cached data if available
@@ -302,6 +323,7 @@ export async function getTrafficIntelligenceAsync(
   originLng: number,
   destLat: number,
   destLng: number,
+  options?: { priority?: CallPriority; freshnessTier?: FreshnessTier; timeSensitive?: boolean },
 ): Promise<TrafficIntelligence> {
   const routeKey = generateRouteKey(originLat, originLng, destLat, destLng);
 

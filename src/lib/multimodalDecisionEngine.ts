@@ -23,6 +23,7 @@ import {
   type TransitIntelligence,
   type TransitAdvisoryFlag,
 } from '@/lib/transitIntelligenceEngine';
+import { shouldFetchSource } from '@/lib/movementCallGovernance';
 
 // ============================================================================
 // OUTPUT TYPES
@@ -385,13 +386,19 @@ export function getMultimodalDecision(
   const cached = getCachedDecision(cacheKey);
   if (cached) return cached.decision;
 
-  // Gather raw intelligence from source engines
+  // Gather raw intelligence from source engines (governance checks happen inside each engine)
   const traffic = getTrafficIntelligence(originLat, originLng, destLat, destLng);
-  const transit = getTransitIntelligence(originLat, originLng, destLat, destLng, arrivalDeadline);
+
+  // Only call transit if mode is potentially eligible (distance-based heuristic)
+  const distanceMi = haversineDistanceMi(originLat, originLng, destLat, destLng);
+  const transitEligible = distanceMi < 50; // transit rarely viable over 50 miles
+  const transit = transitEligible
+    ? getTransitIntelligence(originLat, originLng, destLat, destLng, arrivalDeadline)
+    : null;
 
   // Normalize all options
   const driveOption = normalizeDrive(traffic);
-  const transitOption = normalizeTransit(transit);
+  const transitOption = transit ? normalizeTransit(transit) : null;
   const walkOption = normalizeWalk(originLat, originLng, destLat, destLng);
 
   // Collect eligible options

@@ -14,6 +14,14 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import {
+  checkCallAllowed,
+  recordCall,
+  acquireLock,
+  releaseLock,
+  type CallPriority,
+  type FreshnessTier,
+} from '@/lib/movementCallGovernance';
 
 // ============================================================================
 // OUTPUT TYPES
@@ -362,6 +370,8 @@ async function fetchFromHere(
 ): Promise<TransitIntelligence | null> {
   if (_inFlightRequests.has(routeKey)) return null;
 
+  if (!acquireLock('transit', routeKey)) return null;
+
   _inFlightRequests.add(routeKey);
 
   try {
@@ -448,12 +458,14 @@ async function fetchFromHere(
     };
 
     writeCache(routeKey, intelligence);
+    recordCall('transit', routeKey);
     return intelligence;
   } catch (err) {
     console.warn('[TransitIntelligence] Fetch error:', err);
     return null;
   } finally {
     _inFlightRequests.delete(routeKey);
+    releaseLock('transit', routeKey);
   }
 }
 
@@ -478,6 +490,7 @@ export function getTransitIntelligence(
   destLat: number,
   destLng: number,
   arrivalDeadline?: string,
+  options?: { priority?: CallPriority; freshnessTier?: FreshnessTier; timeSensitive?: boolean },
 ): TransitIntelligence {
   const routeKey = generateRouteKey(originLat, originLng, destLat, destLng);
 
@@ -487,8 +500,17 @@ export function getTransitIntelligence(
     if (cached) return cached.intelligence;
   }
 
-  // Step 2: Trigger background fetch
-  if (!_inFlightRequests.has(routeKey)) {
+  // Step 2: Governance check
+  const governance = checkCallAllowed({
+    source: 'transit',
+    routeKey,
+    priority: options?.priority ?? 'medium',
+    freshnessTier: options?.freshnessTier ?? 'active',
+    timeSensitive: options?.timeSensitive,
+  });
+
+  // Step 3: Trigger background fetch only if governance allows
+  if (governance.allowed && !_inFlightRequests.has(routeKey)) {
     fetchFromHere(originLat, originLng, destLat, destLng, routeKey, arrivalDeadline).catch(() => {});
   }
 
