@@ -1,5 +1,5 @@
 /**
- * v5.4.0: AI Orchestration Engine
+ * v5.8.2: AI Orchestration Engine
  *
  * Single canonical AI orchestration layer that sits above deterministic systems
  * and converts structured trip state into cohesive, human-useful guidance.
