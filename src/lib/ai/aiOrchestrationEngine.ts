@@ -974,8 +974,13 @@ export function computeOrchestratedContext(
   // v5.8.5: Apply execution-risk action refinement.
   const riskActions = applyExecutionRiskToActions(contextActions, execRisk);
 
-  // v5.8.6: Resolve external signals (lowest-priority, non-blocking).
-  const extSignals = phase === 'active' ? resolveExternalSignals() : NO_SIGNAL;
+  // v5.8.7: Extract flight identifiers from canonical state for signal matching.
+  const upcomingFlights: FlightIdentifier[] = phase === 'active'
+    ? extractUpcomingFlightIds(state)
+    : [];
+
+  // v5.8.6/v5.8.7: Resolve external signals with flight identifiers.
+  const extSignals = phase === 'active' ? resolveExternalSignals(upcomingFlights) : NO_SIGNAL;
 
   // v5.8.6: Apply external-signal action refinement.
   const finalActions = applyExternalSignalsToActions(riskActions, extSignals);
