@@ -22,7 +22,7 @@ import type { MovementExecutionResult } from './movementExecutionHelper';
 export type ExecutionPriority = 'low' | 'medium' | 'high';
 
 export interface ContextualExecutionInput {
-  multimodalDecision: MultimodalDecisionResult;
+  multimodalDecision: MultimodalDecision;
   movementExecution: MovementExecutionResult;
   currentTime: Date;
   lastEvaluationAt?: string;
@@ -73,7 +73,7 @@ const EVAL_INTERVAL: Record<string, number> = {
 // CONTEXT HASH (lightweight fingerprint of recommendation state)
 // ============================================================================
 
-function buildContextHash(decision: MultimodalDecisionResult): string {
+function buildContextHash(decision: MultimodalDecision): string {
   const rec = decision.recommendedOption;
   if (!rec) return 'none';
   return `${decision.recommendedMode}|${Math.round(rec.totalTravelMinutes)}|${decision.urgencyLevel}|${rec.cutoffRisk ? 1 : 0}`;
@@ -191,7 +191,7 @@ function isSuppressed(
 // ============================================================================
 
 function generateMessage(
-  decision: MultimodalDecisionResult,
+  decision: MultimodalDecision,
   trigger: TriggerResult,
 ): { message: string; label: string } {
   const mode = decision.recommendedMode;
@@ -255,7 +255,7 @@ function capitalize(s: string): string {
 // PRIORITY
 // ============================================================================
 
-function derivePriority(trigger: TriggerResult, decision: MultimodalDecisionResult): ExecutionPriority {
+function derivePriority(trigger: TriggerResult, decision: MultimodalDecision): ExecutionPriority {
   if (trigger.category === 'immediate_urgency') return 'high';
   if (trigger.category === 'meaningful_shift' && decision.urgencyLevel === 'high') return 'high';
   if (trigger.category === 'meaningful_shift') return 'medium';
@@ -351,7 +351,7 @@ export function evaluateContextualExecution(input: ContextualExecutionInput): Co
  * so the next evaluation can compare against it.
  */
 export function buildSurfacedMeta(
-  decision: MultimodalDecisionResult,
+  decision: MultimodalDecision,
   trigger: { intent: string },
   surfacedAt: Date,
 ): SurfacedActionMeta {
