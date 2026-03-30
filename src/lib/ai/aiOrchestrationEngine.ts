@@ -18,6 +18,7 @@ import type { CanonicalTripState, CanonicalTimelineEvent } from '@/lib/canonical
 import type { ProactiveInsight, ProactiveInsightAction } from '@/lib/proactiveInsightEngine';
 import { getLocalNowString } from '@/lib/canonicalNextStop';
 import { computePreferenceWeights, reorderActionsWithPreference } from '@/lib/ai/aiFeedbackEngine';
+import { generatePredictiveActions, type PredictiveAction } from '@/lib/ai/predictiveActionEngine';
 
 // ============================================================================
 // OUTPUT TYPES
@@ -316,13 +317,19 @@ export function computeOrchestratedContext(
   const primaryFocus = resolvePrimaryFocus(phase, state, insights);
   const summary = generateSummary(phase, state, insights);
   const prioritizedGuidance = convertInsightsToGuidance(insights);
-  const rawActions = recommendActions(phase, state, insights);
+  const currentActions = recommendActions(phase, state, insights);
+
+  // v5.7.0: Generate predictive action candidates from upcoming events.
+  const predictiveCandidates = generatePredictiveActions(state);
+
+  // v5.7.0: Merge current + predictive actions with deduplication.
+  const mergedActions = mergePredictiveActions(currentActions, predictiveCandidates);
 
   // v5.6.0: Apply bounded preference feedback to action ordering.
   // Preference weights act as a secondary tiebreaker only —
   // critical/urgent actions remain first regardless of user history.
   const feedbackWeights = computePreferenceWeights();
-  const recommendedActions = reorderActionsWithPreference(rawActions, feedbackWeights);
+  const recommendedActions = reorderActionsWithPreference(mergedActions, feedbackWeights);
 
   return {
     phase,
@@ -331,4 +338,62 @@ export function computeOrchestratedContext(
     prioritizedGuidance,
     recommendedActions,
   };
+}
+
+// ============================================================================
+// v5.7.0: PREDICTIVE ACTION MERGING
+// ============================================================================
+
+/**
+ * Merge current-state actions with predictive action candidates.
+ *
+ * Priority hierarchy (locked):
+ *  1. Critical current-state actions
+ *  2. High-value current-state actions
+ *  3. High-confidence predictive actions
+ *  4. Lower-value current actions
+ *  5. Lower-value predictive actions
+ *
+ * Deduplication: If a current action shares the same actionType AND
+ * targetId as a predictive action, the predictive version is discarded.
+ *
+ * Final output is capped at 3 actions.
+ */
+function mergePredictiveActions(
+  currentActions: AIOrchestratedAction[],
+  predictive: PredictiveAction[],
+): AIOrchestratedAction[] {
+  // Deduplicate: remove predictive actions that overlap with current actions
+  const currentKeys = new Set(
+    currentActions.map((a) => `${a.actionType}::${a.actionPayload?.eventId ?? a.actionPayload?.destinationLabel ?? ''}`)
+  );
+
+  const uniquePredictive = predictive.filter((p) => {
+    const key = `${p.actionType}::${p.targetId ?? ''}`;
+    return !currentKeys.has(key);
+  });
+
+  // Convert predictive actions to orchestrated action format
+  const convertedPredictive: Array<AIOrchestratedAction & { _priority: number }> = uniquePredictive.map((p) => ({
+    id: p.id,
+    label: p.reason,
+    actionType: p.actionType,
+    actionPayload: p.targetId ? { eventId: p.targetId } : undefined,
+    // Priority score: high=3, medium=2, low=1
+    _priority: p.priority === 'high' ? 3 : p.priority === 'medium' ? 2 : 1,
+  }));
+
+  // Tag current actions with higher base priority so they sort first at equal tiers
+  const taggedCurrent: Array<AIOrchestratedAction & { _priority: number }> = currentActions.map((a, idx) => ({
+    ...a,
+    // Current actions get a boost of +3 for first position, +2 for second, etc.
+    _priority: Math.max(4 - idx, 1) + 3,
+  }));
+
+  // Merge, sort by priority descending, cap at 3
+  const all = [...taggedCurrent, ...convertedPredictive];
+  all.sort((a, b) => b._priority - a._priority);
+
+  // Strip internal _priority field and limit to 3
+  return all.slice(0, 3).map(({ _priority, ...action }) => action);
 }
