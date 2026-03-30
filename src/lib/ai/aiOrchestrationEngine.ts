@@ -913,35 +913,28 @@ function daysBetween(dateA: string, dateB: string): number {
  * Only returns flights with exact flight number and departure date.
  */
 function extractUpcomingFlightIds(state: CanonicalTripState): FlightIdentifier[] {
-  const now = getLocalNowString();
+  const now = new Date();
   const flights: FlightIdentifier[] = [];
 
   try {
     for (const evt of state.timelineEvents) {
-      // Only consider future flight events
-      if (evt.type !== 'flight' || !evt.startDatetime || evt.startDatetime < now) continue;
+      if (evt.bookingType !== 'flight' || !evt.datetime || evt.datetime < now) continue;
 
-      const raw = evt.rawBooking;
-      if (!raw) continue;
+      // Require confirmation number as flight identifier
+      const flightId = evt.confirmationNumber?.trim();
+      if (!flightId) continue;
 
-      // Extract airline + flight number — require both to be present
-      const airline = typeof raw.airline === 'string' ? raw.airline.trim() : '';
-      const vendorName = typeof raw.vendor_name === 'string' ? raw.vendor_name.trim() : '';
-      const confirmationNumber = typeof raw.confirmation_number === 'string' ? raw.confirmation_number.trim() : '';
-
-      // Try to derive a flight number from vendor_name or confirmation_number
-      // Only accept if it looks like a real flight number (e.g., "AA1234")
-      const flightNumberCandidate = vendorName || confirmationNumber;
-      if (!flightNumberCandidate) continue;
-
-      // Extract departure date (YYYY-MM-DD) from start_datetime
-      const depDate = evt.startDatetime.substring(0, 10);
+      // Extract departure date (YYYY-MM-DD)
+      const depDate = evt.datetime.toISOString().substring(0, 10);
       if (!/^\d{4}-\d{2}-\d{2}$/.test(depDate)) continue;
 
+      // Use title for airline hint
+      const airline = evt.title?.trim() || undefined;
+
       flights.push({
-        flightNumber: flightNumberCandidate,
+        flightNumber: flightId,
         departureDate: depDate,
-        airline: airline || undefined,
+        airline,
       });
     }
   } catch {
