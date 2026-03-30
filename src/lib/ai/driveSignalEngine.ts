@@ -254,8 +254,8 @@ export function resolveDriveSignals(
   if (todayStr < start || todayStr > end) return [];
 
   // Only drive-relevant trips
-  const isDriveTrip = state.trip.transportation_mode === 'drive' ||
-    state.trip.transportation_mode === 'mixed';
+  const mode = state.trip.transportation_mode as string;
+  const isDriveTrip = mode === 'drive' || mode === 'mixed';
 
   // Also check for car rentals in timeline
   const hasCarRental = state.timelineEvents.some(
