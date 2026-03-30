@@ -17,6 +17,7 @@
 
 import type { CanonicalTripState, CanonicalTimelineEvent } from '@/lib/canonicalTripState';
 import { getRoute } from '@/lib/drive/routeProvider';
+import { getTrafficIntelligence, type TrafficIntelligence } from '@/lib/trafficIntelligenceEngine';
 import type { LocationRef } from '@/types/drive';
 import { getLocalNowString } from '@/lib/canonicalNextStop';
 
@@ -32,6 +33,8 @@ export interface DriveSignal {
   routeState: DriveRouteState;
   confidence: 'high' | 'medium';
   fetchedAt: number;
+  /** v5.9.2: Traffic-aware data when available */
+  trafficIntelligence?: TrafficIntelligence;
 }
 
 // ============================================================================
