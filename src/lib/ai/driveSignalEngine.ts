@@ -17,6 +17,7 @@
 
 import type { CanonicalTripState, CanonicalTimelineEvent } from '@/lib/canonicalTripState';
 import { getRoute } from '@/lib/drive/routeProvider';
+import { getTrafficIntelligence, type TrafficIntelligence } from '@/lib/trafficIntelligenceEngine';
 import type { LocationRef } from '@/types/drive';
 import { getLocalNowString } from '@/lib/canonicalNextStop';
 
@@ -32,6 +33,8 @@ export interface DriveSignal {
   routeState: DriveRouteState;
   confidence: 'high' | 'medium';
   fetchedAt: number;
+  /** v5.9.2: Traffic-aware data when available */
+  trafficIntelligence?: TrafficIntelligence;
 }
 
 // ============================================================================
@@ -144,6 +147,32 @@ function computeSignalForEvent(
     ? { type: 'ADDRESS', value: trip.origin_address, city: trip.destination_city || undefined }
     : undefined;
 
+  // v5.9.2: Attempt traffic-aware routing when coordinates are available
+  const originLat = origin?.lat;
+  const originLng = origin?.lng;
+  const destLat = dest.lat;
+  const destLng = dest.lng;
+
+  if (originLat != null && originLng != null && destLat != null && destLng != null) {
+    const traffic = getTrafficIntelligence(originLat, originLng, destLat, destLng);
+
+    // Use live travel time instead of haversine estimate
+    const etaMinutes = traffic.estimatedTravelTime;
+    const routeState = deriveRouteState(etaMinutes, minutesToEvent);
+    const confidence: DriveSignal['confidence'] =
+      traffic.source === 'live' ? 'high' : 'medium';
+
+    return {
+      eventId: ev.id,
+      etaMinutes,
+      routeState,
+      confidence,
+      fetchedAt: Date.now(),
+      trafficIntelligence: traffic,
+    };
+  }
+
+  // Fallback: use existing route provider (haversine)
   const routeResult = getRoute(origin, dest);
 
   if (!routeResult.summary) return null;
@@ -151,7 +180,6 @@ function computeSignalForEvent(
   const etaMinutes = routeResult.summary.durationMinutes;
   const routeState = deriveRouteState(etaMinutes, minutesToEvent);
 
-  // Confidence based on route provider confidence
   const confidence: DriveSignal['confidence'] =
     routeResult.confidence === 'high' ? 'high' : 'medium';
 

@@ -23,6 +23,7 @@ import { generateSequence, type ActionSequence } from '@/lib/ai/sequenceEngine';
 import { resolveExternalSignals, NO_SIGNAL, type ExternalSignals, type FlightIdentifier } from '@/lib/ai/externalSignalResolver';
 import { resolveDriveSignals, getPrimaryDriveSignal, type DriveSignal as DriveRouteSignal } from '@/lib/ai/driveSignalEngine';
 import { computeLeaveTimingRecommendation, type LeaveTimingRecommendation } from '@/lib/ai/leaveTimingEngine';
+import type { TrafficIntelligence } from '@/lib/trafficIntelligenceEngine';
 
 // ============================================================================
 // OUTPUT TYPES
@@ -1004,6 +1005,35 @@ function applyLeaveTimingToSummary(
 }
 
 // ============================================================================
+// v5.9.2: INCIDENT AWARENESS
+// ============================================================================
+
+/**
+ * Build an incident guidance item from drive signal traffic intelligence.
+ * Returns null if no incident is detected.
+ * Max 1 incident advisory per route.
+ */
+function buildIncidentGuidance(
+  driveSignal: DriveRouteSignal | null,
+): AIOrchestratedGuidanceItem | null {
+  if (!driveSignal?.trafficIntelligence?.hasIncident) return null;
+
+  const traffic = driveSignal.trafficIntelligence;
+  const delayText = traffic.delayMinutes > 0
+    ? ` Expect ~${traffic.delayMinutes} min delay.`
+    : '';
+
+  return {
+    id: `incident-${driveSignal.eventId}`,
+    title: 'Route alert',
+    message: `Incident reported on your route.${delayText}`,
+    priority: 'high',
+    type: 'risk',
+    actionHint: 'Check route conditions',
+  };
+}
+
+// ============================================================================
 // HELPERS
 // ============================================================================
 
@@ -1140,6 +1170,16 @@ export function computeOrchestratedContext(
 
   // v5.9.1: Apply leave-timing action refinement (lowest priority).
   const finalActions = applyLeaveTimingToActions(driveActions, leaveTiming);
+
+  // v5.9.2: Inject incident advisory into guidance when traffic data indicates incidents.
+  const incidentGuidance = buildIncidentGuidance(primaryDriveSignal);
+  if (incidentGuidance) {
+    // Add incident as high-priority guidance, max 1, respecting 3-item limit
+    const hasExistingIncident = prioritizedGuidance.some((g) => g.id.startsWith('incident-'));
+    if (!hasExistingIncident && prioritizedGuidance.length < 3) {
+      prioritizedGuidance.push(incidentGuidance);
+    }
+  }
 
   // v5.8.2 + v5.8.3: Build final summary.
   let finalSummary: string;

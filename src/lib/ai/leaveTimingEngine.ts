@@ -1,12 +1,15 @@
 /**
- * v5.9.1: Leave Timing Engine — Drive-Aware Departure Decision Layer
+ * v5.9.2: Leave Timing Engine — Drive-Aware Departure Decision Layer
  *
  * Converts existing drive signals and upcoming event timing into clear,
  * stable departure guidance: 'leave_now', 'leave_soon', or 'on_track'.
  *
+ * v5.9.2: Enhanced with congestion-based buffer adjustments from
+ * trafficIntelligenceEngine data carried on DriveSignal.
+ *
  * ARCHITECTURE:
  * - canonicalTripState is the source of truth for events
- * - driveSignalEngine provides route timing signals
+ * - driveSignalEngine provides route timing signals (now with traffic data)
  * - This engine is read-only: no state mutation, no route fetching
  * - Maximum 1 recommendation for the most relevant upcoming event
  *
@@ -112,20 +115,45 @@ function getMinutesToEvent(ev: CanonicalTimelineEvent): number | null {
 }
 
 // ============================================================================
-// CLASSIFICATION (deterministic, uses both buffer AND routeState)
+// CONGESTION BUFFER (v5.9.2)
+// ============================================================================
+
+/**
+ * Apply congestion-based buffer adjustment:
+ * - low:      standard buffer (0 extra minutes)
+ * - moderate: +5 min
+ * - heavy:    +12 min
+ *
+ * Only applies when traffic intelligence is available on the drive signal.
+ */
+function getCongestionBuffer(signal: DriveSignal): number {
+  const congestion = signal.trafficIntelligence?.congestionLevel;
+  if (!congestion) return 0;
+  if (congestion === 'moderate') return 5;
+  if (congestion === 'heavy') return 12;
+  return 0;
+}
+
+// ============================================================================
+// CLASSIFICATION (deterministic, uses both buffer AND routeState + congestion)
 // ============================================================================
 
 function classifyLeaveStatus(
   buffer: number,
   routeState: DriveSignal['routeState'],
+  signal: DriveSignal,
 ): { status: LeaveTimingStatus; urgency: LeaveTimingRecommendation['urgency'] } {
+  // v5.9.2: Apply congestion buffer to tighten thresholds
+  const congestionBuffer = getCongestionBuffer(signal);
+  const adjustedBuffer = buffer - congestionBuffer;
+
   // Route state 'delayed' always escalates to leave_now
-  if (routeState === 'delayed' || buffer < LEAVE_NOW_BUFFER_THRESHOLD) {
+  if (routeState === 'delayed' || adjustedBuffer < LEAVE_NOW_BUFFER_THRESHOLD) {
     return { status: 'leave_now', urgency: 'high' };
   }
 
   // Route state 'tightening' escalates to leave_soon even if buffer is moderate
-  if (routeState === 'tightening' || buffer < LEAVE_SOON_BUFFER_THRESHOLD) {
+  if (routeState === 'tightening' || adjustedBuffer < LEAVE_SOON_BUFFER_THRESHOLD) {
     return { status: 'leave_soon', urgency: 'medium' };
   }
 
@@ -256,7 +284,7 @@ export function computeLeaveTimingRecommendation(
     const buffer = minutesToEvent - signal.etaMinutes;
 
     // Classify
-    const { status, urgency } = classifyLeaveStatus(buffer, signal.routeState);
+    const { status, urgency } = classifyLeaveStatus(buffer, signal.routeState, signal);
 
     // Build event label from canonical data
     const eventLabel = event.title || event.bookingType || 'next stop';
