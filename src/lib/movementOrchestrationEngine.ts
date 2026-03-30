@@ -398,9 +398,10 @@ function assembleJourney(
   // Downstream risk level
   let downstreamRisk: DownstreamRiskLevel = 'none';
   for (const s of steps) {
-    if (s.riskLevel === 'critical') { downstreamRisk = 'critical'; break; }
-    if (s.riskLevel === 'high' && downstreamRisk !== 'critical') downstreamRisk = 'high';
-    if (s.riskLevel === 'elevated' && downstreamRisk === 'none') downstreamRisk = 'elevated';
+    const rl: DownstreamRiskLevel = s.riskLevel;
+    if (rl === 'critical') { downstreamRisk = 'critical'; break; }
+    if (rl === 'high' && downstreamRisk !== 'critical') downstreamRisk = 'high';
+    if (rl === 'elevated' && downstreamRisk === 'none') downstreamRisk = 'elevated';
   }
 
   return {
