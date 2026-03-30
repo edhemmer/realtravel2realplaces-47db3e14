@@ -1,5 +1,5 @@
 /**
- * v5.8.2.1: AI Orchestration Engine
+ * v5.8.3: AI Orchestration Engine
  *
  * Single canonical AI orchestration layer that sits above deterministic systems
  * and converts structured trip state into cohesive, human-useful guidance.
@@ -430,6 +430,196 @@ function recommendActions(
 }
 
 // ============================================================================
+// v5.8.3: TRANSITION STATE DETECTION
+// ============================================================================
+
+/**
+ * Lightweight internal transition state derived from canonical event timing.
+ *
+ * 'approaching_next_event' — next event starts within 90 min, no event currently active.
+ * 'between_events'         — previous event ended, next event exists with ≥30 min gap.
+ * 'just_completed_event'   — an event ended within the last 20 min.
+ * null                     — no meaningful transition detected.
+ *
+ * Uses only safeMinutesUntilEvent and canonical event start/end times.
+ * No timezone math, no synthetic steps.
+ */
+type TransitionState = 'approaching_next_event' | 'between_events' | 'just_completed_event' | null;
+
+function resolveTransitionState(state: CanonicalTripState): TransitionState {
+  const nowStr = getLocalNowString();
+  const todayStr = nowStr.substring(0, 10);
+  const nowMinutes = parseMinutesFromTimeString(nowStr);
+  if (nowMinutes === null) return null;
+
+  // Get today's events with valid times, sorted by start
+  const todayEvents = state.timelineEvents
+    .filter((e) => e.eventLocalDateTime && e.eventLocalDateTime.substring(0, 10) === todayStr)
+    .sort((a, b) => (a.eventLocalDateTime! > b.eventLocalDateTime! ? 1 : -1));
+
+  if (todayEvents.length === 0) return null;
+
+  // Find the most recently ended event (end time already passed)
+  // and the next upcoming event (start time in the future)
+  let lastEnded: { event: CanonicalTimelineEvent; endMinutes: number } | null = null;
+  let nextUpcoming: { event: CanonicalTimelineEvent; startMinutes: number } | null = null;
+
+  for (const ev of todayEvents) {
+    const startMins = parseMinutesFromTimeString(ev.eventLocalDateTime!);
+    if (startMins === null) continue;
+
+    // Estimate end time: use arrivalLocalTime for flights, otherwise start + 60 min
+    const endMins = estimateEventEndMinutes(ev, startMins);
+
+    if (endMins <= nowMinutes) {
+      // This event has ended
+      if (!lastEnded || endMins > lastEnded.endMinutes) {
+        lastEnded = { event: ev, endMinutes: endMins };
+      }
+    } else if (startMins > nowMinutes) {
+      // This event hasn't started yet
+      if (!nextUpcoming || startMins < nextUpcoming.startMinutes) {
+        nextUpcoming = { event: ev, startMinutes: startMins };
+      }
+    }
+    // Events currently in progress (startMins <= now < endMins) → no transition
+  }
+
+  // Check if any event is currently in progress
+  const inProgress = todayEvents.some((ev) => {
+    const startMins = parseMinutesFromTimeString(ev.eventLocalDateTime!);
+    if (startMins === null) return false;
+    const endMins = estimateEventEndMinutes(ev, startMins);
+    return startMins <= nowMinutes && nowMinutes < endMins;
+  });
+
+  // 1. JUST COMPLETED: event ended within last 20 minutes
+  if (lastEnded && (nowMinutes - lastEnded.endMinutes) <= 20) {
+    return 'just_completed_event';
+  }
+
+  // 2. APPROACHING: next event within 90 min, nothing in progress
+  if (nextUpcoming && !inProgress && (nextUpcoming.startMinutes - nowMinutes) <= 90) {
+    return 'approaching_next_event';
+  }
+
+  // 3. BETWEEN: previous ended, next exists, gap ≥ 30 min
+  if (lastEnded && nextUpcoming && !inProgress) {
+    const gapToNext = nextUpcoming.startMinutes - nowMinutes;
+    if (gapToNext >= 30) {
+      return 'between_events';
+    }
+  }
+
+  return null;
+}
+
+/**
+/**
+ * Estimate event end time in minutes-since-midnight.
+ * Uses arrivalLocalTime for flights, otherwise start + 60 min.
+ */
+function estimateEventEndMinutes(ev: CanonicalTimelineEvent, startMins: number): number {
+  // For flights, use arrival time if available
+  if (ev.bookingType === 'flight' && ev.arrivalLocalTime) {
+    const arrMins = parseMinutesFromTimeString(ev.arrivalLocalTime);
+    if (arrMins !== null) return arrMins;
+  }
+  // Default: assume 60 min duration
+  return startMins + 60;
+}
+
+/**
+ * Parse minutes-since-midnight from a datetime or time string.
+ * Accepts "YYYY-MM-DDTHH:MM" or "HH:MM" formats.
+ */
+function parseMinutesFromTimeString(dt: string): number | null {
+  if (!dt) return null;
+  // Extract HH:MM from position 11 (datetime) or 0 (time-only)
+  let timePart: string;
+  if (dt.length >= 16 && dt[10] === 'T') {
+    timePart = dt.substring(11, 16);
+  } else if (dt.length >= 5 && dt[2] === ':') {
+    timePart = dt.substring(0, 5);
+  } else {
+    return null;
+  }
+  if (!/^\d{2}:\d{2}$/.test(timePart)) return null;
+  const h = parseInt(timePart.substring(0, 2), 10);
+  const m = parseInt(timePart.substring(3, 5), 10);
+  if (isNaN(h) || isNaN(m)) return null;
+  return h * 60 + m;
+}
+
+/**
+ * Apply transition-aware refinement to summary text.
+ *
+ * This is a secondary signal — sequencePressure overrides when active.
+ * Only refines the summary when no sequence-aware summary was applied.
+ *
+ * Uses real canonical event labels only. No invented steps.
+ */
+function applyTransitionToSummary(
+  baseSummary: string,
+  transition: TransitionState,
+  state: CanonicalTripState,
+  sequencePressure: SequencePressure,
+): string {
+  // Sequence pressure already provides summary — do not override
+  if (sequencePressure === 'high' || sequencePressure === 'medium') return baseSummary;
+
+  if (!transition) return baseSummary;
+
+  const nowStr = getLocalNowString();
+  const todayStr = nowStr.substring(0, 10);
+
+  // Find next upcoming event label for context
+  const nextEvent = state.timelineEvents.find((e) => {
+    if (!e.eventLocalDateTime || e.eventLocalDateTime.substring(0, 10) !== todayStr) return false;
+    const mins = safeMinutesUntilEvent(e.eventLocalDateTime);
+    return mins !== null && mins > 0;
+  });
+
+  const nextLabel = nextEvent?.title || nextEvent?.bookingType || null;
+
+  switch (transition) {
+    case 'approaching_next_event':
+      return nextLabel ? `Coming up: ${nextLabel}` : baseSummary;
+    case 'between_events':
+      return nextLabel ? `Gap before ${nextLabel}` : 'Open time before next event.';
+    case 'just_completed_event':
+      return nextLabel ? `Done — next is ${nextLabel}` : 'Just wrapped up.';
+    default:
+      return baseSummary;
+  }
+}
+
+/**
+ * Apply transition-aware refinement to primaryFocus.
+ *
+ * Only activates during active phase when no high-priority insight exists
+ * and sequencePressure is low or none.
+ */
+function applyTransitionToFocus(
+  baseFocus: string,
+  transition: TransitionState,
+  sequencePressure: SequencePressure,
+  hasHighInsight: boolean,
+): string {
+  // Don't override when sequence pressure or high insights dominate
+  if (sequencePressure === 'high' || sequencePressure === 'medium' || hasHighInsight) {
+    return baseFocus;
+  }
+
+  switch (transition) {
+    case 'approaching_next_event': return 'Getting ready for the next event';
+    case 'between_events': return 'Free time between events';
+    case 'just_completed_event': return 'Transitioning to what\'s next';
+    default: return baseFocus;
+  }
+}
+
+// ============================================================================
 // HELPERS
 // ============================================================================
 
@@ -483,20 +673,29 @@ export function computeOrchestratedContext(
   const prioritizedGuidance = applySequenceAwareGuidance(baseGuidance, activeSequence, sequencePressure);
 
   // v5.8.2.1: Apply sequence-pressure action weighting.
-  // During high pressure, suppress low-value actions (explore, review)
-  // and elevate sequence-step-relevant actions.
   const pressuredActions = applySequencePressureToActions(recommendedActions, activeSequence, sequencePressure);
 
-  // v5.8.2: Override summary with sequence-aware summary when pressure is active.
-  const finalSummary = (sequencePressure === 'high' && activeSequence && activeSequence.steps.length >= 2)
-    ? `${activeSequence.steps[0].label} → ${activeSequence.steps[1].label}`
-    : (sequencePressure === 'medium' && activeSequence && activeSequence.steps.length >= 2)
-      ? `${activeSequence.steps[0].label} → ${activeSequence.steps[1].label}`
-      : summary;
+  // v5.8.3: Detect transition state for moment-aware refinement.
+  const transitionState = phase === 'active' ? resolveTransitionState(state) : null;
+  const hasHighInsight = insights.some((i) => i.priority === 'high');
+
+  // v5.8.2 + v5.8.3: Build final summary.
+  // Sequence pressure takes priority, then transition refinement, then base.
+  let finalSummary: string;
+  if ((sequencePressure === 'high' || sequencePressure === 'medium') && activeSequence && activeSequence.steps.length >= 2) {
+    finalSummary = `${activeSequence.steps[0].label} → ${activeSequence.steps[1].label}`;
+  } else {
+    finalSummary = applyTransitionToSummary(summary, transitionState, state, sequencePressure);
+  }
+
+  // v5.8.3: Refine primaryFocus with transition awareness (secondary signal).
+  const finalFocus = phase === 'active'
+    ? applyTransitionToFocus(primaryFocus, transitionState, sequencePressure, hasHighInsight)
+    : primaryFocus;
 
   return {
     phase,
-    primaryFocus,
+    primaryFocus: finalFocus,
     summary: finalSummary,
     prioritizedGuidance,
     recommendedActions: pressuredActions,
