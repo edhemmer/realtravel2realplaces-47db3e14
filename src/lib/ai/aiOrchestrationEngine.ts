@@ -771,73 +771,35 @@ const EXECUTION_RISK_NONE: ExecutionRisk = {
 };
 
 function deriveExecutionRisk(
-  state: CanonicalTripState,
-  activeSequence: ActionSequence | null,
+  _state: CanonicalTripState,
+  _activeSequence: ActionSequence | null,
   sequencePressure: SequencePressure,
   transitionState: TransitionState,
   execCtx: ExecutionContext,
 ): ExecutionRisk {
-  let hasRouteTightnessRisk = false;
-  let hasTimingFragilityRisk = false;
-
   // --- Route tightness risk ---
-  // Detect when an upcoming movement event has a tight buffer.
-  // Use only canonical event timing (no external estimates).
-  if (execCtx.hasUpcomingMovement || execCtx.hasUpcomingFlight) {
-    const todayStr = getLocalNowString().substring(0, 10);
-
-    // Find the next movement/flight event
-    const nextMoveEvent = state.timelineEvents.find((e) => {
-      if (!e.eventLocalDateTime || e.eventLocalDateTime.substring(0, 10) !== todayStr) return false;
-      const mins = safeMinutesUntilEvent(e.eventLocalDateTime);
-      if (mins === null || mins <= 0) return false;
-      return e.bookingType === 'flight' || e.bookingType === 'transport' || e.bookingType === 'car_rental';
-    });
-
-    if (nextMoveEvent?.eventLocalDateTime) {
-      const minsUntil = safeMinutesUntilEvent(nextMoveEvent.eventLocalDateTime);
-      // Route tightness: movement event within 30 min is objectively tight
-      if (minsUntil !== null && minsUntil <= 30) {
-        hasRouteTightnessRisk = true;
-      }
-    }
-  }
+  // Derived entirely from canonical sequence intelligence:
+  // upcoming movement/flight + elevated pressure + approaching transition.
+  const hasRouteTightnessRisk =
+    (execCtx.hasUpcomingMovement || execCtx.hasUpcomingFlight) &&
+    (sequencePressure === 'high' || sequencePressure === 'medium') &&
+    transitionState === 'approaching_next_event';
 
   // --- Timing fragility risk ---
-  // Detect when sequence is compressed AND user is in a fragile transition.
-  if (
+  // Derived from high sequence pressure + fragile transition state.
+  const hasTimingFragilityRisk =
     sequencePressure === 'high' &&
-    (transitionState === 'approaching_next_event' || transitionState === 'just_completed_event')
-  ) {
-    // Check that upcoming event spacing leaves minimal recovery room (≤ 20 min)
-    if (activeSequence && activeSequence.steps.length >= 2) {
-      const step1Id = activeSequence.steps[0].targetId;
-      const step2Id = activeSequence.steps[1].targetId;
-      if (step1Id && step2Id) {
-        const ev1 = state.timelineEvents.find((e) => e.sourceId === step1Id);
-        const ev2 = state.timelineEvents.find((e) => e.sourceId === step2Id);
-        if (ev1?.eventLocalDateTime && ev2?.eventLocalDateTime) {
-          const m1 = safeMinutesUntilEvent(ev1.eventLocalDateTime);
-          const m2 = safeMinutesUntilEvent(ev2.eventLocalDateTime);
-          if (m1 !== null && m2 !== null && m2 > m1) {
-            const gap = m2 - m1;
-            if (gap <= 20) {
-              hasTimingFragilityRisk = true;
-            }
-          }
-        }
-      }
-    }
-  }
+    (transitionState === 'approaching_next_event' || transitionState === 'just_completed_event');
 
-  // --- Confidence ---
   if (!hasRouteTightnessRisk && !hasTimingFragilityRisk) {
     return EXECUTION_RISK_NONE;
   }
 
-  // High confidence when both signals align, or route tightness is concrete
-  const riskConfidence: 'high' | 'low' =
-    (hasRouteTightnessRisk && hasTimingFragilityRisk) || hasRouteTightnessRisk
+  // --- Confidence ---
+  // "high" only when BOTH sequencePressure=high AND approaching next event.
+  // "low" when only one signal supports risk (medium pressure or single flag).
+  const riskConfidence: ExecutionRisk['riskConfidence'] =
+    sequencePressure === 'high' && transitionState === 'approaching_next_event'
       ? 'high'
       : 'low';
 
