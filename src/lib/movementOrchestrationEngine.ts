@@ -351,7 +351,7 @@ function assembleJourney(
       status,
       bufferStatus: bufStatus,
       bufferMinutes: bufferMin,
-      riskLevel: 'none',
+      riskLevel: 'none' as DownstreamRiskLevel,
     };
   });
 
