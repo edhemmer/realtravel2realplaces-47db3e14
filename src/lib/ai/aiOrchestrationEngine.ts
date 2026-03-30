@@ -216,6 +216,94 @@ function describeAction(action: ProactiveInsightAction): string {
 }
 
 // ============================================================================
+// v5.8.2: SEQUENCE-AWARE MESSAGING
+// ============================================================================
+
+/**
+ * Derive sequence pressure from an active sequence.
+ * 'high' = first step is imminent (≤60 min away or sequence relevance is high)
+ * 'medium' = sequence exists but not imminent
+ * 'none' = no sequence
+ */
+type SequencePressure = 'high' | 'medium' | 'none';
+
+function deriveSequencePressure(sequence: ActionSequence | null): SequencePressure {
+  if (!sequence) return 'none';
+  return sequence.relevance === 'high' ? 'high' : 'medium';
+}
+
+/**
+ * Generate a single, clear execution message from the active sequence.
+ * Replaces fragmented guidance with one concise directive.
+ *
+ * Rules:
+ * - Max 1 message, max 2 sentences, ~120 chars preferred
+ * - Uses only real canonical event labels from sequence steps
+ * - Does not invent verbs or steps not present in the sequence
+ * - Returns null if sequence is insufficient
+ */
+function generateSequenceAwareMessage(
+  sequence: ActionSequence,
+): AIOrchestratedGuidanceItem | null {
+  if (!sequence.steps || sequence.steps.length < 2) return null;
+
+  const step1 = sequence.steps[0];
+  const step2 = sequence.steps[1];
+
+  // Build a direct message: current step + next context
+  const actionVerb = step1.actionType === 'navigate' ? 'Head to' : 'Next up:';
+  const message = `${actionVerb} ${step1.label} — then ${step2.label}`;
+
+  return {
+    id: `seq-guidance-${sequence.id}`,
+    title: 'Next steps',
+    message,
+    priority: 'high',
+    type: 'logistics',
+    actionHint: step1.actionType ? describeSequenceStepAction(step1) : undefined,
+  };
+}
+
+function describeSequenceStepAction(step: import('@/lib/ai/sequenceEngine').SequenceStep): string {
+  switch (step.actionType) {
+    case 'navigate': return `Navigate to ${step.label}`;
+    case 'open_event': return 'View event details';
+    default: return step.label;
+  }
+}
+
+/**
+ * Apply sequence-aware messaging to guidance.
+ *
+ * When an active sequence with high/medium pressure exists:
+ * - Replace fragmented guidance with a single primary sequence message
+ * - Preserve critical alerts (risk type, high priority)
+ * - Suppress lower-priority/duplicate guidance
+ *
+ * When no sequence or pressure is 'none':
+ * - Return original guidance unchanged
+ */
+function applySequenceAwareGuidance(
+  originalGuidance: AIOrchestratedGuidanceItem[],
+  sequence: ActionSequence | null,
+  pressure: SequencePressure,
+): AIOrchestratedGuidanceItem[] {
+  if (pressure === 'none' || !sequence) return originalGuidance;
+
+  const seqMessage = generateSequenceAwareMessage(sequence);
+  if (!seqMessage) return originalGuidance;
+
+  // Keep only critical alerts (risk + high priority)
+  const criticalAlerts = originalGuidance.filter(
+    (g) => g.type === 'risk' && g.priority === 'high'
+  );
+
+  // Combine: critical alerts first, then the single sequence message
+  // Cap at 3 total (spec), but typically 1-2
+  return [...criticalAlerts, seqMessage].slice(0, 3);
+}
+
+// ============================================================================
 // ACTION RECOMMENDER
 // ============================================================================
 
