@@ -370,6 +370,8 @@ async function fetchFromHere(
 ): Promise<TransitIntelligence | null> {
   if (_inFlightRequests.has(routeKey)) return null;
 
+  if (!acquireLock('transit', routeKey)) return null;
+
   _inFlightRequests.add(routeKey);
 
   try {
