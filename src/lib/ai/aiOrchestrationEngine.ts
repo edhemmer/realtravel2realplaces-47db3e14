@@ -468,10 +468,8 @@ function resolveTransitionState(state: CanonicalTripState): TransitionState {
     const startMins = parseMinutesFromTimeString(ev.eventLocalDateTime!);
     if (startMins === null) continue;
 
-    // Estimate end time: use endLocalDateTime if available, otherwise start + 60 min
-    const endStr = ev.endLocalDateTime || null;
-    const endMins = endStr ? parseMinutesFromTimeString(endStr) : (startMins + 60);
-    if (endMins === null) continue;
+    // Estimate end time: use arrivalLocalTime for flights, otherwise start + 60 min
+    const endMins = estimateEventEndMinutes(ev, startMins);
 
     if (endMins <= nowMinutes) {
       // This event has ended
@@ -491,9 +489,7 @@ function resolveTransitionState(state: CanonicalTripState): TransitionState {
   const inProgress = todayEvents.some((ev) => {
     const startMins = parseMinutesFromTimeString(ev.eventLocalDateTime!);
     if (startMins === null) return false;
-    const endStr = ev.endLocalDateTime || null;
-    const endMins = endStr ? parseMinutesFromTimeString(endStr) : (startMins + 60);
-    if (endMins === null) return false;
+    const endMins = estimateEventEndMinutes(ev, startMins);
     return startMins <= nowMinutes && nowMinutes < endMins;
   });
 
