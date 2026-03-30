@@ -21,6 +21,7 @@ import { computePreferenceWeights, reorderActionsWithPreference } from '@/lib/ai
 import { generatePredictiveActions, type PredictiveAction } from '@/lib/ai/predictiveActionEngine';
 import { generateSequence, type ActionSequence } from '@/lib/ai/sequenceEngine';
 import { resolveExternalSignals, NO_SIGNAL, type ExternalSignals, type FlightIdentifier } from '@/lib/ai/externalSignalResolver';
+import { resolveDriveSignals, getPrimaryDriveSignal, type DriveSignal as DriveRouteSignal } from '@/lib/ai/driveSignalEngine';
 
 // ============================================================================
 // OUTPUT TYPES
@@ -899,6 +900,61 @@ function applyExternalSignalsToSummary(
 }
 
 // ============================================================================
+// v5.9.0: DRIVE SIGNAL REFINEMENT
+// ============================================================================
+
+/**
+ * Apply drive-signal refinement to actions.
+ * When a drive signal indicates tightening or delayed route state,
+ * prioritize navigate/open_event actions.
+ * Lowest-priority signal layer — only activates when no higher signal dominates.
+ */
+function applyDriveSignalToActions(
+  actions: AIOrchestratedAction[],
+  driveSignal: DriveRouteSignal | null,
+): AIOrchestratedAction[] {
+  if (!driveSignal || driveSignal.routeState === 'stable' || actions.length <= 1) return actions;
+
+  // Tightening or delayed: prioritize navigate/event actions
+  const urgent = actions.filter(
+    (a) => a.actionType === 'navigate' || a.actionType === 'open_event'
+  );
+  const rest = actions.filter(
+    (a) => a.actionType !== 'navigate' && a.actionType !== 'open_event'
+  );
+  return [...urgent, ...rest].slice(0, 3);
+}
+
+/**
+ * Apply drive-signal refinement to summary.
+ * Only activates when route is tightening/delayed AND no higher-priority
+ * signal has already refined the summary.
+ * Never claims live traffic data — describes timing awareness only.
+ */
+function applyDriveSignalToSummary(
+  currentSummary: string,
+  driveSignal: DriveRouteSignal | null,
+  sequencePressure: SequencePressure,
+  transitionState: TransitionState,
+  execRisk: ExecutionRisk,
+  extSignals: ExternalSignals,
+): string {
+  if (sequencePressure === 'high' || sequencePressure === 'medium') return currentSummary;
+  if (transitionState !== null) return currentSummary;
+  if (execRisk.riskConfidence === 'high') return currentSummary;
+  if (extSignals.confidence === 'high') return currentSummary;
+  if (!driveSignal || driveSignal.routeState === 'stable') return currentSummary;
+
+  if (driveSignal.routeState === 'delayed') {
+    return `Drive timing is tight — consider leaving soon (est. ${driveSignal.etaMinutes} min).`;
+  }
+  if (driveSignal.routeState === 'tightening') {
+    return `Route may take ~${driveSignal.etaMinutes} min — stay ahead of schedule.`;
+  }
+  return currentSummary;
+}
+
+// ============================================================================
 // HELPERS
 // ============================================================================
 
@@ -1019,7 +1075,14 @@ export function computeOrchestratedContext(
   const extSignals = phase === 'active' ? resolveExternalSignals(upcomingFlights) : NO_SIGNAL;
 
   // v5.8.6: Apply external-signal action refinement.
-  const finalActions = applyExternalSignalsToActions(riskActions, extSignals);
+  const extActions = applyExternalSignalsToActions(riskActions, extSignals);
+
+  // v5.9.0: Resolve bounded drive signals for route timing awareness.
+  const driveSignals = phase === 'active' ? resolveDriveSignals(state) : [];
+  const primaryDriveSignal = getPrimaryDriveSignal(driveSignals);
+
+  // v5.9.0: Apply drive-signal action refinement.
+  const finalActions = applyDriveSignalToActions(extActions, primaryDriveSignal);
 
   // v5.8.2 + v5.8.3: Build final summary.
   let finalSummary: string;
@@ -1035,8 +1098,11 @@ export function computeOrchestratedContext(
   // v5.8.5: Apply execution-risk summary refinement.
   finalSummary = applyExecutionRiskToSummary(finalSummary, execRisk, sequencePressure, transitionState);
 
-  // v5.8.6: Apply external-signal summary refinement (lowest priority).
+  // v5.8.6: Apply external-signal summary refinement.
   finalSummary = applyExternalSignalsToSummary(finalSummary, extSignals, sequencePressure, transitionState, execRisk);
+
+  // v5.9.0: Apply drive-signal summary refinement (lowest priority).
+  finalSummary = applyDriveSignalToSummary(finalSummary, primaryDriveSignal, sequencePressure, transitionState, execRisk, extSignals);
 
   // v5.8.3: Refine primaryFocus with transition awareness (secondary signal).
   const finalFocus = phase === 'active'
