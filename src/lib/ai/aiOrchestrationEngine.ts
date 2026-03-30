@@ -1,5 +1,5 @@
 /**
- * v5.8.4: AI Orchestration Engine
+ * v5.8.5: AI Orchestration Engine
  *
  * Single canonical AI orchestration layer that sits above deterministic systems
  * and converts structured trip state into cohesive, human-useful guidance.
@@ -748,6 +748,149 @@ function applyExecutionContextToSummary(
 // ============================================================================
 // HELPERS
 // ============================================================================
+// v5.8.5: EXECUTION RISK SIGNAL
+// ============================================================================
+
+/**
+ * Lightweight execution-risk signal derived from existing orchestration inputs.
+ * Detects tight or fragile travel windows using canonical timing only.
+ *
+ * Never implies live data, traffic, or external awareness.
+ * Defaults safely to no risk when inputs are missing or unclear.
+ */
+type ExecutionRisk = {
+  hasRouteTightnessRisk: boolean;
+  hasTimingFragilityRisk: boolean;
+  riskConfidence: 'high' | 'low' | 'none';
+};
+
+const EXECUTION_RISK_NONE: ExecutionRisk = {
+  hasRouteTightnessRisk: false,
+  hasTimingFragilityRisk: false,
+  riskConfidence: 'none',
+};
+
+function deriveExecutionRisk(
+  state: CanonicalTripState,
+  activeSequence: ActionSequence | null,
+  sequencePressure: SequencePressure,
+  transitionState: TransitionState,
+  execCtx: ExecutionContext,
+): ExecutionRisk {
+  let hasRouteTightnessRisk = false;
+  let hasTimingFragilityRisk = false;
+
+  // --- Route tightness risk ---
+  // Detect when an upcoming movement event has a tight buffer.
+  // Use only canonical event timing (no external estimates).
+  if (execCtx.hasUpcomingMovement || execCtx.hasUpcomingFlight) {
+    const todayStr = getLocalNowString().substring(0, 10);
+
+    // Find the next movement/flight event
+    const nextMoveEvent = state.timelineEvents.find((e) => {
+      if (!e.eventLocalDateTime || e.eventLocalDateTime.substring(0, 10) !== todayStr) return false;
+      const mins = safeMinutesUntilEvent(e.eventLocalDateTime);
+      if (mins === null || mins <= 0) return false;
+      return e.bookingType === 'flight' || e.bookingType === 'transport' || e.bookingType === 'car_rental';
+    });
+
+    if (nextMoveEvent?.eventLocalDateTime) {
+      const minsUntil = safeMinutesUntilEvent(nextMoveEvent.eventLocalDateTime);
+      // Route tightness: movement event within 30 min is objectively tight
+      if (minsUntil !== null && minsUntil <= 30) {
+        hasRouteTightnessRisk = true;
+      }
+    }
+  }
+
+  // --- Timing fragility risk ---
+  // Detect when sequence is compressed AND user is in a fragile transition.
+  if (
+    sequencePressure === 'high' &&
+    (transitionState === 'approaching_next_event' || transitionState === 'just_completed_event')
+  ) {
+    // Check that upcoming event spacing leaves minimal recovery room (≤ 20 min)
+    if (activeSequence && activeSequence.steps.length >= 2) {
+      const step1Id = activeSequence.steps[0].targetId;
+      const step2Id = activeSequence.steps[1].targetId;
+      if (step1Id && step2Id) {
+        const ev1 = state.timelineEvents.find((e) => e.sourceId === step1Id);
+        const ev2 = state.timelineEvents.find((e) => e.sourceId === step2Id);
+        if (ev1?.eventLocalDateTime && ev2?.eventLocalDateTime) {
+          const m1 = safeMinutesUntilEvent(ev1.eventLocalDateTime);
+          const m2 = safeMinutesUntilEvent(ev2.eventLocalDateTime);
+          if (m1 !== null && m2 !== null && m2 > m1) {
+            const gap = m2 - m1;
+            if (gap <= 20) {
+              hasTimingFragilityRisk = true;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // --- Confidence ---
+  if (!hasRouteTightnessRisk && !hasTimingFragilityRisk) {
+    return EXECUTION_RISK_NONE;
+  }
+
+  // High confidence when both signals align, or route tightness is concrete
+  const riskConfidence: 'high' | 'low' =
+    (hasRouteTightnessRisk && hasTimingFragilityRisk) || hasRouteTightnessRisk
+      ? 'high'
+      : 'low';
+
+  return { hasRouteTightnessRisk, hasTimingFragilityRisk, riskConfidence };
+}
+
+/**
+ * Apply execution-risk refinement to actions.
+ * Slightly tightens prioritization toward movement/schedule actions.
+ * Only activates on high confidence. Never creates or removes actions.
+ */
+function applyExecutionRiskToActions(
+  actions: AIOrchestratedAction[],
+  risk: ExecutionRisk,
+): AIOrchestratedAction[] {
+  if (risk.riskConfidence !== 'high' || actions.length <= 1) return actions;
+
+  // Move navigate and open_event to front; push explore/review to end
+  const urgent = actions.filter(
+    (a) => a.actionType === 'navigate' || a.actionType === 'open_event'
+  );
+  const rest = actions.filter(
+    (a) => a.actionType !== 'navigate' && a.actionType !== 'open_event'
+  );
+  return [...urgent, ...rest].slice(0, 3);
+}
+
+/**
+ * Apply execution-risk refinement to summary.
+ * Lightly sharpens tone only when confidence is high and no higher signal
+ * has already refined the summary.
+ *
+ * Never mentions traffic, delays, or live data.
+ */
+function applyExecutionRiskToSummary(
+  currentSummary: string,
+  risk: ExecutionRisk,
+  sequencePressure: SequencePressure,
+  transitionState: TransitionState,
+): string {
+  // Only refine when no higher signal shaped the summary
+  if (sequencePressure === 'high' || sequencePressure === 'medium') return currentSummary;
+  if (transitionState !== null) return currentSummary;
+  if (risk.riskConfidence !== 'high') return currentSummary;
+
+  if (risk.hasRouteTightnessRisk) return 'Limited buffer ahead — stay on schedule.';
+  if (risk.hasTimingFragilityRisk) return 'Timing is tight between upcoming steps.';
+  return currentSummary;
+}
+
+// ============================================================================
+// HELPERS
+// ============================================================================
 
 function daysBetween(dateA: string, dateB: string): number {
   const a = new Date(dateA + 'T00:00:00');
@@ -810,8 +953,16 @@ export function computeOrchestratedContext(
     ? deriveExecutionContext(state, activeSequence, sequencePressure)
     : { hasUpcomingMovement: false, hasUpcomingFlight: false, hasUpcomingLodging: false, isTravelHeavyWindow: false };
 
-  // v5.8.4: Apply execution-context action refinement (lowest priority signal).
+  // v5.8.4: Apply execution-context action refinement.
   const contextActions = applyExecutionContextToActions(pressuredActions, execCtx);
+
+  // v5.8.5: Derive execution risk from existing signals.
+  const execRisk = phase === 'active'
+    ? deriveExecutionRisk(state, activeSequence, sequencePressure, transitionState, execCtx)
+    : EXECUTION_RISK_NONE;
+
+  // v5.8.5: Apply execution-risk action refinement (lowest priority signal).
+  const riskActions = applyExecutionRiskToActions(contextActions, execRisk);
 
   // v5.8.2 + v5.8.3: Build final summary.
   let finalSummary: string;
@@ -821,8 +972,11 @@ export function computeOrchestratedContext(
     finalSummary = applyTransitionToSummary(summary, transitionState, state, sequencePressure);
   }
 
-  // v5.8.4: Apply execution-context summary refinement (lowest priority).
+  // v5.8.4: Apply execution-context summary refinement.
   finalSummary = applyExecutionContextToSummary(finalSummary, execCtx, sequencePressure, transitionState);
+
+  // v5.8.5: Apply execution-risk summary refinement (lowest priority).
+  finalSummary = applyExecutionRiskToSummary(finalSummary, execRisk, sequencePressure, transitionState);
 
   // v5.8.3: Refine primaryFocus with transition awareness (secondary signal).
   const finalFocus = phase === 'active'
@@ -834,7 +988,7 @@ export function computeOrchestratedContext(
     primaryFocus: finalFocus,
     summary: finalSummary,
     prioritizedGuidance,
-    recommendedActions: contextActions,
+    recommendedActions: riskActions,
     activeSequence,
   };
 }
