@@ -484,9 +484,10 @@ export function computeMovementOrchestration(
   // Downstream risk
   let downstreamRiskLevel: DownstreamRiskLevel = 'none';
   for (const j of journeys) {
-    if (j.downstreamRiskLevel === 'critical') { downstreamRiskLevel = 'critical'; break; }
-    if (j.downstreamRiskLevel === 'high' && downstreamRiskLevel !== 'critical') downstreamRiskLevel = 'high';
-    if (j.downstreamRiskLevel === 'elevated' && downstreamRiskLevel === 'none') downstreamRiskLevel = 'elevated';
+    const jrl: DownstreamRiskLevel = j.downstreamRiskLevel;
+    if (jrl === 'critical') { downstreamRiskLevel = 'critical'; break; }
+    if (jrl === 'high' && downstreamRiskLevel !== 'critical') downstreamRiskLevel = 'high';
+    if (jrl === 'elevated' && downstreamRiskLevel === 'none') downstreamRiskLevel = 'elevated';
   }
 
   // Active chain
