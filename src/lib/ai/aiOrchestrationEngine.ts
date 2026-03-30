@@ -19,6 +19,7 @@ import type { ProactiveInsight, ProactiveInsightAction } from '@/lib/proactiveIn
 import { getLocalNowString } from '@/lib/canonicalNextStop';
 import { computePreferenceWeights, reorderActionsWithPreference } from '@/lib/ai/aiFeedbackEngine';
 import { generatePredictiveActions, type PredictiveAction } from '@/lib/ai/predictiveActionEngine';
+import { generateSequence, type ActionSequence } from '@/lib/ai/sequenceEngine';
 
 // ============================================================================
 // OUTPUT TYPES
@@ -46,6 +47,8 @@ export type AIOrchestratedContext = {
   summary: string;
   prioritizedGuidance: AIOrchestratedGuidanceItem[];
   recommendedActions: AIOrchestratedAction[];
+  /** v5.8.0: Optional bounded multi-step sequence for near-term context */
+  activeSequence: ActionSequence | null;
 };
 
 // ============================================================================
@@ -326,10 +329,15 @@ export function computeOrchestratedContext(
   const mergedActions = mergePredictiveActions(currentActions, predictiveCandidates);
 
   // v5.6.0: Apply bounded preference feedback to action ordering.
-  // Preference weights act as a secondary tiebreaker only —
-  // critical/urgent actions remain first regardless of user history.
   const feedbackWeights = computePreferenceWeights();
   const recommendedActions = reorderActionsWithPreference(mergedActions, feedbackWeights);
+
+  // v5.8.0: Generate optional bounded multi-step sequence.
+  // Include only when relevance is 'high' and phase is active.
+  const rawSequence = generateSequence(state);
+  const activeSequence = (rawSequence && rawSequence.relevance === 'high' && phase === 'active')
+    ? rawSequence
+    : null;
 
   return {
     phase,
@@ -337,6 +345,7 @@ export function computeOrchestratedContext(
     summary,
     prioritizedGuidance,
     recommendedActions,
+    activeSequence,
   };
 }
 
