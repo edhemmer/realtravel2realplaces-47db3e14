@@ -21,6 +21,7 @@ import { computePreferenceWeights, reorderActionsWithPreference } from '@/lib/ai
 import { generatePredictiveActions, type PredictiveAction } from '@/lib/ai/predictiveActionEngine';
 import { generateSequence, type ActionSequence } from '@/lib/ai/sequenceEngine';
 import { resolveExternalSignals, NO_SIGNAL, type ExternalSignals, type FlightIdentifier } from '@/lib/ai/externalSignalResolver';
+import { resolveDriveSignals, getPrimaryDriveSignal, type DriveSignal as DriveRouteSignal } from '@/lib/ai/driveSignalEngine';
 
 // ============================================================================
 // OUTPUT TYPES
