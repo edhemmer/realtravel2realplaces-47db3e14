@@ -1,5 +1,5 @@
 /**
- * v5.8.2: AI Orchestration Engine
+ * v5.8.2.1: AI Orchestration Engine
  *
  * Single canonical AI orchestration layer that sits above deterministic systems
  * and converts structured trip state into cohesive, human-useful guidance.
@@ -216,20 +216,53 @@ function describeAction(action: ProactiveInsightAction): string {
 }
 
 // ============================================================================
-// v5.8.2: SEQUENCE-AWARE MESSAGING
+// v5.8.2.1: SEQUENCE PRESSURE CLASSIFICATION
 // ============================================================================
 
 /**
- * Derive sequence pressure from an active sequence.
- * 'high' = first step is imminent (≤60 min away or sequence relevance is high)
- * 'medium' = sequence exists but not imminent
- * 'none' = no sequence
+ * Internal sequence pressure signal.
+ * Derived from step spacing and sequence relevance.
+ *
+ * 'high'   — tightly compressed flow, steps close together (≤45 min spread)
+ *            OR sequence relevance is 'high' with ≤2 steps tightly packed.
+ * 'medium' — moderately spaced upcoming flow (≤90 min spread).
+ * 'low'    — sequence exists but spacing is relaxed.
+ * 'none'   — no usable sequence.
+ *
+ * Uses only data already available on the ActionSequence and safe
+ * canonical event timing from safeMinutesUntilEvent. No timezone math.
  */
-type SequencePressure = 'high' | 'medium' | 'none';
+type SequencePressure = 'high' | 'medium' | 'low' | 'none';
 
-function deriveSequencePressure(sequence: ActionSequence | null): SequencePressure {
-  if (!sequence) return 'none';
-  return sequence.relevance === 'high' ? 'high' : 'medium';
+function deriveSequencePressure(
+  sequence: ActionSequence | null,
+  state: CanonicalTripState | null,
+): SequencePressure {
+  if (!sequence || !state || sequence.steps.length < 2) return 'none';
+
+  // Find canonical events matching the sequence step targetIds
+  // to derive actual time spacing between steps.
+  const stepMinutes: (number | null)[] = sequence.steps.map((step) => {
+    if (!step.targetId) return null;
+    const ev = state.timelineEvents.find((e) => e.sourceId === step.targetId);
+    if (!ev?.eventLocalDateTime) return null;
+    return safeMinutesUntilEvent(ev.eventLocalDateTime);
+  });
+
+  // Filter to valid future minutes
+  const validMinutes = stepMinutes.filter((m): m is number => m !== null && m >= 0);
+
+  if (validMinutes.length < 2) {
+    // Can't determine spacing; fall back to sequence relevance
+    return sequence.relevance === 'high' ? 'medium' : 'low';
+  }
+
+  // Spread = gap between first and last step
+  const spread = validMinutes[validMinutes.length - 1] - validMinutes[0];
+
+  if (spread <= 45) return 'high';
+  if (spread <= 90) return 'medium';
+  return 'low';
 }
 
 /**
@@ -275,32 +308,49 @@ function describeSequenceStepAction(step: import('@/lib/ai/sequenceEngine').Sequ
 /**
  * Apply sequence-aware messaging to guidance.
  *
- * When an active sequence with high/medium pressure exists:
- * - Replace fragmented guidance with a single primary sequence message
- * - Preserve critical alerts (risk type, high priority)
- * - Suppress lower-priority/duplicate guidance
+ * v5.8.2.1: Enhanced with pressure-based suppression.
  *
- * When no sequence or pressure is 'none':
- * - Return original guidance unchanged
+ * HIGH pressure:
+ * - Replace fragmented guidance with single sequence message
+ * - Keep only critical alerts (risk + high priority)
+ * - Suppress explore, general, and low-priority items
+ *
+ * MEDIUM pressure:
+ * - Replace fragmented guidance with single sequence message
+ * - Keep critical alerts AND time/logistics high-priority items
+ *
+ * LOW pressure:
+ * - Preserve original guidance unchanged
+ *
+ * NONE:
+ * - Preserve original guidance unchanged
  */
 function applySequenceAwareGuidance(
   originalGuidance: AIOrchestratedGuidanceItem[],
   sequence: ActionSequence | null,
   pressure: SequencePressure,
 ): AIOrchestratedGuidanceItem[] {
-  if (pressure === 'none' || !sequence) return originalGuidance;
+  if (pressure === 'none' || pressure === 'low' || !sequence) return originalGuidance;
 
   const seqMessage = generateSequenceAwareMessage(sequence);
   if (!seqMessage) return originalGuidance;
 
-  // Keep only critical alerts (risk + high priority)
-  const criticalAlerts = originalGuidance.filter(
-    (g) => g.type === 'risk' && g.priority === 'high'
-  );
+  if (pressure === 'high') {
+    // Keep only critical risk alerts
+    const criticalAlerts = originalGuidance.filter(
+      (g) => g.type === 'risk' && g.priority === 'high'
+    );
+    return [...criticalAlerts, seqMessage].slice(0, 3);
+  }
 
-  // Combine: critical alerts first, then the single sequence message
-  // Cap at 3 total (spec), but typically 1-2
-  return [...criticalAlerts, seqMessage].slice(0, 3);
+  // Medium pressure: keep critical alerts + high-priority time/logistics
+  const importantItems = originalGuidance.filter(
+    (g) =>
+      (g.type === 'risk' && g.priority === 'high') ||
+      (g.type === 'time' && g.priority === 'high') ||
+      (g.type === 'logistics' && g.priority === 'high')
+  );
+  return [...importantItems, seqMessage].slice(0, 3);
 }
 
 // ============================================================================
@@ -426,24 +476,94 @@ export function computeOrchestratedContext(
     ? rawSequence
     : null;
 
+  // v5.8.2.1: Derive sequence pressure from step spacing for decision weighting.
+  const sequencePressure = deriveSequencePressure(activeSequence, state);
+
   // v5.8.2: Apply sequence-aware messaging when a valid sequence is active.
-  // Replaces fragmented guidance with a single clear execution message.
-  const sequencePressure = deriveSequencePressure(activeSequence);
   const prioritizedGuidance = applySequenceAwareGuidance(baseGuidance, activeSequence, sequencePressure);
 
+  // v5.8.2.1: Apply sequence-pressure action weighting.
+  // During high pressure, suppress low-value actions (explore, review)
+  // and elevate sequence-step-relevant actions.
+  const pressuredActions = applySequencePressureToActions(recommendedActions, activeSequence, sequencePressure);
+
   // v5.8.2: Override summary with sequence-aware summary when pressure is active.
-  const finalSummary = (sequencePressure !== 'none' && activeSequence && activeSequence.steps.length >= 2)
+  const finalSummary = (sequencePressure === 'high' && activeSequence && activeSequence.steps.length >= 2)
     ? `${activeSequence.steps[0].label} → ${activeSequence.steps[1].label}`
-    : summary;
+    : (sequencePressure === 'medium' && activeSequence && activeSequence.steps.length >= 2)
+      ? `${activeSequence.steps[0].label} → ${activeSequence.steps[1].label}`
+      : summary;
 
   return {
     phase,
     primaryFocus,
     summary: finalSummary,
     prioritizedGuidance,
-    recommendedActions,
+    recommendedActions: pressuredActions,
     activeSequence,
   };
+}
+
+// ============================================================================
+// v5.8.2.1: SEQUENCE PRESSURE ACTION WEIGHTING
+// ============================================================================
+
+/**
+ * Apply sequence-pressure weighting to recommended actions.
+ *
+ * HIGH pressure:
+ * - Suppress generic explore/review actions unless sequence-relevant
+ * - Elevate actions whose targetId matches a sequence step
+ * - Never remove critical navigate or event actions
+ *
+ * MEDIUM pressure:
+ * - Mildly deprioritize explore actions (move to end)
+ *
+ * LOW / NONE:
+ * - No changes
+ */
+function applySequencePressureToActions(
+  actions: AIOrchestratedAction[],
+  sequence: ActionSequence | null,
+  pressure: SequencePressure,
+): AIOrchestratedAction[] {
+  if (pressure === 'none' || pressure === 'low' || !sequence || actions.length <= 1) {
+    return actions;
+  }
+
+  // Collect sequence step targetIds for relevance matching
+  const sequenceTargetIds = new Set(
+    sequence.steps.map((s) => s.targetId).filter(Boolean)
+  );
+
+  if (pressure === 'high') {
+    // Partition: sequence-relevant + critical first, then rest
+    const relevant: AIOrchestratedAction[] = [];
+    const suppressed: AIOrchestratedAction[] = [];
+
+    for (const action of actions) {
+      const isSequenceRelevant =
+        action.actionPayload?.eventId && sequenceTargetIds.has(action.actionPayload.eventId as string);
+      const isCritical = action.actionType === 'navigate';
+      const isLowValue = action.actionType === 'open_explore' || action.actionType === 'review';
+
+      if (isSequenceRelevant || isCritical) {
+        relevant.push(action);
+      } else if (isLowValue) {
+        suppressed.push(action);
+      } else {
+        relevant.push(action);
+      }
+    }
+
+    // Return relevant first, then suppressed (still available, just deprioritized)
+    return [...relevant, ...suppressed].slice(0, 3);
+  }
+
+  // MEDIUM: move explore actions to end
+  const nonExplore = actions.filter((a) => a.actionType !== 'open_explore');
+  const explore = actions.filter((a) => a.actionType === 'open_explore');
+  return [...nonExplore, ...explore].slice(0, 3);
 }
 
 // ============================================================================
