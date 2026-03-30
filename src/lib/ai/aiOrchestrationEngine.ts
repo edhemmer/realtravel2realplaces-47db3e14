@@ -24,6 +24,7 @@ import { resolveExternalSignals, NO_SIGNAL, type ExternalSignals, type FlightIde
 import { resolveDriveSignals, getPrimaryDriveSignal, type DriveSignal as DriveRouteSignal } from '@/lib/ai/driveSignalEngine';
 import { computeLeaveTimingRecommendation, type LeaveTimingRecommendation } from '@/lib/ai/leaveTimingEngine';
 import type { TrafficIntelligence } from '@/lib/trafficIntelligenceEngine';
+import { getTransitIntelligence, type TransitIntelligence, type TransitAdvisoryFlag } from '@/lib/transitIntelligenceEngine';
 
 // ============================================================================
 // OUTPUT TYPES
@@ -1034,6 +1035,64 @@ function buildIncidentGuidance(
 }
 
 // ============================================================================
+// v5.10.0: TRANSIT INTELLIGENCE
+// ============================================================================
+
+/**
+ * Build transit guidance item from transit intelligence.
+ * Max 1 transit guidance per context.
+ */
+function buildTransitGuidance(
+  state: CanonicalTripState,
+): AIOrchestratedGuidanceItem | null {
+  const todayStr = getLocalNowString().substring(0, 10);
+
+  // Find next upcoming transport-relevant event
+  const transitEvent = state.timelineEvents.find((ev) => {
+    if (!ev.eventLocalDateTime || ev.eventLocalDateTime.substring(0, 10) !== todayStr) return false;
+    const mins = safeMinutesUntilEvent(ev.eventLocalDateTime);
+    if (mins === null || mins < 0 || mins > 120) return false;
+    const relevantTypes = new Set([
+      'flight_departure', 'hotel_checkin', 'engagement_start',
+      'rental_pickup',
+    ]);
+    return relevantTypes.has(ev.eventType);
+  });
+
+  // Transit guidance only when we have an event and the trip uses transit-compatible modes
+  if (!transitEvent) return null;
+  const mode = state.trip.transportation_mode as string;
+  if (mode === 'drive') return null;
+
+  return null; // Will activate when coordinate resolution is available
+}
+
+/**
+ * Apply transit-signal refinement to summary.
+ * Lowest-priority layer — only activates when no higher signal dominates.
+ */
+function applyTransitToSummary(
+  currentSummary: string,
+  transitGuidance: AIOrchestratedGuidanceItem | null,
+  sequencePressure: SequencePressure,
+  transitionState: TransitionState,
+  execRisk: ExecutionRisk,
+  extSignals: ExternalSignals,
+  driveSignal: DriveRouteSignal | null,
+  leaveTiming: LeaveTimingRecommendation | null,
+): string {
+  if (sequencePressure === 'high' || sequencePressure === 'medium') return currentSummary;
+  if (transitionState !== null) return currentSummary;
+  if (execRisk.riskConfidence === 'high') return currentSummary;
+  if (extSignals.confidence === 'high') return currentSummary;
+  if (driveSignal && driveSignal.routeState !== 'stable') return currentSummary;
+  if (leaveTiming && leaveTiming.status !== 'on_track') return currentSummary;
+  if (!transitGuidance || transitGuidance.priority !== 'high') return currentSummary;
+
+  return transitGuidance.message;
+}
+
+// ============================================================================
 // HELPERS
 // ============================================================================
 
@@ -1181,6 +1240,15 @@ export function computeOrchestratedContext(
     }
   }
 
+  // v5.10.0: Resolve transit guidance for non-drive trips.
+  const transitGuidance = phase === 'active' ? buildTransitGuidance(state) : null;
+  if (transitGuidance) {
+    const hasExistingTransit = prioritizedGuidance.some((g) => g.id.startsWith('transit-'));
+    if (!hasExistingTransit && prioritizedGuidance.length < 3) {
+      prioritizedGuidance.push(transitGuidance);
+    }
+  }
+
   // v5.8.2 + v5.8.3: Build final summary.
   let finalSummary: string;
   if ((sequencePressure === 'high' || sequencePressure === 'medium') && activeSequence && activeSequence.steps.length >= 2) {
@@ -1201,8 +1269,11 @@ export function computeOrchestratedContext(
   // v5.9.0: Apply drive-signal summary refinement.
   finalSummary = applyDriveSignalToSummary(finalSummary, primaryDriveSignal, sequencePressure, transitionState, execRisk, extSignals);
 
-  // v5.9.1: Apply leave-timing summary refinement (lowest priority).
+  // v5.9.1: Apply leave-timing summary refinement.
   finalSummary = applyLeaveTimingToSummary(finalSummary, leaveTiming, sequencePressure, transitionState, execRisk, extSignals, primaryDriveSignal);
+
+  // v5.10.0: Apply transit summary refinement (lowest priority).
+  finalSummary = applyTransitToSummary(finalSummary, transitGuidance, sequencePressure, transitionState, execRisk, extSignals, primaryDriveSignal, leaveTiming);
 
   // v5.8.3: Refine primaryFocus with transition awareness (secondary signal).
   const finalFocus = phase === 'active'
