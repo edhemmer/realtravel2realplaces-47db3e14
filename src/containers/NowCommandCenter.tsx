@@ -39,6 +39,7 @@ import { getActiveDriveSegment, getNavigationTarget } from '@/lib/driveIntellige
 import { computeProactiveInsights } from '@/lib/proactiveInsightEngine';
 import { computeOrchestratedContext } from '@/lib/ai/aiOrchestrationEngine';
 import type { AIOrchestratedAction } from '@/lib/ai/aiOrchestrationEngine';
+import { recordActionInteraction } from '@/lib/ai/aiFeedbackEngine';
 import { AIOrchestratedBlock } from '@/components/trips/now/AIOrchestratedBlock';
 import type { TravelAlert } from '@/hooks/useTravelAlerts';
 import type { DriveSignal } from '@/lib/driveEngine';
@@ -159,7 +160,12 @@ export function NowCommandCenter({
   }, [navigate]);
 
   // v5.5.0: Handle AI orchestrated action taps
+  // v5.6.0: Record action interaction for feedback-based reordering
   const handleOrchestratedAction = useCallback((action: AIOrchestratedAction) => {
+    // Record the tap for preference learning
+    const phase = orchestratedContext?.phase ?? 'active';
+    recordActionInteraction(action.actionType, phase);
+
     switch (action.actionType) {
       case 'navigate':
         if (action.actionPayload?.destinationLabel) {

@@ -17,6 +17,7 @@
 import type { CanonicalTripState, CanonicalTimelineEvent } from '@/lib/canonicalTripState';
 import type { ProactiveInsight, ProactiveInsightAction } from '@/lib/proactiveInsightEngine';
 import { getLocalNowString } from '@/lib/canonicalNextStop';
+import { computePreferenceWeights, reorderActionsWithPreference } from '@/lib/ai/aiFeedbackEngine';
 
 // ============================================================================
 // OUTPUT TYPES
@@ -315,7 +316,13 @@ export function computeOrchestratedContext(
   const primaryFocus = resolvePrimaryFocus(phase, state, insights);
   const summary = generateSummary(phase, state, insights);
   const prioritizedGuidance = convertInsightsToGuidance(insights);
-  const recommendedActions = recommendActions(phase, state, insights);
+  const rawActions = recommendActions(phase, state, insights);
+
+  // v5.6.0: Apply bounded preference feedback to action ordering.
+  // Preference weights act as a secondary tiebreaker only —
+  // critical/urgent actions remain first regardless of user history.
+  const feedbackWeights = computePreferenceWeights();
+  const recommendedActions = reorderActionsWithPreference(rawActions, feedbackWeights);
 
   return {
     phase,
