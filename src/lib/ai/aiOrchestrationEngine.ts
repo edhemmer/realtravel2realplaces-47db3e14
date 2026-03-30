@@ -24,6 +24,7 @@ import { resolveExternalSignals, NO_SIGNAL, type ExternalSignals, type FlightIde
 import { resolveDriveSignals, getPrimaryDriveSignal, type DriveSignal as DriveRouteSignal } from '@/lib/ai/driveSignalEngine';
 import { computeLeaveTimingRecommendation, type LeaveTimingRecommendation } from '@/lib/ai/leaveTimingEngine';
 import type { TrafficIntelligence } from '@/lib/trafficIntelligenceEngine';
+import { getTransitIntelligence, type TransitIntelligence, type TransitAdvisoryFlag } from '@/lib/transitIntelligenceEngine';
 
 // ============================================================================
 // OUTPUT TYPES
