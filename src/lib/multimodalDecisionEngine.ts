@@ -398,7 +398,7 @@ export function getMultimodalDecision(
 
   // Normalize all options
   const driveOption = normalizeDrive(traffic);
-  const transitOption = normalizeTransit(transit);
+  const transitOption = transit ? normalizeTransit(transit) : null;
   const walkOption = normalizeWalk(originLat, originLng, destLat, destLng);
 
   // Collect eligible options
