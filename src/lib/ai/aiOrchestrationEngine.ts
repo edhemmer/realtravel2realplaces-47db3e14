@@ -1131,7 +1131,15 @@ export function computeOrchestratedContext(
   const primaryDriveSignal = getPrimaryDriveSignal(driveSignals);
 
   // v5.9.0: Apply drive-signal action refinement.
-  const finalActions = applyDriveSignalToActions(extActions, primaryDriveSignal);
+  const driveActions = applyDriveSignalToActions(extActions, primaryDriveSignal);
+
+  // v5.9.1: Compute leave timing recommendation from drive signals.
+  const leaveTiming = phase === 'active'
+    ? computeLeaveTimingRecommendation(state, driveSignals)
+    : null;
+
+  // v5.9.1: Apply leave-timing action refinement (lowest priority).
+  const finalActions = applyLeaveTimingToActions(driveActions, leaveTiming);
 
   // v5.8.2 + v5.8.3: Build final summary.
   let finalSummary: string;
@@ -1150,8 +1158,11 @@ export function computeOrchestratedContext(
   // v5.8.6: Apply external-signal summary refinement.
   finalSummary = applyExternalSignalsToSummary(finalSummary, extSignals, sequencePressure, transitionState, execRisk);
 
-  // v5.9.0: Apply drive-signal summary refinement (lowest priority).
+  // v5.9.0: Apply drive-signal summary refinement.
   finalSummary = applyDriveSignalToSummary(finalSummary, primaryDriveSignal, sequencePressure, transitionState, execRisk, extSignals);
+
+  // v5.9.1: Apply leave-timing summary refinement (lowest priority).
+  finalSummary = applyLeaveTimingToSummary(finalSummary, leaveTiming, sequencePressure, transitionState, execRisk, extSignals, primaryDriveSignal);
 
   // v5.8.3: Refine primaryFocus with transition awareness (secondary signal).
   const finalFocus = phase === 'active'
