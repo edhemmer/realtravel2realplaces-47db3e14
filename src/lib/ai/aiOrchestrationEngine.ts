@@ -1240,6 +1240,15 @@ export function computeOrchestratedContext(
     }
   }
 
+  // v5.10.0: Resolve transit guidance for non-drive trips.
+  const transitGuidance = phase === 'active' ? buildTransitGuidance(state) : null;
+  if (transitGuidance) {
+    const hasExistingTransit = prioritizedGuidance.some((g) => g.id.startsWith('transit-'));
+    if (!hasExistingTransit && prioritizedGuidance.length < 3) {
+      prioritizedGuidance.push(transitGuidance);
+    }
+  }
+
   // v5.8.2 + v5.8.3: Build final summary.
   let finalSummary: string;
   if ((sequencePressure === 'high' || sequencePressure === 'medium') && activeSequence && activeSequence.steps.length >= 2) {
@@ -1260,8 +1269,11 @@ export function computeOrchestratedContext(
   // v5.9.0: Apply drive-signal summary refinement.
   finalSummary = applyDriveSignalToSummary(finalSummary, primaryDriveSignal, sequencePressure, transitionState, execRisk, extSignals);
 
-  // v5.9.1: Apply leave-timing summary refinement (lowest priority).
+  // v5.9.1: Apply leave-timing summary refinement.
   finalSummary = applyLeaveTimingToSummary(finalSummary, leaveTiming, sequencePressure, transitionState, execRisk, extSignals, primaryDriveSignal);
+
+  // v5.10.0: Apply transit summary refinement (lowest priority).
+  finalSummary = applyTransitToSummary(finalSummary, transitGuidance, sequencePressure, transitionState, execRisk, extSignals, primaryDriveSignal, leaveTiming);
 
   // v5.8.3: Refine primaryFocus with transition awareness (secondary signal).
   const finalFocus = phase === 'active'
