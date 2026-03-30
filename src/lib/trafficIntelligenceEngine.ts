@@ -280,6 +280,7 @@ export function getTrafficIntelligence(
   originLng: number,
   destLat: number,
   destLng: number,
+  options?: { priority?: CallPriority; freshnessTier?: FreshnessTier; timeSensitive?: boolean },
 ): TrafficIntelligence {
   const routeKey = generateRouteKey(originLat, originLng, destLat, destLng);
 
@@ -289,11 +290,18 @@ export function getTrafficIntelligence(
     if (cached) return cached.intelligence;
   }
 
-  // Step 2: Trigger background fetch (non-blocking)
-  if (!_inFlightRequests.has(routeKey)) {
-    fetchFromHere(originLat, originLng, destLat, destLng, routeKey).catch(() => {
-      // Silently handled — fallback chain covers this
-    });
+  // Step 2: Governance check before triggering fetch
+  const governance = checkCallAllowed({
+    source: 'traffic',
+    routeKey,
+    priority: options?.priority ?? 'medium',
+    freshnessTier: options?.freshnessTier ?? 'active',
+    timeSensitive: options?.timeSensitive,
+  });
+
+  // Step 3: Trigger background fetch only if governance allows
+  if (governance.allowed && !_inFlightRequests.has(routeKey)) {
+    fetchFromHere(originLat, originLng, destLat, destLng, routeKey).catch(() => {});
   }
 
   // Step 3: Return stale cached data if available
