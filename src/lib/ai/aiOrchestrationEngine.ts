@@ -515,6 +515,21 @@ function resolveTransitionState(state: CanonicalTripState): TransitionState {
 }
 
 /**
+/**
+ * Estimate event end time in minutes-since-midnight.
+ * Uses arrivalLocalTime for flights, otherwise start + 60 min.
+ */
+function estimateEventEndMinutes(ev: CanonicalTimelineEvent, startMins: number): number {
+  // For flights, use arrival time if available
+  if (ev.bookingType === 'flight' && ev.arrivalLocalTime) {
+    const arrMins = parseMinutesFromTimeString(ev.arrivalLocalTime);
+    if (arrMins !== null) return arrMins;
+  }
+  // Default: assume 60 min duration
+  return startMins + 60;
+}
+
+/**
  * Parse minutes-since-midnight from a datetime or time string.
  * Accepts "YYYY-MM-DDTHH:MM" or "HH:MM" formats.
  */
