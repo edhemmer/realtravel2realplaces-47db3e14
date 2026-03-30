@@ -956,6 +956,54 @@ function applyDriveSignalToSummary(
 }
 
 // ============================================================================
+// v5.9.1: LEAVE TIMING REFINEMENT
+// ============================================================================
+
+/**
+ * Apply leave-timing refinement to actions.
+ * When leave_now or leave_soon, prioritize navigate/open_event actions.
+ * Lowest-priority signal layer — only activates when no higher signal dominates.
+ */
+function applyLeaveTimingToActions(
+  actions: AIOrchestratedAction[],
+  leaveTiming: LeaveTimingRecommendation | null,
+): AIOrchestratedAction[] {
+  if (!leaveTiming || leaveTiming.status === 'on_track' || actions.length <= 1) return actions;
+
+  const urgent = actions.filter(
+    (a) => a.actionType === 'navigate' || a.actionType === 'open_event'
+  );
+  const rest = actions.filter(
+    (a) => a.actionType !== 'navigate' && a.actionType !== 'open_event'
+  );
+  return [...urgent, ...rest].slice(0, 3);
+}
+
+/**
+ * Apply leave-timing refinement to summary.
+ * Only activates when status is leave_now or leave_soon AND no higher-priority
+ * signal has already refined the summary.
+ */
+function applyLeaveTimingToSummary(
+  currentSummary: string,
+  leaveTiming: LeaveTimingRecommendation | null,
+  sequencePressure: SequencePressure,
+  transitionState: TransitionState,
+  execRisk: ExecutionRisk,
+  extSignals: ExternalSignals,
+  driveSignal: DriveRouteSignal | null,
+): string {
+  if (sequencePressure === 'high' || sequencePressure === 'medium') return currentSummary;
+  if (transitionState !== null) return currentSummary;
+  if (execRisk.riskConfidence === 'high') return currentSummary;
+  if (extSignals.confidence === 'high') return currentSummary;
+  if (driveSignal && driveSignal.routeState !== 'stable') return currentSummary;
+  if (!leaveTiming || leaveTiming.status === 'on_track') return currentSummary;
+
+  return leaveTiming.message;
+}
+
+// ============================================================================
 // HELPERS
 // ============================================================================
 
