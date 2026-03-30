@@ -852,6 +852,53 @@ function applyExecutionRiskToSummary(
 }
 
 // ============================================================================
+// v5.8.6: EXTERNAL SIGNAL REFINEMENT
+// ============================================================================
+
+/**
+ * Apply external-signal refinement to actions.
+ * Lowest-priority signal — only activates when a real signal exists
+ * and no higher signal has already shaped the output.
+ */
+function applyExternalSignalsToActions(
+  actions: AIOrchestratedAction[],
+  signals: ExternalSignals,
+): AIOrchestratedAction[] {
+  if (signals.confidence === 'none' || actions.length <= 1) return actions;
+
+  // When a real signal exists, favor navigate/open_event over explore/review
+  const urgent = actions.filter(
+    (a) => a.actionType === 'navigate' || a.actionType === 'open_event'
+  );
+  const rest = actions.filter(
+    (a) => a.actionType !== 'navigate' && a.actionType !== 'open_event'
+  );
+  return [...urgent, ...rest].slice(0, 3);
+}
+
+/**
+ * Apply external-signal refinement to summary.
+ * Only activates when confidence is high and no higher-priority signal
+ * has already refined the summary. Never claims live data.
+ */
+function applyExternalSignalsToSummary(
+  currentSummary: string,
+  signals: ExternalSignals,
+  sequencePressure: SequencePressure,
+  transitionState: TransitionState,
+  execRisk: ExecutionRisk,
+): string {
+  if (sequencePressure === 'high' || sequencePressure === 'medium') return currentSummary;
+  if (transitionState !== null) return currentSummary;
+  if (execRisk.riskConfidence === 'high') return currentSummary;
+  if (signals.confidence !== 'high') return currentSummary;
+
+  if (signals.hasFlightStatusChange) return 'Flight timing may be affected — allow extra buffer.';
+  if (signals.hasDriveTimingDisruption) return 'Drive timing may be affected — stay ahead of changes.';
+  return currentSummary;
+}
+
+// ============================================================================
 // HELPERS
 // ============================================================================
 
