@@ -323,6 +323,7 @@ export async function getTrafficIntelligenceAsync(
   originLng: number,
   destLat: number,
   destLng: number,
+  options?: { priority?: CallPriority; freshnessTier?: FreshnessTier; timeSensitive?: boolean },
 ): Promise<TrafficIntelligence> {
   const routeKey = generateRouteKey(originLat, originLng, destLat, destLng);
 
