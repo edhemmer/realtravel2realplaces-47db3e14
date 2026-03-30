@@ -14,6 +14,14 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import {
+  checkCallAllowed,
+  recordCall,
+  acquireLock,
+  releaseLock,
+  type CallPriority,
+  type FreshnessTier,
+} from '@/lib/movementCallGovernance';
 
 // ============================================================================
 // OUTPUT TYPES
