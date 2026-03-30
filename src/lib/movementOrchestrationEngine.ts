@@ -396,13 +396,11 @@ function assembleJourney(
   else if (activeSteps.some(s => s.status === 'active')) overallStatus = 'active';
 
   // Downstream risk level
+  const riskLevels = steps.map(s => s.riskLevel as string);
   let downstreamRisk: DownstreamRiskLevel = 'none';
-  for (const s of steps) {
-    const rl: DownstreamRiskLevel = s.riskLevel;
-    if (rl === 'critical') { downstreamRisk = 'critical'; break; }
-    if (rl === 'high' && downstreamRisk !== 'critical') downstreamRisk = 'high';
-    if (rl === 'elevated' && downstreamRisk === 'none') downstreamRisk = 'elevated';
-  }
+  if (riskLevels.includes('critical')) downstreamRisk = 'critical';
+  else if (riskLevels.includes('high')) downstreamRisk = 'high';
+  else if (riskLevels.includes('elevated')) downstreamRisk = 'elevated';
 
   return {
     chainId,
