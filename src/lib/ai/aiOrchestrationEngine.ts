@@ -1142,6 +1142,16 @@ export function computeOrchestratedContext(
   // v5.9.1: Apply leave-timing action refinement (lowest priority).
   const finalActions = applyLeaveTimingToActions(driveActions, leaveTiming);
 
+  // v5.9.2: Inject incident advisory into guidance when traffic data indicates incidents.
+  const incidentGuidance = buildIncidentGuidance(primaryDriveSignal);
+  if (incidentGuidance) {
+    // Add incident as high-priority guidance, max 1, respecting 3-item limit
+    const hasExistingIncident = prioritizedGuidance.some((g) => g.id.startsWith('incident-'));
+    if (!hasExistingIncident && prioritizedGuidance.length < 3) {
+      prioritizedGuidance.push(incidentGuidance);
+    }
+  }
+
   // v5.8.2 + v5.8.3: Build final summary.
   let finalSummary: string;
   if ((sequencePressure === 'high' || sequencePressure === 'medium') && activeSequence && activeSequence.steps.length >= 2) {
