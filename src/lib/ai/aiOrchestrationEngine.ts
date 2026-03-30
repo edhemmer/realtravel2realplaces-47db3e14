@@ -407,7 +407,7 @@ export function computeOrchestratedContext(
   const phase = resolvePhase(state);
   const primaryFocus = resolvePrimaryFocus(phase, state, insights);
   const summary = generateSummary(phase, state, insights);
-  const prioritizedGuidance = convertInsightsToGuidance(insights);
+  const baseGuidance = convertInsightsToGuidance(insights);
   const currentActions = recommendActions(phase, state, insights);
 
   // v5.7.0: Generate predictive action candidates from upcoming events.
@@ -421,16 +421,25 @@ export function computeOrchestratedContext(
   const recommendedActions = reorderActionsWithPreference(mergedActions, feedbackWeights);
 
   // v5.8.0: Generate optional bounded multi-step sequence.
-  // Include only when relevance is 'high' and phase is active.
   const rawSequence = generateSequence(state);
   const activeSequence = (rawSequence && rawSequence.relevance === 'high' && phase === 'active')
     ? rawSequence
     : null;
 
+  // v5.8.2: Apply sequence-aware messaging when a valid sequence is active.
+  // Replaces fragmented guidance with a single clear execution message.
+  const sequencePressure = deriveSequencePressure(activeSequence);
+  const prioritizedGuidance = applySequenceAwareGuidance(baseGuidance, activeSequence, sequencePressure);
+
+  // v5.8.2: Override summary with sequence-aware summary when pressure is active.
+  const finalSummary = (sequencePressure !== 'none' && activeSequence && activeSequence.steps.length >= 2)
+    ? `${activeSequence.steps[0].label} → ${activeSequence.steps[1].label}`
+    : summary;
+
   return {
     phase,
     primaryFocus,
-    summary,
+    summary: finalSummary,
     prioritizedGuidance,
     recommendedActions,
     activeSequence,
