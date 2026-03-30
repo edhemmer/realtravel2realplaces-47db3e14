@@ -25,6 +25,7 @@ import { resolveDriveSignals, getPrimaryDriveSignal, type DriveSignal as DriveRo
 import { computeLeaveTimingRecommendation, type LeaveTimingRecommendation } from '@/lib/ai/leaveTimingEngine';
 import type { TrafficIntelligence } from '@/lib/trafficIntelligenceEngine';
 import { getTransitIntelligence, type TransitIntelligence, type TransitAdvisoryFlag } from '@/lib/transitIntelligenceEngine';
+import { getMultimodalDecision, type MultimodalDecision, type MovementMode } from '@/lib/multimodalDecisionEngine';
 
 // ============================================================================
 // OUTPUT TYPES
@@ -1093,6 +1094,76 @@ function applyTransitToSummary(
 }
 
 // ============================================================================
+// v5.10.1: MULTIMODAL MOVEMENT DECISION REFINEMENT
+// ============================================================================
+
+/**
+ * Build multimodal movement guidance from the canonical decision engine.
+ * Max 1 guidance item. Only activates when a clear recommendation exists.
+ */
+function buildMultimodalGuidance(
+  state: CanonicalTripState,
+): { guidance: AIOrchestratedGuidanceItem | null; decision: MultimodalDecision | null } {
+  const todayStr = getLocalNowString().substring(0, 10);
+
+  // Find next upcoming movement-relevant event with coordinates
+  // For now, detect eligible events; coordinate resolution is external
+  const movementEvent = state.timelineEvents.find((ev) => {
+    if (!ev.eventLocalDateTime || ev.eventLocalDateTime.substring(0, 10) !== todayStr) return false;
+    const mins = safeMinutesUntilEvent(ev.eventLocalDateTime);
+    if (mins === null || mins < 0 || mins > 120) return false;
+    const relevantTypes = new Set([
+      'flight_departure', 'hotel_checkin', 'engagement_start',
+      'rental_pickup', 'rental_return',
+    ]);
+    return relevantTypes.has(ev.eventType);
+  });
+
+  if (!movementEvent) return { guidance: null, decision: null };
+
+  // Multimodal requires coordinates — placeholder until coordinate resolution is wired
+  // Return null until coords are available
+  return { guidance: null, decision: null };
+}
+
+/**
+ * Apply multimodal decision refinement to summary.
+ * Lowest-priority layer — only activates when no higher signal dominates
+ * and a clear multimodal recommendation exists.
+ */
+function applyMultimodalToSummary(
+  currentSummary: string,
+  multimodalDecision: MultimodalDecision | null,
+  sequencePressure: SequencePressure,
+  transitionState: TransitionState,
+  execRisk: ExecutionRisk,
+  extSignals: ExternalSignals,
+  driveSignal: DriveRouteSignal | null,
+  leaveTiming: LeaveTimingRecommendation | null,
+  transitGuidance: AIOrchestratedGuidanceItem | null,
+): string {
+  if (sequencePressure === 'high' || sequencePressure === 'medium') return currentSummary;
+  if (transitionState !== null) return currentSummary;
+  if (execRisk.riskConfidence === 'high') return currentSummary;
+  if (extSignals.confidence === 'high') return currentSummary;
+  if (driveSignal && driveSignal.routeState !== 'stable') return currentSummary;
+  if (leaveTiming && leaveTiming.status !== 'on_track') return currentSummary;
+  if (transitGuidance && transitGuidance.priority === 'high') return currentSummary;
+  if (!multimodalDecision) return currentSummary;
+
+  // Only surface multimodal summary when urgency is moderate or high
+  if (multimodalDecision.urgencyLevel === 'low') return currentSummary;
+
+  const mode = multimodalDecision.recommendedMode;
+  const mins = multimodalDecision.recommendedOption.totalTravelMinutes;
+
+  if (multimodalDecision.urgencyLevel === 'high') {
+    return `Leave now — ${mode} is the best option (${mins} min).`;
+  }
+  return `${mode === 'drive' ? 'Driving' : mode === 'transit' ? 'Transit' : 'Walking'} recommended — ${mins} min.`;
+}
+
+// ============================================================================
 // HELPERS
 // ============================================================================
 
@@ -1249,6 +1320,16 @@ export function computeOrchestratedContext(
     }
   }
 
+  // v5.10.1: Resolve multimodal movement decision.
+  const { guidance: multimodalGuidance, decision: multimodalDecision } =
+    phase === 'active' ? buildMultimodalGuidance(state) : { guidance: null, decision: null };
+  if (multimodalGuidance) {
+    const hasExistingMultimodal = prioritizedGuidance.some((g) => g.id.startsWith('multimodal-'));
+    if (!hasExistingMultimodal && prioritizedGuidance.length < 3) {
+      prioritizedGuidance.push(multimodalGuidance);
+    }
+  }
+
   // v5.8.2 + v5.8.3: Build final summary.
   let finalSummary: string;
   if ((sequencePressure === 'high' || sequencePressure === 'medium') && activeSequence && activeSequence.steps.length >= 2) {
@@ -1272,8 +1353,11 @@ export function computeOrchestratedContext(
   // v5.9.1: Apply leave-timing summary refinement.
   finalSummary = applyLeaveTimingToSummary(finalSummary, leaveTiming, sequencePressure, transitionState, execRisk, extSignals, primaryDriveSignal);
 
-  // v5.10.0: Apply transit summary refinement (lowest priority).
+  // v5.10.0: Apply transit summary refinement.
   finalSummary = applyTransitToSummary(finalSummary, transitGuidance, sequencePressure, transitionState, execRisk, extSignals, primaryDriveSignal, leaveTiming);
+
+  // v5.10.1: Apply multimodal summary refinement (lowest priority).
+  finalSummary = applyMultimodalToSummary(finalSummary, multimodalDecision, sequencePressure, transitionState, execRisk, extSignals, primaryDriveSignal, leaveTiming, transitGuidance);
 
   // v5.8.3: Refine primaryFocus with transition awareness (secondary signal).
   const finalFocus = phase === 'active'
