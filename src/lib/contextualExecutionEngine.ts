@@ -12,7 +12,7 @@
  * - Governance-aware evaluation cadence
  */
 
-import type { MultimodalDecisionResult } from './multimodalDecisionEngine';
+import type { MultimodalDecision } from './multimodalDecisionEngine';
 import type { MovementExecutionResult } from './movementExecutionHelper';
 
 // ============================================================================
