@@ -36,8 +36,15 @@ export default function WelcomeChoice() {
     }
   }, [navigate]);
 
+  const allowCreate = canCreateTrips();
+
   const handleCreateTrip = () => {
     if (redirecting) return; // prevent double-click
+    if (!allowCreate) {
+      // Native iOS: creation is disabled — fall through to dashboard.
+      handleGoToDashboard();
+      return;
+    }
     setRedirecting(true);
     markWelcomeChoiceSeen();
     // Navigate to dashboard with state to auto-open the create trip dialog
