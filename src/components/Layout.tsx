@@ -42,10 +42,7 @@ export function Layout({ children }: LayoutProps) {
     <div className="min-h-screen bg-background overflow-x-hidden">
 
       {/* Header */}
-      <header
-        className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75"
-        style={{ paddingTop: 'env(safe-area-inset-top)' }}
-      >
+      <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75 pt-[var(--rt2rp-safe-top,env(safe-area-inset-top,0px))]">
         <div className="container flex h-16 items-center justify-between px-4">
           <BrandHeader variant="app">
 
@@ -110,8 +107,7 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Main Content */}
       <main
-        className="container px-4 py-6 max-w-full overflow-x-hidden"
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 1.5rem)' }}
+        className="container max-w-full overflow-x-hidden px-4 pt-6 pb-[calc(var(--rt2rp-safe-bottom,env(safe-area-inset-bottom,0px))+1.5rem)]"
       >
         {children}
       </main>
