@@ -29,6 +29,9 @@ import { EMAIL_FORWARDING_ENABLED } from '@/lib/featureFlags';
 import { PageTransition, StaggerContainer, FadeInItem } from '@/components/ui/page-transition';
 import { DashboardSkeleton } from '@/components/ui/premium-loading';
 import { motion } from 'framer-motion';
+import { canCreateTrips } from '@/lib/native/platform';
+
+const CAN_CREATE_TRIPS = canCreateTrips();
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -53,6 +56,8 @@ export default function Dashboard() {
   const { shouldShowOnboarding } = useOnboardingStatus();
   
   useEffect(() => {
+    // Native iOS build: trip creation is disabled — never auto-open the wizard.
+    if (!CAN_CREATE_TRIPS) return;
     const state = location.state as { openCreateTrip?: boolean; isOnboarding?: boolean } | null;
     if (state?.openCreateTrip) {
       setCreateDialogOpen(true);
@@ -127,14 +132,16 @@ export default function Dashboard() {
             <h1 className="font-bold text-[28px] leading-[1.2] tracking-tight">My Trips</h1>
             <p className="text-muted-foreground text-sm font-normal opacity-[0.85] mt-1">Manage your travel in one place</p>
           </div>
-          <Button 
-            onClick={() => setCreateDialogOpen(true)} 
-            className="bg-gradient-ocean hover:opacity-90 transition-opacity h-10 sm:h-12 rounded-xl font-semibold shadow-sm shrink-0"
-          >
-            <Plus className="w-4 h-4 mr-1 sm:mr-2" />
-            <span className="hidden sm:inline">New Trip</span>
-            <span className="sm:hidden">New</span>
-          </Button>
+          {CAN_CREATE_TRIPS && (
+            <Button 
+              onClick={() => setCreateDialogOpen(true)} 
+              className="bg-gradient-ocean hover:opacity-90 transition-opacity h-10 sm:h-12 rounded-xl font-semibold shadow-sm shrink-0"
+            >
+              <Plus className="w-4 h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">New Trip</span>
+              <span className="sm:hidden">New</span>
+            </Button>
+          )}
         </div>
 
         {/* v3.9.3: Active Trip Execution Card */}
@@ -251,17 +258,20 @@ export default function Dashboard() {
                 </div>
                 <h3 className="text-xl font-semibold mb-2">No trips yet</h3>
                 <p className="text-muted-foreground text-center mb-6 max-w-md">
-                  Your trips will appear here once created. Add your first trip to start
-                  tracking bookings, expenses, and travel details in one place.
+                  {CAN_CREATE_TRIPS
+                    ? 'Your trips will appear here once created. Add your first trip to start tracking bookings, expenses, and travel details in one place.'
+                    : 'Your trips will appear here once created on the web. Visit realtravel2realplaces.app from a browser to create your first trip.'}
                 </p>
-                <Button 
-                  onClick={() => setCreateDialogOpen(true)} 
-                  size="lg" 
-                  className="bg-gradient-ocean hover:opacity-90 h-12 rounded-xl font-semibold shadow-sm"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Your First Trip
-                </Button>
+                {CAN_CREATE_TRIPS && (
+                  <Button 
+                    onClick={() => setCreateDialogOpen(true)} 
+                    size="lg" 
+                    className="bg-gradient-ocean hover:opacity-90 h-12 rounded-xl font-semibold shadow-sm"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Your First Trip
+                  </Button>
+                )}
               </CardContent>
             </Card>
           </motion.div>

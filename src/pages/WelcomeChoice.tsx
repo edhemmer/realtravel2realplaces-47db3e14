@@ -12,6 +12,7 @@ import { Layout } from '@/components/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plane, LayoutDashboard } from 'lucide-react';
+import { canCreateTrips } from '@/lib/native/platform';
 
 const WELCOME_CHOICE_KEY = 'rt2rp_welcome_choice_shown';
 
@@ -36,8 +37,15 @@ export default function WelcomeChoice() {
     }
   }, [navigate]);
 
+  const allowCreate = canCreateTrips();
+
   const handleCreateTrip = () => {
     if (redirecting) return; // prevent double-click
+    if (!allowCreate) {
+      // Native iOS: creation is disabled — fall through to dashboard.
+      handleGoToDashboard();
+      return;
+    }
     setRedirecting(true);
     markWelcomeChoiceSeen();
     // Navigate to dashboard with state to auto-open the create trip dialog
@@ -77,16 +85,18 @@ export default function WelcomeChoice() {
             </div>
 
             <div className="space-y-3 pt-2">
-              {/* Primary CTA */}
-              <Button
-                onClick={handleCreateTrip}
-                disabled={redirecting}
-                size="lg"
-                className="w-full bg-gradient-ocean hover:opacity-90 transition-opacity min-h-[44px]"
-              >
-                <Plane className="w-4 h-4 mr-2" />
-                Create a Trip
-              </Button>
+              {/* Primary CTA — hidden on native iOS where trip creation is disabled */}
+              {allowCreate && (
+                <Button
+                  onClick={handleCreateTrip}
+                  disabled={redirecting}
+                  size="lg"
+                  className="w-full bg-gradient-ocean hover:opacity-90 transition-opacity min-h-[44px]"
+                >
+                  <Plane className="w-4 h-4 mr-2" />
+                  Create a Trip
+                </Button>
+              )}
 
               {/* Secondary CTA */}
               <Button

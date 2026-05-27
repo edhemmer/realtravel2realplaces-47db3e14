@@ -18,6 +18,7 @@ import {
   isManualOnboardingView,
   setManualOnboardingView
 } from '@/hooks/useOnboardingStatus';
+import { canCreateTrips } from '@/lib/native/platform';
 
 /**
  * Reset onboarding for manual view from Account page
@@ -40,6 +41,11 @@ export default function Onboarding() {
   }, []);
 
   if (hasCompletedOnboarding && !isManualView) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // Native iOS build: trip creation is disabled — skip onboarding wizard entirely.
+  if (!canCreateTrips()) {
     return <Navigate to="/dashboard" replace />;
   }
 
