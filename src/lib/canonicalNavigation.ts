@@ -1,5 +1,5 @@
 /**
- * v4.0.2: Canonical Navigation Helper
+ * v4.0.3: Canonical Navigation Helper
  *
  * Single entry point for ALL "Navigate" / "Open in Maps" actions across the app.
  * Ensures full parsed addresses are always used when available and city/state
@@ -18,6 +18,7 @@ import {
   buildMapsDirectionsUrl,
   type MapsDestination,
 } from '@/lib/mapsDestination';
+import { openNavigationResult } from '@/lib/native/nativeNavigation';
 
 // ============================================================================
 // TYPES
