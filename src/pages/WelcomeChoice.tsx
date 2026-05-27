@@ -85,16 +85,18 @@ export default function WelcomeChoice() {
             </div>
 
             <div className="space-y-3 pt-2">
-              {/* Primary CTA */}
-              <Button
-                onClick={handleCreateTrip}
-                disabled={redirecting}
-                size="lg"
-                className="w-full bg-gradient-ocean hover:opacity-90 transition-opacity min-h-[44px]"
-              >
-                <Plane className="w-4 h-4 mr-2" />
-                Create a Trip
-              </Button>
+              {/* Primary CTA — hidden on native iOS where trip creation is disabled */}
+              {allowCreate && (
+                <Button
+                  onClick={handleCreateTrip}
+                  disabled={redirecting}
+                  size="lg"
+                  className="w-full bg-gradient-ocean hover:opacity-90 transition-opacity min-h-[44px]"
+                >
+                  <Plane className="w-4 h-4 mr-2" />
+                  Create a Trip
+                </Button>
+              )}
 
               {/* Secondary CTA */}
               <Button
