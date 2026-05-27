@@ -1,5 +1,5 @@
 /**
- * v2.2.10: Canonical Maps Destination Resolver
+ * v2.2.11: Canonical Maps Destination Resolver
  *
  * Single source of truth for all Maps launch points in RT2RP.
  * Resolves the best available destination query from any event/booking/stop
@@ -12,6 +12,7 @@
 
 import { resolveAirportRef } from '@/lib/location/locationResolver';
 import { buildNavTarget } from '@/lib/location/navigationTargets';
+import { openNavigationResult } from '@/lib/native/nativeNavigation';
 
 // ============================================================================
 // TYPES
