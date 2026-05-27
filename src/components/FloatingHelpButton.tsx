@@ -98,7 +98,11 @@ export function FloatingHelpButton() {
   const pageHelp = PAGE_HELP[location.pathname] || getTripPageHelp(location.pathname);
 
   return (
-    <div className="fixed bottom-20 right-4 z-40 md:bottom-6">
+    <div
+      className="fixed right-4 z-40"
+      style={{ bottom: 'calc(env(safe-area-inset-bottom) + 5rem)' }}
+    >
+
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button

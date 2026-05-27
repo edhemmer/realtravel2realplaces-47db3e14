@@ -39,7 +39,8 @@ export function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
+
       {/* Header */}
       <header
         className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75"
@@ -108,9 +109,13 @@ export function Layout({ children }: LayoutProps) {
       </header>
 
       {/* Main Content */}
-      <main className="container px-4 py-6">
+      <main
+        className="container px-4 py-6 max-w-full overflow-x-hidden"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 1.5rem)' }}
+      >
         {children}
       </main>
+
 
       {/* Contact Support Dialog */}
       <ContactSupportDialog open={supportDialogOpen} onOpenChange={setSupportDialogOpen} />
