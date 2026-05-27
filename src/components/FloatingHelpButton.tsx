@@ -99,8 +99,7 @@ export function FloatingHelpButton() {
 
   return (
     <div
-      className="fixed right-4 z-40"
-      style={{ bottom: 'calc(env(safe-area-inset-bottom) + 5rem)' }}
+      className="fixed right-4 bottom-[calc(var(--rt2rp-safe-bottom,env(safe-area-inset-bottom,0px))+5rem)] z-40"
     >
 
       <Popover open={open} onOpenChange={setOpen}>

@@ -30,7 +30,7 @@ export async function bootstrapNativePlatform(): Promise<void> {
     await StatusBar.setOverlaysWebView({ overlay: false }).catch(() => {});
 
     // Status bar — light surface, dark glyphs
-    await StatusBar.setStyle({ style: Style.Light }).catch(() => {});
+    await StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
     await StatusBar.setBackgroundColor({ color: '#F6F8FB' }).catch(() => {});
 
     // Hide splash once React is up
