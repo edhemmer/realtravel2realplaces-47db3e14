@@ -1,5 +1,5 @@
 /**
- * v3.12.2: Canonical Navigation Target Builder
+ * v3.12.3: Canonical Navigation Target Builder
  * 
  * The ONLY allowed way to build map links in the app.
  * Converts a LocationRef into a navigation target with
@@ -7,6 +7,7 @@
  */
 
 import type { LocationRef } from './locationTypes';
+import { openNavigationResult } from '@/lib/native/nativeNavigation';
 
 // ============================================================================
 // TYPES
@@ -95,21 +96,27 @@ export function buildMapsUrl(target: NavTarget): string {
 
 /**
  * Open Google Maps in a new tab for a NavTarget.
+ * On iOS native uses Apple Maps URL schemes.
  */
-export function openNavTarget(target: NavTarget): void {
+export async function openNavTarget(target: NavTarget): Promise<void> {
   const url = buildMapsUrl(target);
 
-  // Use an anchor element with target="_blank" — works reliably in iframes
-  // where window.open and window.location.assign get blocked by Google.
-  const a = document.createElement('a');
-  a.href = url;
-  a.target = '_blank';
-  a.rel = 'noopener noreferrer';
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  // Clean up after a tick
-  setTimeout(() => a.remove(), 100);
+  // Extract lat/lng from COORDS kind
+  let lat: number | undefined;
+  let lng: number | undefined;
+  if (target.kind === 'COORDS') {
+    const [latStr, lngStr] = target.value.split(',');
+    lat = parseFloat(latStr);
+    lng = parseFloat(lngStr);
+  }
+
+  await openNavigationResult({
+    url,
+    query: target.value,
+    lat,
+    lng,
+    label: target.label,
+  });
 }
 
 /**

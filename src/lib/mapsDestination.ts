@@ -1,5 +1,5 @@
 /**
- * v2.2.10: Canonical Maps Destination Resolver
+ * v2.2.11: Canonical Maps Destination Resolver
  *
  * Single source of truth for all Maps launch points in RT2RP.
  * Resolves the best available destination query from any event/booking/stop
@@ -12,6 +12,7 @@
 
 import { resolveAirportRef } from '@/lib/location/locationResolver';
 import { buildNavTarget } from '@/lib/location/navigationTargets';
+import { openNavigationResult } from '@/lib/native/nativeNavigation';
 
 // ============================================================================
 // TYPES
@@ -161,10 +162,16 @@ export function buildMapsDirectionsUrl(dest: MapsDestination): string {
 /**
  * Open Maps in a new tab for a resolved destination.
  * Convenience wrapper used by all launch points.
+ * On iOS native uses Apple Maps URL schemes.
  */
-export function openMapsDestination(dest: MapsDestination): void {
+export async function openMapsDestination(dest: MapsDestination): Promise<void> {
   const url = buildMapsDirectionsUrl(dest);
-  window.open(url, '_blank', 'noopener,noreferrer');
+  await openNavigationResult({
+    url,
+    query: dest.query,
+    lat: dest.lat,
+    lng: dest.lng,
+  });
 }
 
 // ============================================================================
