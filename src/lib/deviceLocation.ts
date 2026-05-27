@@ -48,11 +48,8 @@ export async function getDeviceLocation(): Promise<DeviceLocationResult> {
     return pendingRequest;
   }
 
-  // No geolocation API available
-  if (!navigator.geolocation) {
-    cachedStatus = 'unavailable';
-    return { coords: null, status: 'unavailable' };
-  }
+
+
 
   cachedStatus = 'requesting';
 
