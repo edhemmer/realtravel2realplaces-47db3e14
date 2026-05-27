@@ -1,5 +1,5 @@
 /**
- * v3.12.2: Canonical Navigation Target Builder
+ * v3.12.3: Canonical Navigation Target Builder
  * 
  * The ONLY allowed way to build map links in the app.
  * Converts a LocationRef into a navigation target with
@@ -7,6 +7,7 @@
  */
 
 import type { LocationRef } from './locationTypes';
+import { openNavigationResult } from '@/lib/native/nativeNavigation';
 
 // ============================================================================
 // TYPES
