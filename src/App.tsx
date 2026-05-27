@@ -33,6 +33,7 @@ import HelpCenter from "./pages/HelpCenter";
 import NotFound from "./pages/NotFound";
 import InstallApp from "./pages/InstallApp";
 import { RealtimeSyncBridge } from "@/lib/realtime/RealtimeSyncBridge";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 
 const queryClient = new QueryClient();
 
