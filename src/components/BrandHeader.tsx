@@ -14,14 +14,14 @@ export function BrandHeader({ variant = 'app', children }: BrandHeaderProps) {
   const isLanding = variant === 'landing';
 
   return (
-    <div className="flex items-center justify-between w-full">
+    <div className="flex items-center justify-between w-full gap-2 min-w-0">
       {/* Brand cluster: wordmark + pill */}
       <Link
         to="/"
-        className="flex items-center gap-2 sm:gap-3 flex-nowrap hover:opacity-80 transition-opacity"
+        className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3 flex-nowrap hover:opacity-80 transition-opacity"
         aria-label="InLight AI — RealTravel 2 RealPlaces"
       >
-        <span className="flex flex-col sm:flex-row sm:items-baseline sm:gap-2 leading-tight">
+        <span className="flex min-w-0 flex-col sm:flex-row sm:items-baseline sm:gap-2 leading-tight">
           <span
             className={`text-[10px] sm:text-xs font-medium uppercase tracking-[0.14em] ${
               isLanding ? 'text-white/60' : 'text-muted-foreground'
@@ -31,7 +31,7 @@ export function BrandHeader({ variant = 'app', children }: BrandHeaderProps) {
             <span className="hidden sm:inline mx-1.5 opacity-60">—</span>
           </span>
           <span
-            className={`font-semibold tracking-tight ${
+            className={`truncate font-semibold tracking-tight ${
               isLanding
                 ? 'text-base sm:text-lg text-white'
                 : 'text-sm sm:text-base text-foreground'

@@ -1,4 +1,5 @@
 import type { CapacitorConfig } from '@capacitor/cli';
+import '@capacitor/status-bar';
 
 /**
  * Capacitor configuration for native iOS (and future Android) builds.
@@ -14,6 +15,13 @@ const config: CapacitorConfig = {
   server: {
     url: 'https://314579f7-aa3c-49b7-b178-8640b495f1f7.lovableproject.com?forceHideBadge=true',
     cleartext: true,
+  },
+  plugins: {
+    StatusBar: {
+      overlaysWebView: false,
+      style: 'LIGHT',
+      backgroundColor: '#F6F8FB',
+    },
   },
 };
 

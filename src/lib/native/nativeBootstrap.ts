@@ -15,6 +15,9 @@ export async function bootstrapNativePlatform(): Promise<void> {
   const { Capacitor } = await import('@capacitor/core');
   if (!Capacitor.isNativePlatform()) return;
 
+  const platform = Capacitor.getPlatform();
+  document.documentElement.dataset.nativePlatform = platform;
+
   try {
     const [{ StatusBar, Style }, { SplashScreen }, { Keyboard }, { App }] = await Promise.all([
       import('@capacitor/status-bar'),
@@ -23,8 +26,12 @@ export async function bootstrapNativePlatform(): Promise<void> {
       import('@capacitor/app'),
     ]);
 
+    // iOS: keep the WebView below the status bar/Dynamic Island instead of letting it draw underneath.
+    await StatusBar.setOverlaysWebView({ overlay: false }).catch(() => {});
+
     // Status bar — light surface, dark glyphs
     await StatusBar.setStyle({ style: Style.Light }).catch(() => {});
+    await StatusBar.setBackgroundColor({ color: '#F6F8FB' }).catch(() => {});
 
     // Hide splash once React is up
     await SplashScreen.hide({ fadeOutDuration: 200 }).catch(() => {});
