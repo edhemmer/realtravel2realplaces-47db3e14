@@ -176,6 +176,21 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+  }
+
+  html[data-native-platform='ios'],
+  html[data-native-platform='ios'] body,
+  html[data-native-platform='ios'] #root {
+    min-height: 100%;
+    width: 100%;
+    overflow-x: hidden;
+    background: hsl(var(--background));
+  }
+
+  html[data-native-platform='ios'] {
+    --rt2rp-safe-top: env(safe-area-inset-top, 0px);
+    --rt2rp-safe-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   h1, h2, h3, h4, h5, h6 {
