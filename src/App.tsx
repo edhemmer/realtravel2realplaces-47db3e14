@@ -32,6 +32,7 @@ import WelcomeChoice from "./pages/WelcomeChoice";
 import HelpCenter from "./pages/HelpCenter";
 import NotFound from "./pages/NotFound";
 import InstallApp from "./pages/InstallApp";
+import { RealtimeSyncBridge } from "@/lib/realtime/RealtimeSyncBridge";
 
 const queryClient = new QueryClient();
 
