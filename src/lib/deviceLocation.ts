@@ -48,40 +48,81 @@ export async function getDeviceLocation(): Promise<DeviceLocationResult> {
     return pendingRequest;
   }
 
-  // No geolocation API available
-  if (!navigator.geolocation) {
-    cachedStatus = 'unavailable';
-    return { coords: null, status: 'unavailable' };
-  }
+
+
 
   cachedStatus = 'requesting';
 
-  pendingRequest = new Promise<DeviceLocationResult>((resolve) => {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        cachedCoords = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        };
-        cachedStatus = 'granted';
-        pendingRequest = null;
-        resolve({ coords: cachedCoords, status: 'granted' });
-      },
-      () => {
-        cachedStatus = 'denied';
-        pendingRequest = null;
-        resolve({ coords: null, status: 'denied' });
-      },
-      {
-        enableHighAccuracy: false,
-        timeout: 8000,
-        maximumAge: 300000, // 5 minutes
+  pendingRequest = (async (): Promise<DeviceLocationResult> => {
+    // Native (iOS/Android via Capacitor)
+    try {
+      const { Capacitor } = await import('@capacitor/core');
+      if (Capacitor.isNativePlatform()) {
+        const { Geolocation } = await import('@capacitor/geolocation');
+        try {
+          const perm = await Geolocation.checkPermissions();
+          if (perm.location !== 'granted') {
+            const req = await Geolocation.requestPermissions({ permissions: ['location'] });
+            if (req.location !== 'granted') {
+              cachedStatus = 'denied';
+              pendingRequest = null;
+              return { coords: null, status: 'denied' };
+            }
+          }
+          const pos = await Geolocation.getCurrentPosition({
+            enableHighAccuracy: false,
+            timeout: 8000,
+            maximumAge: 300000,
+          });
+          cachedCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          cachedStatus = 'granted';
+          pendingRequest = null;
+          return { coords: cachedCoords, status: 'granted' };
+        } catch {
+          cachedStatus = 'denied';
+          pendingRequest = null;
+          return { coords: null, status: 'denied' };
+        }
       }
-    );
-  });
+    } catch {
+      // Capacitor not available — fall through to web API
+    }
+
+    // Web (browser / PWA)
+    if (!navigator.geolocation) {
+      cachedStatus = 'unavailable';
+      pendingRequest = null;
+      return { coords: null, status: 'unavailable' };
+    }
+
+    return new Promise<DeviceLocationResult>((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          cachedCoords = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          cachedStatus = 'granted';
+          pendingRequest = null;
+          resolve({ coords: cachedCoords, status: 'granted' });
+        },
+        () => {
+          cachedStatus = 'denied';
+          pendingRequest = null;
+          resolve({ coords: null, status: 'denied' });
+        },
+        {
+          enableHighAccuracy: false,
+          timeout: 8000,
+          maximumAge: 300000,
+        }
+      );
+    });
+  })();
 
   return pendingRequest;
 }
+
 
 /**
  * Get cached coords synchronously (null if not yet resolved).
