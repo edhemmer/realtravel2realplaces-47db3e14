@@ -29,9 +29,11 @@ export async function bootstrapNativePlatform(): Promise<void> {
     // iOS: keep the WebView below the status bar/Dynamic Island instead of letting it draw underneath.
     await StatusBar.setOverlaysWebView({ overlay: false }).catch(() => {});
 
-    // Status bar — light surface, dark glyphs
-    await StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
-    await StatusBar.setBackgroundColor({ color: '#F6F8FB' }).catch(() => {});
+    // NOTE: StatusBar style + background color are owned by ThemeProvider
+    // (src/contexts/ThemeContext.tsx) so they stay in sync with light/dark mode.
+    // Avoid setting them here — would race with the theme effect.
+    void Style; // keep import referenced
+
 
     // Hide splash once React is up
     await SplashScreen.hide({ fadeOutDuration: 200 }).catch(() => {});
