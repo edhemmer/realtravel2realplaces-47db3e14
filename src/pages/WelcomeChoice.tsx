@@ -12,6 +12,7 @@ import { Layout } from '@/components/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Plane, LayoutDashboard } from 'lucide-react';
+import { canCreateTrips } from '@/lib/native/platform';
 
 const WELCOME_CHOICE_KEY = 'rt2rp_welcome_choice_shown';
 
