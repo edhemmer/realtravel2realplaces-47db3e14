@@ -180,6 +180,7 @@ const App = () => (
       <AuthProvider>
         <TooltipProvider>
           <ErrorBoundary context="App">
+            <RealtimeSyncBridge />
             <Toaster />
             <Sonner />
             <BrowserRouter>
