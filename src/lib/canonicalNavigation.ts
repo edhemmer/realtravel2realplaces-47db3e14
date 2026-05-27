@@ -225,37 +225,21 @@ function buildResult(dest: MapsDestination, labelHint: string): CanonicalNavResu
 }
 
 // ============================================================================
-// CONVENIENCE: Open Maps (with iframe breakout)
+// CONVENIENCE: Open Maps (with iframe breakout + native iOS URL schemes)
 // ============================================================================
 
 /**
  * Open the canonical navigation result in Maps.
- * Uses the iframe-breakout chain from openNavTarget for sandbox environments.
+ * On iOS native uses Apple Maps URL schemes; on web uses iframe-breakout chain.
  */
-export function openCanonicalNav(result: CanonicalNavResult): void {
-  const url = result.url;
-
-  // 1) Try breakout from iframe/sandbox environments
-  try {
-    const topWin = window.top;
-    if (topWin && typeof topWin.open === 'function') {
-      const opened = topWin.open(url, '_blank', 'noopener,noreferrer');
-      if (opened) return;
-    }
-  } catch {
-    // Cross-origin or sandbox — fall through
-  }
-
-  // 2) Standard popup
-  try {
-    const opened = window.open(url, '_blank', 'noopener,noreferrer');
-    if (opened) return;
-  } catch {
-    // Popup blocked — fall through
-  }
-
-  // 3) Guaranteed fallback
-  window.location.assign(url);
+export async function openCanonicalNav(result: CanonicalNavResult): Promise<void> {
+  await openNavigationResult({
+    url: result.url,
+    query: result.query,
+    lat: result.destination.lat,
+    lng: result.destination.lng,
+    label: result.label,
+  });
 }
 
 /**
