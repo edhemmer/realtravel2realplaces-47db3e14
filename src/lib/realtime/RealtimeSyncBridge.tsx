@@ -53,8 +53,7 @@ export function RealtimeSyncBridge() {
     const channel = supabase.channel(`rt-sync-${user.id}`);
 
     for (const table of TABLES) {
-      channel.on(
-        // @ts-expect-error — supabase-js types are narrow for the literal
+      (channel as any).on(
         "postgres_changes",
         { event: "*", schema: "public", table },
         () => scheduleInvalidate(table),
