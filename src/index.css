@@ -307,6 +307,32 @@
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     overflow-x: hidden;
+    /* Atmospheric depth — multi-stop radial wash using existing primary +
+       a warm tail from --gradient-sunset. No new palette tokens. */
+    background-color: hsl(var(--background));
+    background-image:
+      radial-gradient(900px 520px at 8% -8%, hsl(var(--primary) / 0.10), transparent 60%),
+      radial-gradient(680px 420px at 100% 0%, hsl(35 92% 55% / 0.06), transparent 65%),
+      radial-gradient(720px 540px at 50% 110%, hsl(187 65% 35% / 0.07), transparent 65%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+  }
+
+  /* Mobile gets a slightly richer wash so phone surfaces feel deeper. */
+  @media (max-width: 768px) {
+    body {
+      background-image:
+        radial-gradient(720px 520px at 0% -10%, hsl(var(--primary) / 0.16), transparent 60%),
+        radial-gradient(560px 420px at 100% 8%, hsl(35 92% 55% / 0.09), transparent 65%),
+        radial-gradient(640px 560px at 50% 105%, hsl(187 65% 35% / 0.11), transparent 65%);
+    }
+  }
+
+  .dark body {
+    background-image:
+      radial-gradient(900px 560px at 5% -10%, hsl(var(--primary) / 0.18), transparent 60%),
+      radial-gradient(680px 460px at 100% 0%, hsl(265 70% 60% / 0.10), transparent 65%),
+      radial-gradient(760px 580px at 50% 110%, hsl(187 65% 35% / 0.14), transparent 65%);
   }
 
   html[data-native-platform='ios'],
