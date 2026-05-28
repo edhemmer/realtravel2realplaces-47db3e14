@@ -383,6 +383,47 @@
     box-shadow: var(--shadow-glow);
   }
 
+  /* Polish v2: Glass surface utilities — uses tokens only, palette intact.
+     Use for floating chrome (mobile nav, sticky headers, modals on phone). */
+  .glass-chrome {
+    background-color: hsl(var(--card) / 0.72);
+    backdrop-filter: saturate(160%) blur(18px);
+    -webkit-backdrop-filter: saturate(160%) blur(18px);
+    border-color: hsl(var(--border) / 0.45);
+  }
+  .dark .glass-chrome {
+    background-color: hsl(var(--card) / 0.62);
+  }
+
+  /* Soft primary glow halo for active/featured items */
+  .glow-primary {
+    box-shadow:
+      0 0 0 1px hsl(var(--primary) / 0.22),
+      0 6px 18px -4px hsl(var(--primary) / 0.35),
+      inset 0 1px 0 0 hsl(0 0% 100% / 0.35);
+  }
+  .dark .glow-primary {
+    box-shadow:
+      0 0 0 1px hsl(var(--primary) / 0.35),
+      0 8px 24px -4px hsl(var(--primary) / 0.45),
+      inset 0 1px 0 0 hsl(210 40% 96% / 0.08);
+  }
+
+  /* Hairline gradient divider — primary tint, fades at edges */
+  .hairline-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(var(--primary) / 0.45) 50%,
+      transparent 100%
+    );
+    pointer-events: none;
+  }
+
   /* Patch 2.2.3: Safe area padding for mobile bottom nav */
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0px);
