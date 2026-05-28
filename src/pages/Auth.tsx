@@ -174,14 +174,6 @@ export default function Auth() {
         <Calendar className="w-10 h-10" />
       </div>
 
-      {/* Logo */}
-      <div className="text-center mb-6 animate-fade-in">
-        <img
-          src={logoImg}
-          alt="Real Travel 2 Real Places"
-          className="rt2rp-header-logo--auth mx-auto"
-        />
-      </div>
 
       {/* Auth Card */}
       <Card className="w-full max-w-md animate-fade-in shadow-lg border-0">
