@@ -43,7 +43,7 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Header */}
       <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75 pt-[var(--rt2rp-safe-top,env(safe-area-inset-top,0px))]">
-        <div className="container flex h-14 sm:h-16 items-center justify-between">
+        <div className="mx-auto flex h-14 w-full max-w-[1400px] items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-8">
           <BrandHeader variant="app">
 
           {user && (
@@ -107,11 +107,11 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Main Content */}
       <main
-        className="container max-w-full overflow-x-hidden pt-6"
+        className="mx-auto w-full max-w-[1400px] overflow-x-clip pt-4 sm:pt-6"
         style={{
           paddingLeft: 'max(1rem, env(safe-area-inset-left))',
           paddingRight: 'max(1rem, env(safe-area-inset-right))',
-          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)',
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 5rem)',
         }}
       >
         {children}
