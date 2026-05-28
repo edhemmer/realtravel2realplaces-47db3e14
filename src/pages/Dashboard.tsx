@@ -399,7 +399,7 @@ const TripCard = React.memo(function TripCard({
       <div className={`h-[3px] w-full ${modeTheme.gradients.buttonBg}`} />
 
       {/* Content area — compact on mobile, right padding for action button on desktop */}
-      <div className="pr-16 sm:pr-[88px]">
+      <div className="pr-[68px] sm:pr-[96px]">
         <CardHeader className="px-4 pb-1 pt-4 sm:px-5 sm:pb-2 sm:pt-5">
           <div className="flex min-w-0 items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
@@ -475,7 +475,7 @@ const TripCard = React.memo(function TripCard({
         onClick={handleCardClick}
         aria-label={`Open trip: ${trip.name}`}
         className={`
-          absolute right-3 top-1/2 -translate-y-1/2 sm:right-8
+          absolute right-4 top-1/2 -translate-y-1/2 sm:right-6
           h-10 w-10 rounded-xl sm:h-12 sm:w-12 sm:rounded-2xl
           flex items-center justify-center
           ${modeTheme.gradients.buttonBg} ${modeTheme.palette.border} border

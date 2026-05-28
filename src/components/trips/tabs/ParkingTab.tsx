@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Plus, Trash2, CircleParking, MapPin, Clock, AlertTriangle, Pencil } from 'lucide-react';
+import { Plus, Trash2, CircleParking, MapPin, Clock, AlertTriangle, Pencil, Navigation, LocateFixed } from 'lucide-react';
+import { toast } from 'sonner';
 import { navigateTo } from '@/lib/canonicalNavigation';
 import { ParkingExpirationIndicator } from '@/components/trips/ParkingExpirationIndicator';
 import { cn } from '@/lib/utils';
@@ -88,7 +89,10 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
     level_section_space: '',
     total_cost: '',
     my_share: '',
+    latitude: null as number | null,
+    longitude: null as number | null,
   });
+  const [capturingLocation, setCapturingLocation] = useState(false);
 
   const resetForm = () => {
     setFormData({
@@ -101,6 +105,8 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
       level_section_space: '',
       total_cost: '',
       my_share: '',
+      latitude: null,
+      longitude: null,
     });
     setEditingParking(null);
   };
@@ -118,8 +124,36 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
       level_section_space: parking.level_section_space || '',
       total_cost: parking.total_cost?.toString() || '',
       my_share: parking.my_share?.toString() || '',
+      latitude: (parking as any).latitude ?? null,
+      longitude: (parking as any).longitude ?? null,
     });
     setDialogOpen(true);
+  };
+
+  const captureCurrentLocation = () => {
+    if (!('geolocation' in navigator)) {
+      toast.error('Location is not available on this device');
+      return;
+    }
+    setCapturingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setFormData((prev) => ({
+          ...prev,
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        }));
+        toast.success('Parking spot saved');
+        setCapturingLocation(false);
+      },
+      (err) => {
+        toast.error(err.code === err.PERMISSION_DENIED
+          ? 'Allow location access to save your parking spot'
+          : 'Could not get your location');
+        setCapturingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -142,6 +176,9 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
       // v3.9.7: Store exact user-entered local times (no conversion)
       end_local_datetime: endLocal,
       start_local_datetime: startLocal,
+      // Saved GPS coordinates for "Find my car"
+      latitude: formData.latitude,
+      longitude: formData.longitude,
     };
 
     if (editingParking) {
@@ -169,7 +206,11 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
   };
 
   const openInMaps = (parking: Parking) => {
+    const lat = (parking as any).latitude as number | null | undefined;
+    const lng = (parking as any).longitude as number | null | undefined;
     navigateTo({
+      lat: lat ?? undefined,
+      lng: lng ?? undefined,
       address: parking.address,
       locationLabel: parking.label,
     });
@@ -320,12 +361,33 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
                   {parking.total_cost > 0 && (
                     <p className="font-semibold">${Number(parking.total_cost).toFixed(2)}</p>
                   )}
-                  {parking.address && (
-                    <Button size="sm" variant="outline" onClick={() => openInMaps(parking)}>
-                      <MapPin className="w-3 h-3 mr-1" />
-                      Open in Maps
-                    </Button>
-                  )}
+                  {(() => {
+                    const lat = (parking as any).latitude as number | null | undefined;
+                    const lng = (parking as any).longitude as number | null | undefined;
+                    const hasCoords = typeof lat === 'number' && typeof lng === 'number';
+                    if (!hasCoords && !parking.address) return null;
+                    return (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {hasCoords && (
+                          <Button size="sm" onClick={() => openInMaps(parking)} className="bg-primary text-primary-foreground hover:bg-primary/90">
+                            <Navigation className="w-3.5 h-3.5 mr-1.5" />
+                            Directions back
+                          </Button>
+                        )}
+                        {!hasCoords && parking.address && (
+                          <Button size="sm" variant="outline" onClick={() => openInMaps(parking)}>
+                            <MapPin className="w-3 h-3 mr-1" />
+                            Open in Maps
+                          </Button>
+                        )}
+                        {hasCoords && (
+                          <span className="text-[11px] text-muted-foreground self-center">
+                            GPS saved
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </CardContent>
               </Card>
             );
@@ -421,6 +483,35 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 placeholder="Address"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Parking Spot Location (GPS)</Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={captureCurrentLocation}
+                  disabled={capturingLocation}
+                  className="gap-2"
+                >
+                  <LocateFixed className="w-4 h-4" />
+                  {capturingLocation
+                    ? 'Locating…'
+                    : formData.latitude != null
+                      ? 'Update saved spot'
+                      : 'Use my current location'}
+                </Button>
+                {formData.latitude != null && formData.longitude != null && (
+                  <span className="text-xs text-muted-foreground">
+                    Saved: {formData.latitude.toFixed(5)}, {formData.longitude.toFixed(5)}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Tap while standing at your parking spot to save it. You can come back later and tap "Directions back" to navigate to it.
+              </p>
             </div>
 
             <div className="space-y-2">

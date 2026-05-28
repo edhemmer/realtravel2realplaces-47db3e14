@@ -598,7 +598,9 @@ export type Database = {
           end_timezone: string | null
           id: string
           label: string
+          latitude: number | null
           level_section_space: string | null
+          longitude: number | null
           my_share: number | null
           parking_type: Database["public"]["Enums"]["parking_type"]
           start_datetime: string
@@ -616,7 +618,9 @@ export type Database = {
           end_timezone?: string | null
           id?: string
           label: string
+          latitude?: number | null
           level_section_space?: string | null
+          longitude?: number | null
           my_share?: number | null
           parking_type: Database["public"]["Enums"]["parking_type"]
           start_datetime: string
@@ -634,7 +638,9 @@ export type Database = {
           end_timezone?: string | null
           id?: string
           label?: string
+          latitude?: number | null
           level_section_space?: string | null
+          longitude?: number | null
           my_share?: number | null
           parking_type?: Database["public"]["Enums"]["parking_type"]
           start_datetime?: string

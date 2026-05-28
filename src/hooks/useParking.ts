@@ -35,6 +35,9 @@ interface CreateParkingData {
   end_local_datetime?: string;
   end_timezone?: string;
   start_local_datetime?: string;
+  // Saved GPS coordinates for "Find my car"
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export function useCreateParking() {
