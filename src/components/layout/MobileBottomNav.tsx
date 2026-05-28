@@ -132,7 +132,7 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
             key={item.id}
             onClick={() => onTabChange(item.id)}
             className={cn(
-              "flex flex-col items-center justify-center gap-0.5 py-1 px-2 rounded-lg transition-colors min-w-[48px] min-h-[40px]",
+              "flex flex-col items-center justify-center gap-0.5 mx-0.5 my-1 rounded-lg transition-colors",
               "touch-manipulation",
               activeTab === item.id
                 ? "text-primary font-semibold bg-primary/10"
@@ -140,7 +140,7 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
             )}
           >
             {item.icon}
-            <span className="text-[9px] leading-none">{item.label}</span>
+            <span className="text-[10px] leading-none">{item.label}</span>
           </button>
         ))}
         
@@ -149,7 +149,7 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
           <DropdownMenuTrigger asChild>
             <button
               className={cn(
-                "flex flex-col items-center justify-center gap-0.5 py-1 px-2 rounded-lg transition-colors min-w-[48px] min-h-[40px]",
+                "flex flex-col items-center justify-center gap-0.5 mx-0.5 my-1 rounded-lg transition-colors",
                 "touch-manipulation",
                 isMoreActive
                   ? "text-primary font-semibold bg-primary/10"
