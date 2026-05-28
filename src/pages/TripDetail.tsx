@@ -46,7 +46,8 @@ import { MobileNextUpCard } from '@/components/trips/MobileNextUpCard';
 // v2.3.5: Mobile "Add Expense" field card
 import { MobileAddExpenseCard } from '@/components/trips/MobileAddExpenseCard';
 // Patch 2.2.3: Mobile-first layout components
-import { TripDetailLayout, type TripTab } from '@/components/layout';
+import { TripDetailLayout } from '@/components/layout/TripDetailLayout';
+import { type TripTab } from '@/components/layout/MobileBottomNav';
 import { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
