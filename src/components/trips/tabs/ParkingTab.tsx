@@ -361,12 +361,33 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
                   {parking.total_cost > 0 && (
                     <p className="font-semibold">${Number(parking.total_cost).toFixed(2)}</p>
                   )}
-                  {parking.address && (
-                    <Button size="sm" variant="outline" onClick={() => openInMaps(parking)}>
-                      <MapPin className="w-3 h-3 mr-1" />
-                      Open in Maps
-                    </Button>
-                  )}
+                  {(() => {
+                    const lat = (parking as any).latitude as number | null | undefined;
+                    const lng = (parking as any).longitude as number | null | undefined;
+                    const hasCoords = typeof lat === 'number' && typeof lng === 'number';
+                    if (!hasCoords && !parking.address) return null;
+                    return (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {hasCoords && (
+                          <Button size="sm" onClick={() => openInMaps(parking)} className="bg-primary text-primary-foreground hover:bg-primary/90">
+                            <Navigation className="w-3.5 h-3.5 mr-1.5" />
+                            Directions back
+                          </Button>
+                        )}
+                        {!hasCoords && parking.address && (
+                          <Button size="sm" variant="outline" onClick={() => openInMaps(parking)}>
+                            <MapPin className="w-3 h-3 mr-1" />
+                            Open in Maps
+                          </Button>
+                        )}
+                        {hasCoords && (
+                          <span className="text-[11px] text-muted-foreground self-center">
+                            GPS saved
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </CardContent>
               </Card>
             );
@@ -462,6 +483,35 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 placeholder="Address"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Parking Spot Location (GPS)</Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={captureCurrentLocation}
+                  disabled={capturingLocation}
+                  className="gap-2"
+                >
+                  <LocateFixed className="w-4 h-4" />
+                  {capturingLocation
+                    ? 'Locating…'
+                    : formData.latitude != null
+                      ? 'Update saved spot'
+                      : 'Use my current location'}
+                </Button>
+                {formData.latitude != null && formData.longitude != null && (
+                  <span className="text-xs text-muted-foreground">
+                    Saved: {formData.latitude.toFixed(5)}, {formData.longitude.toFixed(5)}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Tap while standing at your parking spot to save it. You can come back later and tap "Directions back" to navigate to it.
+              </p>
             </div>
 
             <div className="space-y-2">
