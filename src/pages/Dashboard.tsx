@@ -198,7 +198,7 @@ export default function Dashboard() {
               className="motion-cinema grid gap-4 md:grid-cols-2 lg:grid-cols-3"
             >
               {sortedTrips.map((trip: Trip) => (
-                <motion.div key={trip.id} variants={staggerChild}>
+                <motion.div key={trip.id} variants={staggerChild} className="min-w-0">
                   <TripCard
                     trip={trip}
                     isPro={isPro}
@@ -393,13 +393,13 @@ const TripCard = React.memo(function TripCard({
     return (
     <GlassSurface
       elevation="raised"
-        className={`group relative w-full min-w-0 overflow-hidden transition-all duration-base ease-cinema hover:-translate-y-0.5 hover:shadow-elevation-floating ${cardClassName} ${pastTripStyles} ${activeBorder}`}
+        className={`group relative w-full min-w-0 max-w-full overflow-hidden transition-all duration-base ease-cinema hover:-translate-y-0.5 hover:shadow-elevation-floating ${cardClassName} ${pastTripStyles} ${activeBorder}`}
     >
       {/* Mode accent strip */}
       <div className={`h-[3px] w-full ${modeTheme.gradients.buttonBg}`} />
 
-      {/* Content area — compact on mobile, right padding for action button on desktop */}
-      <div className="pr-[68px] sm:pr-[96px]">
+      {/* Content area — reserves room for the absolute action button on the right */}
+      <div className="pr-[56px] sm:pr-[96px]">
         <CardHeader className="px-4 pb-1 pt-4 sm:px-5 sm:pb-2 sm:pt-5">
           <div className="flex min-w-0 items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
@@ -470,13 +470,13 @@ const TripCard = React.memo(function TripCard({
         </CardContent>
       </div>
 
-      {/* Mode action button — absolutely positioned */}
+      {/* Mode action button — sized to stay fully inside the card on narrow mobile widths */}
       <button
         onClick={handleCardClick}
         aria-label={`Open trip: ${trip.name}`}
         className={`
-          absolute right-4 top-1/2 -translate-y-1/2 sm:right-6
-          h-10 w-10 rounded-xl sm:h-12 sm:w-12 sm:rounded-2xl
+          absolute right-3 top-1/2 -translate-y-1/2 sm:right-6
+          h-9 w-9 rounded-xl sm:h-12 sm:w-12 sm:rounded-2xl
           flex items-center justify-center
           ${modeTheme.gradients.buttonBg} ${modeTheme.palette.border} border
           shadow-md
@@ -486,7 +486,7 @@ const TripCard = React.memo(function TripCard({
           focus-visible:outline-none focus-visible:ring-2 ${modeTheme.palette.focus}
         `}
       >
-        {React.createElement(MODE_ICONS[tripMode], { className: `w-5 h-5 sm:w-7 sm:h-7 ${modeTheme.palette.icon}` })}
+        {React.createElement(MODE_ICONS[tripMode], { className: `w-4 h-4 sm:w-7 sm:h-7 ${modeTheme.palette.icon}` })}
       </button>
     </GlassSurface>
   );
