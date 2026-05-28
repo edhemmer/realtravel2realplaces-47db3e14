@@ -268,6 +268,8 @@ export function PackingTab({ tripId }: PackingTabProps) {
   };
 
   const togglePacked = async (item: PackingItem) => {
+    // Tactile flip — light impact for the discrete on/off feel.
+    void import('@/lib/native/haptics').then(m => m.haptic('toggle'));
     await updateItem.mutateAsync({
       id: item.id,
       trip_id: tripId,

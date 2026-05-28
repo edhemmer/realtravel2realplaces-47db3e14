@@ -15,6 +15,14 @@ export async function bootstrapNativePlatform(): Promise<void> {
   const { Capacitor } = await import('@capacitor/core');
   if (!Capacitor.isNativePlatform()) return;
 
+  // Auto-haptic every success / error / warning toast app-wide.
+  try {
+    const { installHapticToast } = await import('./installHapticToast');
+    installHapticToast();
+  } catch { /* no-op */ }
+
+
+
   const platform = Capacitor.getPlatform();
   document.documentElement.dataset.nativePlatform = platform;
 
