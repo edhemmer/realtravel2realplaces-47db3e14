@@ -14,7 +14,7 @@ import { useRemoveTripMembership } from '@/hooks/useTripMembers';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, MapPin, Calendar, Plane, Car, TrainFront, Route, Trash2, Users, ChevronRight, DollarSign, Compass, Radio, UserMinus } from 'lucide-react';
+import { Plus, MapPin, Calendar, Plane, Car, TrainFront, Route, Trash2, Users, ChevronRight, Radio, UserMinus } from 'lucide-react';
 import { getTripMode, getModeTheme, type TripMode } from '@/lib/modeTheme';
 import { useNavigate } from 'react-router-dom';
 import { formatTripDateRange } from '@/lib/displayFormats';
@@ -30,6 +30,7 @@ import { PageTransition, StaggerContainer, FadeInItem } from '@/components/ui/pa
 import { DashboardSkeleton } from '@/components/ui/premium-loading';
 import { motion } from 'framer-motion';
 import { canCreateTrips } from '@/lib/native/platform';
+import { NowCard } from '@/components/now/NowCard';
 
 const CAN_CREATE_TRIPS = canCreateTrips();
 
@@ -106,6 +107,16 @@ export default function Dashboard() {
       .sort((a: Trip, b: Trip) => a.start_date < b.start_date ? -1 : 1)[0] ?? null;
   }, [trips, todayStr]);
 
+  // Canonical "what now?" surface — promotes the nearest upcoming trip (≤14d)
+  // when no trip is active, so users always get a single decisive next step.
+  const nowCardTrip = useMemo(() => {
+    if (activeTrip) return activeTrip;
+    if (!trips || trips.length === 0) return null;
+    return trips
+      .filter((t: Trip) => t.start_date > todayStr)
+      .sort((a: Trip, b: Trip) => a.start_date < b.start_date ? -1 : 1)[0] ?? null;
+  }, [trips, activeTrip, todayStr]);
+
   // v3.9.3: Elevate active trip to index 0
   const sortedTrips = useMemo(() => {
     if (!trips || trips.length === 0) return [];
@@ -144,58 +155,8 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* v3.9.3: Active Trip Execution Card */}
-        {activeTrip && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-             <Card className="border-primary/30 bg-primary/5 md:hidden">
-              <CardContent className="py-3 px-4">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <Radio className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Active Trip</p>
-                    <p className="text-sm font-semibold truncate">{activeTrip.name}</p>
-                    <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                      <MapPin className="w-2.5 h-2.5" />
-                      {activeTrip.destination_city}{activeTrip.destination_country ? `, ${activeTrip.destination_country}` : ''}
-                    </p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <Button
-                    size="sm"
-                    className="bg-success hover:bg-success/90 text-success-foreground h-10 rounded-xl text-xs font-semibold shadow-sm active:scale-[0.97]"
-                    onClick={() => navigate(`/trip/${activeTrip.id}?tab=expenses&addExpense=1`)}
-                  >
-                    <DollarSign className="w-3.5 h-3.5 mr-0.5" />
-                    Expense
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground h-10 rounded-xl text-xs font-semibold shadow-sm active:scale-[0.97]"
-                    onClick={() => navigate(`/trip/${activeTrip.id}?tab=explore`)}
-                  >
-                    <Compass className="w-3.5 h-3.5 mr-0.5" />
-                    Explore
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-10 rounded-xl text-xs font-semibold active:scale-[0.97]"
-                    onClick={() => navigate(`/trip/${activeTrip.id}?tab=now`)}
-                  >
-                    Open NOW
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
+        {/* Canonical "Now Card" — single source of "what should I do right now?" */}
+        {nowCardTrip && <NowCard trip={nowCardTrip} />}
 
         {/* Pending Email Imports — hidden via feature flag */}
         {EMAIL_FORWARDING_ENABLED && <PendingImportsSection />}
