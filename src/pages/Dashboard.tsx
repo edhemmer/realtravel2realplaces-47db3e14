@@ -26,7 +26,7 @@ import { useAccess } from '@/hooks/useAccess';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { PendingImportsSection } from '@/components/imports/PendingImportsSection';
 import { EMAIL_FORWARDING_ENABLED } from '@/lib/featureFlags';
-import { PageTransition, StaggerContainer, FadeInItem } from '@/components/ui/page-transition';
+import { PageTransition } from '@/components/ui/page-transition';
 import { DashboardSkeleton } from '@/components/ui/premium-loading';
 import { motion } from 'framer-motion';
 import { canCreateTrips } from '@/lib/native/platform';
