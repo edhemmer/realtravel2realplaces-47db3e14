@@ -17,7 +17,8 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { isOnline } from '@/lib/networkStatus';
 import { getOfflineTimelineWindow } from '@/lib/getOfflineTimelineWindow';
 import { WifiOff } from 'lucide-react';
-import { TripDetailLayout, type TripTab } from '@/components/layout';
+import { TripDetailLayout } from '@/components/layout/TripDetailLayout';
+import { type TripTab } from '@/components/layout/MobileBottomNav';
 import { MobileSectionHeader } from '@/components/trips/MobileSectionHeader';
 import { TripTimeline } from '@/components/trips/TripTimeline';
 import {
