@@ -113,7 +113,7 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
   return (
     <nav
       className={cn(
-        "fixed bottom-0 left-0 right-0 z-50",
+        "fixed inset-x-0 bottom-0 z-50 md:hidden",
         "bg-card border-t border-border/60 shadow-lg",
         className
       )}
@@ -124,7 +124,7 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
       }}
     >
       <div
-        className="grid h-14 px-1"
+        className="grid h-[60px] px-1"
         style={{ gridTemplateColumns: `repeat(${cellCount}, minmax(0, 1fr))` }}
       >
         {visiblePrimaryItems.map((item) => (
@@ -140,7 +140,7 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
             )}
           >
             {item.icon}
-            <span className="text-[10px] leading-none">{item.label}</span>
+              <span className="max-w-full truncate text-[10px] leading-none">{item.label}</span>
           </button>
         ))}
         
@@ -157,7 +157,7 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
               )}
             >
               <MoreHorizontal className="w-5 h-5" />
-              <span className="text-[10px] leading-none">More</span>
+              <span className="max-w-full truncate text-[10px] leading-none">More</span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent 
