@@ -288,6 +288,21 @@
     @apply border-border;
   }
 
+  /* Mobile scale-down: shrink root rem so all Tailwind rem-based sizing
+     (font-size, padding, margin, gap, width) scales proportionally on
+     phones without rewriting every component. Desktop stays at 16px. */
+  html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  @media (max-width: 480px) {
+    html { font-size: 14px; }
+  }
+  @media (max-width: 380px) {
+    html { font-size: 13px; }
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
