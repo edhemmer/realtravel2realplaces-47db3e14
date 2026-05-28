@@ -18,7 +18,7 @@ export default function LandingHeader() {
               src="/app-icon-1024.png"
               alt=""
               aria-hidden="true"
-              className="h-8 w-8 sm:h-9 sm:w-9 lg:h-10 lg:w-10 rounded-md flex-shrink-0"
+              className="h-8 w-8 sm:h-9 sm:w-9 lg:h-10 lg:w-10 flex-shrink-0"
             />
             <span className="flex flex-col sm:flex-row sm:items-baseline sm:gap-2 leading-tight">
               <span className="text-[10px] sm:text-xs font-medium uppercase tracking-[0.16em] text-white/60">
