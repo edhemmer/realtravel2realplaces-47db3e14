@@ -33,6 +33,16 @@ import HelpCenter from "./pages/HelpCenter";
 import NotFound from "./pages/NotFound";
 import InstallApp from "./pages/InstallApp";
 import { RealtimeSyncBridge } from "@/lib/realtime/RealtimeSyncBridge";
+import { useNativeReminderSync } from "@/hooks/useNativeReminderSync";
+
+/**
+ * Bridges DB reminder rows into the iOS/Android local notification scheduler.
+ * No-op on web. Lives inside Auth + Query providers so it has user context.
+ */
+function NativeReminderBridge() {
+  useNativeReminderSync();
+  return null;
+}
 import { ThemeProvider } from "@/contexts/ThemeContext";
 
 const queryClient = new QueryClient();
@@ -183,6 +193,7 @@ const App = () => (
           <TooltipProvider>
             <ErrorBoundary context="App">
               <RealtimeSyncBridge />
+              <NativeReminderBridge />
               <Toaster />
               <Sonner />
               <BrowserRouter>
