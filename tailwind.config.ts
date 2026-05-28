@@ -120,7 +120,23 @@ export default {
   			md: 'var(--shadow-md)',
   			lg: 'var(--shadow-lg)',
   			xl: 'var(--shadow-xl)',
-  			'2xl': 'var(--shadow-2xl)'
+  			'2xl': 'var(--shadow-2xl)',
+  			'elevation-flush': 'var(--elevation-flush)',
+  			'elevation-raised': 'var(--elevation-raised)',
+  			'elevation-floating': 'var(--elevation-floating)'
+  		},
+  		transitionTimingFunction: {
+  			cinema: 'var(--ease-cinema)',
+  			standard: 'var(--ease-standard)'
+  		},
+  		transitionDuration: {
+  			fast: '180ms',
+  			base: '320ms',
+  			slow: '520ms'
+  		},
+  		backdropBlur: {
+  			glass: '20px',
+  			'glass-hero': '32px'
   		},
   		keyframes: {
   			'accordion-down': {
