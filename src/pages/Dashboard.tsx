@@ -232,7 +232,7 @@ export default function Dashboard() {
               className="motion-cinema grid gap-4 md:grid-cols-2 lg:grid-cols-3"
             >
               {sharedTrips.map((trip: SharedTrip) => (
-                <motion.div key={trip.id} variants={staggerChild}>
+                <motion.div key={trip.id} variants={staggerChild} className="min-w-0">
                   <TripCard
                     trip={trip}
                     isShared
