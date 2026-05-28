@@ -422,6 +422,29 @@
     from { opacity: 0; transform: translateX(-20px); }
     to { opacity: 1; transform: translateX(0); }
   }
+
+  /* Polish v1: canonical focus ring (consumed by future button/input migration) */
+  .focus-ring-canonical:focus-visible {
+    outline: none;
+    box-shadow: var(--ring-focus);
+  }
+
+  /* Polish v1: ambient page wash — opt-in on page roots */
+  .bg-ambient-wash {
+    background-image: var(--ambient-wash);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+  }
+
+  /* Polish v1: motion-reduce blanket guard for cinematic helpers */
+  @media (prefers-reduced-motion: reduce) {
+    .motion-cinema,
+    .motion-cinema * {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
 }
 
 /* Patch v2.2.xx — Unified brand logo sizing */
