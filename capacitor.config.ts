@@ -1,5 +1,4 @@
 import type { CapacitorConfig } from '@capacitor/cli';
-import '@capacitor/status-bar';
 
 /**
  * Capacitor configuration for native iOS (and future Android) builds.
