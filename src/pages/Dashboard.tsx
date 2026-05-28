@@ -26,11 +26,13 @@ import { useAccess } from '@/hooks/useAccess';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { PendingImportsSection } from '@/components/imports/PendingImportsSection';
 import { EMAIL_FORWARDING_ENABLED } from '@/lib/featureFlags';
-import { PageTransition, StaggerContainer, FadeInItem } from '@/components/ui/page-transition';
+import { PageTransition } from '@/components/ui/page-transition';
 import { DashboardSkeleton } from '@/components/ui/premium-loading';
 import { motion } from 'framer-motion';
 import { canCreateTrips } from '@/lib/native/platform';
 import { NowCard } from '@/components/now/NowCard';
+import { GlassSurface } from '@/components/ui/glass-surface';
+import { staggerParent, staggerChild } from '@/lib/motion/choreography';
 
 const CAN_CREATE_TRIPS = canCreateTrips();
 
@@ -165,9 +167,14 @@ export default function Dashboard() {
         {sortedTrips.length > 0 && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold" />
-            <StaggerContainer className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <motion.div
+              variants={staggerParent(0.06, 0.04)}
+              initial="hidden"
+              animate="visible"
+              className="motion-cinema grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+            >
               {sortedTrips.map((trip: Trip) => (
-                <FadeInItem key={trip.id}>
+                <motion.div key={trip.id} variants={staggerChild}>
                   <TripCard
                     trip={trip}
                     isPro={isPro}
@@ -175,9 +182,9 @@ export default function Dashboard() {
                     onDelete={handleRequestDelete}
                     onNavigate={handleNavigate}
                   />
-                </FadeInItem>
+                </motion.div>
               ))}
-            </StaggerContainer>
+            </motion.div>
           </div>
         )}
 
@@ -188,9 +195,14 @@ export default function Dashboard() {
               <Users className="w-5 h-5 text-primary" />
               Shared With Me
             </h2>
-            <StaggerContainer className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <motion.div
+              variants={staggerParent(0.06, 0.04)}
+              initial="hidden"
+              animate="visible"
+              className="motion-cinema grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+            >
               {sharedTrips.map((trip: SharedTrip) => (
-                <FadeInItem key={trip.id}>
+                <motion.div key={trip.id} variants={staggerChild}>
                   <TripCard
                     trip={trip}
                     isShared
@@ -199,9 +211,9 @@ export default function Dashboard() {
                     onNavigate={handleNavigate}
                     onRemove={handleRequestRemove}
                   />
-                </FadeInItem>
+                </motion.div>
               ))}
-            </StaggerContainer>
+            </motion.div>
           </div>
         )}
 
@@ -347,8 +359,9 @@ const TripCard = React.memo(function TripCard({
   const activeBorder = isActive ? 'border-success/50 ring-1 ring-success/20' : '';
 
     return (
-    <Card 
-      className={`group relative transition-all duration-150 ease-out overflow-hidden border-border/50 hover:shadow-lg hover:-translate-y-0.5 ${cardClassName} ${pastTripStyles} ${activeBorder}`}
+    <GlassSurface
+      elevation="raised"
+      className={`group relative overflow-hidden transition-all duration-base ease-cinema hover:-translate-y-0.5 hover:shadow-elevation-floating ${cardClassName} ${pastTripStyles} ${activeBorder}`}
     >
       {/* Mode accent strip */}
       <div className={`h-[3px] w-full ${modeTheme.gradients.buttonBg}`} />
@@ -443,6 +456,6 @@ const TripCard = React.memo(function TripCard({
       >
         {React.createElement(MODE_ICONS[tripMode], { className: `w-5 h-5 sm:w-7 sm:h-7 ${modeTheme.palette.icon}` })}
       </button>
-    </Card>
+    </GlassSurface>
   );
 });
