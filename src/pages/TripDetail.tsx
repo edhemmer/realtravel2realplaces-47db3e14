@@ -48,7 +48,7 @@ import { MobileAddExpenseCard } from '@/components/trips/MobileAddExpenseCard';
 // Patch 2.2.3: Mobile-first layout components
 import { TripDetailLayout } from '@/components/layout/TripDetailLayout';
 import { type TripTab } from '@/components/layout/MobileBottomNav';
-import { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // v3.9.5: Context to share capability-scoped permissions with child components
