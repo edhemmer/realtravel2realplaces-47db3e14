@@ -308,6 +308,12 @@
     --rt2rp-safe-bottom: env(safe-area-inset-bottom, 0px);
   }
 
+  /* Ensure native iOS content respects safe-area insets (notch / Dynamic Island / Home indicator) */
+  html[data-native-platform='ios'] body {
+    padding-top: var(--rt2rp-safe-top);
+    padding-bottom: var(--rt2rp-safe-bottom);
+  }
+
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     @apply font-semibold tracking-tight;

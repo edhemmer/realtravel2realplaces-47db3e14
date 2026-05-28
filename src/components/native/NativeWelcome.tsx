@@ -26,7 +26,7 @@ export default function NativeWelcome() {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-between bg-[#F6F8FB] px-6 pt-24 pb-10">
+    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-between bg-[#F6F8FB] px-6 pt-6 pb-10">
       <div className="flex-1 flex flex-col items-center justify-center text-center max-w-md">
         <motion.div
           initial={{ scale: 0.6, opacity: 0, rotate: -12 }}
