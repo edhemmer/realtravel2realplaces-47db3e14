@@ -9,7 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Mail, Crown, User, Lock, CheckCircle, ChevronRight, ShieldCheck, BookOpen, Sparkles, Briefcase } from 'lucide-react';
+import { Mail, Crown, User, Lock, CheckCircle, ChevronRight, ShieldCheck, BookOpen, Sparkles, Briefcase, Sun, Moon, Monitor } from 'lucide-react';
+import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { TravelPreferencesCard } from '@/components/account/TravelPreferencesCard';
