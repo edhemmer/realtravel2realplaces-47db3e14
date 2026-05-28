@@ -31,6 +31,8 @@ import { DashboardSkeleton } from '@/components/ui/premium-loading';
 import { motion } from 'framer-motion';
 import { canCreateTrips } from '@/lib/native/platform';
 import { NowCard } from '@/components/now/NowCard';
+import { GlassSurface } from '@/components/ui/glass-surface';
+import { staggerParent, staggerChild } from '@/lib/motion/choreography';
 
 const CAN_CREATE_TRIPS = canCreateTrips();
 
