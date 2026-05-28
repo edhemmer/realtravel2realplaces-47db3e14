@@ -122,6 +122,12 @@ export default function TripDetail() {
     queryClient.invalidateQueries({ queryKey: ['parking', tripId] });
   }, [tripId, queryClient]));
 
+  // Feed the ⌘K palette's "Recent" group whenever the user lands on a trip.
+  useEffect(() => {
+    if (!tripId) return;
+    void import('@/hooks/useCommandPaletteIndex').then(m => m.rememberRecentTrip(tripId));
+  }, [tripId]);
+
   // v2.0.7: Tab and drill-through state (desktop only — mobile uses MobileNavigationRouter)
   // v4.1.0: Read ?tab= query param so dashboard buttons land on the correct tab
   const initialTab = (searchParams.get('tab') as TripTab) || (isMobile ? 'today' : 'summary');
