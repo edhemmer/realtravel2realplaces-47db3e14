@@ -9,6 +9,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MapPin, Calendar, Eye, EyeOff, Loader2, AlertCircle, Mail, Lock } from 'lucide-react';
 import { User } from 'lucide-react';
 import logoImg from '@/assets/rt2rp-logo.png';
+import { lovable } from '@/integrations/lovable';
+
+function AppleIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M16.365 1.43c0 1.14-.46 2.21-1.21 3.01-.82.88-2.14 1.56-3.27 1.46-.13-1.12.43-2.27 1.18-3.05.84-.88 2.27-1.55 3.3-1.42zM20.5 17.45c-.55 1.27-.81 1.84-1.52 2.96-.99 1.56-2.39 3.5-4.12 3.51-1.54.02-1.94-1-4.03-.99-2.09.01-2.53 1.01-4.07.99-1.73-.02-3.05-1.77-4.04-3.33C-.05 16.78-.34 11.4 1.86 8.51c1.49-1.97 3.83-3.12 6.04-3.12 2.25 0 3.67 1.23 5.53 1.23 1.8 0 2.9-1.23 5.5-1.23 1.97 0 4.05 1.07 5.54 2.93-4.87 2.67-4.08 9.62-3.97 9.13z"/>
+    </svg>
+  );
+}
 
 export default function Auth() {
   const [firstName, setFirstName] = useState('');
