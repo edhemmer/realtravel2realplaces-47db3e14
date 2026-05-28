@@ -176,6 +176,9 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
       // v3.9.7: Store exact user-entered local times (no conversion)
       end_local_datetime: endLocal,
       start_local_datetime: startLocal,
+      // Saved GPS coordinates for "Find my car"
+      latitude: formData.latitude,
+      longitude: formData.longitude,
     };
 
     if (editingParking) {
@@ -203,7 +206,11 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
   };
 
   const openInMaps = (parking: Parking) => {
+    const lat = (parking as any).latitude as number | null | undefined;
+    const lng = (parking as any).longitude as number | null | undefined;
     navigateTo({
+      lat: lat ?? undefined,
+      lng: lng ?? undefined,
       address: parking.address,
       locationLabel: parking.label,
     });
