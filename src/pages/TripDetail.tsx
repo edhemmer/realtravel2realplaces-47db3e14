@@ -48,7 +48,7 @@ import { MobileAddExpenseCard } from '@/components/trips/MobileAddExpenseCard';
 // Patch 2.2.3: Mobile-first layout components
 import { TripDetailLayout } from '@/components/layout/TripDetailLayout';
 import { type TripTab } from '@/components/layout/MobileBottomNav';
-import { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // v3.9.5: Context to share capability-scoped permissions with child components
@@ -121,6 +121,12 @@ export default function TripDetail() {
     queryClient.invalidateQueries({ queryKey: ['expenses', tripId] });
     queryClient.invalidateQueries({ queryKey: ['parking', tripId] });
   }, [tripId, queryClient]));
+
+  // Feed the ⌘K palette's "Recent" group whenever the user lands on a trip.
+  useEffect(() => {
+    if (!tripId) return;
+    void import('@/hooks/useCommandPaletteIndex').then(m => m.rememberRecentTrip(tripId));
+  }, [tripId]);
 
   // v2.0.7: Tab and drill-through state (desktop only — mobile uses MobileNavigationRouter)
   // v4.1.0: Read ?tab= query param so dashboard buttons land on the correct tab
