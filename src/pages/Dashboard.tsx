@@ -32,7 +32,7 @@ import { motion } from 'framer-motion';
 import { canCreateTrips } from '@/lib/native/platform';
 import { NowCard } from '@/components/now/NowCard';
 import { GlassSurface } from '@/components/ui/glass-surface';
-import { staggerParent, staggerChild } from '@/lib/motion/choreography';
+import { sectionRise, staggerParent, staggerChild } from '@/lib/motion/choreography';
 
 const CAN_CREATE_TRIPS = canCreateTrips();
 
@@ -138,34 +138,58 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <PageTransition className="space-y-4 sm:space-y-6">
+      <PageTransition className="space-y-4 sm:space-y-6 bg-ambient-wash">
         {/* Header */}
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h1 className="font-bold text-[28px] leading-[1.2] tracking-tight">My Trips</h1>
-            <p className="text-muted-foreground text-sm font-normal opacity-[0.85] mt-1">Manage your travel in one place</p>
+        <motion.div
+          variants={sectionRise}
+          initial="hidden"
+          animate="visible"
+          transition={{ delay: 0 }}
+          className="motion-cinema"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h1 className="font-bold text-[28px] leading-[1.2] tracking-tight">My Trips</h1>
+              <p className="text-muted-foreground text-sm font-normal opacity-[0.85] mt-1">Manage your travel in one place</p>
+            </div>
+            {CAN_CREATE_TRIPS && (
+              <Button 
+                onClick={() => setCreateDialogOpen(true)} 
+                className="bg-gradient-ocean hover:opacity-90 transition-opacity h-10 sm:h-12 rounded-xl font-semibold shadow-sm shrink-0"
+              >
+                <Plus className="w-4 h-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">New Trip</span>
+                <span className="sm:hidden">New</span>
+              </Button>
+            )}
           </div>
-          {CAN_CREATE_TRIPS && (
-            <Button 
-              onClick={() => setCreateDialogOpen(true)} 
-              className="bg-gradient-ocean hover:opacity-90 transition-opacity h-10 sm:h-12 rounded-xl font-semibold shadow-sm shrink-0"
-            >
-              <Plus className="w-4 h-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">New Trip</span>
-              <span className="sm:hidden">New</span>
-            </Button>
-          )}
-        </div>
+        </motion.div>
 
         {/* Canonical "Now Card" — single source of "what should I do right now?" */}
         {nowCardTrip && <NowCard trip={nowCardTrip} />}
 
         {/* Pending Email Imports — hidden via feature flag */}
-        {EMAIL_FORWARDING_ENABLED && <PendingImportsSection />}
+        {EMAIL_FORWARDING_ENABLED && (
+          <motion.div
+            variants={sectionRise}
+            initial="hidden"
+            animate="visible"
+            transition={{ delay: 0.08 }}
+            className="motion-cinema"
+          >
+            <PendingImportsSection />
+          </motion.div>
+        )}
 
         {/* My Trips */}
         {sortedTrips.length > 0 && (
-          <div className="space-y-4">
+          <motion.div
+            variants={sectionRise}
+            initial="hidden"
+            animate="visible"
+            transition={{ delay: 0.12 }}
+            className="motion-cinema space-y-4"
+          >
             <h2 className="text-lg font-semibold" />
             <motion.div
               variants={staggerParent(0.06, 0.04)}
@@ -185,12 +209,18 @@ export default function Dashboard() {
                 </motion.div>
               ))}
             </motion.div>
-          </div>
+          </motion.div>
         )}
 
         {/* Shared Trips */}
         {sharedTrips.length > 0 && (
-          <div className="space-y-4">
+          <motion.div
+            variants={sectionRise}
+            initial="hidden"
+            animate="visible"
+            transition={{ delay: 0.16 }}
+            className="motion-cinema space-y-4"
+          >
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Users className="w-5 h-5 text-primary" />
               Shared With Me
@@ -214,15 +244,17 @@ export default function Dashboard() {
                 </motion.div>
               ))}
             </motion.div>
-          </div>
+          </motion.div>
         )}
 
         {/* First-Trip Empty State */}
         {!hasTrips && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number] }}
+            variants={sectionRise}
+            initial="hidden"
+            animate="visible"
+            transition={{ delay: 0.12 }}
+            className="motion-cinema"
           >
             <Card className="border-dashed border-2">
               <CardContent className="flex flex-col items-center justify-center py-16">
