@@ -157,7 +157,7 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
               )}
             >
               <MoreHorizontal className="w-5 h-5" />
-              <span className="text-[9px] leading-none">More</span>
+              <span className="text-[10px] leading-none">More</span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent 
