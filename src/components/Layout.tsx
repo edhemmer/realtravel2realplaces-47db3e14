@@ -43,7 +43,7 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Header */}
       <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75 pt-[var(--rt2rp-safe-top,env(safe-area-inset-top,0px))]">
-        <div className="container flex h-16 items-center justify-between px-4">
+        <div className="container flex h-14 sm:h-16 items-center justify-between">
           <BrandHeader variant="app">
 
           {user && (
