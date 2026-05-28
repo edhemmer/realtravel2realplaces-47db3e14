@@ -25,7 +25,7 @@ export function BrandHeader({ variant = 'app', children }: BrandHeaderProps) {
           src="/app-icon-1024.png"
           alt=""
           aria-hidden="true"
-          className="h-7 w-7 sm:h-8 sm:w-8 rounded-md flex-shrink-0"
+          className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0"
         />
         <span className="flex min-w-0 flex-col sm:flex-row sm:items-baseline sm:gap-2 leading-tight">
           <span
