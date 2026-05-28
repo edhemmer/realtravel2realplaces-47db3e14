@@ -114,7 +114,8 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
     <nav
       className={cn(
         "fixed inset-x-0 bottom-0 z-50 md:hidden",
-        "bg-card border-t border-border/60 shadow-lg",
+        "glass-chrome hairline-primary border-t shadow-[0_-8px_24px_-12px_hsl(220_40%_12%/0.18)]",
+        "relative",
         className
       )}
       style={{
@@ -127,43 +128,48 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
         className="grid h-[60px] px-1"
         style={{ gridTemplateColumns: `repeat(${cellCount}, minmax(0, 1fr))` }}
       >
-        {visiblePrimaryItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => onTabChange(item.id)}
-            className={cn(
-              "flex flex-col items-center justify-center gap-0.5 mx-0.5 my-1 rounded-lg transition-colors",
-              "touch-manipulation",
-              activeTab === item.id
-                ? "text-primary font-semibold bg-primary/10"
-                : "text-muted-foreground font-medium hover:text-foreground hover:bg-muted/50"
-            )}
-          >
-            {item.icon}
+        {visiblePrimaryItems.map((item) => {
+          const isActive = activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => onTabChange(item.id)}
+              className={cn(
+                "relative flex flex-col items-center justify-center gap-0.5 mx-0.5 my-1 rounded-xl",
+                "transition-all duration-base ease-cinema touch-manipulation press-scale",
+                isActive
+                  ? "text-primary font-semibold bg-primary/12 glow-primary"
+                  : "text-muted-foreground font-medium hover:text-foreground hover:bg-muted/50"
+              )}
+            >
+              <span className={cn("transition-transform duration-base ease-cinema", isActive && "scale-110")}>
+                {item.icon}
+              </span>
               <span className="max-w-full truncate text-[10px] leading-none">{item.label}</span>
-          </button>
-        ))}
+            </button>
+          );
+        })}
         
         {/* More menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
               className={cn(
-                "flex flex-col items-center justify-center gap-0.5 mx-0.5 my-1 rounded-lg transition-colors",
-                "touch-manipulation",
+                "flex flex-col items-center justify-center gap-0.5 mx-0.5 my-1 rounded-xl",
+                "transition-all duration-base ease-cinema touch-manipulation press-scale",
                 isMoreActive
-                  ? "text-primary font-semibold bg-primary/10"
+                  ? "text-primary font-semibold bg-primary/12 glow-primary"
                   : "text-muted-foreground font-medium hover:text-foreground hover:bg-muted/50"
               )}
             >
-              <MoreHorizontal className="w-5 h-5" />
+              <MoreHorizontal className={cn("w-5 h-5 transition-transform duration-base ease-cinema", isMoreActive && "scale-110")} />
               <span className="max-w-full truncate text-[10px] leading-none">More</span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent 
             side="top" 
             align="end" 
-            className="w-52 mb-2 rounded-xl border-border/60 bg-card shadow-lg p-1.5 max-w-[calc(100vw-1rem)]"
+            className="w-52 mb-2 rounded-xl glass-chrome border shadow-elevation-floating p-1.5 max-w-[calc(100vw-1rem)]"
             sideOffset={8}
           >
             {visibleMoreItems.map((item) => (
