@@ -19,7 +19,7 @@ const SANDBOX_URL =
 const isRelease = process.env.CAP_RELEASE === '1';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.a314579f7aa3c49b7b1788640b495f1f7',
+  appId: 'com.inlighttai.rt2rp',
   appName: 'realtravel2realplaces',
   webDir: 'dist',
   // Only attach the hot-reload server block for dev builds.
