@@ -43,7 +43,7 @@ export default function NativeWelcome() {
           transition={{ duration: 0.5, delay: 0.25 }}
           className="text-4xl font-semibold tracking-tight text-foreground"
         >
-          Real travel.<br />Real places.
+          Real Travel 2 Real Places
         </motion.h1>
 
         <motion.p
