@@ -34,6 +34,7 @@ import NotFound from "./pages/NotFound";
 import InstallApp from "./pages/InstallApp";
 import { RealtimeSyncBridge } from "@/lib/realtime/RealtimeSyncBridge";
 import { useNativeReminderSync } from "@/hooks/useNativeReminderSync";
+import { useNativeDepartureSync } from "@/hooks/useNativeDepartureSync";
 
 /**
  * Bridges DB reminder rows into the iOS/Android local notification scheduler.
@@ -41,6 +42,7 @@ import { useNativeReminderSync } from "@/hooks/useNativeReminderSync";
  */
 function NativeReminderBridge() {
   useNativeReminderSync();
+  useNativeDepartureSync();
   return null;
 }
 import { ThemeProvider } from "@/contexts/ThemeContext";
