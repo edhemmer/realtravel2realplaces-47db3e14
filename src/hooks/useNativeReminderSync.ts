@@ -168,7 +168,7 @@ export function useNativeReminderSync(): void {
     if (!stopData) return;
 
     const desired: ScheduledReminder[] = stopData.reminders
-      .map((r) => {
+      .map((r): ScheduledReminder | null => {
         const eng = stopData.engagements.get(r.engagement_id);
         const at = new Date(r.reminder_datetime);
         if (Number.isNaN(at.getTime())) return null;
@@ -185,7 +185,7 @@ export function useNativeReminderSync(): void {
             engagementId: r.engagement_id,
             tab: 'tour',
           },
-        } satisfies ScheduledReminder;
+        };
       })
       .filter((x): x is ScheduledReminder => x !== null);
 
@@ -203,7 +203,7 @@ export function useNativeReminderSync(): void {
     if (!ticketData) return;
 
     const desired: ScheduledReminder[] = ticketData.reminders
-      .map((r) => {
+      .map((r): ScheduledReminder | null => {
         const booking = ticketData.bookings.get(r.booking_id);
         // reminder_date = YYYY-MM-DD → fire 9:00 local that day.
         const [y, m, d] = r.reminder_date.split('-').map((n) => parseInt(n, 10));
@@ -220,7 +220,7 @@ export function useNativeReminderSync(): void {
             bookingId: r.booking_id,
             tab: 'bookings',
           },
-        } satisfies ScheduledReminder;
+        };
       })
       .filter((x): x is ScheduledReminder => x !== null);
 
