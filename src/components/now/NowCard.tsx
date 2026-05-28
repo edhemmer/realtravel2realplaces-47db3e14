@@ -13,12 +13,13 @@
 
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Card, CardContent } from '@/components/ui/card';
+import { GlassSurface } from '@/components/ui/glass-surface';
 import { Button } from '@/components/ui/button';
 import { Radio, Plane, MapPin, CheckCircle2, Clock } from 'lucide-react';
 import type { Trip } from '@/types/database';
 import { useNowCard, type NowCardPressure } from '@/hooks/useNowCard';
 import { haptic } from '@/lib/native/haptics';
+import { heroMorph, commitPulse, EASE_CINEMA, DUR_BASE } from '@/lib/motion/choreography';
 
 const PRESSURE_META: Record<NowCardPressure, { Icon: typeof Radio; tagText: string; tone: string }> = {
   'idle':           { Icon: Radio,        tagText: 'Now',         tone: 'text-primary' },
