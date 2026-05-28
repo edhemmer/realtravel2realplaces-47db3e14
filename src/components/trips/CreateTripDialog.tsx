@@ -1505,7 +1505,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
                   </div>
                 )}
 
-                {(driveOriginMode === 'manual' || (!driveOriginLocation && driveOriginMode === 'idle')) && driveOriginMode !== 'detecting' && driveOriginMode === 'manual' && (
+                {driveOriginMode === 'manual' && (
                   <LocationInput
                     label=""
                     value={driveOriginLocation}
