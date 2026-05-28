@@ -93,23 +93,25 @@ function ProtectedRoute({ children, skipOnboardingGate }: { children: React.Reac
 
 /**
  * Root route: native shells (iOS/Android Capacitor) skip the marketing
- * landing page entirely and go straight into the app. Web visitors continue
- * to see LandingPage.
+ * landing page entirely. First native launch shows a signature welcome;
+ * subsequent launches go straight into the app. Web visitors see LandingPage.
  */
+import NativeWelcome, { hasSeenNativeWelcome } from "@/components/native/NativeWelcome";
+
 function RootRoute() {
   const { user, loading } = useAuth();
   let native = false;
   try {
-    // Avoid importing Capacitor at module top-level so web bundles stay clean.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const cap = (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
     native = !!cap?.isNativePlatform?.();
   } catch { /* web */ }
 
   if (!native) return <LandingPage />;
   if (loading) return <BrandedPageLoader />;
+  if (!hasSeenNativeWelcome()) return <NativeWelcome />;
   return <Navigate to={user ? '/dashboard' : '/auth'} replace />;
 }
+
 
 function AppRoutes() {
   return (
