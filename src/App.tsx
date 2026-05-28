@@ -93,7 +93,8 @@ function ProtectedRoute({ children, skipOnboardingGate }: { children: React.Reac
 
 function AppRoutes() {
   return (
-    <Routes>
+    <Suspense fallback={<BrandedPageLoader />}>
+      <Routes>
       {/* Public landing page */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/auth" element={<Auth />} />
