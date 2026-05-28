@@ -108,22 +108,31 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
 
   const isMoreActive = visibleMoreItems.some(item => item.id === activeTab);
 
+  const cellCount = visiblePrimaryItems.length + 1; // + More
+
   return (
-    <nav 
+    <nav
       className={cn(
         "fixed bottom-0 left-0 right-0 z-50",
         "bg-card border-t border-border/60 shadow-lg",
-        "pb-safe",
         className
       )}
+      style={{
+        paddingLeft: 'env(safe-area-inset-left, 0px)',
+        paddingRight: 'env(safe-area-inset-right, 0px)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      }}
     >
-      <div className="flex items-center justify-around h-14 px-1 pb-safe">
+      <div
+        className="grid h-14 px-1"
+        style={{ gridTemplateColumns: `repeat(${cellCount}, minmax(0, 1fr))` }}
+      >
         {visiblePrimaryItems.map((item) => (
           <button
             key={item.id}
             onClick={() => onTabChange(item.id)}
             className={cn(
-              "flex flex-col items-center justify-center gap-0.5 py-1 px-2 rounded-lg transition-colors min-w-[48px] min-h-[40px]",
+              "flex flex-col items-center justify-center gap-0.5 mx-0.5 my-1 rounded-lg transition-colors",
               "touch-manipulation",
               activeTab === item.id
                 ? "text-primary font-semibold bg-primary/10"
@@ -131,7 +140,7 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
             )}
           >
             {item.icon}
-            <span className="text-[9px] leading-none">{item.label}</span>
+            <span className="text-[10px] leading-none">{item.label}</span>
           </button>
         ))}
         
@@ -140,7 +149,7 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
           <DropdownMenuTrigger asChild>
             <button
               className={cn(
-                "flex flex-col items-center justify-center gap-0.5 py-1 px-2 rounded-lg transition-colors min-w-[48px] min-h-[40px]",
+                "flex flex-col items-center justify-center gap-0.5 mx-0.5 my-1 rounded-lg transition-colors",
                 "touch-manipulation",
                 isMoreActive
                   ? "text-primary font-semibold bg-primary/10"
@@ -148,7 +157,7 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
               )}
             >
               <MoreHorizontal className="w-5 h-5" />
-              <span className="text-[9px] leading-none">More</span>
+              <span className="text-[10px] leading-none">More</span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent 
