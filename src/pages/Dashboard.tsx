@@ -167,9 +167,14 @@ export default function Dashboard() {
         {sortedTrips.length > 0 && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold" />
-            <StaggerContainer className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <motion.div
+              variants={staggerParent(0.06, 0.04)}
+              initial="hidden"
+              animate="visible"
+              className="motion-cinema grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+            >
               {sortedTrips.map((trip: Trip) => (
-                <FadeInItem key={trip.id}>
+                <motion.div key={trip.id} variants={staggerChild}>
                   <TripCard
                     trip={trip}
                     isPro={isPro}
@@ -177,9 +182,9 @@ export default function Dashboard() {
                     onDelete={handleRequestDelete}
                     onNavigate={handleNavigate}
                   />
-                </FadeInItem>
+                </motion.div>
               ))}
-            </StaggerContainer>
+            </motion.div>
           </div>
         )}
 
@@ -190,9 +195,14 @@ export default function Dashboard() {
               <Users className="w-5 h-5 text-primary" />
               Shared With Me
             </h2>
-            <StaggerContainer className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <motion.div
+              variants={staggerParent(0.06, 0.04)}
+              initial="hidden"
+              animate="visible"
+              className="motion-cinema grid gap-4 md:grid-cols-2 lg:grid-cols-3"
+            >
               {sharedTrips.map((trip: SharedTrip) => (
-                <FadeInItem key={trip.id}>
+                <motion.div key={trip.id} variants={staggerChild}>
                   <TripCard
                     trip={trip}
                     isShared
@@ -201,9 +211,9 @@ export default function Dashboard() {
                     onNavigate={handleNavigate}
                     onRemove={handleRequestRemove}
                   />
-                </FadeInItem>
+                </motion.div>
               ))}
-            </StaggerContainer>
+            </motion.div>
           </div>
         )}
 
