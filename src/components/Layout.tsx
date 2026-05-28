@@ -107,7 +107,12 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Main Content */}
       <main
-        className="container max-w-full overflow-x-hidden px-4 pt-6 pb-[calc(var(--rt2rp-safe-bottom,env(safe-area-inset-bottom,0px))+1.5rem)]"
+        className="container max-w-full overflow-x-hidden pt-6"
+        style={{
+          paddingLeft: 'max(1rem, env(safe-area-inset-left))',
+          paddingRight: 'max(1rem, env(safe-area-inset-right))',
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)',
+        }}
       >
         {children}
       </main>
