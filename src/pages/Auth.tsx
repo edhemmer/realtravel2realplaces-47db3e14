@@ -175,6 +175,13 @@ export default function Auth() {
       </div>
 
 
+      {/* Brand Logo */}
+      <img
+        src={logoImg}
+        alt="RealTravel2RealPlaces"
+        className="w-20 h-20 mb-6 rounded-2xl shadow-md animate-fade-in"
+      />
+
       {/* Auth Card */}
       <Card className="w-full max-w-md animate-fade-in shadow-lg border-0">
         <CardHeader className="text-center pb-4">
