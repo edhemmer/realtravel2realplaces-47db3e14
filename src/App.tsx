@@ -96,7 +96,7 @@ function AppRoutes() {
     <Suspense fallback={<BrandedPageLoader />}>
       <Routes>
       {/* Public landing page */}
-      <Route path="/" element={<LandingPage />} />
+      <Route path="/" element={<RootRoute />} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
