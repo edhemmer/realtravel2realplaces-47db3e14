@@ -395,6 +395,43 @@
     background-color: hsl(var(--card) / 0.62);
   }
 
+  /* Premium floating nav — solid, elevated, with gradient sheen */
+  .nav-floating {
+    background:
+      linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--card)) 100%),
+      radial-gradient(120% 80% at 50% 0%, hsl(var(--primary) / 0.10), transparent 60%);
+    background-blend-mode: normal;
+    border: 1px solid hsl(var(--border) / 0.6);
+    box-shadow:
+      0 1px 0 0 hsl(0 0% 100% / 0.6) inset,
+      0 10px 30px -10px hsl(220 50% 12% / 0.25),
+      0 24px 60px -20px hsl(220 50% 12% / 0.30);
+  }
+  .dark .nav-floating {
+    background:
+      linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--card)) 100%);
+    border: 1px solid hsl(var(--border) / 0.6);
+    box-shadow:
+      0 1px 0 0 hsl(210 40% 96% / 0.05) inset,
+      0 10px 30px -10px hsl(0 0% 0% / 0.55),
+      0 24px 60px -20px hsl(0 0% 0% / 0.60);
+  }
+
+  /* Active nav pill — filled gradient with inner highlight */
+  .nav-pill-active {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.85) 100%);
+    color: hsl(var(--primary-foreground));
+    box-shadow:
+      0 0 0 1px hsl(var(--primary) / 0.4),
+      0 8px 20px -6px hsl(var(--primary) / 0.55),
+      inset 0 1px 0 0 hsl(0 0% 100% / 0.25);
+  }
+
+  /* Top accent bar above active item */
+  .nav-accent-bar {
+    background: linear-gradient(90deg, transparent 0%, hsl(var(--primary)) 50%, transparent 100%);
+  }
+
   /* Soft primary glow halo for active/featured items */
   .glow-primary {
     box-shadow:
@@ -423,6 +460,7 @@
     );
     pointer-events: none;
   }
+
 
   /* Patch 2.2.3: Safe area padding for mobile bottom nav */
   .pb-safe {
