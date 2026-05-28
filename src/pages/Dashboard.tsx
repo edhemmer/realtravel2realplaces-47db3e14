@@ -456,6 +456,6 @@ const TripCard = React.memo(function TripCard({
       >
         {React.createElement(MODE_ICONS[tripMode], { className: `w-5 h-5 sm:w-7 sm:h-7 ${modeTheme.palette.icon}` })}
       </button>
-    </Card>
+    </GlassSurface>
   );
 });
