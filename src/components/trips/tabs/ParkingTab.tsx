@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Plus, Trash2, CircleParking, MapPin, Clock, AlertTriangle, Pencil } from 'lucide-react';
+import { Plus, Trash2, CircleParking, MapPin, Clock, AlertTriangle, Pencil, Navigation, LocateFixed } from 'lucide-react';
+import { toast } from 'sonner';
 import { navigateTo } from '@/lib/canonicalNavigation';
 import { ParkingExpirationIndicator } from '@/components/trips/ParkingExpirationIndicator';
 import { cn } from '@/lib/utils';
@@ -88,7 +89,10 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
     level_section_space: '',
     total_cost: '',
     my_share: '',
+    latitude: null as number | null,
+    longitude: null as number | null,
   });
+  const [capturingLocation, setCapturingLocation] = useState(false);
 
   const resetForm = () => {
     setFormData({
@@ -101,6 +105,8 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
       level_section_space: '',
       total_cost: '',
       my_share: '',
+      latitude: null,
+      longitude: null,
     });
     setEditingParking(null);
   };
@@ -118,8 +124,36 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
       level_section_space: parking.level_section_space || '',
       total_cost: parking.total_cost?.toString() || '',
       my_share: parking.my_share?.toString() || '',
+      latitude: (parking as any).latitude ?? null,
+      longitude: (parking as any).longitude ?? null,
     });
     setDialogOpen(true);
+  };
+
+  const captureCurrentLocation = () => {
+    if (!('geolocation' in navigator)) {
+      toast.error('Location is not available on this device');
+      return;
+    }
+    setCapturingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setFormData((prev) => ({
+          ...prev,
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        }));
+        toast.success('Parking spot saved');
+        setCapturingLocation(false);
+      },
+      (err) => {
+        toast.error(err.code === err.PERMISSION_DENIED
+          ? 'Allow location access to save your parking spot'
+          : 'Could not get your location');
+        setCapturingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
