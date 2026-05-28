@@ -141,6 +141,26 @@ export default function Auth() {
       setLoading(false);
     }
   };
+  const handleApple = async () => {
+    if (loading) return;
+    clearMessages();
+    setLoading(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth('apple', {
+        redirect_uri: window.location.origin + '/dashboard',
+      });
+      if (result.error) {
+        setError(result.error.message || 'Could not sign in with Apple.');
+        setLoading(false);
+        return;
+      }
+      if (result.redirected) return;
+      navigate('/dashboard');
+    } catch {
+      setError('An unexpected error occurred. Please try again.');
+      setLoading(false);
+    }
+  };
   return <div className="min-h-screen bg-gradient-dawn flex flex-col items-center justify-center p-4">
       {/* Decorative Elements */}
       <div className="absolute bottom-10 right-10 text-primary/20 animate-float" style={{
