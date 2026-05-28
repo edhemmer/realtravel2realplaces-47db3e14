@@ -28,8 +28,8 @@ export function isNativeIOS(): boolean {
 
 /**
  * Single source of truth for "can the current shell create new trips?".
- * iOS native build is read-only for trip creation; web + Android remain full.
+ * Trip creation is enabled on all platforms (web, iOS, Android).
  */
 export function canCreateTrips(): boolean {
-  return !isNativeIOS();
+  return true;
 }
