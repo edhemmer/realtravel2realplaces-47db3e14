@@ -111,83 +111,110 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
   const cellCount = visiblePrimaryItems.length + 1; // + More
 
   return (
-    <nav
-      className={cn(
-        "fixed inset-x-0 bottom-0 z-50 md:hidden",
-        "glass-chrome hairline-primary border-t shadow-[0_-8px_24px_-12px_hsl(220_40%_12%/0.18)]",
-        "relative",
-        className
-      )}
+    <div
+      className={cn("fixed inset-x-0 bottom-0 z-50 md:hidden pointer-events-none", className)}
       style={{
         paddingLeft: 'env(safe-area-inset-left, 0px)',
         paddingRight: 'env(safe-area-inset-right, 0px)',
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
       }}
     >
-      <div
-        className="grid h-[60px] px-1"
-        style={{ gridTemplateColumns: `repeat(${cellCount}, minmax(0, 1fr))` }}
+      <nav
+        className="pointer-events-auto mx-3 nav-floating rounded-[22px] overflow-hidden"
       >
-        {visiblePrimaryItems.map((item) => {
-          const isActive = activeTab === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => onTabChange(item.id)}
-              className={cn(
-                "relative flex flex-col items-center justify-center gap-0.5 mx-0.5 my-1 rounded-xl",
-                "transition-all duration-base ease-cinema touch-manipulation press-scale",
-                isActive
-                  ? "text-primary font-semibold bg-primary/12 glow-primary"
-                  : "text-muted-foreground font-medium hover:text-foreground hover:bg-muted/50"
-              )}
-            >
-              <span className={cn("transition-transform duration-base ease-cinema", isActive && "scale-110")}>
-                {item.icon}
-              </span>
-              <span className="max-w-full truncate text-[10px] leading-none">{item.label}</span>
-            </button>
-          );
-        })}
-        
-        {/* More menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              className={cn(
-                "flex flex-col items-center justify-center gap-0.5 mx-0.5 my-1 rounded-xl",
-                "transition-all duration-base ease-cinema touch-manipulation press-scale",
-                isMoreActive
-                  ? "text-primary font-semibold bg-primary/12 glow-primary"
-                  : "text-muted-foreground font-medium hover:text-foreground hover:bg-muted/50"
-              )}
-            >
-              <MoreHorizontal className={cn("w-5 h-5 transition-transform duration-base ease-cinema", isMoreActive && "scale-110")} />
-              <span className="max-w-full truncate text-[10px] leading-none">More</span>
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent 
-            side="top" 
-            align="end" 
-            className="w-52 mb-2 rounded-xl glass-chrome border shadow-elevation-floating p-1.5 max-w-[calc(100vw-1rem)]"
-            sideOffset={8}
-          >
-            {visibleMoreItems.map((item) => (
-              <DropdownMenuItem
+        <div
+          className="grid h-[64px] px-1.5 pt-1.5 pb-1.5 gap-0.5"
+          style={{ gridTemplateColumns: `repeat(${cellCount}, minmax(0, 1fr))` }}
+        >
+          {visiblePrimaryItems.map((item) => {
+            const isActive = activeTab === item.id;
+            return (
+              <button
                 key={item.id}
                 onClick={() => onTabChange(item.id)}
                 className={cn(
-                  "cursor-pointer h-10 gap-3 px-3 rounded-lg text-sm font-medium",
-                  activeTab === item.id && "bg-primary/10 text-primary"
+                  "relative flex flex-col items-center justify-center gap-0.5 rounded-2xl",
+                  "transition-all duration-300 ease-cinema touch-manipulation press-scale",
+                  isActive
+                    ? "nav-pill-active"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60 active:bg-muted"
                 )}
               >
-                <span className="w-4 h-4 shrink-0 flex items-center justify-center">{item.icon}</span>
-                <span>{item.label}</span>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </nav>
+                <span
+                  className={cn(
+                    "transition-transform duration-300 ease-cinema",
+                    isActive ? "scale-110" : "scale-100"
+                  )}
+                >
+                  {item.icon}
+                </span>
+                <span
+                  className={cn(
+                    "max-w-full truncate text-[10px] leading-none tracking-tight",
+                    isActive ? "font-semibold" : "font-medium"
+                  )}
+                >
+                  {item.label}
+                </span>
+              </button>
+            );
+          })}
+
+          {/* More menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className={cn(
+                  "relative flex flex-col items-center justify-center gap-0.5 rounded-2xl",
+                  "transition-all duration-300 ease-cinema touch-manipulation press-scale",
+                  isMoreActive
+                    ? "nav-pill-active"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60 active:bg-muted"
+                )}
+              >
+                <MoreHorizontal
+                  className={cn(
+                    "w-5 h-5 transition-transform duration-300 ease-cinema",
+                    isMoreActive && "scale-110"
+                  )}
+                />
+                <span
+                  className={cn(
+                    "max-w-full truncate text-[10px] leading-none tracking-tight",
+                    isMoreActive ? "font-semibold" : "font-medium"
+                  )}
+                >
+                  More
+                </span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              side="top"
+              align="end"
+              className="w-56 mb-3 mr-2 rounded-2xl nav-floating border-0 p-1.5 max-w-[calc(100vw-1rem)]"
+              sideOffset={8}
+            >
+              {visibleMoreItems.map((item) => (
+                <DropdownMenuItem
+                  key={item.id}
+                  onClick={() => onTabChange(item.id)}
+                  className={cn(
+                    "cursor-pointer h-11 gap-3 px-3 rounded-xl text-sm font-medium",
+                    "transition-colors duration-200",
+                    activeTab === item.id
+                      ? "nav-pill-active focus:nav-pill-active"
+                      : "hover:bg-muted/70 focus:bg-muted/70"
+                  )}
+                >
+                  <span className="w-4 h-4 shrink-0 flex items-center justify-center">{item.icon}</span>
+                  <span>{item.label}</span>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </nav>
+    </div>
   );
 }
+
