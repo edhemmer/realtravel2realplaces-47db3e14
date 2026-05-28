@@ -21,6 +21,12 @@ export function BrandHeader({ variant = 'app', children }: BrandHeaderProps) {
         className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-3 flex-nowrap hover:opacity-80 transition-opacity"
         aria-label="InLight AI — RealTravel 2 RealPlaces"
       >
+        <img
+          src="/app-icon-1024.png"
+          alt=""
+          aria-hidden="true"
+          className="h-7 w-7 sm:h-8 sm:w-8 rounded-md flex-shrink-0"
+        />
         <span className="flex min-w-0 flex-col sm:flex-row sm:items-baseline sm:gap-2 leading-tight">
           <span
             className={`text-[10px] sm:text-xs font-medium uppercase tracking-[0.14em] ${
