@@ -18,7 +18,7 @@ export function BrandHeader({ variant = 'app', children }: BrandHeaderProps) {
       {/* Brand cluster: wordmark + pill */}
       <Link
         to="/"
-        className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3 flex-nowrap hover:opacity-80 transition-opacity"
+        className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-3 flex-nowrap hover:opacity-80 transition-opacity"
         aria-label="InLight AI — RealTravel 2 RealPlaces"
       >
         <span className="flex min-w-0 flex-col sm:flex-row sm:items-baseline sm:gap-2 leading-tight">
@@ -40,7 +40,7 @@ export function BrandHeader({ variant = 'app', children }: BrandHeaderProps) {
             RealTravel <span className="italic font-normal opacity-90">2</span> RealPlaces
           </span>
         </span>
-        {!isLanding && user && <PlanPill showTripLimit className="flex-shrink-0" />}
+        {!isLanding && user && <PlanPill showTripLimit className="flex-shrink-0 max-[374px]:hidden" />}
       </Link>
 
       {/* Right-side controls */}
