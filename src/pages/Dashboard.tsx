@@ -359,8 +359,9 @@ const TripCard = React.memo(function TripCard({
   const activeBorder = isActive ? 'border-success/50 ring-1 ring-success/20' : '';
 
     return (
-    <Card 
-      className={`group relative transition-all duration-150 ease-out overflow-hidden border-border/50 hover:shadow-lg hover:-translate-y-0.5 ${cardClassName} ${pastTripStyles} ${activeBorder}`}
+    <GlassSurface
+      elevation="raised"
+      className={`group relative overflow-hidden transition-all duration-base ease-cinema hover:-translate-y-0.5 hover:shadow-elevation-floating ${cardClassName} ${pastTripStyles} ${activeBorder}`}
     >
       {/* Mode accent strip */}
       <div className={`h-[3px] w-full ${modeTheme.gradients.buttonBg}`} />
