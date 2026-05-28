@@ -35,6 +35,8 @@ import InstallApp from "./pages/InstallApp";
 import { RealtimeSyncBridge } from "@/lib/realtime/RealtimeSyncBridge";
 import { useNativeReminderSync } from "@/hooks/useNativeReminderSync";
 import { useNativeDepartureSync } from "@/hooks/useNativeDepartureSync";
+import { CommandPalette } from "@/components/command/CommandPalette";
+import { useCommandPaletteHotkey } from "@/hooks/useCommandPaletteHotkey";
 
 /**
  * Bridges DB reminder rows into the iOS/Android local notification scheduler.
@@ -44,6 +46,12 @@ function NativeReminderBridge() {
   useNativeReminderSync();
   useNativeDepartureSync();
   return null;
+}
+
+/** Global ⌘K / Ctrl+K hotkey + universal palette. Lives inside Router so it can navigate. */
+function GlobalCommandPalette() {
+  useCommandPaletteHotkey();
+  return <CommandPalette />;
 }
 import { ThemeProvider } from "@/contexts/ThemeContext";
 
@@ -199,6 +207,7 @@ const App = () => (
               <Toaster />
               <Sonner />
               <BrowserRouter>
+                <GlobalCommandPalette />
                 <AppRoutes />
               </BrowserRouter>
             </ErrorBoundary>
