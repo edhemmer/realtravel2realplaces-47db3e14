@@ -14,7 +14,7 @@ import { useRemoveTripMembership } from '@/hooks/useTripMembers';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, MapPin, Calendar, Plane, Car, TrainFront, Route, Trash2, Users, ChevronRight, DollarSign, Compass, Radio, UserMinus } from 'lucide-react';
+import { Plus, MapPin, Calendar, Plane, Car, TrainFront, Route, Trash2, Users, ChevronRight, Radio, UserMinus } from 'lucide-react';
 import { getTripMode, getModeTheme, type TripMode } from '@/lib/modeTheme';
 import { useNavigate } from 'react-router-dom';
 import { formatTripDateRange } from '@/lib/displayFormats';
