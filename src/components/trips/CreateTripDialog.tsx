@@ -1425,9 +1425,9 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
               </p>
             </div>
 
-            <div className="space-y-4">
-              {/* Destination group */}
-              <div className="space-y-2">
+            <div className="space-y-5">
+              {/* Destination — single, focused */}
+              <div className="space-y-1.5">
                 <LocationInput
                   label="Where are you headed?"
                   value={driveDestLocation}
@@ -1438,92 +1438,161 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
                   required
                   placeholder="Search city..."
                 />
-                <Input
-                  value={watch('destination_address') || ''}
-                  onChange={(e) => setValue('destination_address', e.target.value)}
-                  placeholder="Street address (optional — for door-to-door nav)"
-                  className="h-9 text-sm"
-                  maxLength={500}
-                />
               </div>
 
-              {/* Origin group */}
+              {/* Origin — geolocation-first */}
               <div className="space-y-2">
-                <LocationInput
-                  label="Starting from (optional)"
-                  value={driveOriginLocation}
-                  onChange={(loc) => {
-                    setDriveOriginLocation(loc);
-                    setDriveOrigin(loc?.cityName || '');
-                  }}
-                  placeholder="Search city..."
-                />
-                <Input
-                  value={watch('origin_address') || ''}
-                  onChange={(e) => setValue('origin_address', e.target.value)}
-                  placeholder="Street address (optional)"
-                  className="h-9 text-sm"
-                  maxLength={500}
-                />
+                <Label className="text-sm font-medium">Starting from</Label>
+
+                {driveOriginMode !== 'manual' && !driveOriginLocation && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full h-11 justify-center gap-2 rounded-xl"
+                    disabled={driveOriginMode === 'detecting'}
+                    onClick={async () => {
+                      setDriveOriginMode('detecting');
+                      const { coords, status } = await getDeviceLocation();
+                      if (!coords) {
+                        toast.error(
+                          status === 'denied'
+                            ? 'Location permission denied. Enter your starting city manually.'
+                            : 'Could not detect your location. Enter it manually.',
+                        );
+                        setDriveOriginMode('manual');
+                        return;
+                      }
+                      const loc = await reverseGeocodeToLocation(coords);
+                      if (!loc) {
+                        toast.error('Could not resolve your city. Enter it manually.');
+                        setDriveOriginMode('manual');
+                        return;
+                      }
+                      setDriveOriginLocation(loc);
+                      setDriveOrigin(loc.cityName);
+                      setDriveOriginMode('detected');
+                    }}
+                  >
+                    {driveOriginMode === 'detecting' ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Detecting…
+                      </>
+                    ) : (
+                      <>
+                        <MapPin className="w-4 h-4" />
+                        Use my current location
+                      </>
+                    )}
+                  </Button>
+                )}
+
+                {driveOriginLocation && driveOriginMode !== 'manual' && (
+                  <div className="flex items-center justify-between gap-3 rounded-xl border bg-muted/40 px-3 py-2.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <MapPin className="w-4 h-4 text-primary shrink-0" />
+                      <span className="text-sm truncate">{locationLabel(driveOriginLocation)}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDriveOriginMode('manual');
+                      }}
+                      className="text-xs font-medium text-primary hover:underline shrink-0"
+                    >
+                      Change
+                    </button>
+                  </div>
+                )}
+
+                {(driveOriginMode === 'manual' || (!driveOriginLocation && driveOriginMode === 'idle')) && driveOriginMode !== 'detecting' && driveOriginMode === 'manual' && (
+                  <LocationInput
+                    label=""
+                    value={driveOriginLocation}
+                    onChange={(loc) => {
+                      setDriveOriginLocation(loc);
+                      setDriveOrigin(loc?.cityName || '');
+                    }}
+                    placeholder="Search city..."
+                  />
+                )}
+
+                {driveOriginMode !== 'manual' && !driveOriginLocation && (
+                  <button
+                    type="button"
+                    onClick={() => setDriveOriginMode('manual')}
+                    className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Or enter manually
+                  </button>
+                )}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Departure Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className={cn(
-                          'w-full justify-start text-left font-normal',
-                          !startDate && 'text-muted-foreground'
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {startDate ? format(startDate, 'MMM d, yyyy') : 'Pick date'}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={startDate}
-                        onSelect={setStartDate}
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+              {/* Dates — single range picker */}
+              <div className="space-y-2">
+                <Label>Trip dates</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn(
+                        'w-full h-11 justify-start text-left font-normal rounded-xl',
+                        !startDate && 'text-muted-foreground',
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {startDate && endDate
+                        ? `${format(startDate, 'MMM d')} – ${format(endDate, 'MMM d, yyyy')}`
+                        : startDate
+                          ? `${format(startDate, 'MMM d, yyyy')} – pick return date`
+                          : 'Pick departure & return dates'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="range"
+                      selected={startDate && endDate ? { from: startDate, to: endDate } : startDate ? { from: startDate, to: undefined } : undefined}
+                      onSelect={(range: DateRange | undefined) => {
+                        setStartDate(range?.from);
+                        setEndDate(range?.to);
+                      }}
+                      numberOfMonths={1}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
 
-                <div className="space-y-2">
-                  <Label>Return Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className={cn(
-                          'w-full justify-start text-left font-normal',
-                          !endDate && 'text-muted-foreground'
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {endDate ? format(endDate, 'MMM d, yyyy') : 'Pick date'}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={endDate}
-                        onSelect={setEndDate}
-                        disabled={(date) => startDate ? date < startDate : false}
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+              {/* Optional: street addresses (disclosure) */}
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setDriveShowAddresses((v) => !v)}
+                  className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', driveShowAddresses && 'rotate-180')} />
+                  {driveShowAddresses ? 'Hide street addresses' : 'Add street addresses for door-to-door nav (optional)'}
+                </button>
+                {driveShowAddresses && (
+                  <div className="mt-3 space-y-2">
+                    <Input
+                      value={watch('origin_address') || ''}
+                      onChange={(e) => setValue('origin_address', e.target.value)}
+                      placeholder="Origin street address"
+                      className="h-10 text-sm rounded-xl"
+                      maxLength={500}
+                    />
+                    <Input
+                      value={watch('destination_address') || ''}
+                      onChange={(e) => setValue('destination_address', e.target.value)}
+                      placeholder="Destination street address"
+                      className="h-10 text-sm rounded-xl"
+                      maxLength={500}
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
