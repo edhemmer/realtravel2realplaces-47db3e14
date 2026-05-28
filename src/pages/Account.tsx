@@ -205,6 +205,41 @@ export default function Account() {
           />
         )}
 
+        {/* Appearance */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Sun className="w-5 h-5 text-primary" />
+              Appearance
+            </CardTitle>
+            <CardDescription>Choose how RealTravel looks on this device</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-2">
+              {([
+                { value: 'system', label: 'System', Icon: Monitor },
+                { value: 'light', label: 'Light', Icon: Sun },
+                { value: 'dark', label: 'Dark', Icon: Moon },
+              ] as const).map(({ value, label, Icon }) => {
+                const active = themePref === value;
+                return (
+                  <Button
+                    key={value}
+                    type="button"
+                    variant={active ? 'default' : 'outline'}
+                    className="h-auto flex-col gap-1.5 py-3"
+                    onClick={() => setThemePref(value)}
+                    aria-pressed={active}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span className="text-xs font-medium">{label}</span>
+                  </Button>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Vehicle Range (Optional) */}
         {!isLoading && (
           <VehicleRangeCard
