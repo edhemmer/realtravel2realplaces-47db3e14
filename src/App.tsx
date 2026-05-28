@@ -198,7 +198,8 @@ function AppRoutes() {
       <Route path="/login" element={<Navigate to="/auth" replace />} />
       <Route path="/install" element={<InstallApp />} />
       <Route path="*" element={<NotFound />} />
-    </Routes>
+      </Routes>
+    </Suspense>
   );
 }
 
