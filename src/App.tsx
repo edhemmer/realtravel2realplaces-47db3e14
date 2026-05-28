@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,29 +10,34 @@ import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { BrandedPageLoader } from "@/components/ui/premium-loading";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+
+// Eager: landing + auth surfaces for instant first paint
 import LandingPage from "./pages/LandingPage";
 import Auth from "./pages/Auth";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import CompleteProfile from "./pages/CompleteProfile";
-import Dashboard from "./pages/Dashboard";
-import TripDetail from "./pages/TripDetail";
-import DriveMode from "./pages/DriveMode";
-import AcceptShare from "./pages/AcceptShare";
-import AcceptInvite from "./pages/AcceptInvite";
-import AdminPlans from "./pages/AdminPlans";
-import AdminSupportTickets from "./pages/AdminSupportTickets";
-import AdminUsers from "./pages/AdminUsers";
-import Account from "./pages/Account";
-import Plans from "./pages/Plans";
-import Privacy from "./pages/Privacy";
-import Terms from "./pages/Terms";
-import Reports from "./pages/Reports";
-import Onboarding from "./pages/Onboarding";
-import WelcomeChoice from "./pages/WelcomeChoice";
-import HelpCenter from "./pages/HelpCenter";
 import NotFound from "./pages/NotFound";
-import InstallApp from "./pages/InstallApp";
+
+// Lazy: everything else — split into per-route chunks to shrink the main bundle
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const CompleteProfile = lazy(() => import("./pages/CompleteProfile"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const TripDetail = lazy(() => import("./pages/TripDetail"));
+const DriveMode = lazy(() => import("./pages/DriveMode"));
+const AcceptShare = lazy(() => import("./pages/AcceptShare"));
+const AcceptInvite = lazy(() => import("./pages/AcceptInvite"));
+const AdminPlans = lazy(() => import("./pages/AdminPlans"));
+const AdminSupportTickets = lazy(() => import("./pages/AdminSupportTickets"));
+const AdminUsers = lazy(() => import("./pages/AdminUsers"));
+const Account = lazy(() => import("./pages/Account"));
+const Plans = lazy(() => import("./pages/Plans"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Terms = lazy(() => import("./pages/Terms"));
+const Reports = lazy(() => import("./pages/Reports"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
+const WelcomeChoice = lazy(() => import("./pages/WelcomeChoice"));
+const HelpCenter = lazy(() => import("./pages/HelpCenter"));
+const InstallApp = lazy(() => import("./pages/InstallApp"));
+
 import { RealtimeSyncBridge } from "@/lib/realtime/RealtimeSyncBridge";
 import { useNativeReminderSync } from "@/hooks/useNativeReminderSync";
 import { useNativeDepartureSync } from "@/hooks/useNativeDepartureSync";
@@ -87,7 +93,8 @@ function ProtectedRoute({ children, skipOnboardingGate }: { children: React.Reac
 
 function AppRoutes() {
   return (
-    <Routes>
+    <Suspense fallback={<BrandedPageLoader />}>
+      <Routes>
       {/* Public landing page */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/auth" element={<Auth />} />
@@ -191,7 +198,8 @@ function AppRoutes() {
       <Route path="/login" element={<Navigate to="/auth" replace />} />
       <Route path="/install" element={<InstallApp />} />
       <Route path="*" element={<NotFound />} />
-    </Routes>
+      </Routes>
+    </Suspense>
   );
 }
 
