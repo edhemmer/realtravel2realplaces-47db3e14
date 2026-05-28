@@ -281,6 +281,9 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
   // v3.8.4: Structured location state for Drive flow
   const [driveOriginLocation, setDriveOriginLocation] = useState<LocationStructured | null>(null);
   const [driveDestLocation, setDriveDestLocation] = useState<LocationStructured | null>(null);
+  // Drive form — rebuild: geolocation + manual origin override + address disclosure
+  const [driveOriginMode, setDriveOriginMode] = useState<'idle' | 'detecting' | 'detected' | 'manual'>('idle');
+  const [driveShowAddresses, setDriveShowAddresses] = useState(false);
 
   const { register, handleSubmit, setValue, watch, getValues, reset, formState: { errors } } = useForm<TripFormData>({
     resolver: zodResolver(tripSchema),
