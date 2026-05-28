@@ -31,6 +31,7 @@ export default function Account() {
   const [isResetting, setIsResetting] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
+  const { preference: themePref, setPreference: setThemePref } = useTheme();
 
   const handleResetPassword = async () => {
     if (!user?.email) return;
