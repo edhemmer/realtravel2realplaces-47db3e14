@@ -21,6 +21,13 @@ export async function bootstrapNativePlatform(): Promise<void> {
     installHapticToast();
   } catch { /* no-op */ }
 
+  // Register for APNs/FCM and persist the device token (no-op without permission).
+  try {
+    const { registerPushNotifications } = await import('./pushNotifications');
+    void registerPushNotifications();
+  } catch { /* no-op */ }
+
+
 
 
   const platform = Capacitor.getPlatform();
