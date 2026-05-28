@@ -220,6 +220,66 @@
     --shadow-lg: 0 10px 28px 0px hsl(0 0% 0% / 0.55);
     --shadow-glow: 0 0 24px hsl(195 85% 55% / 0.30);
   }
+
+  /* ── Polish v1: Glass depth + cinematic motion tokens ─────────────────
+     Scope: tokens only. No existing tokens altered. Locked palette intact.
+     Consumed by: GlassSurface primitive, choreography variants. */
+  :root {
+    /* Motion — cinematic register */
+    --ease-cinema: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+    --dur-fast: 180ms;
+    --dur-base: 320ms;
+    --dur-slow: 520ms;
+
+    /* Focus — single canonical ring */
+    --ring-focus: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring) / 0.55);
+
+    /* Glass elevation — light mode */
+    --glass-tint: 0 0% 100%;
+    --glass-highlight: hsl(0 0% 100% / 0.65);
+    --elevation-flush:
+      0 0 0 1px hsl(var(--border) / 0.6);
+    --elevation-raised:
+      inset 0 1px 0 0 hsl(0 0% 100% / 0.55),
+      0 0 0 1px hsl(var(--border) / 0.55),
+      0 4px 14px -2px hsl(220 40% 12% / 0.06),
+      0 10px 28px -8px hsl(220 40% 12% / 0.08);
+    --elevation-floating:
+      inset 0 1px 0 0 hsl(0 0% 100% / 0.7),
+      0 0 0 1px hsl(var(--border) / 0.55),
+      0 12px 32px -8px hsl(220 40% 12% / 0.12),
+      0 24px 56px -12px hsl(220 40% 12% / 0.16);
+
+    /* Ambient page wash */
+    --ambient-wash: radial-gradient(
+      1200px 600px at 0% 0%,
+      hsl(var(--primary) / 0.06),
+      transparent 60%
+    );
+  }
+
+  .dark {
+    --glass-tint: 222 40% 11%;
+    --glass-highlight: hsl(210 40% 96% / 0.06);
+    --elevation-flush:
+      0 0 0 1px hsl(var(--border) / 0.5);
+    --elevation-raised:
+      inset 0 1px 0 0 hsl(210 40% 96% / 0.05),
+      0 0 0 1px hsl(var(--border) / 0.5),
+      0 4px 14px -2px hsl(0 0% 0% / 0.4),
+      0 10px 28px -8px hsl(0 0% 0% / 0.5);
+    --elevation-floating:
+      inset 0 1px 0 0 hsl(210 40% 96% / 0.08),
+      0 0 0 1px hsl(var(--border) / 0.55),
+      0 12px 32px -8px hsl(0 0% 0% / 0.55),
+      0 24px 56px -12px hsl(0 0% 0% / 0.65);
+    --ambient-wash: radial-gradient(
+      1200px 600px at 0% 0%,
+      hsl(var(--primary) / 0.10),
+      transparent 60%
+    );
+  }
 }
 
 
