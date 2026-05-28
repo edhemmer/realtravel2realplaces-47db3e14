@@ -42,7 +42,7 @@ export function Layout({ children }: LayoutProps) {
     <div className="min-h-screen bg-background">
 
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/75 pt-[var(--rt2rp-safe-top,env(safe-area-inset-top,0px))]">
+      <header className="sticky top-0 z-50 glass-chrome hairline-primary relative border-b pt-[var(--rt2rp-safe-top,env(safe-area-inset-top,0px))]">
         <div className="mx-auto flex h-14 w-full max-w-[1400px] items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-8">
           <BrandHeader variant="app">
 
