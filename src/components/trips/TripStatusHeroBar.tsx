@@ -102,45 +102,47 @@ export function TripStatusHeroBar({ trip }: TripStatusHeroBarProps) {
         <div className="bg-card/95 backdrop-blur-md border border-border/50 rounded-lg shadow-sm overflow-hidden">
           {/* Mode accent strip */}
           <div className={`h-[3px] w-full ${modeTheme.gradients.headerBg}`} />
-          <div className="flex items-center justify-between gap-4 px-5 py-3.5">
-            {/* Trip name - primary focal point */}
-             <h2 className="font-bold text-xl truncate flex-1">{trip.name}</h2>
-  
-             {/* v3.10.4: Edit Trip Dates — always available */}
-             <Button
-               variant="ghost"
-               size="sm"
-               className="shrink-0 text-xs gap-1.5 text-muted-foreground hover:text-foreground h-8"
-               onClick={() => setEditDatesOpen(true)}
-             >
-               <CalendarCog className="w-3.5 h-3.5" />
-               <span className="hidden sm:inline">Edit Dates</span>
-              </Button>
+          <div className="px-4 sm:px-5 py-3 sm:py-3.5">
+            {/* Row 1: Title (full width on mobile) */}
+            <h2 className="font-bold text-lg sm:text-xl leading-tight truncate">{trip.name}</h2>
 
-             {/* v5.2.0: Ask AI assistant */}
-             <Button
-               variant="ghost"
-               size="sm"
-               className="shrink-0 text-xs gap-1.5 text-primary hover:text-primary/80 h-8"
-               onClick={() => setAskOpen(true)}
-             >
-               <Sparkles className="w-3.5 h-3.5" />
-               <span className="hidden sm:inline">Ask</span>
-             </Button>
+            {/* Row 2: Actions + Status — wraps cleanly on narrow screens */}
+            <div className="flex items-center justify-between gap-2 mt-2">
+              <div className="flex items-center gap-1 min-w-0">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="shrink-0 text-xs gap-1.5 text-muted-foreground hover:text-foreground h-8 px-2"
+                  onClick={() => setEditDatesOpen(true)}
+                >
+                  <CalendarCog className="w-3.5 h-3.5" />
+                  <span>Edit Dates</span>
+                </Button>
 
-             {/* Status Badge */}
-             <Badge 
-               variant="outline"
-               className={cn(
-                 'flex items-center gap-1.5 border transition-all duration-300 shrink-0 px-3 py-1',
-                 statusConfig.className,
-                 isUrgent && 'animate-pulse'
-               )}
-             >
-               {statusConfig.icon}
-               {statusConfig.label}
-             </Badge>
-           </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="shrink-0 text-xs gap-1.5 text-primary hover:text-primary/80 h-8 px-2"
+                  onClick={() => setAskOpen(true)}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Ask</span>
+                </Button>
+              </div>
+
+              <Badge
+                variant="outline"
+                className={cn(
+                  'flex items-center gap-1.5 border transition-all duration-300 shrink-0 px-2.5 py-1',
+                  statusConfig.className,
+                  isUrgent && 'animate-pulse'
+                )}
+              >
+                {statusConfig.icon}
+                {statusConfig.label}
+              </Badge>
+            </div>
+          </div>
   
            {/* Retention warning line for Pro closed trips */}
            {showRetentionWarning && (
