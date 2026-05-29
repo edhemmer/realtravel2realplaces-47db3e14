@@ -32,9 +32,9 @@ export default function NativeWelcome() {
           initial={{ scale: 0.6, opacity: 0, rotate: -12 }}
           animate={{ scale: 1, opacity: 1, rotate: 0 }}
           transition={{ type: 'spring', stiffness: 140, damping: 14, delay: 0.05 }}
-          className="mb-10 h-24 w-24 rounded-3xl bg-white shadow-[0_20px_60px_-20px_rgba(15,23,42,0.25)] flex items-center justify-center"
+          className="mb-10 h-28 w-28 rounded-3xl bg-white shadow-[0_20px_60px_-20px_rgba(15,23,42,0.25)] flex items-center justify-center overflow-hidden"
         >
-          <Plane className="h-11 w-11 text-foreground" strokeWidth={1.5} />
+          <img src={brandLogo} alt="Real Travel 2 Real Places" className="h-24 w-24 object-contain" />
         </motion.div>
 
         <motion.h1
