@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Plane } from 'lucide-react';
+import brandLogo from '@/assets/rt2rp-logo.png';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { tapHaptic } from '@/lib/native/haptics';
