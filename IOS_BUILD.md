@@ -20,10 +20,9 @@ You don't need to own a Mac. Pick a build path, follow it once, and you're in Te
    npm install
    npm run build
    npx cap sync ios
-   cd ios/App && pod install && cd ../..
    npx cap open ios
    ```
-5. Xcode opens the CocoaPods workspace (`App.xcworkspace`). Select your **Apple Developer team** in *Signing & Capabilities*, then hit **Run** or **Archive**.
+5. Xcode opens the Xcode project (`App.xcodeproj`). Select your **Apple Developer team** in *Signing & Capabilities*, then hit **Run** or **Archive**.
 
 For every later change pushed from Lovable:
 ```bash
@@ -92,29 +91,19 @@ Store metadata
 
 ## Release build (drop the dev server.url)
 
-Production builds already load bundled assets by default. Run `npm run build && npx cap sync ios && cd ios/App && pod install && cd ../..`, then archive in Xcode (Product → Archive → Distribute → App Store Connect).
+Production builds already load bundled assets by default. Run `npm run ios:sync`, then archive in Xcode (Product → Archive → Distribute → App Store Connect).
 
 ## If Xcode says “Missing package product 'CapApp-SPM'”
 
-This project has been moved back to CocoaPods to bypass the Capacitor 8 SPM resolver issue. There should be no `CapApp-SPM` folder or Swift Package product in the iOS project anymore.
-
-Run this from the repo after pulling the latest changes:
+This project uses Capacitor's Swift Package Manager setup. If Xcode has stale package state, close Xcode and run:
 
 ```bash
-npm install
-npm run ios:sync
-open ios/App/App.xcworkspace
-```
-
-If Xcode still shows `CapApp-SPM`, close Xcode and run:
-
-```bash
-rm -rf ios/App/CapApp-SPM \
-  ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm \
+rm -rf ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm \
   ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/Package.resolved \
   ~/Library/Developer/Xcode/DerivedData/App-*
+npm install
 npm run ios:sync
-open ios/App/App.xcworkspace
+open ios/App/App.xcodeproj
 ```
 
-Do not open `App.xcodeproj`; open `App.xcworkspace` only.
+Open `App.xcodeproj`; do not use a Pods workspace.
