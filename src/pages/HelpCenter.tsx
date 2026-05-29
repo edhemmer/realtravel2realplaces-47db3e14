@@ -1000,6 +1000,9 @@ const HELP_SECTIONS: HelpSection[] = [
               Yes. Real Travel 2 Real Places is available as a native iOS app on the Apple App Store for iPhone and iPad.
               The native app delivers a true full-screen experience with safe-area handling, native gestures, and tighter system integration than the browser version.
             </p>
+            <p>
+              The iOS app is a <strong>free download</strong>, but a Real Travel 2 Real Places membership (Free, Pro, or Business) is still required to sign in and use it. Your same account works on both iOS and the web.
+            </p>
             <p className="text-xs text-muted-foreground">
               You can also keep using the web app at realtravel2realplaces.app on any device — your trips, bookings, and expenses stay in sync across both.
             </p>

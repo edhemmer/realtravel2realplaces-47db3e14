@@ -51,9 +51,9 @@ Real Travel 2 Real Places provides:
 
 ## Revenue Model
 
-**iOS App**: Free download on the App Store — all users get full app access at no cost.
+**iOS App**: Free to download on the App Store. A SaaS membership is still required to use the app — the free download removes the paywall to install, not the subscription to operate.
 
-**Web SaaS**: Three-tier subscription for browser-based usage:
+**Web SaaS**: Three-tier subscription that powers both web and iOS:
 
 | Tier | Price | Limit | Core Value |
 |------|-------|-------|------------|
@@ -61,7 +61,9 @@ Real Travel 2 Real Places provides:
 | **Pro** | TBD | Unlimited | Drive Mode, reports, health checklist, sharing, alerts |
 | **Business** | TBD | Unlimited | All Pro + tour stops, business expense reporting |
 
-> The iOS app is free to download and use. SaaS tiers apply to web-based usage only.
+> The iOS app is a free download, but a SaaS account (Free, Pro, or Business tier) is required to sign in and use it. Tier limits apply across web and iOS.
+
+
 
 
 ---
@@ -98,7 +100,7 @@ Real Travel 2 Real Places provides:
 |--------|-------|
 | Status | **Published & Live** |
 | Web URL | [realtravel2realplaces.app](https://realtravel2realplaces.app) |
-| iOS App | **Free on the App Store** — full feature parity, no subscription required |
+| iOS App | **Free download** on the App Store — SaaS membership required to sign in |
 | Build version | rt2rp-5100 |
 | Tables in production | 18+ |
 | Edge functions | 14+ |
@@ -109,8 +111,8 @@ Real Travel 2 Real Places provides:
 
 ## Pricing
 
-- **iOS App**: Free download — all features included at no cost
-- **Web SaaS**: Free tier (5 trips) + Pro/Business subscriptions for unlimited usage
+- **iOS App**: Free to download; SaaS membership (Free, Pro, or Business) required to use
+- **Web SaaS**: Free tier (5 trips) + Pro/Business subscriptions for unlimited usage — same account works on iOS
 
 ---
 
