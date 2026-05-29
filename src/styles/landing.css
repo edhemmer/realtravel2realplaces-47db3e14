@@ -136,6 +136,10 @@
   background: hsl(var(--landing-bg) / 0.85);
   backdrop-filter: blur(20px) saturate(1.2);
   border-bottom: 1px solid hsl(var(--landing-border) / 0.2);
+  /* iOS safe-area: keep wordmark clear of the notch / Dynamic Island */
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
 }
 
 .landing-wordmark {
@@ -204,18 +208,32 @@
 .landing-hero-section {
   position: relative;
   z-index: 1;
-  padding: 5.5rem 1.25rem 2.5rem;
+  /* Add safe-area-inset-top so the hero clears the header even when the
+     status bar reserves additional space on notched iPhones. */
+  padding:
+    calc(5.5rem + env(safe-area-inset-top, 0px))
+    max(1.25rem, env(safe-area-inset-right, 0px))
+    2.5rem
+    max(1.25rem, env(safe-area-inset-left, 0px));
 }
 
 @media (min-width: 640px) {
   .landing-hero-section {
-    padding: 6.5rem 1.5rem 3rem;
+    padding:
+      calc(6.5rem + env(safe-area-inset-top, 0px))
+      max(1.5rem, env(safe-area-inset-right, 0px))
+      3rem
+      max(1.5rem, env(safe-area-inset-left, 0px));
   }
 }
 
 @media (min-width: 1024px) {
   .landing-hero-section {
-    padding: 8rem 2rem 4rem;
+    padding:
+      calc(8rem + env(safe-area-inset-top, 0px))
+      max(2rem, env(safe-area-inset-right, 0px))
+      4rem
+      max(2rem, env(safe-area-inset-left, 0px));
   }
 }
 
@@ -1253,7 +1271,12 @@
 .landing-footer {
   position: relative;
   z-index: 1;
-  padding: 1.5rem 1.25rem;
+  /* iOS safe-area: keep copyright clear of the home indicator */
+  padding:
+    1.5rem
+    max(1.25rem, env(safe-area-inset-right, 0px))
+    calc(1.5rem + env(safe-area-inset-bottom, 0px))
+    max(1.25rem, env(safe-area-inset-left, 0px));
   border-top: 1px solid hsl(var(--landing-border) / 0.3);
   background: hsl(var(--landing-bg-secondary) / 0.3);
 }
