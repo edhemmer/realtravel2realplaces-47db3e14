@@ -55,11 +55,18 @@ Built by [InLight AI, LLC](https://inlightai.com).
 
 ## Subscription Tiers
 
+**iOS App**: Free download on the App Store — no subscription required.
+
+**Web SaaS**:
+
 | Tier | Trips | Key Features |
 |------|-------|-------------|
 | **Free** | 5 lifetime | Full booking/expense management, packing, sharing, calendar export |
 | **Pro** | Unlimited | Timeline events, health checklist, parking alerts, explore engine, trip reports |
 | **Business** | Unlimited | Tour stops, business expense reporting, stop-level expense assignment |
+
+> Download the iOS app for free. Web subscriptions apply to browser-based usage only.
+
 
 ---
 
