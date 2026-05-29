@@ -134,6 +134,17 @@ Complete list of implemented features organized by tier and domain.
 - iOS Share → Add to Home Screen guidance
 - Android/Chrome `beforeinstallprompt` native install prompt
 
+### Native iOS App (Capacitor)
+- Real native iOS app via Capacitor — same React codebase, native shell
+- App Store Connect submission with custom bundle ID
+- Safe-area insets for Dynamic Island, notch, and home indicator
+- Native share sheet for trip sharing
+- Status bar styling integrated with app theme
+- Haptic feedback on key actions (expense added, next action confirmed)
+- Background geolocation ready for on-trip execution
+- Apple Sign-In support (required by App Store when Google sign-in is present)
+- Deep link handling for OAuth returns and invite acceptance
+
 ---
 
 ## Pro Tier Features
@@ -286,3 +297,14 @@ Complete list of implemented features organized by tier and domain.
 - Lovable AI gateway for AI operations (no user API keys required)
 - Google Places API integration with server-side photo proxy
 - PWA with Workbox service worker and auto-update
+- Capacitor iOS build with native capability bridges
+
+---
+
+## Published Status
+
+| Platform | URL / Status |
+|----------|-------------|
+| **Web (Custom Domain)** | [realtravel2realplaces.app](https://realtravel2realplaces.app) |
+| **Web (Lovable)** | [realtravel2realplaces.lovable.app](https://realtravel2realplaces.lovable.app) |
+| **iOS** | App Store Connect — submitted for review |
