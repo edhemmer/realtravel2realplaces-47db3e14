@@ -12,19 +12,17 @@ You don't need to own a Mac. Pick a build path, follow it once, and you're in Te
    ```bash
    # one-time
    xcode-select --install
-   sudo gem install cocoapods
    ```
 4. Clone your GitHub export of this Lovable project:
    ```bash
    git clone https://github.com/<you>/<repo>.git
    cd <repo>
    npm install
-   npx cap add ios
    npm run build
    npx cap sync ios
    npx cap open ios
    ```
-5. Xcode opens. Select your **Apple Developer team** in *Signing & Capabilities*, plug in or pick a simulator, hit **Run**.
+5. Xcode opens the Swift Package Manager project. Select your **Apple Developer team** in *Signing & Capabilities*, wait for package resolution to finish, then hit **Run** or **Archive**.
 
 For every later change pushed from Lovable:
 ```bash
@@ -45,7 +43,7 @@ This is the right path if you don't want to touch Xcode at all.
 ## App Store prerequisites (one-time)
 
 - **Apple Developer Program**: $99/year — https://developer.apple.com/programs/
-- **Bundle ID**: `app.lovable.314579f7aa3c49b7b1788640b495f1f7` (already set in `capacitor.config.ts`)
+- **Bundle ID**: `com.inlighttai.rt2rp` (already set in `capacitor.config.ts` and `ios/App/App/Info.plist`)
 - **App icon**: 1024×1024 PNG, no transparency. Place in `ios/App/App/Assets.xcassets/AppIcon.appiconset/` after `cap add ios`.
 - **Launch screen**: handled by `@capacitor/splash-screen` — replace the default in `ios/App/App/Assets.xcassets/Splash.imageset/`.
 - **Privacy strings** in `ios/App/App/Info.plist`:
@@ -93,10 +91,19 @@ Store metadata
 
 ## Release build (drop the dev server.url)
 
-For production builds, comment out the `server` block in `capacitor.config.ts` so the app loads bundled assets instead of the Lovable sandbox:
+Production builds already load bundled assets by default. Run `npm run build && npx cap sync ios`, then archive in Xcode (Product → Archive → Distribute → App Store Connect).
 
-```ts
-// server: { url: '...', cleartext: true },
+## If Xcode says “Missing package product 'CapApp-SPM'”
+
+This project uses Swift Package Manager, not CocoaPods. There is no `Podfile`, and you should not run `pod install`.
+
+Run this from the repo after pulling the latest changes:
+
+```bash
+npm install
+npm run build
+npx cap sync ios
+npx cap open ios
 ```
 
-Then `npm run build && npx cap sync ios` and archive in Xcode (Product → Archive → Distribute → App Store Connect).
+In Xcode, use **File → Packages → Reset Package Caches**, then **File → Packages → Resolve Package Versions**. If needed, close Xcode and remove `~/Library/Developer/Xcode/DerivedData`, then reopen with `npx cap open ios`.
