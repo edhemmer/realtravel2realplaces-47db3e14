@@ -115,11 +115,24 @@ const HELP_SECTIONS: HelpSection[] = [
         question: 'How do I create an account?',
         answer: (
           <ol className="list-decimal list-inside space-y-1.5">
-            <li>Tap <strong>Get Started</strong> on the home page.</li>
-            <li>Enter your email address and create a password.</li>
-            <li>Check your inbox for a verification email and confirm your account.</li>
+            <li>Tap <strong>Get Started</strong> on the home page, or open the iOS app from the App Store.</li>
+            <li>Enter your email address and create a password — or tap <strong>Continue with Apple</strong> in the iOS app for one-tap sign-up.</li>
+            <li>If you used email, check your inbox for a verification message and confirm your account.</li>
             <li>Sign in and complete the short guided introduction.</li>
           </ol>
+        ),
+      },
+      {
+        question: 'Where can I use Real Travel 2 Real Places?',
+        answer: (
+          <div className="space-y-2">
+            <p>Three ways, all signed in to the same account with everything in sync:</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li><strong>iOS app</strong> — native iPhone and iPad app on the Apple App Store.</li>
+              <li><strong>Installable web app</strong> — add to your home screen from Chrome (Android) or Safari (iOS) for a full-screen, app-like experience.</li>
+              <li><strong>Browser</strong> — full desktop experience at realtravel2realplaces.app.</li>
+            </ul>
+          </div>
         ),
       },
       {
@@ -132,6 +145,7 @@ const HELP_SECTIONS: HelpSection[] = [
         answer:
           'Yes. You can re-view the guide anytime from your Account page without resetting your progress or data.',
       },
+
       {
         question: 'Understanding Plans',
         answer: (
