@@ -27,7 +27,7 @@ You don't need to own a Mac. Pick a build path, follow it once, and you're in Te
 
 For every later change pushed from Lovable:
 ```bash
-git pull && npm install && npm run build && npx cap sync ios && cd ios/App && pod install && cd ../..
+git pull && npm install && npm run ios:sync
 ```
 
 ## Path B — Ionic Appflow (no Mac ever, ~$0–$49/mo)
@@ -102,10 +102,19 @@ Run this from the repo after pulling the latest changes:
 
 ```bash
 npm install
-npm run build
-npx cap sync ios
-cd ios/App && pod install && cd ../..
-npx cap open ios
+npm run ios:sync
+open ios/App/App.xcworkspace
 ```
 
-If Xcode still shows `CapApp-SPM`, it is opening an old cached project. Close Xcode, remove `~/Library/Developer/Xcode/DerivedData`, then open `ios/App/App.xcworkspace` — not `App.xcodeproj`.
+If Xcode still shows `CapApp-SPM`, close Xcode and run:
+
+```bash
+rm -rf ios/App/CapApp-SPM \
+  ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm \
+  ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/Package.resolved \
+  ~/Library/Developer/Xcode/DerivedData/App-*
+npm run ios:sync
+open ios/App/App.xcworkspace
+```
+
+Do not open `App.xcodeproj`; open `App.xcworkspace` only.
