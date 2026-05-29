@@ -36,6 +36,8 @@ Built by [InLight AI, LLC](https://inlightai.com).
 | AI Services | Lovable AI (Gemini models) |
 | Auth | Email/password with session management |
 | Security | Row-Level Security (RLS) on all tables, PII masking for non-owners |
+| Native iOS | Capacitor (bundled React app with native shell) |
+| PWA | vite-plugin-pwa + Workbox (offline-capable, installable) |
 
 ---
 
@@ -46,6 +48,7 @@ Built by [InLight AI, LLC](https://inlightai.com).
 - **No-Math Time Policy**: All datetime operations use string-based primitives — no timezone drift
 - **Desktop Shell**: Centralized context provider eliminates redundant data fetches across tabs
 - **Mobile-First**: Bottom nav, safe areas, touch-optimized targets, platform-specific routing
+- **Native iOS**: Capacitor-wrapped app with App Store distribution, safe-area insets, native share sheet
 - **250+ Unit Tests**: Commercial-grade test coverage across core business logic
 
 ---
@@ -124,6 +127,8 @@ bun run test
 - **Frontend**: Published via Lovable (click Publish → Update)
 - **Backend**: Edge functions and migrations deploy automatically
 - **Production URL**: [realtravel2realplaces.lovable.app](https://realtravel2realplaces.lovable.app)
+- **Custom Domain**: [realtravel2realplaces.app](https://realtravel2realplaces.app)
+- **iOS App**: Capacitor-native build submitted to App Store Connect (TestFlight → App Store)
 
 ---
 

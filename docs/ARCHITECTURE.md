@@ -33,6 +33,7 @@ This document provides an overview of the application architecture for developer
 | AI Services | Lovable AI (Gemini 2.5 Pro for itinerary parsing, Gemini Flash for other parsers) |
 | Auth | Email/password with session management |
 | PWA | vite-plugin-pwa + Workbox (auto-update service worker) |
+| Native iOS | Capacitor (bundled React app with native iOS shell) |
 | SEO | react-helmet-async, JSON-LD structured data, sitemap.xml |
 
 ---
@@ -93,7 +94,12 @@ public/
 ├── pwa-icon-512.png     # PWA icon 512×512
 ├── robots.txt           # Crawler directives with Sitemap reference
 ├── sitemap.xml          # XML sitemap for search engines
-└── rt2rp-logo.png       # Brand logo
+├── rt2rp-logo.png       # Brand logo
+└── rt2rp-logo-dark.png  # Brand logo (dark variant)
+
+resources/                 # iOS app store assets
+├── icon.png             # 1024×1024 App Store icon
+└── splash.png           # 2732×2732 launch screen
 
 supabase/
 ├── functions/           # 14+ Edge Functions
@@ -401,6 +407,37 @@ Including: `user_owns_trip`, `user_has_trip_access`, `user_is_pro`, `trip_owner_
 
 ---
 
+## Native iOS Architecture
+
+### Capacitor Integration
+The iOS app is the same React codebase wrapped in a Capacitor native shell. No feature duplication — one codebase powers web, PWA, and iOS.
+
+| Aspect | Implementation |
+|--------|---------------|
+| **Framework** | `@capacitor/core` + `@capacitor/ios` |
+| **Bundle ID** | `app.lovable.314579f7aa3c49b7b1788640b495f1f7` |
+| **App Name** | `realtravel2realplaces` |
+| **Build output** | `.ipa` via Xcode Archive → App Store Connect |
+
+### iOS-Specific Adjustments
+- **Safe areas**: `env(safe-area-inset-*)` CSS variables on `BrandHeader`, `MobileBottomNav`, `TripDetailLayout`
+- **Status bar**: Styled via `capacitor.config.ts` to match dark theme
+- **Deep links**: Custom URL scheme for OAuth return + universal links for invite acceptance
+- **Apple Sign-In**: Required by App Store when Google sign-in is present; managed by Lovable Cloud
+
+### Native Capability Bridges (Optional)
+- **Background geolocation** → feeds `useDeviceLocation` for true on-trip execution
+- **Push notifications (APNs)** → replaces/augments current in-app `useNotifications`
+- **Haptics** → on key execution actions (Now / Next Action confirmations)
+- **Native share sheet** → for trip share links
+
+### Build Flow
+```
+Lovable edits → GitHub export → npm install → npm run build → npx cap sync ios → Xcode Archive → App Store Connect
+```
+
+---
+
 ## SEO Architecture
 
 ### Meta Tags
@@ -424,3 +461,14 @@ Including: `user_owns_trip`, `user_has_trip_access`, `user_is_pro`, `trip_owner_
 - [PRODUCT_OVERVIEW.md](./PRODUCT_OVERVIEW.md) — Product positioning
 - [FEATURE_INVENTORY.md](./FEATURE_INVENTORY.md) — Complete feature list
 - [AI_PROMPTS.md](./AI_PROMPTS.md) — AI system prompts
+
+---
+
+## Deployment & Published Status
+
+| Platform | URL / Status |
+|----------|-------------|
+| **Web (Custom Domain)** | [realtravel2realplaces.app](https://realtravel2realplaces.app) |
+| **Web (Lovable)** | [realtravel2realplaces.lovable.app](https://realtravel2realplaces.lovable.app) |
+| **iOS** | App Store Connect — submitted for App Store review |
+| **Build Guide** | [IOS_BUILD.md](../../IOS_BUILD.md) |
