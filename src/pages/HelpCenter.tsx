@@ -974,15 +974,67 @@ const HELP_SECTIONS: HelpSection[] = [
    * ================================================================ */
   {
     id: 'mobile',
-    title: 'Mobile Experience',
+    title: 'Mobile & iOS App',
     icon: <Smartphone className="w-5 h-5 text-primary" />,
-    description: 'How Real Travel 2 Real Places works on your phone.',
+    description: 'How Real Travel 2 Real Places works on your phone, including the native iOS app.',
     items: [
+      {
+        question: 'Is there an iPhone or iPad app?',
+        answer: (
+          <div className="space-y-2">
+            <p>
+              Yes. Real Travel 2 Real Places is available as a native iOS app on the Apple App Store for iPhone and iPad.
+              The native app delivers a true full-screen experience with safe-area handling, native gestures, and tighter system integration than the browser version.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              You can also keep using the web app at realtravel2realplaces.app on any device — your trips, bookings, and expenses stay in sync across both.
+            </p>
+          </div>
+        ),
+      },
+      {
+        question: 'How do I install the iOS app?',
+        answer: (
+          <ol className="list-decimal list-inside space-y-1.5">
+            <li>Open the <strong>App Store</strong> on your iPhone or iPad.</li>
+            <li>Search for <strong>Real Travel 2 Real Places</strong>.</li>
+            <li>Tap <strong>Get</strong> to install.</li>
+            <li>Open the app and sign in with your existing account — or tap <strong>Continue with Apple</strong> to create one in a single step.</li>
+          </ol>
+        ),
+      },
+      {
+        question: 'Can I install it on Android or as a home-screen app?',
+        answer: (
+          <div className="space-y-2">
+            <p>
+              Yes. Real Travel 2 Real Places is also an installable web app. On Android Chrome, open the browser menu and tap <strong>Install app</strong> or <strong>Add to Home screen</strong>.
+              On iOS Safari (if you prefer the web version), tap the Share icon and choose <strong>Add to Home Screen</strong>.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              The installed web app behaves like a native app: full-screen, its own home-screen icon, and offline support for recent trips.
+            </p>
+          </div>
+        ),
+      },
+      {
+        question: 'What can I do in the iOS app that I can\'t do in a browser?',
+        answer: (
+          <ul className="list-disc list-inside space-y-1">
+            <li><strong>Sign in with Apple</strong> — one-tap account creation and sign-in.</li>
+            <li><strong>Native share sheet</strong> — share trips, itineraries, and reports straight to Messages, Mail, or AirDrop.</li>
+            <li><strong>Haptic feedback</strong> on key actions in NOW and Drive Mode.</li>
+            <li><strong>Background location</strong> for live arrival, departure, and "time to leave" awareness during a trip (you control this in Settings &gt; Privacy).</li>
+            <li><strong>Deep links</strong> — tapping a Real Travel 2 Real Places link from Mail or Messages opens directly in the app.</li>
+            <li><strong>Edge-to-edge layout</strong> with proper safe-area handling around the Dynamic Island and home indicator.</li>
+          </ul>
+        ),
+      },
       {
         question: 'How does mobile navigation work?',
         answer: (
           <div className="space-y-2">
-            <p>On mobile devices, your Trip uses a bottom navigation bar with main tabs:</p>
+            <p>On phones, your Trip uses a bottom navigation bar with main tabs:</p>
             <ul className="list-disc list-inside space-y-1">
               <li><strong>NOW</strong> — real-time execution view with quick actions</li>
               <li><strong>PLAN</strong> — timeline and trip overview</li>
@@ -1000,11 +1052,34 @@ const HELP_SECTIONS: HelpSection[] = [
       },
       {
         question: 'Does the app work offline?',
-        answer:
-          'Real Travel 2 Real Places requires an internet connection. For best results, review your NOW screen before entering areas with limited connectivity.',
+        answer: (
+          <div className="space-y-2">
+            <p>
+              Yes — the iOS app and the installed web app cache your current trip, today\'s timeline, recent bookings, and nearby Explore results so you can still see what\'s next when you lose signal (in flight, in a tunnel, abroad without data).
+            </p>
+            <p>
+              Any expenses you add offline are saved locally and sync automatically the moment you\'re back online.
+              Live items that need the network — weather, traffic, flight status, new search results — resume as soon as connectivity returns.
+            </p>
+          </div>
+        ),
+      },
+      {
+        question: 'How do permissions work on iOS?',
+        answer: (
+          <div className="space-y-2">
+            <p>iOS will ask you to allow specific capabilities the first time they\'re used. You can change any of these later in <strong>Settings &gt; Real Travel 2 Real Places</strong>:</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li><strong>Location</strong> — powers NOW, Drive Mode timing, and Explore. "While Using" is enough; "Always" enables background trip awareness.</li>
+              <li><strong>Notifications</strong> — boarding, departure, and "time to leave" alerts during active trips.</li>
+              <li><strong>Camera / Photos</strong> — only used when you attach a receipt or import a booking screenshot.</li>
+            </ul>
+          </div>
+        ),
       },
     ],
   },
+
 
   /* ================================================================
    * ACCOUNT & SETTINGS
