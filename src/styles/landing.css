@@ -208,18 +208,32 @@
 .landing-hero-section {
   position: relative;
   z-index: 1;
-  padding: 5.5rem 1.25rem 2.5rem;
+  /* Add safe-area-inset-top so the hero clears the header even when the
+     status bar reserves additional space on notched iPhones. */
+  padding:
+    calc(5.5rem + env(safe-area-inset-top, 0px))
+    max(1.25rem, env(safe-area-inset-right, 0px))
+    2.5rem
+    max(1.25rem, env(safe-area-inset-left, 0px));
 }
 
 @media (min-width: 640px) {
   .landing-hero-section {
-    padding: 6.5rem 1.5rem 3rem;
+    padding:
+      calc(6.5rem + env(safe-area-inset-top, 0px))
+      max(1.5rem, env(safe-area-inset-right, 0px))
+      3rem
+      max(1.5rem, env(safe-area-inset-left, 0px));
   }
 }
 
 @media (min-width: 1024px) {
   .landing-hero-section {
-    padding: 8rem 2rem 4rem;
+    padding:
+      calc(8rem + env(safe-area-inset-top, 0px))
+      max(2rem, env(safe-area-inset-right, 0px))
+      4rem
+      max(2rem, env(safe-area-inset-left, 0px));
   }
 }
 
