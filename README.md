@@ -135,7 +135,7 @@ bun run test
 - **Backend**: Edge functions and migrations deploy automatically
 - **Production URL**: [realtravel2realplaces.lovable.app](https://realtravel2realplaces.lovable.app)
 - **Custom Domain**: [realtravel2realplaces.app](https://realtravel2realplaces.app)
-- **iOS App**: Capacitor-native build submitted to App Store Connect (TestFlight → App Store)
+- **iOS App**: Free download on the App Store — Capacitor-native build with full feature parity
 
 ---
 
