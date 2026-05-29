@@ -55,9 +55,9 @@ Built by [InLight AI, LLC](https://inlightai.com).
 
 ## Subscription Tiers
 
-**iOS App**: Free download on the App Store — no subscription required.
+**iOS App**: Free to download on the App Store. A SaaS membership is still required to sign in and use the app.
 
-**Web SaaS**:
+**Web SaaS** (same account works on iOS):
 
 | Tier | Trips | Key Features |
 |------|-------|-------------|
@@ -65,7 +65,7 @@ Built by [InLight AI, LLC](https://inlightai.com).
 | **Pro** | Unlimited | Timeline events, health checklist, parking alerts, explore engine, trip reports |
 | **Business** | Unlimited | Tour stops, business expense reporting, stop-level expense assignment |
 
-> Download the iOS app for free. Web subscriptions apply to browser-based usage only.
+> The iOS app is a free download, but a SaaS account (Free, Pro, or Business) is required to use it. Tier limits apply across both web and iOS.
 
 
 ---
