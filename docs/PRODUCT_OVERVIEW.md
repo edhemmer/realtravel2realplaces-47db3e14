@@ -80,6 +80,7 @@ Three-tier SaaS subscription:
 - **Drive Intelligence**: Centralized drive segment resolution with full-address navigation
 - **EXPLORE Engine**: Google Places integration with server-side photo proxy and weather-aware ranking
 - **Progressive Web App**: Installable on mobile/desktop with offline support and auto-updating service worker via Workbox
+- **Native iOS App**: Capacitor-wrapped React app submitted to App Store; same backend, same features
 - **SEO Optimized**: Sitemap, structured data (JSON-LD), Open Graph, Twitter Cards, preconnect hints
 - **250+ Unit Tests**: Commercial-grade test coverage for business logic
 - **Security-First**: RLS on all tables, PII masking, session idle logout, CRON auth
@@ -90,6 +91,9 @@ Three-tier SaaS subscription:
 
 | Metric | Value |
 |--------|-------|
+| Status | **Published & Live** |
+| Web URL | [realtravel2realplaces.app](https://realtravel2realplaces.app) |
+| iOS | App Store Connect — TestFlight / App Store submission |
 | Build version | rt2rp-5100 |
 | Tables in production | 18+ |
 | Edge functions | 14+ |
@@ -108,6 +112,7 @@ Three-tier SaaS subscription:
 
 ## Links
 
-- **Production**: [realtravel2realplaces.lovable.app](https://realtravel2realplaces.lovable.app)
+- **Production (Web)**: [realtravel2realplaces.app](https://realtravel2realplaces.app)
+- **Published URL**: [realtravel2realplaces.lovable.app](https://realtravel2realplaces.lovable.app)
 - **Architecture**: [docs/ARCHITECTURE.md](./ARCHITECTURE.md)
 - **Feature Inventory**: [docs/FEATURE_INVENTORY.md](./FEATURE_INVENTORY.md)
