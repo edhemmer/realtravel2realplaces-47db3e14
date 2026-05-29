@@ -51,13 +51,18 @@ Real Travel 2 Real Places provides:
 
 ## Revenue Model
 
-Three-tier SaaS subscription:
+**iOS App**: Free download on the App Store — all users get full app access at no cost.
+
+**Web SaaS**: Three-tier subscription for browser-based usage:
 
 | Tier | Price | Limit | Core Value |
 |------|-------|-------|------------|
 | **Free** | $0 | 5 lifetime trips | Full trip management, EXPLORE, timeline, packing, calendar export |
 | **Pro** | TBD | Unlimited | Drive Mode, reports, health checklist, sharing, alerts |
 | **Business** | TBD | Unlimited | All Pro + tour stops, business expense reporting |
+
+> The iOS app is free to download and use. SaaS tiers apply to web-based usage only.
+
 
 ---
 
