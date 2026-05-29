@@ -100,7 +100,7 @@ Real Travel 2 Real Places provides:
 |--------|-------|
 | Status | **Published & Live** |
 | Web URL | [realtravel2realplaces.app](https://realtravel2realplaces.app) |
-| iOS App | **Free on the App Store** — full feature parity, no subscription required |
+| iOS App | **Free download** on the App Store — SaaS membership required to sign in |
 | Build version | rt2rp-5100 |
 | Tables in production | 18+ |
 | Edge functions | 14+ |
@@ -111,8 +111,8 @@ Real Travel 2 Real Places provides:
 
 ## Pricing
 
-- **iOS App**: Free download — all features included at no cost
-- **Web SaaS**: Free tier (5 trips) + Pro/Business subscriptions for unlimited usage
+- **iOS App**: Free to download; SaaS membership (Free, Pro, or Business) required to use
+- **Web SaaS**: Free tier (5 trips) + Pro/Business subscriptions for unlimited usage — same account works on iOS
 
 ---
 
