@@ -49,8 +49,10 @@ This is the right path if you don't want to touch Xcode at all.
 - **App icon**: 1024×1024 PNG, no transparency. Place in `ios/App/App/Assets.xcassets/AppIcon.appiconset/` after `cap add ios`.
 - **Launch screen**: handled by `@capacitor/splash-screen` — replace the default in `ios/App/App/Assets.xcassets/Splash.imageset/`.
 - **Privacy strings** in `ios/App/App/Info.plist`:
-  - `NSLocationWhenInUseUsageDescription` — "Used to surface trip stops near you and time your departures."
-  - `NSCameraUsageDescription` (if scanning receipts) — "Used to capture receipts and tickets."
+  - `NSLocationWhenInUseUsageDescription` — "Your location is used to surface nearby trip stops and time your departures while the app is open."
+  - `NSLocationAlwaysAndWhenInUseUsageDescription` — "Your location is used to surface nearby trip stops and time your departures even when the app is in the background." *(Required by App Store as of May 2026; see `ios/App/App/Info.plist` in this repo.)*
+  - `NSCameraUsageDescription` (if scanning receipts) — "The camera is used to capture receipts and tickets for expense tracking."
+  - `NSPhotoLibraryUsageDescription` (if importing from camera roll) — "Photo library access is used to import receipts and tickets for expense tracking."
   - `NSUserTrackingUsageDescription` — only if you add analytics SDKs.
 
 ## Apple Sign-In (required by App Store if Google sign-in is present)
