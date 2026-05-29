@@ -15,10 +15,10 @@ export default function LandingHeader() {
             aria-label="InLight AI — RealTravel 2 RealPlaces"
           >
             <img
-              src="/app-icon-1024.png"
+              src="/rt2rp-logo.png"
               alt=""
               aria-hidden="true"
-              className="h-8 w-8 sm:h-9 sm:w-9 lg:h-10 lg:w-10 flex-shrink-0"
+              className="h-12 w-12 sm:h-14 sm:w-14 lg:h-16 lg:w-16 flex-shrink-0 object-contain"
             />
             <span className="flex flex-col sm:flex-row sm:items-baseline sm:gap-2 leading-tight">
               <span className="text-[10px] sm:text-xs font-medium uppercase tracking-[0.16em] text-white/60">

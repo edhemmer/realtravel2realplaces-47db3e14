@@ -75,8 +75,8 @@ export default function WelcomeChoice() {
         <Card className="w-full max-w-md">
           <CardContent className="p-6 md:p-8 space-y-6 text-center">
             <div className="space-y-3">
-              <div className="w-14 h-14 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-                <Plane className="w-7 h-7 text-primary" />
+              <div className="w-20 h-20 mx-auto rounded-2xl bg-white shadow-md flex items-center justify-center overflow-hidden">
+                <img src="/rt2rp-logo.png" alt="Real Travel 2 Real Places" className="w-16 h-16 object-contain" />
               </div>
               <h1 className="text-2xl font-bold">You're all set!</h1>
               <p className="text-muted-foreground leading-relaxed">
