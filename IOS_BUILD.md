@@ -20,13 +20,14 @@ You don't need to own a Mac. Pick a build path, follow it once, and you're in Te
    npm install
    npm run build
    npx cap sync ios
+   cd ios/App && pod install && cd ../..
    npx cap open ios
    ```
-5. Xcode opens the Swift Package Manager project. Select your **Apple Developer team** in *Signing & Capabilities*, wait for package resolution to finish, then hit **Run** or **Archive**.
+5. Xcode opens the CocoaPods workspace (`App.xcworkspace`). Select your **Apple Developer team** in *Signing & Capabilities*, then hit **Run** or **Archive**.
 
 For every later change pushed from Lovable:
 ```bash
-git pull && npm install && npm run build && npx cap sync ios
+git pull && npm install && npm run build && npx cap sync ios && cd ios/App && pod install && cd ../..
 ```
 
 ## Path B — Ionic Appflow (no Mac ever, ~$0–$49/mo)
@@ -91,11 +92,11 @@ Store metadata
 
 ## Release build (drop the dev server.url)
 
-Production builds already load bundled assets by default. Run `npm run build && npx cap sync ios`, then archive in Xcode (Product → Archive → Distribute → App Store Connect).
+Production builds already load bundled assets by default. Run `npm run build && npx cap sync ios && cd ios/App && pod install && cd ../..`, then archive in Xcode (Product → Archive → Distribute → App Store Connect).
 
 ## If Xcode says “Missing package product 'CapApp-SPM'”
 
-This project uses Swift Package Manager, not CocoaPods. There is no `Podfile`, and you should not run `pod install`.
+This project has been moved back to CocoaPods to bypass the Capacitor 8 SPM resolver issue. There should be no `CapApp-SPM` folder or Swift Package product in the iOS project anymore.
 
 Run this from the repo after pulling the latest changes:
 
@@ -103,7 +104,8 @@ Run this from the repo after pulling the latest changes:
 npm install
 npm run build
 npx cap sync ios
+cd ios/App && pod install && cd ../..
 npx cap open ios
 ```
 
-In Xcode, use **File → Packages → Reset Package Caches**, then **File → Packages → Resolve Package Versions**. If needed, close Xcode and remove `~/Library/Developer/Xcode/DerivedData`, then reopen with `npx cap open ios`.
+If Xcode still shows `CapApp-SPM`, it is opening an old cached project. Close Xcode, remove `~/Library/Developer/Xcode/DerivedData`, then open `ios/App/App.xcworkspace` — not `App.xcodeproj`.
