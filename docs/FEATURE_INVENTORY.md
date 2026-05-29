@@ -303,8 +303,8 @@ Complete list of implemented features organized by tier and domain.
 
 ## Published Status
 
-| Platform | URL / Status |
-|----------|-------------|
-| **Web (Custom Domain)** | [realtravel2realplaces.app](https://realtravel2realplaces.app) |
-| **Web (Lovable)** | [realtravel2realplaces.lovable.app](https://realtravel2realplaces.lovable.app) |
-| **iOS** | App Store Connect — submitted for review |
+| Platform | URL / Status | Pricing |
+|----------|-------------|---------|
+| **Web (Custom Domain)** | [realtravel2realplaces.app](https://realtravel2realplaces.app) | Free tier + Pro/Business SaaS |
+| **Web (Lovable)** | [realtravel2realplaces.lovable.app](https://realtravel2realplaces.lovable.app) | Free tier + Pro/Business SaaS |
+| **iOS** | App Store — **Free download** | No subscription required |
