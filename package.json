@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "ios:sync": "npm run build && npx cap sync ios",
+    "ios:repair-spm": "node scripts/repair-ios-spm.mjs",
     "ios:run": "npm run ios:sync && npx cap run ios",
     "ios:dev-server": "CAP_DEV_SERVER=1 npx cap sync ios && CAP_DEV_SERVER=1 npx cap run ios",
     "test": "vitest run",
