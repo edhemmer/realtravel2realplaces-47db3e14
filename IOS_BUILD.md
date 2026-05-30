@@ -103,4 +103,4 @@ npm run ios:repair-spm
 open ios/App/App.xcodeproj
 ```
 
-Open `App.xcodeproj`; do not use a Pods workspace.
+If Xcode is already open, quit it before running the command. Open `App.xcodeproj`; do not use a Pods workspace.
