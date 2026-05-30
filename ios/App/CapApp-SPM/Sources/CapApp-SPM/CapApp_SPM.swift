@@ -1,1 +1,2 @@
-// Empty target used to aggregate Capacitor Swift Package Manager dependencies.
+@_exported import Capacitor
+@_exported import Cordova
