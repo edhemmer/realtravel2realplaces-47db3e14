@@ -1,2 +1,1 @@
-@_exported import Capacitor
-@_exported import Cordova
+public let isCapacitorApp = true
