@@ -19,13 +19,13 @@ You don't need to own a Mac. Pick a build path, follow it once, and you're in Te
    cd <repo>
    npm install
    npm run ios:sync
-   open ios/App/App.xcworkspace
+   open ios/App/App.xcodeproj
    ```
-5. Xcode opens the Pods workspace (`App.xcworkspace`). Select your **Apple Developer team** in *Signing & Capabilities*, then hit **Run** or **Archive**.
+5. Xcode opens the Xcode project (`App.xcodeproj`). Select your **Apple Developer team** in *Signing & Capabilities*, then hit **Run** or **Archive**.
 
 For every later change pushed from Lovable:
 ```bash
-git pull && npm install && npm run ios:sync && open ios/App/App.xcworkspace
+git pull && npm install && npm run ios:sync && open ios/App/App.xcodeproj
 ```
 
 ## Path B — Ionic Appflow (no Mac ever, ~$0–$49/mo)
@@ -90,17 +90,17 @@ Store metadata
 
 ## Release build (drop the dev server.url)
 
-Production builds already load bundled assets by default. Run `npm run ios:sync`, open `ios/App/App.xcworkspace`, then archive in Xcode (Product → Archive → Distribute → App Store Connect).
+Production builds already load bundled assets by default. Run `npm run ios:sync`, open `ios/App/App.xcodeproj`, then archive in Xcode (Product → Archive → Distribute → App Store Connect).
 
 ## If Xcode says “Missing package product 'CapApp-SPM'”
 
-That error means Xcode is still opening or caching the old Swift Package Manager project. This repo now uses CocoaPods for iOS to remove the `CapApp-SPM` path entirely. Close Xcode and run:
+This project uses Capacitor's Swift Package Manager setup. Close Xcode completely and run:
 
 ```bash
 git pull
 npm install
 npm run ios:sync
-open ios/App/App.xcworkspace
+open ios/App/App.xcodeproj
 ```
 
-If Xcode is already open, quit it before running the command. Open `App.xcworkspace`; do not open `App.xcodeproj`.
+If Xcode is already open, quit it before running the command. Open `App.xcodeproj`; do not use a Pods workspace.
