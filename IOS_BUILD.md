@@ -98,11 +98,8 @@ Production builds already load bundled assets by default. Run `npm run ios:sync`
 This project uses Capacitor's Swift Package Manager setup. If Xcode has stale package state, close Xcode and run:
 
 ```bash
-rm -rf ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm \
-  ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/Package.resolved \
-  ~/Library/Developer/Xcode/DerivedData/App-*
 npm install
-npm run ios:sync
+npm run ios:repair-spm
 open ios/App/App.xcodeproj
 ```
 
