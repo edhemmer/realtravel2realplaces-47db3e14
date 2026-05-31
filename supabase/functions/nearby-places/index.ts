@@ -231,10 +231,11 @@ Deno.serve(async (req) => {
 
     const apiKey = Deno.env.get('GOOGLE_PLACES_API_KEY');
     if (!apiKey) {
-      console.warn('[nearby-places] GOOGLE_PLACES_API_KEY not configured — using OSM fallback');
-      const places = await fetchOsmPlaces(lat, lng, type, radiusMeters, limit);
+      console.warn('[nearby-places] GOOGLE_PLACES_API_KEY not configured — using fallback providers');
+      const places = await fetchHerePlaces(lat, lng, type, radiusMeters, limit)
+        .then((results) => results.length > 0 ? results : fetchOsmPlaces(lat, lng, type, radiusMeters, limit));
       return new Response(
-        JSON.stringify({ places, provider: 'osm_fallback' }),
+        JSON.stringify({ places, provider: 'fallback' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -273,9 +274,10 @@ Deno.serve(async (req) => {
     if (!response.ok) {
       const errText = await response.text();
       console.error(`[nearby-places] Google Text Search API error: ${response.status}`, errText);
-      const places = await fetchOsmPlaces(lat, lng, type, radiusMeters, limit);
+      const places = await fetchHerePlaces(lat, lng, type, radiusMeters, limit)
+        .then((results) => results.length > 0 ? results : fetchOsmPlaces(lat, lng, type, radiusMeters, limit));
       return new Response(
-        JSON.stringify({ places, provider: 'osm_fallback', fallbackReason: 'GOOGLE_PLACES_ERROR' }),
+        JSON.stringify({ places, provider: 'fallback', fallbackReason: 'GOOGLE_PLACES_ERROR' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
