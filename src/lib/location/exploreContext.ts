@@ -61,6 +61,26 @@ export function hasExploreDestination(trip: Trip): boolean {
 
 const _geocodeCache = new Map<string, { lat: number; lng: number } | null>();
 
+function buildRefGeocodeKey(ref: LocationRef, trip: Trip): string {
+  return [
+    ref.kind,
+    ref.key,
+    ref.address,
+    ref.label,
+    trip.destination_city,
+    trip.destination_state,
+    trip.destination_country,
+  ].filter(Boolean).join('::');
+}
+
+function buildRefGeocodeQuery(ref: LocationRef, trip: Trip): string | null {
+  const base = ref.address?.trim() || ref.label?.trim();
+  if (!base) return null;
+  return [base, trip.destination_city, trip.destination_state, trip.destination_country]
+    .filter(Boolean)
+    .join(', ');
+}
+
 /**
  * Simple geocode via Nominatim for destination city fallback.
  * Cached per trip id for the session.
@@ -103,6 +123,39 @@ async function geocodeDestination(trip: Trip): Promise<{ lat: number; lng: numbe
   return null;
 }
 
+async function geocodeLocationRef(ref: LocationRef, trip: Trip): Promise<{ lat: number; lng: number } | null> {
+  if (ref.lat != null && ref.lng != null) return { lat: ref.lat, lng: ref.lng };
+
+  const cacheKey = buildRefGeocodeKey(ref, trip);
+  if (_geocodeCache.has(cacheKey)) return _geocodeCache.get(cacheKey) ?? null;
+
+  const query = buildRefGeocodeQuery(ref, trip);
+  if (!query) {
+    _geocodeCache.set(cacheKey, null);
+    return null;
+  }
+
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`,
+      { headers: { 'User-Agent': 'RT2RP/4.10' } }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      if (data.length > 0) {
+        const coords = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+        _geocodeCache.set(cacheKey, coords);
+        return coords;
+      }
+    }
+  } catch {
+    // Non-fatal — Explore will continue down the fallback chain.
+  }
+
+  _geocodeCache.set(cacheKey, null);
+  return null;
+}
+
 // ============================================================================
 // HELPERS
 // ============================================================================
@@ -111,6 +164,19 @@ function refToOrigin(ref: LocationRef, source: ExploreOriginSource): ExploreOrig
   if (ref.lat != null && ref.lng != null) {
     return { lat: ref.lat, lng: ref.lng, label: ref.label, source };
   }
+  return null;
+}
+
+function refToGeocodedOrigin(ref: LocationRef, source: ExploreOriginSource, trip: Trip): ExploreOrigin | null {
+  const direct = refToOrigin(ref, source);
+  if (direct) return direct;
+
+  const cacheKey = buildRefGeocodeKey(ref, trip);
+  const cached = _geocodeCache.get(cacheKey);
+  if (cached) {
+    return { lat: cached.lat, lng: cached.lng, label: ref.label, source };
+  }
+
   return null;
 }
 
@@ -231,7 +297,7 @@ function resolveTripOriginSync(
   for (const stay of stays) {
     const ref = resolveLocationRefFromBooking(stay);
     if (ref) {
-      const origin = refToOrigin(ref, 'LODGING');
+      const origin = refToGeocodedOrigin(ref, 'LODGING', trip);
       if (origin) return origin;
     }
   }
@@ -286,6 +352,7 @@ function resolveItemOriginFromTimeline(
 function resolveItemOriginFromBooking(
   itemId: string,
   bookings: Booking[],
+  trip: Trip,
 ): ExploreOrigin | null {
   const booking = bookings.find(b => b.id === itemId);
   if (!booking) return null;
@@ -294,7 +361,7 @@ function resolveItemOriginFromBooking(
   if (!ref) return null;
 
   const source = sourceFromRefKind(ref);
-  return refToOrigin(ref, source);
+  return refToGeocodedOrigin(ref, source, trip);
 }
 
 // ============================================================================
@@ -336,7 +403,7 @@ export function resolveExploreOriginForContext(
 
     case 'BOOKING_ITEM':
       if (ctx.id) {
-        const bookingOrigin = resolveItemOriginFromBooking(ctx.id, bookings);
+        const bookingOrigin = resolveItemOriginFromBooking(ctx.id, bookings, trip);
         if (bookingOrigin) return bookingOrigin;
       }
       return resolveTripOriginSync(trip, bookings, deviceLocation ?? null, isActive);
@@ -354,6 +421,19 @@ export function resolveExploreOriginForContext(
 export async function ensureExploreOriginGeocode(trip: Trip): Promise<void> {
   if (!hasExploreDestination(trip)) return;
   await geocodeDestination(trip);
+}
+
+export async function ensureExploreBookingGeocodes(trip: Trip, bookings: Booking[]): Promise<void> {
+  if (!hasExploreDestination(trip)) return;
+
+  const refs = bookings
+    .map(resolveLocationRefFromBooking)
+    .filter((ref): ref is LocationRef => Boolean(ref));
+
+  await Promise.all([
+    geocodeDestination(trip),
+    ...refs.map((ref) => geocodeLocationRef(ref, trip)),
+  ]);
 }
 
 /**
