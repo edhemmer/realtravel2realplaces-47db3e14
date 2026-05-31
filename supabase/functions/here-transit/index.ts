@@ -44,12 +44,17 @@ Deno.serve(async (req) => {
     url.searchParams.set('apikey', HERE_API_KEY);
     url.searchParams.set('return', 'intermediate,travelSummary,fares');
 
-    if (arrivalTime) {
+    // HERE Transit v8 requires ISO 8601 (rejects "now"). Always send an
+    // explicit timestamp so we get deterministic schedules.
+    if (arrivalTime && arrivalTime !== 'now') {
       url.searchParams.set('arrivalTime', arrivalTime);
-    } else if (departureTime && departureTime !== 'now') {
-      url.searchParams.set('departureTime', departureTime);
+    } else {
+      const dep =
+        !departureTime || departureTime === 'now'
+          ? new Date().toISOString()
+          : departureTime;
+      url.searchParams.set('departureTime', dep);
     }
-    // If no time specified, HERE defaults to "now"
 
     if (alternatives && typeof alternatives === 'number') {
       url.searchParams.set('alternatives', String(Math.min(alternatives, 3)));
