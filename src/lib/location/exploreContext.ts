@@ -61,6 +61,26 @@ export function hasExploreDestination(trip: Trip): boolean {
 
 const _geocodeCache = new Map<string, { lat: number; lng: number } | null>();
 
+function buildRefGeocodeKey(ref: LocationRef, trip: Trip): string {
+  return [
+    ref.kind,
+    ref.key,
+    ref.address,
+    ref.label,
+    trip.destination_city,
+    trip.destination_state,
+    trip.destination_country,
+  ].filter(Boolean).join('::');
+}
+
+function buildRefGeocodeQuery(ref: LocationRef, trip: Trip): string | null {
+  const base = ref.address?.trim() || ref.label?.trim();
+  if (!base) return null;
+  return [base, trip.destination_city, trip.destination_state, trip.destination_country]
+    .filter(Boolean)
+    .join(', ');
+}
+
 /**
  * Simple geocode via Nominatim for destination city fallback.
  * Cached per trip id for the session.
@@ -103,6 +123,39 @@ async function geocodeDestination(trip: Trip): Promise<{ lat: number; lng: numbe
   return null;
 }
 
+async function geocodeLocationRef(ref: LocationRef, trip: Trip): Promise<{ lat: number; lng: number } | null> {
+  if (ref.lat != null && ref.lng != null) return { lat: ref.lat, lng: ref.lng };
+
+  const cacheKey = buildRefGeocodeKey(ref, trip);
+  if (_geocodeCache.has(cacheKey)) return _geocodeCache.get(cacheKey) ?? null;
+
+  const query = buildRefGeocodeQuery(ref, trip);
+  if (!query) {
+    _geocodeCache.set(cacheKey, null);
+    return null;
+  }
+
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`,
+      { headers: { 'User-Agent': 'RT2RP/4.10' } }
+    );
+    if (res.ok) {
+      const data = await res.json();
+      if (data.length > 0) {
+        const coords = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+        _geocodeCache.set(cacheKey, coords);
+        return coords;
+      }
+    }
+  } catch {
+    // Non-fatal — Explore will continue down the fallback chain.
+  }
+
+  _geocodeCache.set(cacheKey, null);
+  return null;
+}
+
 // ============================================================================
 // HELPERS
 // ============================================================================
@@ -111,6 +164,19 @@ function refToOrigin(ref: LocationRef, source: ExploreOriginSource): ExploreOrig
   if (ref.lat != null && ref.lng != null) {
     return { lat: ref.lat, lng: ref.lng, label: ref.label, source };
   }
+  return null;
+}
+
+function refToGeocodedOrigin(ref: LocationRef, source: ExploreOriginSource, trip: Trip): ExploreOrigin | null {
+  const direct = refToOrigin(ref, source);
+  if (direct) return direct;
+
+  const cacheKey = buildRefGeocodeKey(ref, trip);
+  const cached = _geocodeCache.get(cacheKey);
+  if (cached) {
+    return { lat: cached.lat, lng: cached.lng, label: ref.label, source };
+  }
+
   return null;
 }
 
