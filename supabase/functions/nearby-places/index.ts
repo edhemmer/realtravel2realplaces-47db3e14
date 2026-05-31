@@ -90,8 +90,7 @@ async function fetchHerePlaces(lat: number, lng: number, type: string, radiusMet
 
   try {
     const url = new URL('https://discover.search.hereapi.com/v1/discover');
-    url.searchParams.set('apikey', apiKey);
-    url.searchParams.set('at', `${lat},${lng}`);
+    url.searchParams.set('apiKey', apiKey);
     url.searchParams.set('in', `circle:${lat},${lng};r=${Math.min(Math.max(radiusMeters, 500), 50000)}`);
     url.searchParams.set('q', buildHereQuery(type));
     url.searchParams.set('limit', String(Math.min(limit, 20)));
