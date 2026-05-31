@@ -32,6 +32,104 @@ interface NearbyPlace {
   reviewCount: number | null;
 }
 
+interface OsmElement {
+  id: number;
+  type: string;
+  lat?: number;
+  lon?: number;
+  center?: { lat: number; lon: number };
+  tags?: Record<string, string>;
+}
+
+function haversineMiles(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 3958.8;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function osmSelectors(type: string): string[] {
+  switch (type) {
+    case 'restaurant': return ['["amenity"~"restaurant|fast_food"]'];
+    case 'bar':
+    case 'night_club': return ['["amenity"~"bar|pub|biergarten|nightclub"]'];
+    case 'cafe': return ['["amenity"="cafe"]'];
+    case 'tourist_attraction': return ['["tourism"~"attraction|viewpoint|artwork|zoo|theme_park"]', '["historic"]'];
+    case 'museum': return ['["tourism"="museum"]'];
+    case 'park': return ['["leisure"~"park|garden|nature_reserve"]', '["tourism"="picnic_site"]'];
+    case 'hiking_trail': return ['["route"="hiking"]', '["highway"~"path|footway"]["name"]'];
+    case 'grocery_store': return ['["shop"~"supermarket|grocery"]'];
+    case 'gas_station': return ['["amenity"="fuel"]'];
+    case 'convenience_store': return ['["shop"="convenience"]'];
+    default: return ['["tourism"]', '["amenity"]'];
+  }
+}
+
+function formatOsmAddress(tags: Record<string, string>, fallbackLat: number, fallbackLng: number): string {
+  const street = [tags['addr:housenumber'], tags['addr:street']].filter(Boolean).join(' ');
+  const locality = tags['addr:city'] || tags['addr:town'] || tags['addr:village'];
+  return [street, locality, tags['addr:state'], tags['addr:country']].filter(Boolean).join(', ') ||
+    tags.operator || tags.tourism || tags.amenity || tags.leisure || `${fallbackLat.toFixed(4)}, ${fallbackLng.toFixed(4)}`;
+}
+
+async function fetchOsmPlaces(lat: number, lng: number, type: string, radiusMeters: number, limit: number): Promise<NearbyPlace[]> {
+  const radius = Math.min(Math.max(radiusMeters, 500), 50000);
+  const blocks = osmSelectors(type).flatMap((selector) => [
+    `node${selector}(around:${radius},${lat},${lng});`,
+    `way${selector}(around:${radius},${lat},${lng});`,
+    `relation${selector}(around:${radius},${lat},${lng});`,
+  ]).join('\n');
+  const query = `[out:json][timeout:12];(${blocks});out center tags ${Math.min(limit * 3, 60)};`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
+  try {
+    const response = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: query,
+      signal: controller.signal,
+    });
+    if (!response.ok) return [];
+    const data = await response.json();
+    const seen = new Set<string>();
+    return ((data.elements || []) as OsmElement[])
+      .map((el) => {
+        const placeLat = el.lat ?? el.center?.lat ?? 0;
+        const placeLng = el.lon ?? el.center?.lon ?? 0;
+        const tags = el.tags || {};
+        const name = tags.name || tags.brand || tags.operator || '';
+        if (!name || !placeLat || !placeLng) return null;
+        return {
+          placeId: `osm:${el.type}:${el.id}`,
+          name,
+          address: formatOsmAddress(tags, placeLat, placeLng),
+          rating: null,
+          lat: placeLat,
+          lng: placeLng,
+          photoUrl: null,
+          reviewCount: null,
+          distance: haversineMiles(lat, lng, placeLat, placeLng),
+        };
+      })
+      .filter((place): place is NearbyPlace & { distance: number } => Boolean(place))
+      .filter((place) => {
+        if (seen.has(place.name.toLowerCase())) return false;
+        seen.add(place.name.toLowerCase());
+        return place.distance * 1609.34 <= radius;
+      })
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, limit)
+      .map(({ distance: _distance, ...place }) => place);
+  } catch (err) {
+    console.warn('[nearby-places] OSM fallback failed:', err);
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * Map our internal type to a Text Search query + includedType for accuracy.
  * Text Search gives far better relevance than Nearby Search.
