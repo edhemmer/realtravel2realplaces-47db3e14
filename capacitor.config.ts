@@ -37,6 +37,13 @@ const config: CapacitorConfig = {
             '*.supabase.co',
             'realtravel2realplaces.app',
             '*.realtravel2realplaces.app',
+            // OAuth providers — WebView must be allowed to load these or
+            // the Apple/Google sign-in flow renders as a blank screen.
+            'appleid.apple.com',
+            '*.apple.com',
+            'accounts.google.com',
+            '*.google.com',
+            '*.googleusercontent.com',
           ],
         },
       }),
