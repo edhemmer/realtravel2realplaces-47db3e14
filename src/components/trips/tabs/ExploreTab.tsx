@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { Trip } from '@/types/database';
+import { Booking, Trip } from '@/types/database';
 import { AttractionSuggestion } from '@/types/attraction';
 import { useRealPlacesExplore } from '@/hooks/useRealPlacesExplore';
 import { useBookings } from '@/hooks/useBookings';
@@ -49,10 +49,11 @@ interface ExploreTabProps {
 }
 
 type RadiusOption = '5' | '10' | '25' | '50';
+const EMPTY_BOOKINGS: Booking[] = [];
 
 export function ExploreTab({ tripId, trip }: ExploreTabProps) {
   const { canEdit } = useTripPermission();
-  const { data: bookings = [] } = useBookings(tripId);
+  const { data: bookings = EMPTY_BOOKINGS } = useBookings(tripId);
   const deviceLocation = useDeviceLocation();
   const { timelineEvents } = useCanonicalTripState(tripId, trip);
 
