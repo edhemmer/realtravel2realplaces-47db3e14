@@ -297,7 +297,7 @@ function resolveTripOriginSync(
   for (const stay of stays) {
     const ref = resolveLocationRefFromBooking(stay);
     if (ref) {
-      const origin = refToOrigin(ref, 'LODGING');
+      const origin = refToGeocodedOrigin(ref, 'LODGING', trip);
       if (origin) return origin;
     }
   }
@@ -352,6 +352,7 @@ function resolveItemOriginFromTimeline(
 function resolveItemOriginFromBooking(
   itemId: string,
   bookings: Booking[],
+  trip: Trip,
 ): ExploreOrigin | null {
   const booking = bookings.find(b => b.id === itemId);
   if (!booking) return null;
@@ -360,7 +361,7 @@ function resolveItemOriginFromBooking(
   if (!ref) return null;
 
   const source = sourceFromRefKind(ref);
-  return refToOrigin(ref, source);
+  return refToGeocodedOrigin(ref, source, trip);
 }
 
 // ============================================================================
@@ -402,7 +403,7 @@ export function resolveExploreOriginForContext(
 
     case 'BOOKING_ITEM':
       if (ctx.id) {
-        const bookingOrigin = resolveItemOriginFromBooking(ctx.id, bookings);
+        const bookingOrigin = resolveItemOriginFromBooking(ctx.id, bookings, trip);
         if (bookingOrigin) return bookingOrigin;
       }
       return resolveTripOriginSync(trip, bookings, deviceLocation ?? null, isActive);
