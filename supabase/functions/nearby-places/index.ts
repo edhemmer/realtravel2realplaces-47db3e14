@@ -67,6 +67,59 @@ function osmSelectors(type: string): string[] {
   }
 }
 
+function buildHereQuery(type: string): string {
+  switch (type) {
+    case 'restaurant': return 'restaurant';
+    case 'bar':
+    case 'night_club': return 'bar pub nightlife';
+    case 'cafe': return 'coffee cafe';
+    case 'tourist_attraction': return 'tourist attraction landmark';
+    case 'museum': return 'museum gallery';
+    case 'park': return 'park garden nature';
+    case 'hiking_trail': return 'hiking trail trailhead';
+    case 'grocery_store': return 'grocery supermarket';
+    case 'gas_station': return 'gas station';
+    case 'convenience_store': return 'convenience store';
+    default: return type.replace(/_/g, ' ');
+  }
+}
+
+async function fetchHerePlaces(lat: number, lng: number, type: string, radiusMeters: number, limit: number): Promise<NearbyPlace[]> {
+  const apiKey = Deno.env.get('HERE_API_KEY');
+  if (!apiKey) return [];
+
+  try {
+    const url = new URL('https://discover.search.hereapi.com/v1/discover');
+    url.searchParams.set('apikey', apiKey);
+    url.searchParams.set('at', `${lat},${lng}`);
+    url.searchParams.set('in', `circle:${lat},${lng};r=${Math.min(Math.max(radiusMeters, 500), 50000)}`);
+    url.searchParams.set('q', buildHereQuery(type));
+    url.searchParams.set('limit', String(Math.min(limit, 20)));
+    url.searchParams.set('lang', 'en-US');
+
+    const response = await fetch(url.toString());
+    if (!response.ok) {
+      console.warn(`[nearby-places] HERE fallback error: ${response.status}`);
+      return [];
+    }
+
+    const data = await response.json();
+    return (data.items || []).map((item: any) => ({
+      placeId: item.id || `here:${item.position?.lat}:${item.position?.lng}:${item.title}`,
+      name: item.title || '',
+      address: item.address?.label || item.vicinity || '',
+      rating: null,
+      lat: item.position?.lat ?? 0,
+      lng: item.position?.lng ?? 0,
+      photoUrl: null,
+      reviewCount: null,
+    })).filter((place: NearbyPlace) => place.name && place.lat && place.lng);
+  } catch (err) {
+    console.warn('[nearby-places] HERE fallback failed:', err);
+    return [];
+  }
+}
+
 function formatOsmAddress(tags: Record<string, string>, fallbackLat: number, fallbackLng: number): string {
   const street = [tags['addr:housenumber'], tags['addr:street']].filter(Boolean).join(' ');
   const locality = tags['addr:city'] || tags['addr:town'] || tags['addr:village'];
