@@ -49,11 +49,13 @@ Deno.serve(async (req) => {
     liveUrl.searchParams.set('destination', dest);
     liveUrl.searchParams.set('return', 'summary');
     liveUrl.searchParams.set('apikey', HERE_API_KEY);
-    if (departureTime) {
-      liveUrl.searchParams.set('departureTime', departureTime);
-    } else {
-      liveUrl.searchParams.set('departureTime', 'now');
-    }
+    // HERE Routing API v8 requires ISO 8601 timestamp or the literal "any".
+    // "now" is NOT accepted (returns 400 E605001). Map "now"/empty -> current ISO.
+    const liveDeparture =
+      !departureTime || departureTime === 'now'
+        ? new Date().toISOString()
+        : departureTime;
+    liveUrl.searchParams.set('departureTime', liveDeparture);
 
     const baselineUrl = new URL(HERE_API_BASE);
     baselineUrl.searchParams.set('transportMode', 'car');
@@ -61,7 +63,8 @@ Deno.serve(async (req) => {
     baselineUrl.searchParams.set('destination', dest);
     baselineUrl.searchParams.set('return', 'summary');
     baselineUrl.searchParams.set('apikey', HERE_API_KEY);
-    // No departureTime = no traffic consideration for baseline
+    // "any" = no traffic consideration → baseline travel time
+    baselineUrl.searchParams.set('departureTime', 'any');
 
     const [liveRes, baselineRes] = await Promise.all([
       fetch(liveUrl.toString()),
