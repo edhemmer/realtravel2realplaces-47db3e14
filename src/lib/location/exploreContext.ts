@@ -423,6 +423,19 @@ export async function ensureExploreOriginGeocode(trip: Trip): Promise<void> {
   await geocodeDestination(trip);
 }
 
+export async function ensureExploreBookingGeocodes(trip: Trip, bookings: Booking[]): Promise<void> {
+  if (!hasExploreDestination(trip)) return;
+
+  const refs = bookings
+    .map(resolveLocationRefFromBooking)
+    .filter((ref): ref is LocationRef => Boolean(ref));
+
+  await Promise.all([
+    geocodeDestination(trip),
+    ...refs.map((ref) => geocodeLocationRef(ref, trip)),
+  ]);
+}
+
 /**
  * Get subtitle label based on source.
  */
