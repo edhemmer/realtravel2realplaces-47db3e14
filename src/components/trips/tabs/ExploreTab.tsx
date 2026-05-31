@@ -12,7 +12,7 @@ import { useDeviceLocation } from '@/hooks/useDeviceLocation';
 import { getDeviceLocation, getCachedDeviceLocation } from '@/lib/deviceLocation';
 import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
 import { useTripPermission } from '@/pages/TripDetail';
-import { resolveExploreOriginForContext, getExploreOriginSubtitle, hasExploreDestination, ensureExploreOriginGeocode } from '@/lib/location/exploreContext';
+import { resolveExploreOriginForContext, getExploreOriginSubtitle, hasExploreDestination, ensureExploreBookingGeocodes } from '@/lib/location/exploreContext';
 import { getExploreContext, setExploreContext, clearExploreContext } from '@/lib/explore/exploreContextStore';
 import { buildExploreSections } from '@/lib/exploreRankingSections';
 import { navigateTo } from '@/lib/canonicalNavigation';
@@ -96,11 +96,12 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
   const [geocodeReady, setGeocodeReady] = useState(false);
   useEffect(() => {
     let cancelled = false;
-    ensureExploreOriginGeocode(trip).then(() => {
+    setGeocodeReady(false);
+    ensureExploreBookingGeocodes(trip, bookings).then(() => {
       if (!cancelled) setGeocodeReady(true);
     });
     return () => { cancelled = true; };
-  }, [trip.id, trip.destination_city, trip.destination_address, trip.destination_country]);
+  }, [trip.id, trip.destination_city, trip.destination_address, trip.destination_country, bookings]);
 
   // v3.9.16: Canonical context origin resolution
   const exploreContext = useMemo(() => getExploreContext(tripId), [tripId, refreshCounter]);
