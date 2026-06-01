@@ -19,7 +19,7 @@ const faqs = [
     answer: "Yes. Once a trip is loaded, your bookings, timeline, and key details stay available without signal. Expenses logged offline sync automatically the moment you're back online.",
   },
   {
-    question: 'Can I share a trip with someone I'm traveling with?',
+    question: "Can I share a trip with someone I'm traveling with?",
     answer: "Yes. Invite anyone by email and choose what they can do — view the trip, add expenses, add lodging, or add tour stops. Permissions are independent, so you give exactly the access you mean to.",
   },
   {
