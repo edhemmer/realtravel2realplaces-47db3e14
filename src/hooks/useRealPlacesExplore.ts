@@ -83,8 +83,13 @@ export function useRealPlacesExplore({
 }: UseRealPlacesExploreOptions) {
   const hasCoords = lat !== undefined && lng !== undefined;
 
+  // Round coords to ~110m grid (3 decimals) so small GPS drift / walking
+  // doesn't bust the cache key and trigger a new fan-out of API calls.
+  const latKey = hasCoords ? Math.round(lat! * 1000) / 1000 : undefined;
+  const lngKey = hasCoords ? Math.round(lng! * 1000) / 1000 : undefined;
+
   return useQuery({
-    queryKey: ['real-places-explore', lat, lng, radiusMiles, query || '', contextKey || 'default'],
+    queryKey: ['real-places-explore', latKey, lngKey, radiusMiles, query || '', contextKey || 'default'],
     queryFn: async (): Promise<AttractionSuggestion[]> => {
       if (!hasCoords || lat === undefined || lng === undefined) return [];
 
