@@ -76,7 +76,7 @@ if (typeof window !== "undefined") {
       throttleTime: 1000,
     });
     persistQueryClient({
-      queryClient,
+      queryClient: queryClient as never,
       persister,
       maxAge: 5 * 60 * 1000, // 5 minutes — match Explore staleTime
       dehydrateOptions: {
