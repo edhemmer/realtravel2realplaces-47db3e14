@@ -1,12 +1,12 @@
-import { LayoutList, Navigation, Home, Receipt, Luggage, Compass } from 'lucide-react';
+import { Sparkles, Compass, ListChecks, Route, WifiOff, Users } from 'lucide-react';
 
 const capabilities = [
-  { icon: LayoutList, title: 'Structured timeline', description: 'Every booking and stop organized by date and time.' },
-  { icon: Navigation, title: 'Quick navigation', description: 'Tap to get directions to your next stop without searching.' },
-  { icon: Home, title: 'Lodging details ready', description: 'Address, check-in time, and confirmation in one place.' },
-  { icon: Receipt, title: 'Expense logging', description: 'Log what you spend while it\'s fresh — by trip, by category.' },
-  { icon: Luggage, title: 'Packing guidance', description: 'Keep track of what to bring so nothing gets left behind.' },
-  { icon: Compass, title: 'Explore nearby', description: 'Find restaurants and attractions near your trip destination.' },
+  { icon: Sparkles, title: 'Today', description: "What to do next and when to leave — one calm screen." },
+  { icon: Compass, title: 'Move', description: 'Directive transport guidance with the two best options.' },
+  { icon: ListChecks, title: 'Guide', description: 'The few alerts that actually matter, in priority order.' },
+  { icon: Route, title: 'Flow', description: 'Your whole trip on one timeline — today, ahead, and behind.' },
+  { icon: WifiOff, title: 'Works offline', description: 'Your trip stays usable on planes, trails, and dead zones.' },
+  { icon: Users, title: 'Share with co-travelers', description: 'Invite anyone you travel with — view, expenses, lodging, stops.' },
 ];
 
 export default function LandingSolution() {
@@ -15,10 +15,10 @@ export default function LandingSolution() {
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-10">
           <h2 className="landing-section-headline">
-            See your entire trip in one place.
+            Your trip, made calm.
           </h2>
           <p className="landing-section-subtext mt-3">
-            Real Travel 2 Real Places gives you visibility into every part of your trip — structured, accessible, and ready when you need it.
+            Four pillars do the thinking for you — so every moment of your trip has a clear next step.
           </p>
         </div>
 

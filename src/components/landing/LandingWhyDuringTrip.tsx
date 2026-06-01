@@ -1,11 +1,11 @@
 import { Check } from 'lucide-react';
 
 const reasons = [
-  'Get directions to your next stop without searching',
-  'Pull up your lodging address instantly',
-  'Log expenses before you forget the details',
-  'See what\'s next in seconds — no digging through emails',
-  'Have your whole trip laid out clearly in one view',
+  'See the next thing to do — and when to leave for it',
+  'Open one screen instead of three apps and a text thread',
+  'Get directive transport guidance, not a list of options',
+  'Log expenses in any currency before you forget the details',
+  'Keep working when you lose signal on a plane or in the mountains',
 ];
 
 export default function LandingWhyDuringTrip() {

@@ -4,27 +4,35 @@ import { ChevronDown } from 'lucide-react';
 const faqs = [
   {
     question: 'What kind of app is Real Travel 2 Real Places?',
-    answer: 'It\'s a trip organizer app — a structured travel dashboard where you can bring together flights, lodging, drives, packing, and expenses for each trip. Think of it as one place to manage the moving parts of travel.',
+    answer: "It's a calm travel command center built around four pillars: Today (what's next and when to leave), Move (directive transport guidance), Guide (the few alerts that matter), and Flow (your whole trip on one timeline). Flights, stays, drives, expenses, and packing live together — and it works offline.",
   },
   {
     question: 'Is it free?',
-    answer: 'Yes. The free plan includes up to 5 lifetime trips with core features — flights, stays, expenses, packing lists, and reminders. Pro and Business tiers unlock unlimited trips and advanced capabilities for frequent travelers.',
+    answer: "Yes. The free plan includes up to 5 lifetime trips with core features — flights, stays, expenses, packing lists, and reminders. Pro and Business tiers unlock unlimited trips and advanced capabilities for frequent travelers.",
   },
   {
-    question: 'How is this different from other travel planning apps?',
-    answer: 'Most travel apps focus on planning — finding deals, booking flights, researching destinations. Real Travel 2 Real Places focuses on what happens after you\'ve booked: organizing the details and making them easy to access while you\'re on the road.',
+    question: 'How is this different from other travel apps?',
+    answer: "Most travel apps help you plan before you go — finding deals, booking flights, researching destinations. Real Travel 2 Real Places is built for what happens after you've booked: keeping the moving parts calm, structured, and one tap away while you're actually traveling.",
+  },
+  {
+    question: 'Does it work offline?',
+    answer: "Yes. Once a trip is loaded, your bookings, timeline, and key details stay available without signal. Expenses logged offline sync automatically the moment you're back online.",
+  },
+  {
+    question: "Can I share a trip with someone I'm traveling with?",
+    answer: "Yes. Invite anyone by email and choose what they can do — view the trip, add expenses, add lodging, or add tour stops. Permissions are independent, so you give exactly the access you mean to.",
+  },
+  {
+    question: 'Does it handle multiple currencies?',
+    answer: "Yes. Log expenses in whichever currency you actually paid in. The app keeps each currency separate — no synthetic conversions — so your totals stay honest.",
   },
   {
     question: 'Why would I keep it open during a trip?',
-    answer: 'Because your trip details are structured in one place. Need directions? Tap navigate. Need your hotel address? It\'s there. Want to log an expense before you forget? Takes seconds. It\'s designed to be useful while you\'re moving.',
-  },
-  {
-    question: 'Can I track expenses?',
-    answer: 'Yes. You can log expenses by category and trip, see running totals, and track your share when splitting costs. It\'s built into the trip timeline so you can log as you go.',
+    answer: "Because the next decision is always one tap away. Need directions? Move tells you the best way. Need your hotel address? It's right there. Want to log an expense before you forget? Seconds. It's designed to be useful while you're moving.",
   },
   {
     question: 'Does it work for road trips?',
-    answer: 'Yes. You can organize stop-by-stop timelines, track gas expenses, and keep drive-day logistics accessible — all within the same trip view you\'d use for flights and lodging.',
+    answer: "Yes. You can organize stop-by-stop timelines, track gas expenses, and keep drive-day logistics accessible — all within the same trip view you'd use for flights and lodging.",
   },
 ];
 

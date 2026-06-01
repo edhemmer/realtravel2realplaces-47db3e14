@@ -8,7 +8,7 @@ export default function LandingFinalCTA() {
           Travel doesn't slow down.
         </h2>
         <p className="landing-section-subtext mt-3">
-          Having your trip details in one place can make it easier to keep up.
+          Your command center is ready when you are.
         </p>
 
         <div className="flex items-center justify-center gap-3 sm:gap-4 mt-8">
