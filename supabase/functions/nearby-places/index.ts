@@ -12,6 +12,7 @@
  */
 
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
+import { gatePlacesRequest } from "../_shared/placesGate.ts";
 
 interface NearbySearchRequest {
   lat: number;
@@ -216,6 +217,10 @@ function buildTextQuery(type: string, lat: number, lng: number): { textQuery: st
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
+
+  // Auth + per-user daily budget gate (server-side hard cap)
+  const gate = await gatePlacesRequest(req, "search");
+  if (!gate.ok) return gate.response;
 
   try {
     const body: NearbySearchRequest = await req.json();
