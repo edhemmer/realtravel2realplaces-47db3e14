@@ -1564,7 +1564,7 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         question: 'I cannot add items to a shared Trip.',
         answer:
-          'Your permissions are set by the Trip owner. If you have Read Only access, you can view the Trip but cannot add items. Ask the Trip owner to update your permissions from the Members section.',
+          'Your capabilities are set by the Trip owner. If you have not been granted Add Expenses, Add Lodging, or Add Tour Stops, those controls are hidden. Ask the Trip owner to grant the capabilities you need from the Members section.',
       },
       {
         question: 'The Navigate button says "No address available."',
