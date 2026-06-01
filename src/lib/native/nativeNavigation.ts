@@ -71,20 +71,24 @@ export async function openNativeMap(params: NativeMapParams): Promise<void> {
     return;
   }
 
-  // Apple Maps first — system URL scheme, always works on iOS
-  const appleUrl = buildAppleMapsUrl(params);
+  // Google Maps first — preferred driver app
+  const googleUrl = buildGoogleMapsAppUrl(params);
   try {
-    window.location.href = appleUrl;
-    return;
+    window.location.href = googleUrl;
+    // Give iOS a moment to switch apps; if Google Maps isn't installed
+    // the scheme silently fails and we fall through.
+    await new Promise((r) => setTimeout(r, 500));
+    if (document.visibilityState === 'hidden') return;
   } catch {
     // fall through
   }
 
-  // Google Maps app fallback
-  const googleUrl = buildGoogleMapsAppUrl(params);
+  // Apple Maps fallback — system scheme, always works on iOS
+  const appleUrl = buildAppleMapsUrl(params);
   try {
-    window.location.href = googleUrl;
-    return;
+    window.location.href = appleUrl;
+    await new Promise((r) => setTimeout(r, 500));
+    if (document.visibilityState === 'hidden') return;
   } catch {
     // fall through
   }
