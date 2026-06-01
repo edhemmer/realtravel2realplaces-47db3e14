@@ -3,6 +3,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { persistQueryClient } from "@tanstack/react-query-persist-client";
+import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
@@ -62,6 +64,32 @@ function GlobalCommandPalette() {
 import { ThemeProvider } from "@/contexts/ThemeContext";
 
 const queryClient = new QueryClient();
+
+// Persist ONLY Explore (Google Places) results to localStorage so survives
+// page refresh / tab close — protects against duplicate Google Places API
+// calls within the 5-minute staleTime window.
+if (typeof window !== "undefined") {
+  try {
+    const persister = createSyncStoragePersister({
+      storage: window.localStorage,
+      key: "rt2rp-explore-cache",
+      throttleTime: 1000,
+    });
+    persistQueryClient({
+      queryClient,
+      persister,
+      maxAge: 5 * 60 * 1000, // 5 minutes — match Explore staleTime
+      dehydrateOptions: {
+        shouldDehydrateQuery: (query) =>
+          Array.isArray(query.queryKey) &&
+          query.queryKey[0] === "real-places-explore" &&
+          query.state.status === "success",
+      },
+    });
+  } catch {
+    // localStorage unavailable (private mode, quota) — silently fall back to in-memory only
+  }
+}
 
 /**
  * Protected route that requires user to be authenticated.
