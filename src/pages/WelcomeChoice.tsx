@@ -1,9 +1,8 @@
 /**
- * WelcomeChoice — v2.3.10: Post-Tutorial Entry Choice
- * 
- * Shows once after first tutorial completion.
- * Two CTAs: Create a Trip (opens wizard) or Go to Dashboard.
- * Uses localStorage flag for one-time display (no schema changes).
+ * WelcomeChoice — v2.3.11: Post-first-trip entry choice
+ *
+ * Shows once after the first trip is created. Two CTAs: Create a Trip (opens
+ * wizard) or Go to Dashboard. One-time display via localStorage flag.
  */
 
 import { useEffect, useState } from 'react';
@@ -78,9 +77,9 @@ export default function WelcomeChoice() {
               <div className="w-20 h-20 mx-auto rounded-2xl bg-white shadow-md flex items-center justify-center overflow-hidden">
                 <img src="/rt2rp-logo.png" alt="Real Travel 2 Real Places" className="w-16 h-16 object-contain" />
               </div>
-              <h1 className="text-2xl font-bold">You're all set!</h1>
+              <h1 className="text-2xl font-bold">Your command center is ready</h1>
               <p className="text-muted-foreground leading-relaxed">
-                Ready to organize your first trip, or explore the dashboard first?
+                Add a trip to see Today, Move, Guide, and Flow come to life — or look around the dashboard first.
               </p>
             </div>
 
