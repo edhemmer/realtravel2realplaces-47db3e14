@@ -15,10 +15,10 @@ export default function LandingSolution() {
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-10">
           <h2 className="landing-section-headline">
-            See your entire trip in one place.
+            Your trip, made calm.
           </h2>
           <p className="landing-section-subtext mt-3">
-            Real Travel 2 Real Places gives you visibility into every part of your trip — structured, accessible, and ready when you need it.
+            Four pillars do the thinking for you — so every moment of your trip has a clear next step.
           </p>
         </div>
 
