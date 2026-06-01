@@ -15,7 +15,7 @@ export default function LandingHero() {
             </h1>
 
             <p className="landing-hero-subtext">
-              Bring your flights, lodging, drives, packing, and expenses into one structured timeline — so you can open one screen and know what's next.
+              A calm command center for your trip. See what's next, when to leave, and how to get there — flights, stays, drives, expenses, and packing in one place. Works offline.
             </p>
 
             {/* CTAs */}
