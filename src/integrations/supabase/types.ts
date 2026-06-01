@@ -707,6 +707,36 @@ export type Database = {
         }
         Relationships: []
       }
+      places_usage: {
+        Row: {
+          created_at: string
+          day: string
+          id: string
+          photos: number
+          searches: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day?: string
+          id?: string
+          photos?: number
+          searches?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          id?: string
+          photos?: number
+          searches?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avg_miles_per_tank: number | null
@@ -1489,6 +1519,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_places_usage: {
+        Args: { p_kind: string; p_user_id: string }
+        Returns: Json
       }
       is_admin: { Args: never; Returns: boolean }
       is_trip_guest: { Args: { p_trip_id: string }; Returns: boolean }
