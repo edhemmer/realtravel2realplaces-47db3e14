@@ -1,8 +1,10 @@
 /**
- * Help Center — v4.10.0
- * 
+ * Help Center — v4.11.0
+ *
  * Complete user manual for Real Travel 2 Real Places.
- * Step-by-step guides for every feature. No forward-thinking or fluff.
+ * Reflects the Today / Flow / Move / Guide command-center model,
+ * Tours workspace, grounded Ask AI, capability-scoped sharing, and
+ * the offline execution window. Step-by-step guides only — no fluff.
  * Full product name: Real Travel 2 Real Places (never abbreviated).
  */
 
