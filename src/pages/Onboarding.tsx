@@ -81,8 +81,8 @@ export default function Onboarding() {
 
   return (
     <Layout>
-      <div className="flex items-center justify-center min-h-[60vh] px-4 pt-safe">
-        <div className="max-w-sm w-full text-center space-y-8">
+      <div className="flex items-center justify-center min-h-[70vh] px-4 pt-safe">
+        <div className="max-w-md w-full text-center space-y-8">
           <div className="w-14 h-14 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center">
             <Plane className="w-7 h-7 text-primary" />
           </div>
@@ -92,18 +92,55 @@ export default function Onboarding() {
               Welcome to Real Travel 2 Real Places
             </h1>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Your travel command center. Organized, stress-free, and ready when you are.
+              Your travel command center — the next step, always one tap away.
             </p>
           </div>
 
-          <div className="flex justify-center gap-6 text-xs text-muted-foreground">
+          {/* Four pillars */}
+          <div className="grid grid-cols-2 gap-2.5 text-left">
+            <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
+              <Sparkles className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+              <div>
+                <div className="text-xs font-semibold">Today</div>
+                <div className="text-[11px] text-muted-foreground leading-snug">What to do next, when to leave.</div>
+              </div>
+            </div>
+            <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
+              <Compass className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+              <div>
+                <div className="text-xs font-semibold">Move</div>
+                <div className="text-[11px] text-muted-foreground leading-snug">Directive transport guidance.</div>
+              </div>
+            </div>
+            <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
+              <ListChecks className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+              <div>
+                <div className="text-xs font-semibold">Guide</div>
+                <div className="text-[11px] text-muted-foreground leading-snug">Alerts that actually matter.</div>
+              </div>
+            </div>
+            <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
+              <Plane className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+              <div>
+                <div className="text-xs font-semibold">Flow</div>
+                <div className="text-[11px] text-muted-foreground leading-snug">Your trip on one timeline.</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Trust row */}
+          <div className="flex justify-center flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-muted-foreground">
             <span className="flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-primary/70" />
-              Fly, drive, or train
+              <WifiOff className="w-3 h-3 text-primary/70" />
+              Works offline
             </span>
             <span className="flex items-center gap-1.5">
-              <Shield className="w-3.5 h-3.5 text-primary/70" />
-              Everything in one place
+              <Coins className="w-3 h-3 text-primary/70" />
+              Multi-currency aware
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Users className="w-3 h-3 text-primary/70" />
+              Share with co-travelers
             </span>
           </div>
 
@@ -120,7 +157,7 @@ export default function Onboarding() {
             <button
               onClick={handleSkip}
               disabled={isSaving}
-              className="block mx-auto text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+              className="block mx-auto text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
             >
               I'll do this later
             </button>
