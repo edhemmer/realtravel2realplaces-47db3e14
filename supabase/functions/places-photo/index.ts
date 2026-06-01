@@ -7,15 +7,10 @@
  */
 
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
-import { gatePlacesRequest } from "../_shared/placesGate.ts";
 
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
-
-  // Auth + per-user daily photo budget gate
-  const gate = await gatePlacesRequest(req, "photo");
-  if (!gate.ok) return gate.response;
 
   try {
     const url = new URL(req.url);
