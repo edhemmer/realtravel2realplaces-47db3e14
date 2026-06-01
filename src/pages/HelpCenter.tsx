@@ -409,67 +409,264 @@ const HELP_SECTIONS: HelpSection[] = [
   },
 
   /* ================================================================
-   * NOW TAB
+   * TODAY — COMMAND CENTER
    * ================================================================ */
   {
-    id: 'now-execution',
-    title: 'NOW — Real-Time Execution',
+    id: 'today-tab',
+    title: 'Today — Command Center',
     icon: <Navigation className="w-5 h-5 text-primary" />,
-    description: 'Your command center during travel. See what\'s next and act.',
+    description: 'Your real-time view during a trip. The single screen that answers "what now?".',
     items: [
       {
-        question: 'What is NOW?',
+        question: 'What is the Today tab?',
         answer: (
           <div className="space-y-2">
             <p>
-              NOW is your real-time execution view. It shows everything you need to act on right now — without scrolling through your full itinerary.
+              Today is the command center for an active trip. It surfaces only what matters right now — your next move, when to leave, and the one or two actions worth taking — so you never have to scroll through a full itinerary in the moment.
             </p>
             <ul className="list-disc list-inside space-y-1">
-              <li><strong>Next Action</strong> — your most urgent upcoming event (flight, check-in, drive, stop).</li>
-              <li><strong>Leave By</strong> — when you should depart to arrive on time.</li>
-              <li><strong>Navigate</strong> — one-tap directions to your next destination.</li>
-              <li><strong>Quick Actions</strong> — fast access to Explore, Add Expense, Drive Mode, and more.</li>
-              <li><strong>Today's Timeline</strong> — compact view of today's remaining events.</li>
+              <li><strong>Next Action</strong> — the single most urgent upcoming event (flight, check-in, drive, stop, scheduled place).</li>
+              <li><strong>Leave By</strong> — recommended departure time with a Comfortable / Tight / High Risk indicator.</li>
+              <li><strong>Navigate</strong> — one-tap directions to the next destination.</li>
+              <li><strong>Quick Actions</strong> — Add Expense, Drive Mode (when relevant), and other context-aware shortcuts.</li>
+              <li><strong>Remaining Today</strong> — a compact list of what is still ahead today.</li>
+            </ul>
+            <p className="text-xs text-muted-foreground mt-2">
+              Today is intentionally high-signal: messages are deduplicated so the same alert never appears twice, and recommendations have a short cooldown to prevent churn.
+            </p>
+          </div>
+        ),
+      },
+      {
+        question: 'How do I use Today step by step?',
+        answer: (
+          <ol className="list-decimal list-inside space-y-1.5">
+            <li>Open your Trip and tap <strong>Today</strong> in the navigation.</li>
+            <li>Read the <strong>Next Action</strong> card at the top.</li>
+            <li>Check <strong>Leave By</strong> for departure timing when it is shown.</li>
+            <li>Tap <strong>Navigate</strong> to open turn-by-turn directions in your maps app.</li>
+            <li>Use the <strong>Quick Actions</strong> strip to add an expense or open Drive Mode.</li>
+            <li>Scroll down to see the rest of <strong>Remaining Today</strong>.</li>
+          </ol>
+        ),
+      },
+      {
+        question: 'When is Today available?',
+        answer:
+          'Today is available from 14 days before departure through the end of the trip. Before that window, your Trip opens to Flow (the full timeline) by default.',
+      },
+      {
+        question: 'What does "Leave By" mean?',
+        answer:
+          'Leave By is the recommended departure time for your next event, calculated from the event start time and live travel duration (traffic-aware on driving segments). The indicator labels timing as Comfortable, Tight, or High Risk so you can act before it tightens further.',
+      },
+    ],
+  },
+
+  /* ================================================================
+   * FLOW — TIMELINE
+   * ================================================================ */
+  {
+    id: 'flow-tab',
+    title: 'Flow — Full Timeline',
+    icon: <Calendar className="w-5 h-5 text-primary" />,
+    description: 'The chronological view of every event in your trip.',
+    items: [
+      {
+        question: 'What is the Flow tab?',
+        answer:
+          'Flow is the full chronological timeline of your trip — flights, lodging check-ins and check-outs, rental pickups and returns, parking, transport, tour stops, and scheduled places. It is the answer to "what is the whole picture?" while Today answers "what now?".',
+      },
+      {
+        question: 'How is Flow sorted?',
+        answer: (
+          <ul className="list-disc list-inside space-y-1.5">
+            <li><strong>Today</strong> events are pinned to the top.</li>
+            <li><strong>Future</strong> events follow in ascending order (soonest first).</li>
+            <li><strong>Past</strong> events appear at the bottom in descending order (most recent first) so a completed history stays out of the way.</li>
+          </ul>
+        ),
+      },
+      {
+        question: 'How do events get on Flow?',
+        answer: (
+          <div className="space-y-2">
+            <p>Flow is generated automatically from your data — you do not create timeline events directly. Sources include:</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li><strong>Bookings</strong> — flights, lodging, car rentals, transport, activities.</li>
+              <li><strong>Parking</strong> — start and expiration events.</li>
+              <li><strong>Tour stops</strong> — manual stops added in the Tours workspace.</li>
+              <li><strong>Scheduled places</strong> — places you add to your timeline from discovery.</li>
             </ul>
           </div>
         ),
       },
       {
-        question: 'How do I use NOW step by step?',
+        question: 'How do I navigate or explore from Flow?',
         answer: (
           <ol className="list-decimal list-inside space-y-1.5">
-            <li>Open your Trip.</li>
-            <li>Tap <strong>NOW</strong> in the navigation bar.</li>
-            <li>Review the <strong>Next Action</strong> card to see your upcoming event.</li>
-            <li>Check <strong>Leave By</strong> for departure timing (shown when applicable).</li>
+            <li>Find the event in Flow.</li>
             <li>Tap <strong>Navigate</strong> to open directions in your maps app.</li>
-            <li>Use the <strong>Quick Actions</strong> strip for fast access to common tasks.</li>
-            <li>Scroll down to see <strong>Today's Timeline</strong> for remaining events.</li>
+            <li>Tap <strong>Explore nearby</strong> to discover places around that event's location.</li>
           </ol>
         ),
       },
+    ],
+  },
+
+  /* ================================================================
+   * MOVE — TRANSPORT GUIDANCE
+   * ================================================================ */
+  {
+    id: 'move-tab',
+    title: 'Move — Getting There',
+    icon: <Car className="w-5 h-5 text-primary" />,
+    description: 'Directive transport guidance for the next leg of your trip.',
+    items: [
       {
-        question: 'What is Drive Mode on the NOW tab?',
+        question: 'What is the Move tab?',
         answer: (
           <div className="space-y-2">
             <p>
-              For Drive trips, a <strong>Drive Mode</strong> button appears in the quick actions strip when you have an active or upcoming drive segment.
+              Move tells you how to get to your next destination — by car, transit, or walking — without the analysis paralysis of an open-ended search.
             </p>
-            <ol className="list-decimal list-inside space-y-1.5">
-              <li>Open your Drive Trip → <strong>NOW</strong>.</li>
-              <li>Tap <strong>Drive Mode</strong> in the quick actions strip.</li>
-              <li>The Drive Mode screen shows your route, next destination, and navigation controls.</li>
-            </ol>
-            <p className="text-xs text-muted-foreground mt-2">
-              Drive Mode also appears as the Next Action card when a drive segment is the most urgent event and no flights or check-ins are pending.
+            <p>
+              You see <strong>exactly two options</strong> at a time: the recommended one and a clear alternative. Each option carries a live ETA, departure window, and a Navigate button.
             </p>
           </div>
         ),
       },
       {
-        question: 'What does "Leave By" mean?',
+        question: 'How does Move pick its options?',
+        answer: (
+          <ul className="list-disc list-inside space-y-1.5">
+            <li><strong>Drive</strong> options use live traffic with a built-in safety buffer.</li>
+            <li><strong>Transit</strong> options use real schedules and score on total door-to-door time.</li>
+            <li><strong>Drive Mode</strong> opens automatically for Drive trips with an active or imminent driving leg.</li>
+          </ul>
+        ),
+      },
+      {
+        question: 'How do I use Move?',
+        answer: (
+          <ol className="list-decimal list-inside space-y-1.5">
+            <li>Open your Trip and tap <strong>Move</strong>.</li>
+            <li>Review the recommended option and the alternative.</li>
+            <li>Tap <strong>Navigate</strong> on the option you want — directions open in your maps app.</li>
+            <li>For Drive trips, tap <strong>Drive Mode</strong> for a focused, full-screen driving view.</li>
+          </ol>
+        ),
+      },
+    ],
+  },
+
+  /* ================================================================
+   * GUIDE — CONTEXTUAL ALERTS
+   * ================================================================ */
+  {
+    id: 'guide-tab',
+    title: 'Guide — Heads-Up Alerts',
+    icon: <Bell className="w-5 h-5 text-primary" />,
+    description: 'The short list of things worth your attention right now.',
+    items: [
+      {
+        question: 'What is the Guide tab?',
         answer:
-          'Leave By shows the recommended departure time for your next event. It is calculated based on the event start time and estimated travel duration to help you arrive on time. The indicator shows whether your timing is comfortable, tight, or high-risk.',
+          'Guide surfaces the top contextual alerts for your trip — timing risks, weather changes, sequence problems between bookings, and notable external signals. It is capped at the most important items so you can scan it in seconds.',
+      },
+      {
+        question: 'How are Guide alerts prioritized?',
+        answer: (
+          <ul className="list-disc list-inside space-y-1.5">
+            <li><strong>Timing</strong> first — anything that affects whether you make a flight, check-in, or scheduled stop.</li>
+            <li><strong>Weather</strong> next — significant precipitation, thunderstorms, or temperature swings at your location.</li>
+            <li><strong>Sequence and external signals</strong> after that — gaps between bookings, flight status, transit advisories.</li>
+          </ul>
+        ),
+      },
+      {
+        question: 'What kinds of alerts can Guide show?',
+        answer: (
+          <ul className="list-disc list-inside space-y-1.5">
+            <li>Leave-by warnings when traffic or transit tightens.</li>
+            <li>Flight status changes (delays, gate changes) for tracked flights.</li>
+            <li>Weather windows that affect outdoor plans.</li>
+            <li>Airport pressure states as departure approaches (T-120 → T-30).</li>
+            <li>Sequence issues — for example, a hotel check-out before a rental return.</li>
+          </ul>
+        ),
+      },
+    ],
+  },
+
+  /* ================================================================
+   * TOURS — MANUAL STOPS WORKSPACE
+   * ================================================================ */
+  {
+    id: 'tours',
+    title: 'Tours — Manual Stops',
+    icon: <MapPin className="w-5 h-5 text-primary" />,
+    description: 'Plan a sequence of stops that are not tied to a booking.',
+    items: [
+      {
+        question: 'What is the Tours workspace?',
+        answer:
+          'Tours is where you plan stops that do not come from a booking — sightseeing routes, multi-stop work days, a day of errands. Each stop you add becomes an event on your Flow timeline automatically.',
+      },
+      {
+        question: 'How do I add a stop?',
+        answer: (
+          <ol className="list-decimal list-inside space-y-1.5">
+            <li>Open your Trip → <strong>Tours</strong> (under MORE on mobile).</li>
+            <li>Tap <strong>Add Stop</strong>.</li>
+            <li>Enter the place name and address, and pick a date.</li>
+            <li>Set a time, or leave it as <strong>TBD</strong> and we will slot it in a sensible order.</li>
+            <li>Tap <strong>Save</strong>. The stop appears in Tours and on Flow.</li>
+          </ol>
+        ),
+      },
+      {
+        question: 'How does TBD ordering work?',
+        answer:
+          'Stops marked TBD are ordered by nearest-neighbor geography on their date — once you have a start point, the closest unscheduled stop comes next, then the closest after that. As soon as you give a stop a time, it locks to that time.',
+      },
+      {
+        question: 'Are Tours the same as Bookings?',
+        answer:
+          'No. Bookings are monetary records (flights, lodging, rentals, paid activities) — they carry costs. Tours are manual stops with no money attached. Both feed Flow, but they live in separate workspaces so financial reporting stays clean.',
+      },
+    ],
+  },
+
+  /* ================================================================
+   * ASK AI — GROUNDED ASSISTANT
+   * ================================================================ */
+  {
+    id: 'ask-ai',
+    title: 'Ask AI',
+    icon: <HelpCircle className="w-5 h-5 text-primary" />,
+    description: 'A grounded assistant that answers questions about your trip.',
+    items: [
+      {
+        question: 'What is Ask AI?',
+        answer:
+          'Ask AI is an in-app assistant that answers questions about the trip you have open — your bookings, dates, costs, packing, and timeline. It is grounded in your trip data, so answers stay specific to what you have entered rather than guessing.',
+      },
+      {
+        question: 'What kinds of questions work best?',
+        answer: (
+          <ul className="list-disc list-inside space-y-1.5">
+            <li>"What is my next flight and when do I leave for the airport?"</li>
+            <li>"How much have I spent on meals so far?"</li>
+            <li>"What do I have planned for tomorrow?"</li>
+            <li>"Is there anything I should pack that I'm missing?"</li>
+          </ul>
+        ),
+      },
+      {
+        question: 'What are the limits?',
+        answer:
+          'Each question is answered on its own — Ask AI does not carry a long back-and-forth conversation. There is a per-session query cap to keep the feature fast and responsive. For longer planning conversations, use the trip workspace directly.',
       },
     ],
   },
