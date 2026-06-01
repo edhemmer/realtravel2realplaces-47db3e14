@@ -107,7 +107,7 @@ const HELP_SECTIONS: HelpSection[] = [
                 <li>Create a Trip — choose your travel mode (Fly, Drive, or Train), enter your destination and dates.</li>
                 <li>Add bookings — paste confirmation text, upload a screenshot, or enter details manually.</li>
                 <li>Your Timeline builds automatically from your bookings, lodging, parking, and scheduled activities.</li>
-                <li>Use NOW during your trip to see what's next, when to leave, and one-tap directions.</li>
+                <li>Use Today during your trip to see what's next, when to leave, and one-tap directions.</li>
               </ol>
             </div>
           </div>
@@ -377,7 +377,8 @@ const HELP_SECTIONS: HelpSection[] = [
             <ul className="list-disc list-inside space-y-1">
               <li><strong>Bookings</strong> — each booking generates start and (where applicable) end events.</li>
               <li><strong>Parking</strong> — parking entries appear with start and expiration events.</li>
-              <li><strong>Explore → Add to Timeline</strong> — places you schedule from EXPLORE appear as engagement events.</li>
+              <li><strong>Discover → Add to Timeline</strong> — places you schedule from the Discover surface appear as engagement events.</li>
+              <li><strong>Tours</strong> — manual stops you add in the Tours workspace.</li>
             </ul>
             <p className="text-xs text-muted-foreground mt-2">
               You do not create timeline events manually. They are generated from your bookings, parking, and scheduled activities.
@@ -398,7 +399,7 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         question: 'What does "Explore nearby" do on the Timeline?',
         answer:
-          'Tapping "Explore nearby" on a timeline event switches to the EXPLORE tab and centers discovery around that event\'s location, so you can find restaurants, cafes, or attractions near your next stop.',
+          'Tapping "Explore nearby" on a timeline event opens the Discover surface and centers it on that event\'s location, so you can find restaurants, cafes, or attractions near your next stop.',
       },
       {
         question: 'How do I tap through from the Timeline to a booking?',
@@ -686,7 +687,7 @@ const HELP_SECTIONS: HelpSection[] = [
           <ul className="list-disc list-inside space-y-1.5">
             <li>Drive Trips include a <strong>Drive Summary Card</strong> with estimated miles and gas expense tracking.</li>
             <li>A <strong>Drive Mode</strong> screen provides focused navigation during the drive.</li>
-            <li>The NOW tab shows <strong>Drive Mode</strong> as a quick action when a drive segment is active.</li>
+            <li>The Today tab shows <strong>Drive Mode</strong> as a quick action when a drive segment is active, and Move surfaces it as the recommended option.</li>
             <li>Street addresses for origin and destination enable door-to-door navigation.</li>
           </ul>
         ),
@@ -696,7 +697,7 @@ const HELP_SECTIONS: HelpSection[] = [
         answer: (
           <ol className="list-decimal list-inside space-y-1.5">
             <li>Open your Drive Trip.</li>
-            <li>Go to <strong>NOW</strong> and tap <strong>Drive Mode</strong> in the quick actions, or tap the <strong>Drive Mode</strong> entry card on the Summary screen.</li>
+            <li>Go to <strong>Today</strong> (or <strong>Move</strong>) and tap <strong>Drive Mode</strong>, or tap the <strong>Drive Mode</strong> entry card on the Summary screen.</li>
             <li>The Drive Mode screen shows your current route segment and next destination.</li>
             <li>Tap <strong>Navigate</strong> to open turn-by-turn directions in your maps app.</li>
           </ol>
@@ -722,20 +723,20 @@ const HELP_SECTIONS: HelpSection[] = [
   },
 
   /* ================================================================
-   * EXPLORE
+   * DISCOVER PLACES
    * ================================================================ */
   {
-    id: 'explore',
-    title: 'EXPLORE — Discover Places',
+    id: 'discover',
+    title: 'Discover Places',
     icon: <Search className="w-5 h-5 text-primary" />,
-    description: 'Discover real places near your destination with photos, ratings, and reviews.',
+    description: 'Find real places near your destination with photos, ratings, and reviews.',
     items: [
       {
-        question: 'What is EXPLORE?',
+        question: 'What is Discover?',
         answer: (
           <div className="space-y-2">
             <p>
-              EXPLORE helps you discover real places near your Trip destination using Google Places. Browse categories with photos, star ratings, and review counts — then add places directly to your Trip timeline.
+              Discover surfaces real places near your Trip destination — restaurants, attractions, cafes, parks, museums, and more. Each result includes a real photo, star rating, and review count, and you can add any place straight to your Flow timeline.
             </p>
             <p className="font-medium text-foreground mt-3">Categories:</p>
             <ul className="list-disc list-inside space-y-1">
@@ -752,50 +753,52 @@ const HELP_SECTIONS: HelpSection[] = [
         ),
       },
       {
-        question: 'How do I use EXPLORE?',
+        question: 'How do I use Discover?',
         answer: (
           <ol className="list-decimal list-inside space-y-1.5">
-            <li>Open your Trip and tap <strong>EXPLORE</strong> in the navigation.</li>
+            <li>Open your Trip and open the Discover surface from the navigation (or tap <strong>Explore nearby</strong> on a Flow event).</li>
             <li>The <strong>Right Now</strong> section shows a curated mix of top-rated places, adjusted for time of day and weather.</li>
             <li>Below that, each category shows 3 places. Tap <strong>See all</strong> to expand.</li>
             <li>Each place card shows a real photo, star rating, review count, and category.</li>
-            <li>Tap <strong>Navigate</strong> to open directions in your maps app.</li>
-            <li>Tap <strong>Add to Timeline</strong> to schedule the place on your trip.</li>
+            <li>Tap <strong>Navigate</strong> for directions, or <strong>Add to Timeline</strong> to schedule it.</li>
           </ol>
         ),
       },
       {
-        question: 'How do I add an Explore place to my Timeline?',
+        question: 'How do I add a place to my timeline?',
         answer: (
           <ol className="list-decimal list-inside space-y-1.5">
-            <li>Find a place in EXPLORE and tap <strong>Add to Timeline</strong> (or the <strong>Add</strong> button).</li>
-            <li>A scheduling dialog opens showing the place name and location.</li>
-            <li>Select the <strong>date</strong> (must be within your trip dates).</li>
-            <li>Set the <strong>time</strong> you plan to visit.</li>
+            <li>Tap <strong>Add to Timeline</strong> on a place card.</li>
+            <li>Pick a <strong>date</strong> (within your trip dates) and a <strong>time</strong>.</li>
             <li>Choose a <strong>duration</strong> (30 min, 1 hour, 2 hours, 3 hours, or None).</li>
-            <li>Tap <strong>Add to Timeline</strong>. The place appears on your Trip Timeline at the scheduled date and time.</li>
+            <li>Tap <strong>Add to Timeline</strong>. The place appears on Flow at the scheduled date and time.</li>
           </ol>
         ),
       },
       {
         question: 'How does "Right Now" work?',
         answer:
-          'Right Now picks the highest-rated place from each category and ranks them using time-of-day awareness (cafes in the morning, restaurants in the evening) and weather conditions (indoor places during rain). This gives you a diverse, actionable snapshot of what is worth visiting right now.',
+          'Right Now picks the highest-rated place from each category and ranks them using time-of-day awareness (cafes in the morning, restaurants in the evening) and weather (indoor places when it rains). The result is a short, actionable snapshot of what is worth doing right now.',
       },
       {
-        question: 'Can I explore before I arrive at my destination?',
+        question: 'Can I discover places before I arrive?',
         answer:
-          'Yes. Use the Area Picker at the top of the EXPLORE tab to browse places at your destination before you arrive. You can add places to your timeline in advance.',
+          'Yes. Use the Area Picker at the top of Discover to browse places at your destination ahead of time, and add them to your timeline in advance.',
       },
       {
-        question: 'Where does EXPLORE get its data?',
+        question: 'Does Discover work offline?',
         answer:
-          'EXPLORE uses the Google Places API to fetch real, up-to-date place data including names, addresses, photos, ratings, and review counts. Photos are served through a secure proxy.',
+          'You can still see places you have already loaded, and we cache a radius of roughly 15 miles around your current location for offline browsing. Fresh results and photos resume the moment you are back online.',
       },
       {
-        question: 'Is EXPLORE available on all plans?',
+        question: 'Where does Discover get its data?',
         answer:
-          'Yes. EXPLORE is a core feature available on Free, Pro, and Business plans.',
+          'Discover uses the Google Places service for real, up-to-date place data — names, addresses, photos, ratings, and review counts. Photos are served through a secure proxy.',
+      },
+      {
+        question: 'Is Discover available on all plans?',
+        answer:
+          'Yes. Discover is a core feature available on Free, Pro, and Business plans.',
       },
     ],
   },
@@ -1239,7 +1242,7 @@ const HELP_SECTIONS: HelpSection[] = [
           <ul className="list-disc list-inside space-y-1">
             <li><strong>Sign in with Apple</strong> — one-tap account creation and sign-in.</li>
             <li><strong>Native share sheet</strong> — share trips, itineraries, and reports straight to Messages, Mail, or AirDrop.</li>
-            <li><strong>Haptic feedback</strong> on key actions in NOW and Drive Mode.</li>
+            <li><strong>Haptic feedback</strong> on key actions in Today, Move, and Drive Mode.</li>
             <li><strong>Background location</strong> for live arrival, departure, and "time to leave" awareness during a trip (you control this in Settings &gt; Privacy).</li>
             <li><strong>Deep links</strong> — tapping a Real Travel 2 Real Places link from Mail or Messages opens directly in the app.</li>
             <li><strong>Edge-to-edge layout</strong> with proper safe-area handling around the Dynamic Island and home indicator.</li>
@@ -1250,13 +1253,13 @@ const HELP_SECTIONS: HelpSection[] = [
         question: 'How does mobile navigation work?',
         answer: (
           <div className="space-y-2">
-            <p>On phones, your Trip uses a bottom navigation bar with main tabs:</p>
+            <p>On phones, your Trip uses a bottom navigation bar with these tabs:</p>
             <ul className="list-disc list-inside space-y-1">
-              <li><strong>NOW</strong> — real-time execution view with quick actions</li>
-              <li><strong>PLAN</strong> — timeline and trip overview</li>
-              <li><strong>EXPLORE</strong> — discover nearby places</li>
-              <li><strong>EXPENSES</strong> — expense tracking</li>
-              <li><strong>MORE</strong> — bookings, companions, parking, packing, notes, members, and reports</li>
+              <li><strong>Today</strong> — the command center for an active trip (next action, leave-by, quick actions)</li>
+              <li><strong>Flow</strong> — the full chronological timeline</li>
+              <li><strong>Move</strong> — directive transport guidance for the next leg</li>
+              <li><strong>Guide</strong> — the short list of heads-up alerts worth your attention</li>
+              <li><strong>More</strong> — bookings, expenses, tours, companions, parking, packing, notes, members, reports, and Ask AI</li>
             </ul>
           </div>
         ),
@@ -1264,7 +1267,7 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         question: 'How do I quickly add an expense on mobile?',
         answer:
-          'On mobile, tap the green "Add Expense" button on the NOW tab\'s quick actions strip, or go to EXPENSES and tap Add Expense.',
+          'On mobile, tap the "Add Expense" quick action on the Today tab, or open Expenses from More and tap Add Expense.',
       },
       {
         question: 'Does the app work offline?',
@@ -1286,7 +1289,7 @@ const HELP_SECTIONS: HelpSection[] = [
           <div className="space-y-2">
             <p>iOS will ask you to allow specific capabilities the first time they\'re used. You can change any of these later in <strong>Settings &gt; Real Travel 2 Real Places</strong>:</p>
             <ul className="list-disc list-inside space-y-1">
-              <li><strong>Location</strong> — powers NOW, Drive Mode timing, and Explore. "While Using" is enough; "Always" enables background trip awareness.</li>
+              <li><strong>Location</strong> — powers Today, Move, Drive Mode timing, and Discover. "While Using" is enough; "Always" enables background trip awareness.</li>
               <li><strong>Notifications</strong> — boarding, departure, and "time to leave" alerts during active trips.</li>
               <li><strong>Camera / Photos</strong> — only used when you attach a receipt or import a booking screenshot.</li>
             </ul>
@@ -1353,8 +1356,10 @@ const HELP_SECTIONS: HelpSection[] = [
               <ul className="list-disc list-inside space-y-1 text-sm">
                 <li>Up to 5 lifetime trips</li>
                 <li>Full trip management: bookings, expenses, packing, parking, notes</li>
-                <li>Timeline and NOW execution view</li>
-                <li>EXPLORE — discover places near your destination</li>
+                <li>Today, Flow, Move, and Guide tabs — the full command-center experience</li>
+                <li>Discover — find places near your destination</li>
+                <li>Tours — manual stops workspace</li>
+                <li>Ask AI — grounded in-trip assistant</li>
                 <li>Calendar export (.ics)</li>
                 <li>Core reminders and travel alerts</li>
               </ul>
@@ -1425,19 +1430,44 @@ const HELP_SECTIONS: HelpSection[] = [
           'A chronological view of every event in your Trip — flights, lodging, rentals, parking, transport, activities, and scheduled Explore places — organized by date and time.',
       },
       {
-        question: 'NOW',
+        question: 'Today',
         answer:
-          'The real-time execution view showing your next action, departure timing, navigation, and quick access to common tasks. Available during active trips.',
+          'The command-center tab for an active trip. Shows your next action, leave-by timing, navigation, and quick actions. Available from 14 days before departure through the end of the trip.',
+      },
+      {
+        question: 'Flow',
+        answer:
+          'The full chronological timeline of your trip. Today events pinned to the top, future events in ascending order, past events in descending order at the bottom.',
+      },
+      {
+        question: 'Move',
+        answer:
+          'The transport guidance tab. Shows exactly two options — recommended and alternative — for getting to your next destination, with live ETAs and Navigate.',
+      },
+      {
+        question: 'Guide',
+        answer:
+          'The contextual alerts tab. Surfaces the top heads-up items worth your attention right now, prioritized Timing → Weather → Sequence and external signals.',
       },
       {
         question: 'Drive Mode',
         answer:
-          'A focused navigation screen for Drive Trips. Shows your current route, next destination, and one-tap navigation. Accessible from NOW or the Trip Summary.',
+          'A focused, full-screen navigation view for Drive Trips. Shows your current route, next destination, and one-tap navigation. Accessible from Today, Move, or the Trip Summary.',
       },
       {
-        question: 'EXPLORE',
+        question: 'Discover',
         answer:
-          'A discovery feature powered by Google Places that surfaces restaurants, attractions, cafes, bars, parks, hiking trails, museums, and grocery stores near your Trip destination. Each place includes a real photo, rating, and review count. Available on all plans.',
+          'The place-discovery surface, powered by Google Places. Surfaces restaurants, attractions, cafes, bars, parks, hiking trails, museums, and grocery stores near your Trip destination. Each place includes a real photo, rating, and review count. Available on all plans.',
+      },
+      {
+        question: 'Tours',
+        answer:
+          'The workspace for manual stops that are not tied to a booking. Stops can be timed or marked TBD (sorted by nearest-neighbor geography). Tour stops flow into Flow automatically.',
+      },
+      {
+        question: 'Ask AI',
+        answer:
+          'A grounded in-trip assistant that answers single-turn questions about your trip data — bookings, dates, costs, packing, timeline.',
       },
       {
         question: 'Stop',
@@ -1455,17 +1485,17 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         question: 'Next Action',
         answer:
-          'The most urgent upcoming event displayed on the NOW screen. Could be a flight, check-in, drive segment, stop, or activity.',
+          'The most urgent upcoming event displayed on the Today tab. Could be a flight, check-in, drive segment, tour stop, or scheduled place.',
       },
       {
         question: 'Leave By',
         answer:
-          'The recommended departure time for your next event, shown on NOW. Includes feasibility indicators: Comfortable, Tight, or High Risk.',
+          'The recommended departure time for your next event, shown on Today and on Move options. Includes feasibility indicators: Comfortable, Tight, or High Risk.',
       },
       {
         question: 'Engagement',
         answer:
-          'An activity scheduled from EXPLORE or manually added to the Trip timeline. Engagements appear as events on the Timeline alongside bookings and parking.',
+          'An activity scheduled from Discover or added as a Tour stop. Engagements appear on Flow alongside bookings and parking.',
       },
       {
         question: 'Expense',
@@ -1495,9 +1525,9 @@ const HELP_SECTIONS: HelpSection[] = [
           'Not all confirmation formats are supported. If automatic parsing misses details, tap Edit on the booking to correct fields manually. You can also add bookings entirely by hand.',
       },
       {
-        question: 'I added a place from EXPLORE but it does not appear on my Timeline.',
+        question: 'I added a place from Discover but it does not appear on Flow.',
         answer:
-          'Places added from EXPLORE appear as engagement events on your Timeline. Make sure the date you selected is within your trip date range. Refresh the page if the event does not appear immediately.',
+          'Places added from Discover appear as engagement events on Flow. Make sure the date you selected is within your trip date range. Refresh the page if the event does not appear immediately.',
       },
       {
         question: 'My invitation link is not working.',
@@ -1515,7 +1545,7 @@ const HELP_SECTIONS: HelpSection[] = [
           'This means the booking or event does not have an address or airport code stored. Edit the booking and add an address to enable navigation.',
       },
       {
-        question: 'Drive Mode is not showing on my NOW tab.',
+        question: 'Drive Mode is not showing on my Today tab.',
         answer:
           'Drive Mode only appears for trips with the Drive transportation mode and when you have an active or upcoming drive segment. Make sure your trip is within its active date window (trip dates including 1 day before departure).',
       },
@@ -1575,7 +1605,7 @@ export default function HelpCenter() {
         <title>Help Center — Real Travel 2 Real Places | User Manual</title>
         <meta
           name="description"
-          content="Complete user manual for Real Travel 2 Real Places. Step-by-step guides for creating trips, managing bookings, using NOW, EXPLORE, Drive Mode, expenses, packing, and more."
+          content="Complete user manual for Real Travel 2 Real Places. Step-by-step guides for Today, Flow, Move, Guide, Discover, Tours, Drive Mode, expenses, packing, sharing, and more."
         />
         <link rel="canonical" href="https://realtravel2realplaces.lovable.app/help" />
       </Helmet>
