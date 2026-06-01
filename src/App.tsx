@@ -65,6 +65,32 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 
 const queryClient = new QueryClient();
 
+// Persist ONLY Explore (Google Places) results to localStorage so survives
+// page refresh / tab close — protects against duplicate Google Places API
+// calls within the 5-minute staleTime window.
+if (typeof window !== "undefined") {
+  try {
+    const persister = createSyncStoragePersister({
+      storage: window.localStorage,
+      key: "rt2rp-explore-cache",
+      throttleTime: 1000,
+    });
+    persistQueryClient({
+      queryClient,
+      persister,
+      maxAge: 5 * 60 * 1000, // 5 minutes — match Explore staleTime
+      dehydrateOptions: {
+        shouldDehydrateQuery: (query) =>
+          Array.isArray(query.queryKey) &&
+          query.queryKey[0] === "real-places-explore" &&
+          query.state.status === "success",
+      },
+    });
+  } catch {
+    // localStorage unavailable (private mode, quota) — silently fall back to in-memory only
+  }
+}
+
 /**
  * Protected route that requires user to be authenticated.
  * v2.3.x: Single centralized guard for auth + onboarding.
