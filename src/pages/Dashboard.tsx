@@ -257,25 +257,67 @@ export default function Dashboard() {
             className="motion-cinema"
           >
             <Card className="border-dashed border-2">
-              <CardContent className="flex flex-col items-center justify-center py-16">
+              <CardContent className="flex flex-col items-center justify-center py-14 px-6">
                 <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
                   <Plane className="w-8 h-8 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">No trips yet</h3>
-                <p className="text-muted-foreground text-center mb-6 max-w-md">
+                <h3 className="text-xl font-semibold mb-2">Your command center is waiting</h3>
+                <p className="text-muted-foreground text-center mb-6 max-w-md text-sm leading-relaxed">
                   {CAN_CREATE_TRIPS
-                    ? 'Your trips will appear here once created. Add your first trip to start tracking bookings, expenses, and travel details in one place.'
+                    ? 'Add your first trip to bring Today, Move, Guide, and Flow to life — bookings, timing, and the next step in one calm place.'
                     : 'Your trips will appear here once created on the web. Visit realtravel2realplaces.app from a browser to create your first trip.'}
                 </p>
+
                 {CAN_CREATE_TRIPS && (
-                  <Button 
-                    onClick={() => setCreateDialogOpen(true)} 
-                    size="lg" 
+                  <div className="w-full max-w-lg grid grid-cols-2 gap-2.5 mb-6 text-left">
+                    <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
+                      <Sparkles className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                      <div>
+                        <div className="text-xs font-semibold">Today</div>
+                        <div className="text-[11px] text-muted-foreground leading-snug">What to do next, when to leave.</div>
+                      </div>
+                    </div>
+                    <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
+                      <Compass className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                      <div>
+                        <div className="text-xs font-semibold">Move</div>
+                        <div className="text-[11px] text-muted-foreground leading-snug">Directive transport guidance.</div>
+                      </div>
+                    </div>
+                    <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
+                      <ListChecks className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                      <div>
+                        <div className="text-xs font-semibold">Guide</div>
+                        <div className="text-[11px] text-muted-foreground leading-snug">Alerts that actually matter.</div>
+                      </div>
+                    </div>
+                    <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
+                      <Route className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                      <div>
+                        <div className="text-xs font-semibold">Flow</div>
+                        <div className="text-[11px] text-muted-foreground leading-snug">Your trip on one timeline.</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {CAN_CREATE_TRIPS && (
+                  <Button
+                    onClick={() => setCreateDialogOpen(true)}
+                    size="lg"
                     className="bg-gradient-ocean hover:opacity-90 h-12 rounded-xl font-semibold shadow-sm"
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Create Your First Trip
                   </Button>
+                )}
+
+                {CAN_CREATE_TRIPS && (
+                  <div className="mt-5 flex justify-center flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-muted-foreground">
+                    <span className="flex items-center gap-1.5"><WifiOff className="w-3 h-3 text-primary/70" />Works offline</span>
+                    <span className="flex items-center gap-1.5"><Coins className="w-3 h-3 text-primary/70" />Multi-currency aware</span>
+                    <span className="flex items-center gap-1.5"><Users className="w-3 h-3 text-primary/70" />Share with co-travelers</span>
+                  </div>
                 )}
               </CardContent>
             </Card>
