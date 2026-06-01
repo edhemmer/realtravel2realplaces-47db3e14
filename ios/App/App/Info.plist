@@ -61,5 +61,13 @@
 	<!-- Photo Library (if importing images from camera roll) -->
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Photo library access is used to import receipts and tickets for expense tracking.</string>
+
+	<!-- Allowed external app URL schemes (maps + driving) -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>comgooglemaps</string>
+		<string>comgooglemaps-x-callback</string>
+		<string>maps</string>
+	</array>
 </dict>
 </plist>
