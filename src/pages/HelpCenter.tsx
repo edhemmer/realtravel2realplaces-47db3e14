@@ -1065,9 +1065,9 @@ const HELP_SECTIONS: HelpSection[] = [
         answer: (
           <div className="space-y-2">
             <ol className="list-decimal list-inside space-y-1.5">
-              <li>Open your Trip → <strong>Members</strong> (under MORE on mobile).</li>
-              <li>Enter the email address of the person you want to invite.</li>
-              <li>Select their permissions: Read Only, Can Add Expenses, Can Add Lodging.</li>
+              <li>Open your Trip → <strong>Members</strong> (under More on mobile).</li>
+              <li>Enter the email address of the person you want to invite (emails are normalized — case and surrounding whitespace are ignored).</li>
+              <li>Pick the capabilities you want them to have (see below).</li>
               <li>Send the invitation. The link is valid for 7 days.</li>
             </ol>
             <p className="text-xs text-muted-foreground mt-2">
@@ -1077,19 +1077,43 @@ const HELP_SECTIONS: HelpSection[] = [
         ),
       },
       {
-        question: 'How does someone accept an invitation?',
-        answer:
-          'When your companion clicks the invitation link, they are asked to sign in or create an account. Once signed in, they are added to your Trip with the permissions you selected.',
+        question: 'What capabilities can I grant?',
+        answer: (
+          <div className="space-y-2">
+            <p>
+              Sharing is capability-scoped: each member gets a precise set of things they can do, not a single role. You can combine capabilities freely.
+            </p>
+            <ul className="list-disc list-inside space-y-1.5">
+              <li><strong>View</strong> — always granted; the member can see the trip, timeline, bookings, and tours.</li>
+              <li><strong>Add Expenses</strong> — log expenses on the trip.</li>
+              <li><strong>Add Lodging</strong> — add lodging bookings.</li>
+              <li><strong>Add Tour Stops</strong> — contribute manual stops to the Tours workspace.</li>
+            </ul>
+            <p className="text-xs text-muted-foreground mt-2">
+              Members never see capabilities they were not granted — disabled features are hidden, not greyed out.
+            </p>
+          </div>
+        ),
       },
       {
-        question: 'Can I change permissions after someone has joined?',
+        question: 'How does someone accept an invitation?',
         answer:
-          'Yes. The Trip owner can update any member\'s permissions at any time from the Members section.',
+          'When your companion taps the invitation link, they are asked to sign in or create an account using the same email the invitation was sent to. Once signed in, they are added to your Trip with the capabilities you selected.',
+      },
+      {
+        question: 'Can I change a member\'s capabilities later?',
+        answer:
+          'Yes. The Trip owner can update any member\'s capabilities at any time from the Members section. Changes take effect immediately on the member\'s next view.',
       },
       {
         question: 'Can companions delete items?',
         answer:
-          'No. Companions cannot delete any Trip items regardless of their permissions. Only the Trip owner can delete items.',
+          'No. Members can only add and edit within the capabilities they have been granted. Deletion is reserved for the Trip owner so your record of the trip stays intact.',
+      },
+      {
+        question: 'Can I revoke access?',
+        answer:
+          'Yes. Open Members, find the person, and remove them. Their access ends immediately, and any pending invitation link they have is invalidated.',
       },
     ],
   },
@@ -1104,19 +1128,20 @@ const HELP_SECTIONS: HelpSection[] = [
     description: 'Understand what companions can and cannot do.',
     items: [
       {
-        question: 'What permission levels exist?',
+        question: 'How does the capability model work?',
         answer: (
           <ul className="list-disc list-inside space-y-1.5">
-            <li><strong>Read Only</strong> — can view the Trip but cannot add anything.</li>
-            <li><strong>Can Add Expenses</strong> — can log expenses on the Trip.</li>
-            <li><strong>Can Add Lodging</strong> — can add lodging bookings to the Trip.</li>
+            <li><strong>View</strong> is always implicit — every member can see the trip.</li>
+            <li><strong>Add Expenses</strong>, <strong>Add Lodging</strong>, and <strong>Add Tour Stops</strong> are independent toggles you can mix and match.</li>
+            <li>Deletion is owner-only, regardless of capabilities.</li>
+            <li>Members never see disabled controls — features they cannot use are hidden completely.</li>
           </ul>
         ),
       },
       {
-        question: 'Can I combine permissions?',
+        question: 'Can I give someone every capability?',
         answer:
-          'You can enable both "Can Add Expenses" and "Can Add Lodging" together. Read Only cannot be combined with adding permissions.',
+          'Yes. Toggle every capability on for a member and they can contribute expenses, lodging, and tour stops — but the owner remains the only person who can delete.',
       },
     ],
   },
@@ -1274,11 +1299,13 @@ const HELP_SECTIONS: HelpSection[] = [
         answer: (
           <div className="space-y-2">
             <p>
-              Yes — the iOS app and the installed web app cache your current trip, today\'s timeline, recent bookings, and nearby Explore results so you can still see what\'s next when you lose signal (in flight, in a tunnel, abroad without data).
+              Yes. The iOS app and the installed web app cache your current trip, today's and tomorrow's timeline window, recent bookings, and a ~15-mile radius of Discover results so you can still see what's next when you lose signal (in flight, in a tunnel, abroad without data).
             </p>
             <p>
-              Any expenses you add offline are saved locally and sync automatically the moment you\'re back online.
-              Live items that need the network — weather, traffic, flight status, new search results — resume as soon as connectivity returns.
+              Any expense you add offline is saved to a local queue and synced automatically the moment connectivity returns — the queue is idempotent, so nothing duplicates if your device retries.
+            </p>
+            <p>
+              Live items that need the network — weather, traffic, flight status, fresh Discover searches — resume as soon as you are back online. We always prefer the cloud copy when both are available, so a stale local edit will never overwrite a fresher server version.
             </p>
           </div>
         ),
