@@ -1,9 +1,8 @@
 /**
- * WelcomeChoice — v2.3.10: Post-Tutorial Entry Choice
- * 
- * Shows once after first tutorial completion.
- * Two CTAs: Create a Trip (opens wizard) or Go to Dashboard.
- * Uses localStorage flag for one-time display (no schema changes).
+ * WelcomeChoice — v2.3.11: Post-first-trip entry choice
+ *
+ * Shows once after the first trip is created. Two CTAs: Create a Trip (opens
+ * wizard) or Go to Dashboard. One-time display via localStorage flag.
  */
 
 import { useEffect, useState } from 'react';
