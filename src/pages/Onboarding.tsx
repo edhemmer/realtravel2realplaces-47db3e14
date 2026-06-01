@@ -1,9 +1,9 @@
 /**
- * Onboarding Page — v3.10.1: Premium intro card → Wizard mode selector
- * 
- * Shows a welcoming intro card with "Create your first trip" CTA.
- * Routes to the Create Trip Wizard which opens at the Fly/Drive/Train selector.
- * No upload/import/paste prompts in onboarding.
+ * Onboarding Page — v3.11.0: Command-center intro
+ *
+ * Premium intro card that frames the four pillars (Today / Move / Guide / Flow)
+ * and the core promises (offline, multi-currency, shareable) before routing
+ * into the Create Trip Wizard. No upload/import/paste prompts in onboarding.
  */
 
 import { useState, useEffect } from 'react';
