@@ -10,7 +10,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
-import { Plane, ArrowRight, MapPin, Shield } from 'lucide-react';
+import { Plane, ArrowRight, Compass, Sparkles, ListChecks, WifiOff, Coins, Users } from 'lucide-react';
 import { 
   useOnboardingStatus,
   useCompleteOnboarding, 
