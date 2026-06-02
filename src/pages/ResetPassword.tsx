@@ -101,8 +101,9 @@ export default function ResetPassword() {
       if (error) {
         setError(error.message);
       } else {
+        // End the recovery session so the user must log in with the new password.
+        await supabase.auth.signOut();
         setSuccess(true);
-        // Auto redirect after 3 seconds
         setTimeout(() => {
           navigate('/auth');
         }, 3000);
