@@ -46,7 +46,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (event === 'TOKEN_REFRESHED') {
           console.log('Token refreshed successfully');
         }
-        
+
+        // Password recovery: force user to /reset-password instead of
+        // letting protected routes drop them on the dashboard.
+        if (event === 'PASSWORD_RECOVERY') {
+          if (window.location.pathname !== '/reset-password') {
+            window.location.replace('/reset-password');
+          }
+        }
+
         if (event === 'SIGNED_OUT') {
           // Clear any cached data
           setSession(null);

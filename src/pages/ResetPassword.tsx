@@ -19,31 +19,59 @@ export default function ResetPassword() {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    // Check if we have an access token from the URL (Supabase redirects with hash)
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const accessToken = hashParams.get('access_token');
-    const type = hashParams.get('type');
+    let cancelled = false;
 
-    if (accessToken && type === 'recovery') {
-      setTokenValid(true);
-    } else {
-      // Also check for error in hash
+    // Listen for the recovery event — Supabase fires this when the user
+    // arrives from a password reset email and a session is established.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+        if (!cancelled) setTokenValid(true);
+      }
+    });
+
+    (async () => {
+      // 1. PKCE flow: ?code=... in the query string
+      const code = searchParams.get('code');
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (cancelled) return;
+        if (error) {
+          setError(error.message);
+          setTokenValid(false);
+        } else {
+          setTokenValid(true);
+        }
+        return;
+      }
+
+      // 2. Legacy implicit flow: tokens in the URL hash
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const type = hashParams.get('type');
       const errorDesc = hashParams.get('error_description');
+
       if (errorDesc) {
         setError(decodeURIComponent(errorDesc));
         setTokenValid(false);
-      } else {
-        // Check if user is authenticated via recovery
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          if (session) {
-            setTokenValid(true);
-          } else {
-            setTokenValid(false);
-          }
-        });
+        return;
       }
-    }
-  }, []);
+
+      if (accessToken && type === 'recovery') {
+        setTokenValid(true);
+        return;
+      }
+
+      // 3. Fallback: session may already exist from PASSWORD_RECOVERY event
+      const { data: { session } } = await supabase.auth.getSession();
+      if (cancelled) return;
+      setTokenValid(!!session);
+    })();
+
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, [searchParams]);
 
   const validatePassword = (): string | null => {
     if (password.length < 8) {
@@ -73,8 +101,9 @@ export default function ResetPassword() {
       if (error) {
         setError(error.message);
       } else {
+        // End the recovery session so the user must log in with the new password.
+        await supabase.auth.signOut();
         setSuccess(true);
-        // Auto redirect after 3 seconds
         setTimeout(() => {
           navigate('/auth');
         }, 3000);
