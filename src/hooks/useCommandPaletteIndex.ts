@@ -9,6 +9,7 @@
  */
 
 import { useMemo } from 'react';
+import { isNativeIOS } from '@/lib/native/platform';
 import {
   Compass,
   LayoutDashboard,
