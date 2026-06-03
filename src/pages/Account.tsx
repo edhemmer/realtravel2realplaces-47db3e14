@@ -120,8 +120,28 @@ export default function Account() {
     );
   };
 
-  // Show upgrade button for free users only (Pro and Business don't need it)
-  const showUpgradeButton = tier === 'free';
+  // Show upgrade button for free users only (Pro and Business don't need it).
+  // Hidden inside the iOS app: per App Store rules, this is a web SaaS — billing happens on the web.
+  const showUpgradeButton = tier === 'free' && !onIOS;
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-account');
+      if (error || (data as any)?.error) {
+        toast.error('Could not delete your account. Please try again or contact support.');
+        setIsDeleting(false);
+        return;
+      }
+      toast.success('Your account has been deleted.');
+      await supabase.auth.signOut();
+      navigate('/');
+    } catch (err) {
+      console.error('Delete account error:', err);
+      toast.error('An unexpected error occurred.');
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <Layout>
