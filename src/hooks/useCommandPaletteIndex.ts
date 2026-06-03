@@ -106,12 +106,7 @@ export function useCommandPaletteIndex(): CommandItem[] {
 
     // ----- Navigate -----
     // Plans & billing is hidden inside the iOS app (subscriptions are managed on the web).
-    // Use a runtime require to avoid touching this hook's existing imports.
-    let onIOSNative = false;
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      onIOSNative = require('@/lib/native/platform').isNativeIOS();
-    } catch { /* noop */ }
+    const onIOSNative = isNativeIOS();
     items.push(
       { id: 'nav:dashboard', group: 'Navigate', label: 'Dashboard', keywords: 'home trips overview', icon: LayoutDashboard, perform: (nav) => nav('/dashboard') },
       { id: 'nav:reports', group: 'Navigate', label: 'Reports', keywords: 'spend expense analytics', icon: BarChart3, perform: (nav) => nav('/reports') },
