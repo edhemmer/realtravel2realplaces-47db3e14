@@ -9,6 +9,7 @@
  */
 
 import { useMemo } from 'react';
+import { isNativeIOS } from '@/lib/native/platform';
 import {
   Compass,
   LayoutDashboard,
@@ -104,11 +105,15 @@ export function useCommandPaletteIndex(): CommandItem[] {
     }
 
     // ----- Navigate -----
+    // Plans & billing is hidden inside the iOS app (subscriptions are managed on the web).
+    const onIOSNative = isNativeIOS();
     items.push(
       { id: 'nav:dashboard', group: 'Navigate', label: 'Dashboard', keywords: 'home trips overview', icon: LayoutDashboard, perform: (nav) => nav('/dashboard') },
       { id: 'nav:reports', group: 'Navigate', label: 'Reports', keywords: 'spend expense analytics', icon: BarChart3, perform: (nav) => nav('/reports') },
       { id: 'nav:account', group: 'Navigate', label: 'Account', keywords: 'profile settings preferences', icon: User, perform: (nav) => nav('/account') },
-      { id: 'nav:plans', group: 'Navigate', label: 'Plans & billing', keywords: 'subscription upgrade pro', icon: CreditCard, perform: (nav) => nav('/plans') },
+      ...(onIOSNative
+        ? []
+        : [{ id: 'nav:plans', group: 'Navigate' as const, label: 'Plans & billing', keywords: 'subscription upgrade pro', icon: CreditCard, perform: (nav: any) => nav('/plans') }]),
       { id: 'nav:help', group: 'Navigate', label: 'Help center', keywords: 'support faq docs', icon: HelpCircle, perform: (nav) => nav('/help') },
     );
 

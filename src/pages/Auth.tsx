@@ -10,6 +10,7 @@ import { MapPin, Calendar, Eye, EyeOff, Loader2, AlertCircle, Mail, Lock } from 
 import { User } from 'lucide-react';
 import logoImg from '@/assets/rt2rp-logo.png';
 import { lovable } from '@/integrations/lovable';
+import { supabase } from '@/integrations/supabase/client';
 
 function AppleIcon({ className }: { className?: string }) {
   return (
@@ -146,6 +147,38 @@ export default function Auth() {
     clearMessages();
     setLoading(true);
     try {
+      // Native iOS: use Sign in with Apple plugin + Supabase signInWithIdToken.
+      // Web: fall back to OAuth redirect flow.
+      const { isNativeIOS } = await import('@/lib/native/platform');
+      if (isNativeIOS()) {
+        const { SignInWithApple } = await import('@capacitor-community/apple-sign-in');
+        const nonce = crypto.randomUUID();
+        const resp = await SignInWithApple.authorize({
+          clientId: 'com.inlighttai.rt2rp',
+          redirectURI: window.location.origin + '/dashboard',
+          scopes: 'email name',
+          state: crypto.randomUUID(),
+          nonce,
+        });
+        const idToken = resp.response?.identityToken;
+        if (!idToken) {
+          setError('Apple did not return an identity token. Please try again.');
+          setLoading(false);
+          return;
+        }
+        const { error } = await supabase.auth.signInWithIdToken({
+          provider: 'apple',
+          token: idToken,
+          nonce,
+        });
+        if (error) {
+          setError(error.message || 'Could not sign in with Apple.');
+          setLoading(false);
+          return;
+        }
+        navigate('/dashboard');
+        return;
+      }
       const result = await lovable.auth.signInWithOAuth('apple', {
         redirect_uri: window.location.origin + '/dashboard',
       });
@@ -156,8 +189,14 @@ export default function Auth() {
       }
       if (result.redirected) return;
       navigate('/dashboard');
-    } catch {
-      setError('An unexpected error occurred. Please try again.');
+    } catch (err: any) {
+      // User cancellation = silent
+      const msg = String(err?.message || err || '');
+      if (/cancel/i.test(msg) || /1001/.test(msg)) {
+        setLoading(false);
+        return;
+      }
+      setError('Could not sign in with Apple. Please try again.');
       setLoading(false);
     }
   };

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { isNativeIOS } from '@/lib/native/platform';
 import { Layout } from '@/components/Layout';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useIsAdmin } from '@/hooks/useAdminUsers';
@@ -133,6 +134,37 @@ export default function Plans() {
     { text: 'Export & integrations', included: true },
     { text: 'Dedicated support', included: true },
   ];
+
+  // App Store guideline: this is a web SaaS. Inside the iOS app we don't
+  // present plan tiers or pricing — direct users to manage their plan on the web.
+  if (isNativeIOS()) {
+    return (
+      <Layout>
+        <div className="max-w-2xl mx-auto space-y-6">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-2xl font-bold text-foreground">Your plan</h1>
+          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Plan management</CardTitle>
+              <CardDescription>
+                Your current plan and trip usage are shown on the Account screen.
+                Plans are managed on our website.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" onClick={() => navigate('/account')}>
+                Back to Account
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>

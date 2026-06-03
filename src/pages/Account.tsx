@@ -21,6 +21,19 @@ import { VehicleRangeCard } from '@/components/account/VehicleRangeCard';
 import { EMAIL_FORWARDING_ENABLED } from '@/lib/featureFlags';
 import { PlanPill } from '@/components/PlanPill';
 import { resetOnboarding } from './Onboarding';
+import { isNativeIOS } from '@/lib/native/platform';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Trash2 } from 'lucide-react';
 
 export default function Account() {
   const navigate = useNavigate();
@@ -31,6 +44,8 @@ export default function Account() {
   const [isResetting, setIsResetting] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const onIOS = isNativeIOS();
   const { preference: themePref, setPreference: setThemePref } = useTheme();
 
   const handleResetPassword = async () => {
@@ -105,8 +120,28 @@ export default function Account() {
     );
   };
 
-  // Show upgrade button for free users only (Pro and Business don't need it)
-  const showUpgradeButton = tier === 'free';
+  // Show upgrade button for free users only (Pro and Business don't need it).
+  // Hidden inside the iOS app: per App Store rules, this is a web SaaS — billing happens on the web.
+  const showUpgradeButton = tier === 'free' && !onIOS;
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-account');
+      if (error || (data as any)?.error) {
+        toast.error('Could not delete your account. Please try again or contact support.');
+        setIsDeleting(false);
+        return;
+      }
+      toast.success('Your account has been deleted.');
+      await supabase.auth.signOut();
+      navigate('/');
+    } catch (err) {
+      console.error('Delete account error:', err);
+      toast.error('An unexpected error occurred.');
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <Layout>
@@ -146,7 +181,7 @@ export default function Account() {
               {getPlanIcon()}
               Current Plan
             </CardTitle>
-            <CardDescription>Your subscription status</CardDescription>
+            <CardDescription>{onIOS ? 'Your current plan' : 'Your subscription status'}</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -181,14 +216,16 @@ export default function Account() {
                   </Button>
                 )}
                 
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-between"
-                  onClick={() => navigate('/plans')}
-                >
-                  View all plans
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
+                {!onIOS && (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-between"
+                    onClick={() => navigate('/plans')}
+                  >
+                    View all plans
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
             )}
           </CardContent>
@@ -308,7 +345,48 @@ export default function Account() {
             )}
           </CardContent>
         </Card>
+
+        {/* Delete Account Section */}
+        <Card className="border-destructive/30">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Trash2 className="w-5 h-5 text-destructive" />
+              Delete Account
+            </CardTitle>
+            <CardDescription>
+              Permanently delete your account and all associated data. This action cannot be undone.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" disabled={isDeleting}>
+                  {isDeleting ? 'Deleting...' : 'Delete my account'}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete your account?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete your account, trips, bookings, expenses, and all
+                    other data. You won't be able to recover any of it. Are you sure?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDeleteAccount}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Yes, delete everything
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardContent>
+        </Card>
       </div>
+
 
       {/* Upgrade Plan Dialog */}
       <UpgradePlanDialog 
