@@ -216,14 +216,16 @@ export default function Account() {
                   </Button>
                 )}
                 
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-between"
-                  onClick={() => navigate('/plans')}
-                >
-                  View all plans
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
+                {!onIOS && (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-between"
+                    onClick={() => navigate('/plans')}
+                  >
+                    View all plans
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
             )}
           </CardContent>
