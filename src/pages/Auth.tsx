@@ -10,6 +10,7 @@ import { MapPin, Calendar, Eye, EyeOff, Loader2, AlertCircle, Mail, Lock } from 
 import { User } from 'lucide-react';
 import logoImg from '@/assets/rt2rp-logo.png';
 import { lovable } from '@/integrations/lovable';
+import { supabase } from '@/integrations/supabase/client';
 
 function AppleIcon({ className }: { className?: string }) {
   return (
