@@ -21,6 +21,19 @@ import { VehicleRangeCard } from '@/components/account/VehicleRangeCard';
 import { EMAIL_FORWARDING_ENABLED } from '@/lib/featureFlags';
 import { PlanPill } from '@/components/PlanPill';
 import { resetOnboarding } from './Onboarding';
+import { isNativeIOS } from '@/lib/native/platform';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Trash2 } from 'lucide-react';
 
 export default function Account() {
   const navigate = useNavigate();
