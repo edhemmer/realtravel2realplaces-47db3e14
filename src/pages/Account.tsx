@@ -181,7 +181,7 @@ export default function Account() {
               {getPlanIcon()}
               Current Plan
             </CardTitle>
-            <CardDescription>Your subscription status</CardDescription>
+            <CardDescription>{onIOS ? 'Your current plan' : 'Your subscription status'}</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
