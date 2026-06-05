@@ -26,7 +26,7 @@ const GUIDANCE_ICON: Record<AIOrchestratedGuidanceItem['type'], typeof Clock> = 
 
 const GUIDANCE_COLOR: Record<AIOrchestratedGuidanceItem['type'], string> = {
   time: 'text-blue-600 dark:text-blue-400',
-  weather: 'text-teal-600 dark:text-teal-400',
+  weather: 'text-brand-signal-deep dark:text-brand-signal',
   logistics: 'text-orange-600 dark:text-orange-400',
   risk: 'text-red-600 dark:text-red-400',
   expense: 'text-emerald-600 dark:text-emerald-400',

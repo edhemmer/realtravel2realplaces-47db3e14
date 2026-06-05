@@ -85,7 +85,7 @@ const CATEGORY_COLORS: Record<ExpenseCategory, string> = {
   transport: 'bg-blue-500/10 text-blue-600',
   activity: 'bg-purple-500/10 text-purple-600',
   shopping: 'bg-pink-500/10 text-pink-600',
-  parking: 'bg-cyan-500/10 text-cyan-600',
+  parking: 'bg-brand-signal/10 text-brand-signal-deep',
   other: 'bg-gray-500/10 text-gray-600',
 };
 

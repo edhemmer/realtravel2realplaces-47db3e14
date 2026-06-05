@@ -4,35 +4,35 @@ import { ChevronDown } from 'lucide-react';
 const faqs = [
   {
     question: 'What kind of app is Real Travel 2 Real Places?',
-    answer: "It's a calm travel command center built around four pillars: Today (what's next and when to leave), Move (directive transport guidance), Guide (the few alerts that matter), and Flow (your whole trip on one timeline). Flights, stays, drives, expenses, and packing live together — and it works offline.",
+    answer: 'Real Travel 2 Real Places is a travel management app, not just a trip planner. It helps travelers manage the real travel day: what is next, when to leave, where to go, airport maps, local transit, drive days, weather, expenses, and offline details.',
   },
   {
-    question: 'Is it free?',
-    answer: "Yes. The free plan includes up to 5 lifetime trips with core features — flights, stays, expenses, packing lists, and reminders. Pro and Business tiers unlock unlimited trips and advanced capabilities for frequent travelers.",
+    question: 'How is this different from a trip planner?',
+    answer: 'Trip planners help you choose places before you go. RealTravel focuses on managing the trip after plans become real: flights, lodging, movement, receipts, parking, road trips, airport context, transit windows, and daily execution.',
   },
   {
-    question: 'How is this different from other travel apps?',
-    answer: "Most travel apps help you plan before you go — finding deals, booking flights, researching destinations. Real Travel 2 Real Places is built for what happens after you've booked: keeping the moving parts calm, structured, and one tap away while you're actually traveling.",
+    question: 'Does it support road trips and driving?',
+    answer: 'Yes. Drive Cockpit is built for driving days with navigation handoff, next stops, gas search, weather, road context, offline status, and CarPlay-ready trip context for iOS.',
+  },
+  {
+    question: 'Does it include airport maps and local transit?',
+    answer: 'Yes. Trips can surface airport map and parking links from official airport sources, plus local transit map and routing windows. The app uses low-credit approaches first, then live providers where they add real value.',
   },
   {
     question: 'Does it work offline?',
-    answer: "Yes. Once a trip is loaded, your bookings, timeline, and key details stay available without signal. Expenses logged offline sync automatically the moment you're back online.",
+    answer: 'Yes. Once a trip is loaded, key bookings, timeline details, drive context, and expense capture stay useful without signal. Offline expenses sync when connection returns.',
   },
   {
-    question: "Can I share a trip with someone I'm traveling with?",
-    answer: "Yes. Invite anyone by email and choose what they can do — view the trip, add expenses, add lodging, or add tour stops. Permissions are independent, so you give exactly the access you mean to.",
+    question: 'Is it useful for business travel?',
+    answer: 'Yes. RealTravel supports business and personal travel with expenses, multi-currency records, shared trip permissions, booking management, reports, drive days, and operational dashboards.',
   },
   {
-    question: 'Does it handle multiple currencies?',
-    answer: "Yes. Log expenses in whichever currency you actually paid in. The app keeps each currency separate — no synthetic conversions — so your totals stay honest.",
+    question: 'Can I share a trip with someone I am traveling with?',
+    answer: 'Yes. Invite co-travelers by email and choose what they can do, including viewing the trip, adding expenses, adding lodging, or helping with tour stops.',
   },
   {
-    question: 'Why would I keep it open during a trip?',
-    answer: "Because the next decision is always one tap away. Need directions? Move tells you the best way. Need your hotel address? It's right there. Want to log an expense before you forget? Seconds. It's designed to be useful while you're moving.",
-  },
-  {
-    question: 'Does it work for road trips?',
-    answer: "Yes. You can organize stop-by-stop timelines, track gas expenses, and keep drive-day logistics accessible — all within the same trip view you'd use for flights and lodging.",
+    question: 'Is it free?',
+    answer: 'Yes. The free plan includes core trip management features. Pro and Business tiers are designed for frequent travelers, complex trips, and advanced management workflows.',
   },
 ];
 
@@ -50,7 +50,7 @@ export default function LandingFAQ() {
 
         <div className="landing-faq-list">
           {faqs.map((faq, index) => (
-            <div key={index} className="landing-faq-item">
+            <div key={faq.question} className="landing-faq-item">
               <button
                 className="landing-faq-trigger"
                 onClick={() => setOpenIndex(openIndex === index ? null : index)}
@@ -72,7 +72,6 @@ export default function LandingFAQ() {
           ))}
         </div>
 
-        {/* FAQ Schema for SEO */}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

@@ -100,6 +100,14 @@ export default {
   				DEFAULT: 'hsl(var(--card))',
   				foreground: 'hsl(var(--card-foreground))'
   			},
+  			brand: {
+  				obsidian: 'hsl(var(--brand-obsidian))',
+  				signal: 'hsl(var(--brand-signal))',
+  				'signal-deep': 'hsl(var(--brand-signal-deep))',
+  				champagne: 'hsl(var(--brand-champagne))',
+  				ember: 'hsl(var(--brand-ember))',
+  				violet: 'hsl(var(--brand-violet))'
+  			},
   			sidebar: {
   				DEFAULT: 'hsl(var(--sidebar-background))',
   				foreground: 'hsl(var(--sidebar-foreground))',

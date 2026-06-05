@@ -15,6 +15,7 @@ import {
   CalendarDays,
   Compass,
   DollarSign,
+  Route,
   MoreHorizontal,
   Plane,
   MapPin,
@@ -25,6 +26,7 @@ import {
   StickyNote,
   Bell,
   CloudSun,
+  LayoutDashboard,
 } from 'lucide-react';
 import { useAccess } from '@/hooks/useAccess';
 import {
@@ -39,6 +41,7 @@ export type TripTab =
   | 'today'
   | 'plan'
   | 'flow'
+  | 'ops'
   | 'move'
   | 'guide'
   | 'summary' 
@@ -72,9 +75,9 @@ interface NavItem {
 
 const PRIMARY_NAV_ITEMS: NavItem[] = [
   { id: 'today', label: 'Today', icon: <CalendarDays className="w-5 h-5" /> },
-  { id: 'flow', label: 'Flow', icon: <CalendarDays className="w-5 h-5" /> },
+  { id: 'ops', label: 'Ops', icon: <LayoutDashboard className="w-5 h-5" /> },
+  { id: 'flow', label: 'Flow', icon: <Route className="w-5 h-5" /> },
   { id: 'move', label: 'Move', icon: <Compass className="w-5 h-5" /> },
-  { id: 'guide', label: 'Guide', icon: <Bell className="w-5 h-5" /> },
   { id: 'expenses', label: 'Expenses', icon: <DollarSign className="w-5 h-5" /> },
 ];
 
@@ -83,6 +86,7 @@ const MORE_NAV_ITEMS: NavItem[] = [
   { id: 'explore', label: 'Explore', icon: <Compass className="w-4 h-4" /> },
   { id: 'packing', label: 'Packing', icon: <Package className="w-4 h-4" /> },
   { id: 'weather', label: 'Weather', icon: <CloudSun className="w-4 h-4" /> },
+  { id: 'guide', label: 'Guide', icon: <Bell className="w-4 h-4" /> },
   { id: 'parking', label: 'Parking', icon: <CircleParking className="w-4 h-4" /> },
   { id: 'report', label: 'Report', icon: <FileText className="w-4 h-4" />, requiresPro: true },
   { id: 'members', label: 'Members', icon: <Users className="w-4 h-4" /> },
@@ -120,10 +124,10 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
       }}
     >
       <nav
-        className="pointer-events-auto mx-3 nav-floating rounded-[22px] overflow-hidden"
+        className="pointer-events-auto mx-3 overflow-hidden rounded-[24px] nav-floating"
       >
         <div
-          className="grid h-[64px] px-1.5 pt-1.5 pb-1.5 gap-0.5"
+          className="grid h-[66px] gap-0.5 px-1.5 pb-1.5 pt-1.5"
           style={{ gridTemplateColumns: `repeat(${cellCount}, minmax(0, 1fr))` }}
         >
           {visiblePrimaryItems.map((item) => {
@@ -133,13 +137,14 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
                 key={item.id}
                 onClick={() => onTabChange(item.id)}
                 className={cn(
-                  "relative flex flex-col items-center justify-center gap-0.5 rounded-2xl",
+                  "relative flex flex-col items-center justify-center gap-0.5 rounded-[18px]",
                   "transition-all duration-300 ease-cinema touch-manipulation press-scale",
                   isActive
                     ? "nav-pill-active"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60 active:bg-muted"
+                    : "text-muted-foreground hover:text-foreground hover:bg-primary/6 active:bg-muted"
                 )}
               >
+                {isActive && <span className="absolute -top-1 h-1 w-8 rounded-full nav-accent-bar" />}
                 <span
                   className={cn(
                     "transition-transform duration-300 ease-cinema",
@@ -150,7 +155,7 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
                 </span>
                 <span
                   className={cn(
-                    "max-w-full truncate text-[10px] leading-none tracking-tight",
+                    "max-w-full truncate text-[10px] leading-none",
                     isActive ? "font-semibold" : "font-medium"
                   )}
                 >
@@ -165,13 +170,14 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
             <DropdownMenuTrigger asChild>
               <button
                 className={cn(
-                  "relative flex flex-col items-center justify-center gap-0.5 rounded-2xl",
+                  "relative flex flex-col items-center justify-center gap-0.5 rounded-[18px]",
                   "transition-all duration-300 ease-cinema touch-manipulation press-scale",
                   isMoreActive
                     ? "nav-pill-active"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/60 active:bg-muted"
+                    : "text-muted-foreground hover:text-foreground hover:bg-primary/6 active:bg-muted"
                 )}
               >
+                {isMoreActive && <span className="absolute -top-1 h-1 w-8 rounded-full nav-accent-bar" />}
                 <MoreHorizontal
                   className={cn(
                     "w-5 h-5 transition-transform duration-300 ease-cinema",
@@ -180,7 +186,7 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
                 />
                 <span
                   className={cn(
-                    "max-w-full truncate text-[10px] leading-none tracking-tight",
+                    "max-w-full truncate text-[10px] leading-none",
                     isMoreActive ? "font-semibold" : "font-medium"
                   )}
                 >

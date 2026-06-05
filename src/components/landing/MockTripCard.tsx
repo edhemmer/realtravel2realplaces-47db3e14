@@ -1,73 +1,90 @@
-import { Plane, Home, CheckCircle2, Luggage, Receipt } from 'lucide-react';
+import { Building2, Car, CheckCircle2, CloudSun, Plane, Receipt, TrainFront } from 'lucide-react';
 
 export default function MockTripCard() {
   return (
     <div className="mock-ui-card p-3 sm:p-4 w-full">
-      {/* Trip Header */}
       <div className="mb-3">
-        <h3 className="text-base font-semibold text-white mb-0.5">
-          Orlando Weekend
-        </h3>
-        <p className="text-xs text-[hsl(var(--landing-text-muted))]">
-          Mar 7–10 · 3 nights · Personal
-        </p>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-base font-semibold text-white mb-0.5">
+              TravelOps
+            </h3>
+            <p className="text-xs text-[hsl(var(--landing-text-muted))]">
+              Orlando Weekend - Live command center
+            </p>
+          </div>
+          <div className="mock-chip">
+            <CheckCircle2 className="w-2.5 h-2.5" />
+            Offline ready
+          </div>
+        </div>
       </div>
 
-      {/* Timeline */}
-      <div className="space-y-3 mb-3">
-        <div className="mock-timeline-item pb-2.5">
-          <div className="flex items-center gap-1.5 mb-0.5">
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <div className="rounded-lg bg-[hsl(var(--landing-bg)/0.5)] border border-[hsl(var(--landing-border)/0.4)] p-2.5">
+          <div className="flex items-center gap-1.5 mb-1">
             <Plane className="w-3 h-3 text-[hsl(var(--landing-accent))]" />
+            <span className="text-[0.625rem] font-medium text-[hsl(var(--landing-text-muted))] uppercase tracking-wide">Next</span>
+          </div>
+          <p className="text-sm font-semibold text-white">ATL to MCO</p>
+          <p className="text-[0.6875rem] text-[hsl(var(--landing-text-muted))]">Leave by 7:10 AM</p>
+        </div>
+        <div className="rounded-lg bg-[hsl(var(--landing-bg)/0.5)] border border-[hsl(var(--landing-border)/0.4)] p-2.5">
+          <div className="flex items-center gap-1.5 mb-1">
+            <Car className="w-3 h-3 text-[hsl(var(--landing-accent))]" />
+            <span className="text-[0.625rem] font-medium text-[hsl(var(--landing-text-muted))] uppercase tracking-wide">Drive</span>
+          </div>
+          <p className="text-sm font-semibold text-white">Cockpit ready</p>
+          <p className="text-[0.6875rem] text-[hsl(var(--landing-text-muted))]">Gas - roads - weather</p>
+        </div>
+      </div>
+
+      <div className="space-y-2.5 mb-3">
+        <div className="mock-timeline-item pb-2">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <Building2 className="w-3 h-3 text-[hsl(var(--landing-accent))]" />
             <span className="text-[0.6875rem] font-medium text-[hsl(var(--landing-accent))]">
-              Flight · 09:45
+              Airport window
             </span>
           </div>
           <p className="text-sm font-medium text-white mb-0.5">
-            ATL → MCO · DL 1234
-          </p>
-          <p className="text-[0.6875rem] text-[hsl(var(--landing-text-muted))]">
-            Check TSA number & seat
+            MCO terminal map and parking
           </p>
         </div>
 
-        <div className="mock-timeline-item pb-2.5">
+        <div className="mock-timeline-item pb-2">
           <div className="flex items-center gap-1.5 mb-0.5">
-            <Home className="w-3 h-3 text-[hsl(var(--landing-accent))]" />
+            <TrainFront className="w-3 h-3 text-[hsl(var(--landing-accent))]" />
             <span className="text-[0.6875rem] font-medium text-[hsl(var(--landing-accent))]">
-              Lodging
+              Local transit
             </span>
           </div>
           <p className="text-sm font-medium text-white mb-0.5">
-            Airbnb · Lake Buena Vista
-          </p>
-          <p className="text-[0.6875rem] text-[hsl(var(--landing-text-muted))]">
-            Check-in 3pm · Saved listing link
+            Open nearby transit map
           </p>
         </div>
       </div>
 
-      {/* Status Chips */}
       <div className="flex flex-wrap gap-1.5 mb-3">
         <div className="mock-chip">
-          <CheckCircle2 className="w-2.5 h-2.5" />
-          Flights
+          <CloudSun className="w-2.5 h-2.5" />
+          Weather
         </div>
         <div className="mock-chip">
-          <CheckCircle2 className="w-2.5 h-2.5" />
-          Lodging
+          <Building2 className="w-2.5 h-2.5" />
+          Airport
         </div>
         <div className="mock-chip">
-          <Luggage className="w-2.5 h-2.5" />
-          Packed
+          <TrainFront className="w-2.5 h-2.5" />
+          Transit
         </div>
       </div>
 
-      {/* Expense Summary */}
       <div className="rounded-lg bg-[hsl(var(--landing-bg)/0.5)] border border-[hsl(var(--landing-border)/0.4)] p-2.5">
         <div className="flex items-center gap-1.5 mb-1.5">
           <Receipt className="w-3.5 h-3.5 text-[hsl(var(--landing-text-muted))]" />
           <span className="text-[0.625rem] font-medium text-[hsl(var(--landing-text-muted))] uppercase tracking-wide">
-            Trip Expenses
+            Managed spend
           </span>
         </div>
         <div className="flex items-baseline justify-between">
@@ -76,8 +93,8 @@ export default function MockTripCard() {
             <span className="text-[0.6875rem] text-[hsl(var(--landing-text-muted))] ml-1.5">total</span>
           </div>
           <div className="text-right">
-            <span className="text-sm font-medium text-[hsl(var(--landing-accent))]">$421</span>
-            <span className="text-[0.6875rem] text-[hsl(var(--landing-text-muted))] ml-1">your share</span>
+            <span className="text-sm font-medium text-[hsl(var(--landing-accent))]">2 pending</span>
+            <span className="text-[0.6875rem] text-[hsl(var(--landing-text-muted))] ml-1">receipts</span>
           </div>
         </div>
       </div>

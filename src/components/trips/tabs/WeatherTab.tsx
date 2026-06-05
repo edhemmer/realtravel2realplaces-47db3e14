@@ -341,7 +341,7 @@ function WeatherLocationCard({ location, trip, temperatureUnit }: WeatherLocatio
             <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
               location.type === 'airport' ? 'bg-sky-500/10 text-sky-600 dark:text-sky-400'
               : location.type === 'lodging' ? 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
-              : location.type === 'transport' ? 'bg-teal-500/10 text-teal-600 dark:text-teal-400'
+              : location.type === 'transport' ? 'bg-brand-signal/10 text-brand-signal-deep dark:text-brand-signal'
               : 'bg-primary/10 text-primary'
             }`}>
               <Icon className="w-4 h-4" />

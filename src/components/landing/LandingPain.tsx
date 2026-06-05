@@ -14,10 +14,10 @@ export default function LandingPain() {
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-10">
           <h2 className="landing-section-headline">
-            Travel gets scattered.
+            Travel chaos is expensive.
           </h2>
           <p className="landing-section-subtext mt-3">
-            Flights in your email. Lodging in another app. Directions in Maps. Parking confirmations in a text thread. Packing lists in your head.
+            Missed timing, buried confirmations, forgotten receipts, weak signal, and too many apps all cost attention when you need calm.
           </p>
         </div>
 
@@ -31,7 +31,7 @@ export default function LandingPain() {
         </div>
 
         <p className="text-center mt-8 text-[hsl(var(--landing-text-muted))] text-sm leading-relaxed">
-          Travel isn't hard. <span className="text-[hsl(var(--landing-text))] font-medium">Keeping track of everything is.</span>
+          Travel is motion. <span className="text-[hsl(var(--landing-text))] font-medium">RealTravel gives that motion an operating system.</span>
         </p>
       </div>
     </section>

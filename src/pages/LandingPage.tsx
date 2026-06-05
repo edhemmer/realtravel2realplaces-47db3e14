@@ -11,31 +11,68 @@ import LandingFinalCTA from '@/components/landing/LandingFinalCTA';
 import LandingFooter from '@/components/landing/LandingFooter';
 import '@/styles/landing.css';
 
+const seoTitle = 'Real Travel 2 Real Places | Chaos to Clarity Travel Management App';
+const seoDescription = 'Find clarity in the travel chaos. RealTravel2RealPlaces is a premium travel operations app for trips, Drive Cockpit, airport maps, transit, weather, expenses, and offline details.';
+
 export default function LandingPage() {
   return (
     <>
       <Helmet>
-        <title>Real Travel 2 Real Places — Your travel command center</title>
+        <title>{seoTitle}</title>
+        <meta name="description" content={seoDescription} />
         <meta
-          name="description"
-          content="A calm travel command center. See what's next, when to leave, and how to get there — flights, stays, drives, expenses, and packing in one place. Works offline."
+          name="keywords"
+          content="travel management app, trip management app, travel command center, itinerary management, drive cockpit, airport maps, local transit maps, travel expenses, offline travel app, business travel app, road trip management"
         />
+        <link rel="canonical" href="https://realtravel2realplaces.app/" />
 
-        {/* Open Graph */}
-        <meta property="og:title" content="Real Travel 2 Real Places — Your travel command center" />
-        <meta property="og:description" content="See what's next, when to leave, and how to get there. Flights, stays, drives, expenses, and packing in one calm place. Works offline." />
+        <meta property="og:title" content="Real Travel 2 Real Places | Chaos to Clarity Travel Management" />
+        <meta property="og:description" content="A premium travel operations app for trips, Drive Cockpit, airport maps, local transit, weather, expenses, offline details, and the next clear move." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://realtravel2realplaces.app/" />
         <meta property="og:site_name" content="Real Travel 2 Real Places" />
+        <meta property="og:image" content="https://realtravel2realplaces.app/pwa-icon-512.png" />
 
-        {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Real Travel 2 Real Places — Your travel command center" />
-        <meta name="twitter:description" content="See what's next, when to leave, and how to get there. Works offline." />
+        <meta name="twitter:title" content="Real Travel 2 Real Places | Chaos to Clarity" />
+        <meta name="twitter:description" content="A premium travel operations app for trips, Drive Cockpit, airport maps, transit, weather, expenses, and offline details." />
+        <meta name="twitter:image" content="https://realtravel2realplaces.app/pwa-icon-512.png" />
+
+        <script type="application/ld+json">
+          {JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'SoftwareApplication',
+            name: 'Real Travel 2 Real Places',
+            alternateName: 'RT2RP',
+            url: 'https://realtravel2realplaces.app/',
+            applicationCategory: 'TravelApplication',
+            operatingSystem: 'Web, iOS',
+            description: seoDescription,
+            featureList: [
+              'TravelOps command dashboard',
+              'Today view for next actions and leave-by timing',
+              'Drive Cockpit for road trips and CarPlay-ready stops',
+              'Airport map and parking links',
+              'Local transit map and routing windows',
+              'Offline trip details and expense capture',
+              'Multi-currency travel expenses',
+              'Trip sharing with scoped permissions',
+              'Business and personal trip management',
+            ],
+            offers: {
+              '@type': 'Offer',
+              price: '0',
+              priceCurrency: 'USD',
+            },
+            author: {
+              '@type': 'Organization',
+              name: 'InLight AI, LLC',
+            },
+          })}
+        </script>
       </Helmet>
 
       <div className="landing-page">
-        {/* Ambient background effects */}
         <div className="landing-ambient" aria-hidden="true" />
 
         <LandingHeader />

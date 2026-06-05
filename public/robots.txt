@@ -19,4 +19,4 @@ Disallow: /onboarding
 Disallow: /accept-share/*
 Disallow: /accept-invite/*
 
-Sitemap: https://realtravel2realplaces.lovable.app/sitemap.xml
+Sitemap: https://realtravel2realplaces.app/sitemap.xml

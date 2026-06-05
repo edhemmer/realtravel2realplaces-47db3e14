@@ -38,11 +38,11 @@ const categoryThemes: Record<string, { icon: React.ReactNode; border: string; bg
   'Clothing Core':            { icon: <Shirt className="w-3.5 h-3.5" />,        border: 'border-l-blue-500',      bg: 'bg-blue-50/40 dark:bg-blue-950/20',      text: 'text-blue-700 dark:text-blue-300',      iconBg: 'bg-blue-100 dark:bg-blue-900/40' },
   'Clothing':                 { icon: <Shirt className="w-3.5 h-3.5" />,        border: 'border-l-blue-500',      bg: 'bg-blue-50/40 dark:bg-blue-950/20',      text: 'text-blue-700 dark:text-blue-300',      iconBg: 'bg-blue-100 dark:bg-blue-900/40' },
   'Layers & Outerwear':       { icon: <Mountain className="w-3.5 h-3.5" />,     border: 'border-l-slate-500',     bg: 'bg-slate-50/40 dark:bg-slate-950/20',    text: 'text-slate-700 dark:text-slate-300',    iconBg: 'bg-slate-100 dark:bg-slate-900/40' },
-  'Rain & Wet Weather':       { icon: <Umbrella className="w-3.5 h-3.5" />,     border: 'border-l-cyan-500',      bg: 'bg-cyan-50/40 dark:bg-cyan-950/20',      text: 'text-cyan-700 dark:text-cyan-300',      iconBg: 'bg-cyan-100 dark:bg-cyan-900/40' },
+  'Rain & Wet Weather':       { icon: <Umbrella className="w-3.5 h-3.5" />,     border: 'border-l-brand-signal',  bg: 'bg-brand-signal/10',                     text: 'text-brand-signal-deep dark:text-brand-signal', iconBg: 'bg-brand-signal/15' },
   'Cold / Snow Gear':         { icon: <Snowflake className="w-3.5 h-3.5" />,    border: 'border-l-indigo-500',    bg: 'bg-indigo-50/40 dark:bg-indigo-950/20',  text: 'text-indigo-700 dark:text-indigo-300',  iconBg: 'bg-indigo-100 dark:bg-indigo-900/40' },
   'Footwear':                 { icon: <Footprints className="w-3.5 h-3.5" />,   border: 'border-l-amber-500',     bg: 'bg-amber-50/40 dark:bg-amber-950/20',    text: 'text-amber-700 dark:text-amber-300',    iconBg: 'bg-amber-100 dark:bg-amber-900/40' },
   'Accessories':              { icon: <Watch className="w-3.5 h-3.5" />,        border: 'border-l-purple-500',    bg: 'bg-purple-50/40 dark:bg-purple-950/20',  text: 'text-purple-700 dark:text-purple-300',  iconBg: 'bg-purple-100 dark:bg-purple-900/40' },
-  'Swimwear & Beach':         { icon: <Waves className="w-3.5 h-3.5" />,        border: 'border-l-teal-500',      bg: 'bg-teal-50/40 dark:bg-teal-950/20',      text: 'text-teal-700 dark:text-teal-300',      iconBg: 'bg-teal-100 dark:bg-teal-900/40' },
+  'Swimwear & Beach':         { icon: <Waves className="w-3.5 h-3.5" />,        border: 'border-l-brand-signal',  bg: 'bg-brand-signal/10',                     text: 'text-brand-signal-deep dark:text-brand-signal', iconBg: 'bg-brand-signal/15' },
   'Hiking & Outdoor':         { icon: <Mountain className="w-3.5 h-3.5" />,     border: 'border-l-emerald-500',   bg: 'bg-emerald-50/40 dark:bg-emerald-950/20',text: 'text-emerald-700 dark:text-emerald-300',iconBg: 'bg-emerald-100 dark:bg-emerald-900/40' },
   'Toiletries & Health':      { icon: <ShowerHead className="w-3.5 h-3.5" />,   border: 'border-l-rose-500',      bg: 'bg-rose-50/40 dark:bg-rose-950/20',      text: 'text-rose-700 dark:text-rose-300',      iconBg: 'bg-rose-100 dark:bg-rose-900/40' },
   'Tech & Chargers':          { icon: <Cable className="w-3.5 h-3.5" />,        border: 'border-l-violet-500',    bg: 'bg-violet-50/40 dark:bg-violet-950/20',  text: 'text-violet-700 dark:text-violet-300',  iconBg: 'bg-violet-100 dark:bg-violet-900/40' },
@@ -587,7 +587,7 @@ export function PackingTab({ tripId }: PackingTabProps) {
               { border: 'border-emerald-400/60', bg: 'bg-emerald-50/50 dark:bg-emerald-950/20', dot: 'bg-emerald-500' },
               { border: 'border-violet-400/60', bg: 'bg-violet-50/50 dark:bg-violet-950/20', dot: 'bg-violet-500' },
               { border: 'border-rose-400/60', bg: 'bg-rose-50/50 dark:bg-rose-950/20', dot: 'bg-rose-500' },
-              { border: 'border-cyan-400/60', bg: 'bg-cyan-50/50 dark:bg-cyan-950/20', dot: 'bg-cyan-500' },
+              { border: 'border-brand-signal/60', bg: 'bg-brand-signal/10', dot: 'bg-brand-signal' },
             ];
             const c = legColors[idx % legColors.length];
             return (

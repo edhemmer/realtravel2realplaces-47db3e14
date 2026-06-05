@@ -27,6 +27,13 @@ export interface NativeMapParams {
   label?: string;
 }
 
+export interface NativeMapSearchParams {
+  query: string;
+  lat?: number;
+  lng?: number;
+  zoom?: number;
+}
+
 // ============================================================================
 // iOS URL SCHEME BUILDERS
 // ============================================================================
@@ -53,6 +60,22 @@ export function buildGoogleMapsAppUrl(params: NativeMapParams): string {
     return `comgooglemaps://?daddr=${lat},${lng}&q=${encodeURIComponent(query)}`;
   }
   return `comgooglemaps://?q=${encodeURIComponent(query)}&directionsmode=driving`;
+}
+
+export function buildAppleMapsSearchUrl(params: NativeMapSearchParams): string {
+  const query = encodeURIComponent(params.query);
+  if (params.lat != null && params.lng != null) {
+    return `maps://?q=${query}&ll=${params.lat},${params.lng}&z=${params.zoom ?? 11}`;
+  }
+  return `maps://?q=${query}`;
+}
+
+export function buildGoogleMapsSearchAppUrl(params: NativeMapSearchParams): string {
+  const query = encodeURIComponent(params.query);
+  if (params.lat != null && params.lng != null) {
+    return `comgooglemaps://?q=${query}&center=${params.lat},${params.lng}&zoom=${params.zoom ?? 11}`;
+  }
+  return `comgooglemaps://?q=${query}`;
 }
 
 // ============================================================================
@@ -95,6 +118,41 @@ export async function openNativeMap(params: NativeMapParams): Promise<void> {
 
   // Ultimate fallback: in-app browser with web Google Maps
   const webFallback = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(params.query)}`;
+  try {
+    await Browser.open({ url: webFallback });
+  } catch {
+    window.open(webFallback, '_blank', 'noopener,noreferrer');
+  }
+}
+
+export async function openNativeMapSearch(params: NativeMapSearchParams): Promise<void> {
+  if (!isNativeIOS()) {
+    return;
+  }
+
+  const googleUrl = buildGoogleMapsSearchAppUrl(params);
+  try {
+    window.location.href = googleUrl;
+    await new Promise((r) => setTimeout(r, 500));
+    if (document.visibilityState === 'hidden') return;
+  } catch {
+    // fall through
+  }
+
+  const appleUrl = buildAppleMapsSearchUrl(params);
+  try {
+    window.location.href = appleUrl;
+    await new Promise((r) => setTimeout(r, 500));
+    if (document.visibilityState === 'hidden') return;
+  } catch {
+    // fall through
+  }
+
+  const webFallback =
+    params.lat != null && params.lng != null
+      ? `https://www.google.com/maps/search/${encodeURIComponent(params.query)}/@${params.lat},${params.lng},${params.zoom ?? 11}z`
+      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(params.query)}`;
+
   try {
     await Browser.open({ url: webFallback });
   } catch {
@@ -164,4 +222,24 @@ export async function openNavigationResult(result: {
 
   // 3) Guaranteed fallback
   window.location.assign(url);
+}
+
+export async function openMapSearchResult(result: {
+  url: string;
+  query: string;
+  lat?: number;
+  lng?: number;
+  zoom?: number;
+}): Promise<void> {
+  if (isNativeIOS()) {
+    await openNativeMapSearch({
+      query: result.query,
+      lat: result.lat,
+      lng: result.lng,
+      zoom: result.zoom,
+    });
+    return;
+  }
+
+  await openExternalUrl(result.url);
 }

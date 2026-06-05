@@ -78,7 +78,7 @@ function getEventPillClasses(type: string, transportMode?: string): { bg: string
     return { bg: 'bg-amber-500/10', border: 'border-amber-400/25', iconColor: 'text-amber-600 dark:text-amber-400' };
   }
   if (type === 'transport') {
-    return { bg: 'bg-teal-500/10', border: 'border-teal-400/25', iconColor: 'text-teal-600 dark:text-teal-400' };
+    return { bg: 'bg-brand-signal/10', border: 'border-brand-signal/25', iconColor: 'text-brand-signal-deep dark:text-brand-signal' };
   }
   if (type === 'activity') {
     return { bg: 'bg-rose-500/10', border: 'border-rose-400/25', iconColor: 'text-rose-600 dark:text-rose-400' };

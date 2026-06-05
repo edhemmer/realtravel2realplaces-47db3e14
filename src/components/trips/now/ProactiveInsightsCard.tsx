@@ -24,9 +24,9 @@ const TYPE_CONFIG: Record<ProactiveInsight['type'], {
   },
   weather: {
     icon: CloudRain,
-    colorClass: 'text-teal-600 dark:text-teal-400',
-    bgClass: 'bg-teal-500/8',
-    borderClass: 'border-teal-500/20',
+    colorClass: 'text-brand-signal-deep dark:text-brand-signal',
+    bgClass: 'bg-brand-signal/10',
+    borderClass: 'border-brand-signal/20',
   },
   logistics: {
     icon: CalendarClock,

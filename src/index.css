@@ -19,37 +19,45 @@
 }
 
 /* Real Travel to Real Places - Design System
-   Ocean teal primary, warm amber accents, clean slate structure */
+   Chaos to Clarity brand: obsidian, signal blue, champagne, ember, violet */
 
 @layer base {
   :root {
-    /* Ocean Teal Primary */
-    --primary: 200 98% 39%;
-    --primary-foreground: 204 100% 97%;
+    /* Signal Blue Primary */
+    --primary: 194 100% 42%;
+    --primary-foreground: 228 42% 5%;
 
-    /* Warm Amber Accent */
-    --accent: 210 40% 98%;
-    --accent-foreground: 215 19% 34%;
+    /* Brand accent system shared with the landing page */
+    --brand-obsidian: 228 42% 5%;
+    --brand-signal: 194 100% 58%;
+    --brand-signal-deep: 194 100% 42%;
+    --brand-champagne: 42 92% 72%;
+    --brand-ember: 18 96% 62%;
+    --brand-violet: 264 72% 68%;
+
+    /* Champagne-tinted Accent */
+    --accent: 42 70% 96%;
+    --accent-foreground: 225 35% 16%;
 
     /* Background & Surface — premium two-layer system */
-    --background: 220 20% 97%;
-    --foreground: 222 47% 11%;
+    --background: 214 34% 97%;
+    --foreground: 226 38% 10%;
 
     /* Cards — pure white surface */
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 226 38% 10%;
 
     /* Popovers */
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 226 38% 10%;
 
     /* Secondary - Slate */
-    --secondary: 215 24% 26%;
+    --secondary: 226 30% 16%;
     --secondary-foreground: 210 40% 98%;
 
     /* Muted */
-    --muted: 215 20% 65%;
-    --muted-foreground: 222 47% 11%;
+    --muted: 216 22% 68%;
+    --muted-foreground: 225 24% 30%;
 
     /* Destructive - Coral Red */
     --destructive: 0 72% 50%;
@@ -66,35 +74,36 @@
     /* Borders & Inputs */
     --border: 212 26% 83%;
     --input: 212 26% 83%;
-    --ring: 200 98% 39%;
+    --ring: 194 100% 42%;
 
     --radius: 0.75rem;
 
     /* Sidebar */
-    --sidebar-background: 187 35% 97%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 200 98% 39%;
-    --sidebar-primary-foreground: 204 100% 97%;
-    --sidebar-accent: 215 24% 26%;
+    --sidebar-background: 214 34% 97%;
+    --sidebar-foreground: 226 38% 10%;
+    --sidebar-primary: 194 100% 42%;
+    --sidebar-primary-foreground: 228 42% 5%;
+    --sidebar-accent: 226 30% 16%;
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 212 26% 83%;
-    --sidebar-ring: 200 98% 39%;
+    --sidebar-ring: 194 100% 42%;
 
     /* Custom gradients */
-    --gradient-ocean: linear-gradient(135deg, hsl(187 65% 35%), hsl(195 70% 45%));
-    --gradient-sunset: linear-gradient(135deg, hsl(35 92% 55%), hsl(15 85% 55%));
-    --gradient-dawn: linear-gradient(135deg, hsl(210 20% 98%), hsl(187 25% 95%));
+    --gradient-ocean: linear-gradient(135deg, hsl(var(--brand-champagne)) 0%, hsl(var(--brand-signal)) 44%, hsl(var(--brand-ember)) 100%);
+    --gradient-sunset: linear-gradient(135deg, hsl(var(--brand-champagne)), hsl(var(--brand-ember)));
+    --gradient-dawn: linear-gradient(135deg, hsl(214 34% 98%), hsl(194 100% 96%) 48%, hsl(42 70% 96%));
+    --gradient-brand-night: linear-gradient(135deg, hsl(var(--brand-obsidian)), hsl(226 48% 9%) 48%, hsl(264 42% 16%));
 
     /* Custom shadows */
     --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.05), 0 1px 2px -1px hsl(0 0% 0% / 0.05);
     --shadow-md: 0 4px 14px 0px hsl(0 0% 0% / 0.06);
     --shadow-lg: 0 10px 28px 0px hsl(0 0% 0% / 0.10);
-    --shadow-glow: 0 0 20px hsl(187 65% 35% / 0.25);
-    --chart-1: 198 93% 59%;
-    --chart-2: 213 93% 67%;
-    --chart-3: 215 20% 65%;
-    --chart-4: 215 16% 46%;
-    --chart-5: 215 19% 34%;
+    --shadow-glow: 0 18px 40px -18px hsl(var(--brand-signal) / 0.62), 0 10px 28px -18px hsl(var(--brand-ember) / 0.38);
+    --chart-1: 194 100% 58%;
+    --chart-2: 264 72% 68%;
+    --chart-3: 18 96% 62%;
+    --chart-4: 42 92% 72%;
+    --chart-5: 226 30% 36%;
     --sidebar: 210 40% 98%;
     --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
     --font-serif: 'Lora', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
@@ -109,8 +118,8 @@
   }
 
   .dark {
-    --primary: 198 93% 59%;
-    --primary-foreground: 204 80% 15%;
+    --primary: 194 100% 58%;
+    --primary-foreground: 228 42% 5%;
 
     --accent: 228 84% 4%;
     --accent-foreground: 215 20% 65%;
@@ -141,21 +150,21 @@
 
     --border: 215 19% 34%;
     --input: 215 19% 34%;
-    --ring: 198 93% 59%;
+    --ring: 194 100% 58%;
 
     --sidebar-background: 215 28% 12%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 198 93% 59%;
-    --sidebar-primary-foreground: 204 80% 15%;
+    --sidebar-primary: 194 100% 58%;
+    --sidebar-primary-foreground: 228 42% 5%;
     --sidebar-accent: 215 20% 65%;
     --sidebar-accent-foreground: 228 84% 4%;
     --sidebar-border: 215 19% 34%;
-    --sidebar-ring: 198 93% 59%;
-    --chart-1: 199 95% 73%;
-    --chart-2: 211 96% 78%;
-    --chart-3: 215 20% 65%;
-    --chart-4: 215 16% 46%;
-    --chart-5: 215 19% 34%;
+    --sidebar-ring: 194 100% 58%;
+    --chart-1: 194 100% 68%;
+    --chart-2: 264 72% 72%;
+    --chart-3: 18 96% 66%;
+    --chart-4: 42 92% 76%;
+    --chart-5: 218 18% 70%;
     --sidebar: 217 32% 17%;
     --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
     --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
@@ -178,8 +187,8 @@
     --popover: 222 40% 11%;
     --popover-foreground: 210 40% 96%;
 
-    --primary: 195 85% 55%;
-    --primary-foreground: 222 47% 7%;
+    --primary: 194 100% 58%;
+    --primary-foreground: 228 42% 5%;
 
     --secondary: 215 20% 22%;
     --secondary-foreground: 210 40% 96%;
@@ -201,24 +210,24 @@
 
     --border: 215 20% 22%;
     --input: 215 20% 22%;
-    --ring: 195 85% 55%;
+    --ring: 194 100% 58%;
 
     --sidebar-background: 222 45% 9%;
     --sidebar-foreground: 210 40% 96%;
-    --sidebar-primary: 195 85% 55%;
-    --sidebar-primary-foreground: 222 47% 7%;
+    --sidebar-primary: 194 100% 58%;
+    --sidebar-primary-foreground: 228 42% 5%;
     --sidebar-accent: 215 20% 18%;
     --sidebar-accent-foreground: 210 40% 96%;
     --sidebar-border: 215 20% 22%;
-    --sidebar-ring: 195 85% 55%;
+    --sidebar-ring: 194 100% 58%;
     --sidebar: 222 45% 9%;
 
-    --gradient-dawn: linear-gradient(135deg, hsl(222 47% 9%), hsl(222 40% 13%));
+    --gradient-dawn: linear-gradient(135deg, hsl(var(--brand-obsidian)), hsl(226 48% 9%) 48%, hsl(264 42% 16%));
 
     --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.35), 0 1px 2px -1px hsl(0 0% 0% / 0.35);
     --shadow-md: 0 4px 14px 0px hsl(0 0% 0% / 0.45);
     --shadow-lg: 0 10px 28px 0px hsl(0 0% 0% / 0.55);
-    --shadow-glow: 0 0 24px hsl(195 85% 55% / 0.30);
+    --shadow-glow: 0 0 28px hsl(var(--brand-signal) / 0.32), 0 0 22px hsl(var(--brand-ember) / 0.18);
   }
 
   /* ── Polish v1: Glass depth + cinematic motion tokens ─────────────────
@@ -307,13 +316,16 @@
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: geometricPrecision;
     /* Atmospheric depth — multi-stop radial wash using existing primary +
        a warm tail from --gradient-sunset. No new palette tokens. */
     background-color: hsl(var(--background));
     background-image:
-      radial-gradient(900px 520px at 8% -8%, hsl(var(--primary) / 0.10), transparent 60%),
-      radial-gradient(680px 420px at 100% 0%, hsl(35 92% 55% / 0.06), transparent 65%),
-      radial-gradient(720px 540px at 50% 110%, hsl(187 65% 35% / 0.07), transparent 65%);
+      radial-gradient(900px 520px at 8% -8%, hsl(var(--brand-signal) / 0.16), transparent 60%),
+      radial-gradient(680px 420px at 100% 0%, hsl(var(--brand-champagne) / 0.12), transparent 65%),
+      radial-gradient(720px 540px at 50% 110%, hsl(var(--brand-ember) / 0.09), transparent 65%),
+      linear-gradient(180deg, hsl(var(--background)) 0%, hsl(214 38% 96%) 42%, hsl(var(--background)) 100%);
     background-attachment: fixed;
     background-repeat: no-repeat;
   }
@@ -322,17 +334,18 @@
   @media (max-width: 768px) {
     body {
       background-image:
-        radial-gradient(720px 520px at 0% -10%, hsl(var(--primary) / 0.16), transparent 60%),
-        radial-gradient(560px 420px at 100% 8%, hsl(35 92% 55% / 0.09), transparent 65%),
-        radial-gradient(640px 560px at 50% 105%, hsl(187 65% 35% / 0.11), transparent 65%);
+        radial-gradient(720px 520px at 0% -10%, hsl(var(--brand-signal) / 0.19), transparent 60%),
+        radial-gradient(560px 420px at 100% 8%, hsl(var(--brand-champagne) / 0.14), transparent 65%),
+        radial-gradient(640px 560px at 50% 105%, hsl(var(--brand-ember) / 0.12), transparent 65%),
+        linear-gradient(180deg, hsl(var(--background)) 0%, hsl(214 38% 95%) 48%, hsl(var(--background)) 100%);
     }
   }
 
   .dark body {
     background-image:
-      radial-gradient(900px 560px at 5% -10%, hsl(var(--primary) / 0.18), transparent 60%),
-      radial-gradient(680px 460px at 100% 0%, hsl(265 70% 60% / 0.10), transparent 65%),
-      radial-gradient(760px 580px at 50% 110%, hsl(187 65% 35% / 0.14), transparent 65%);
+      radial-gradient(900px 560px at 5% -10%, hsl(var(--brand-signal) / 0.20), transparent 60%),
+      radial-gradient(680px 460px at 100% 0%, hsl(var(--brand-violet) / 0.13), transparent 65%),
+      radial-gradient(760px 580px at 50% 110%, hsl(var(--brand-ember) / 0.11), transparent 65%);
   }
 
   html[data-native-platform='ios'],
@@ -358,6 +371,11 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     @apply font-semibold tracking-tight;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.18);
+    color: hsl(var(--foreground));
   }
 }
 
@@ -398,9 +416,12 @@
   /* Premium floating nav — solid, elevated, with gradient sheen */
   .nav-floating {
     background:
-      linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--card)) 100%),
-      radial-gradient(120% 80% at 50% 0%, hsl(var(--primary) / 0.10), transparent 60%);
-    background-blend-mode: normal;
+      linear-gradient(180deg, hsl(var(--card) / 0.94) 0%, hsl(var(--card) / 0.88) 100%),
+      radial-gradient(110% 90% at 50% 0%, hsl(var(--brand-signal) / 0.16), transparent 62%),
+      radial-gradient(80% 120% at 100% 100%, hsl(var(--brand-champagne) / 0.13), transparent 58%);
+    background-blend-mode: normal, multiply, normal;
+    backdrop-filter: saturate(170%) blur(22px);
+    -webkit-backdrop-filter: saturate(170%) blur(22px);
     border: 1px solid hsl(var(--border) / 0.6);
     box-shadow:
       0 1px 0 0 hsl(0 0% 100% / 0.6) inset,
@@ -419,17 +440,20 @@
 
   /* Active nav pill — filled gradient with inner highlight */
   .nav-pill-active {
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.85) 100%);
-    color: hsl(var(--primary-foreground));
+    background:
+      linear-gradient(135deg, hsl(var(--brand-champagne)) 0%, hsl(var(--brand-signal)) 48%, hsl(var(--brand-ember)) 100%),
+      radial-gradient(circle at 30% 10%, hsl(0 0% 100% / 0.35), transparent 36%);
+    color: hsl(var(--brand-obsidian));
     box-shadow:
-      0 0 0 1px hsl(var(--primary) / 0.4),
-      0 8px 20px -6px hsl(var(--primary) / 0.55),
+      0 0 0 1px hsl(var(--brand-signal) / 0.34),
+      0 8px 20px -6px hsl(var(--brand-signal) / 0.42),
+      0 6px 20px -10px hsl(var(--brand-ember) / 0.5),
       inset 0 1px 0 0 hsl(0 0% 100% / 0.25);
   }
 
   /* Top accent bar above active item */
   .nav-accent-bar {
-    background: linear-gradient(90deg, transparent 0%, hsl(var(--primary)) 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, hsl(var(--brand-champagne)) 18%, hsl(var(--brand-signal)) 50%, hsl(var(--brand-ember)) 82%, transparent 100%);
   }
 
   /* Soft primary glow halo for active/featured items */

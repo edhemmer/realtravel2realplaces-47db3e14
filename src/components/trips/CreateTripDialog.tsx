@@ -1805,7 +1805,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
                     type="button"
                     variant={destinationType === 'beach' ? 'default' : 'outline'}
                     size="sm"
-                    className={cn("flex-1", destinationType === 'beach' && "bg-cyan-600 hover:bg-cyan-700")}
+                    className={cn("flex-1", destinationType === 'beach' && "bg-brand-signal-deep hover:bg-brand-signal-deep/90")}
                     onClick={() => setValue('destination_type', 'beach')}
                   >
                     <Palmtree className="w-4 h-4 mr-1" />

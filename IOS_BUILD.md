@@ -104,3 +104,12 @@ open ios/App/App.xcodeproj
 ```
 
 If Xcode is already open, quit it before running the command. Open `App.xcodeproj`; do not use a Pods workspace.
+# CarPlay
+
+The app includes native CarPlay scene scaffolding for Drive Mode:
+
+- `CarPlaySceneDelegate.swift` renders the current drive stops on the car screen.
+- `CarPlayBridgePlugin.swift` lets the web Drive Cockpit publish canonical trip stops to native iOS.
+- `Info.plist` declares `CPTemplateApplicationSceneSessionRoleApplication`.
+
+Apple must grant the CarPlay entitlement for the bundle id before this works on a real CarPlay head unit or App Store build. In Apple Developer, request the appropriate CarPlay category entitlement for `com.inlighttai.rt2rp`; after approval, enable the capability in Xcode/signing. Do not add a CarPlay entitlement file before Apple grants it, because provisioning will fail.

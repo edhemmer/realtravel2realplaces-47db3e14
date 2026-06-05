@@ -32,7 +32,7 @@ const AREA_COLORS: Record<ExplorableArea['type'], string> = {
   lodging: 'bg-purple-500/10 text-purple-600 dark:text-purple-400',
   car_rental: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
   activity: 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
-  transport: 'bg-teal-500/10 text-teal-600 dark:text-teal-400',
+  transport: 'bg-brand-signal/10 text-brand-signal-deep dark:text-brand-signal',
 };
 
 export function ExploreAreaPicker({ bookings, onSelectArea, activeAreaKey }: ExploreAreaPickerProps) {

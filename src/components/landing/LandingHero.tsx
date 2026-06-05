@@ -6,36 +6,39 @@ export default function LandingHero() {
     <section className="landing-hero-section">
       <div className="max-w-6xl mx-auto">
         <div className="landing-hero-split">
-          {/* Left — Messaging */}
           <div className="landing-hero-copy">
+            <div className="landing-hero-kicker">
+              <span>Chaos to Clarity</span>
+              <span className="landing-hero-kicker-dot" />
+              <span>Travel Operations</span>
+            </div>
+
             <h1 className="landing-hero-headline">
-              A better way to manage
+              Find clarity in
               <br />
-              <span className="text-[hsl(var(--landing-accent))]">the Travel chaos.</span>
+              <span className="landing-hero-headline-accent">the travel chaos.</span>
             </h1>
 
             <p className="landing-hero-subtext">
-              A calm command center for your trip. See what's next, when to leave, and how to get there — flights, stays, drives, expenses, and packing in one place. Works offline.
+              RealTravel2RealPlaces turns every moving part of the trip into a live travel operations layer: flights, lodging, Drive Cockpit, airport maps, local transit, weather, expenses, offline details, and the next clear move.
             </p>
 
-            {/* CTAs */}
+            <div className="landing-hero-proof-row" aria-label="Product capabilities">
+              <span>TravelOps dashboard</span>
+              <span>Drive Cockpit</span>
+              <span>Airport + transit windows</span>
+            </div>
+
             <div className="flex items-center gap-3 sm:gap-4 mt-6 sm:mt-8">
-              <Link
-                to="/auth?tab=signup"
-                className="landing-btn-primary-hero">
-
-                Start a Trip
+              <Link to="/auth?tab=signup" className="landing-btn-primary-hero">
+                Start in Clarity
               </Link>
-              <Link
-                to="/auth"
-                className="landing-btn-secondary-hero">
-
+              <Link to="/auth" className="landing-btn-secondary-hero">
                 Log In
               </Link>
             </div>
           </div>
 
-          {/* Right — Product preview */}
           <div className="landing-hero-visual" aria-label="Product preview">
             <div className="landing-hero-visual-frame">
               <MockTripCard />
@@ -43,6 +46,6 @@ export default function LandingHero() {
           </div>
         </div>
       </div>
-    </section>);
-
+    </section>
+  );
 }

@@ -14,7 +14,7 @@ import { useRemoveTripMembership } from '@/hooks/useTripMembers';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, MapPin, Calendar, Plane, Car, TrainFront, Route, Trash2, Users, ChevronRight, Radio, UserMinus, Sparkles, Compass, ListChecks, WifiOff, Coins } from 'lucide-react';
+import { Plus, MapPin, Calendar, Plane, Car, TrainFront, Route, Trash2, Users, ChevronRight, Radio, UserMinus, Sparkles, Compass, ListChecks, WifiOff, Coins, ShieldCheck, BriefcaseBusiness, Activity } from 'lucide-react';
 import { getTripMode, getModeTheme, type TripMode } from '@/lib/modeTheme';
 import { useNavigate } from 'react-router-dom';
 import { formatTripDateRange } from '@/lib/displayFormats';
@@ -126,6 +126,43 @@ export default function Dashboard() {
     return [activeTrip, ...trips.filter((t: Trip) => t.id !== activeTrip.id)];
   }, [trips, activeTrip]);
 
+  const tripMetrics = useMemo(() => {
+    const upcomingCount = sortedTrips.filter((trip: Trip) => trip.start_date > todayStr).length;
+    const sharedCount = sharedTrips.length;
+    const businessCount = sortedTrips.filter((trip: Trip) => trip.trip_type === 'business').length;
+
+    return [
+      {
+        label: 'Ready trips',
+        value: sortedTrips.length,
+        icon: Activity,
+        tone: 'text-primary',
+        bg: 'bg-primary/10',
+      },
+      {
+        label: 'Upcoming',
+        value: upcomingCount,
+        icon: Calendar,
+        tone: 'text-amber-600 dark:text-amber-400',
+        bg: 'bg-amber-500/12',
+      },
+      {
+        label: 'Shared',
+        value: sharedCount,
+        icon: Users,
+        tone: 'text-emerald-600 dark:text-emerald-400',
+        bg: 'bg-emerald-500/12',
+      },
+      {
+        label: 'Business',
+        value: businessCount,
+        icon: BriefcaseBusiness,
+        tone: 'text-sky-600 dark:text-sky-400',
+        bg: 'bg-sky-500/12',
+      },
+    ];
+  }, [sortedTrips, sharedTrips.length, todayStr]);
+
   if (isLoading || sharedLoading) {
     return (
       <Layout>
@@ -147,22 +184,51 @@ export default function Dashboard() {
           transition={{ delay: 0 }}
           className="motion-cinema"
         >
-          <div className="flex min-w-0 items-center justify-between gap-3">
-            <div className="min-w-0">
-              <h1 className="text-[28px] font-bold leading-[1.15] tracking-tight">My Trips</h1>
-              <p className="text-muted-foreground text-sm font-normal opacity-[0.85] mt-1">Manage your travel in one place</p>
+          <GlassSurface elevation="floating" className="overflow-hidden rounded-2xl">
+            <div className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,hsl(var(--primary)),hsl(38_92%_55%),hsl(160_60%_42%))]" />
+            <div className="pointer-events-none absolute -right-10 -top-16 h-44 w-44 rounded-full bg-primary/10 blur-3xl" />
+            <div className="pointer-events-none absolute -left-12 bottom-0 h-32 w-32 rounded-full bg-amber-400/10 blur-3xl" />
+            <div className="relative grid gap-4 p-4 sm:p-5 lg:grid-cols-[1fr_auto] lg:items-center">
+              <div className="min-w-0">
+                <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-primary/15 bg-primary/8 px-2.5 py-1 text-[11px] font-semibold uppercase text-primary">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  Premium travel command center
+                </div>
+                <h1 className="text-[30px] font-bold leading-[1.08] tracking-tight sm:text-4xl">My Trips</h1>
+                <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+                  Simple enough for a weekend away. Structured enough for business, teams, receipts, movement, and live travel decisions.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {CAN_CREATE_TRIPS && (
+                  <Button
+                    onClick={() => setCreateDialogOpen(true)}
+                    className="h-11 shrink-0 rounded-xl bg-gradient-ocean px-4 font-semibold shadow-glow transition-opacity hover:opacity-90 sm:h-12"
+                  >
+                    <Plus className="mr-1.5 h-4 w-4" />
+                    <span>New Trip</span>
+                  </Button>
+                )}
+              </div>
             </div>
-            {CAN_CREATE_TRIPS && (
-              <Button 
-                onClick={() => setCreateDialogOpen(true)} 
-                className="bg-gradient-ocean hover:opacity-90 transition-opacity h-10 sm:h-12 rounded-xl font-semibold shadow-sm shrink-0"
-              >
-                <Plus className="w-4 h-4 mr-1 sm:mr-2" />
-                <span className="hidden sm:inline">New Trip</span>
-                <span className="sm:hidden">New</span>
-              </Button>
-            )}
-          </div>
+            <div className="relative grid grid-cols-2 gap-2 border-t border-border/40 p-3 sm:grid-cols-4 sm:p-4">
+              {tripMetrics.map((metric) => {
+                const Icon = metric.icon;
+                return (
+                  <div key={metric.label} className="rounded-xl border border-border/45 bg-card/55 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-medium text-muted-foreground">{metric.label}</span>
+                      <span className={`flex h-7 w-7 items-center justify-center rounded-lg ${metric.bg}`}>
+                        <Icon className={`h-3.5 w-3.5 ${metric.tone}`} />
+                      </span>
+                    </div>
+                    <div className="mt-1.5 text-2xl font-bold leading-none">{metric.value}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </GlassSurface>
         </motion.div>
 
         {/* Canonical "Now Card" — single source of "what should I do right now?" */}
@@ -256,10 +322,10 @@ export default function Dashboard() {
             transition={{ delay: 0.12 }}
             className="motion-cinema"
           >
-            <Card className="border-dashed border-2">
+            <Card className="overflow-hidden border-dashed border-2 bg-card/80 shadow-elevation-raised">
               <CardContent className="flex flex-col items-center justify-center py-14 px-6">
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-                  <Plane className="w-8 h-8 text-primary" />
+                <div className="w-16 h-16 rounded-2xl bg-gradient-ocean flex items-center justify-center mb-4 shadow-glow">
+                  <Plane className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2">Your command center is waiting</h3>
                 <p className="text-muted-foreground text-center mb-6 max-w-md text-sm leading-relaxed">
@@ -435,13 +501,16 @@ const TripCard = React.memo(function TripCard({
     return (
     <GlassSurface
       elevation="raised"
-        className={`group relative w-full min-w-0 max-w-full overflow-hidden transition-all duration-base ease-cinema hover:-translate-y-0.5 hover:shadow-elevation-floating ${cardClassName} ${pastTripStyles} ${activeBorder}`}
+        className={`group relative w-full min-w-0 max-w-full overflow-hidden rounded-2xl transition-all duration-base ease-cinema hover:-translate-y-0.5 hover:shadow-elevation-floating ${cardClassName} ${pastTripStyles} ${activeBorder}`}
     >
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-primary/6 to-transparent" />
+      <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-amber-400/10 blur-2xl" />
+      <div className="pointer-events-none absolute bottom-0 left-0 h-16 w-28 bg-[radial-gradient(circle_at_0%_100%,hsl(160_60%_42%/0.12),transparent_65%)]" />
       {/* Mode accent strip */}
       <div className={`h-[3px] w-full ${modeTheme.gradients.buttonBg}`} />
 
       {/* Content area — reserves room for the absolute action button on the right */}
-      <div className="pr-[56px] sm:pr-[96px]">
+      <div className="relative pr-[56px] sm:pr-[96px]">
         <CardHeader className="px-4 pb-1 pt-4 sm:px-5 sm:pb-2 sm:pt-5">
           <div className="flex min-w-0 items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
@@ -452,7 +521,7 @@ const TripCard = React.memo(function TripCard({
                 </CardTitle>
                 <div className="flex items-center gap-1.5 ml-1 shrink-0">
                   {isActive && (
-                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-teal-500/15 text-teal-600 dark:text-teal-400">
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-brand-signal/15 text-brand-signal-deep dark:text-brand-signal">
                       <Radio className="w-2.5 h-2.5" />
                       Live
                     </span>
@@ -480,10 +549,15 @@ const TripCard = React.memo(function TripCard({
             <Calendar className="w-3.5 h-3.5" />
             <span>{formatTripDateRange(trip.start_date, trip.end_date)}</span>
           </div>
+          <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-[10px] font-semibold uppercase text-muted-foreground/70">
+            <span className="h-1.5 rounded-full bg-primary/25" />
+            <span>{isActive ? 'Live now' : isPastTrip ? 'Archived flow' : 'Ready flow'}</span>
+            <span className="h-1.5 rounded-full bg-amber-400/30" />
+          </div>
           <div className="flex items-center justify-between">
             <button
               onClick={handleCardClick}
-              className={`flex items-center gap-0.5 text-sm font-medium ${modeTheme.palette.primary} hover:underline`}
+              className={`flex items-center gap-1 rounded-lg px-0.5 text-sm font-semibold ${modeTheme.palette.primary} hover:underline`}
             >
               View Trip
               <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />

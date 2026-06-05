@@ -52,7 +52,7 @@ export default function LandingHeader() {
                   to="/auth?tab=signup" 
                   className="landing-btn-header"
                 >
-                  Start a Trip
+                  Start in Clarity
                 </Link>
               </>
             )}

@@ -4,7 +4,7 @@ import { useAccess } from '@/hooks/useAccess';
 import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Lock, Archive, Clock, Moon, CalendarCog, CalendarClock, Sparkles } from 'lucide-react';
+import { Lock, Archive, Clock, Moon, CalendarCog, CalendarClock, Sparkles, MapPinned } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EditTripDatesDialog } from './EditTripDatesDialog';
 import { TripAskDialog } from './TripAskDialog';
@@ -99,20 +99,30 @@ export function TripStatusHeroBar({ trip }: TripStatusHeroBarProps) {
     return (
       <>
       <div className="sticky top-16 z-40 -mx-4 px-4 sm:-mx-0 sm:px-0">
-        <div className="bg-card/95 backdrop-blur-md border border-border/50 rounded-lg shadow-sm overflow-hidden">
+        <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-card/90 shadow-elevation-raised backdrop-blur-md">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-primary/8 to-transparent" />
+          <div className="pointer-events-none absolute -right-10 -top-12 h-28 w-28 rounded-full bg-amber-400/10 blur-2xl" />
           {/* Mode accent strip */}
           <div className={`h-[3px] w-full ${modeTheme.gradients.headerBg}`} />
-          <div className="px-4 sm:px-5 py-3 sm:py-3.5">
+          <div className="relative px-4 sm:px-5 py-3.5 sm:py-4">
             {/* Row 1: Title (full width on mobile) */}
-            <h2 className="font-bold text-lg sm:text-xl leading-tight truncate">{trip.name}</h2>
+            <div className="flex items-start gap-3">
+              <div className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${modeTheme.gradients.buttonBg} shadow-sm`}>
+                <MapPinned className="h-5 w-5 text-white" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="truncate text-lg font-bold leading-tight sm:text-xl">{trip.name}</h2>
+                <p className="mt-0.5 truncate text-xs text-muted-foreground">{trip.destination_city}, {trip.destination_country}</p>
+              </div>
+            </div>
 
             {/* Row 2: Actions + Status — wraps cleanly on narrow screens */}
-            <div className="flex items-center justify-between gap-2 mt-2">
+            <div className="flex items-center justify-between gap-2 mt-3">
               <div className="flex items-center gap-1 min-w-0">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="shrink-0 text-xs gap-1.5 text-muted-foreground hover:text-foreground h-8 px-2"
+                  className="h-8 shrink-0 gap-1.5 rounded-lg px-2 text-xs text-muted-foreground hover:text-foreground"
                   onClick={() => setEditDatesOpen(true)}
                 >
                   <CalendarCog className="w-3.5 h-3.5" />
@@ -122,7 +132,7 @@ export function TripStatusHeroBar({ trip }: TripStatusHeroBarProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="shrink-0 text-xs gap-1.5 text-primary hover:text-primary/80 h-8 px-2"
+                  className="h-8 shrink-0 gap-1.5 rounded-lg px-2 text-xs text-primary hover:text-primary/80"
                   onClick={() => setAskOpen(true)}
                 >
                   <Sparkles className="w-3.5 h-3.5" />

@@ -35,6 +35,7 @@ import { NotesTab } from '@/components/trips/tabs/NotesTab';
 import { ExploreTab } from '@/components/trips/tabs/ExploreTab';
 import { WeatherTab } from '@/components/trips/tabs/WeatherTab';
 import { TripSummaryReportTab } from '@/components/trips/tabs/TripSummaryReportTab';
+import { TravelOpsTab } from '@/components/trips/tabs/TravelOpsTab';
 import { TripHeaderWidgets } from '@/components/trips/TripHeaderWidgets';
 import { DriveModeEntryCard } from '@/components/trips/DriveModeEntryCard';
 import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
@@ -86,6 +87,7 @@ const MOBILE_SECTION_LABELS: Partial<Record<TripTab, string>> = {
   today: 'Today',
   plan: 'Flow',
   flow: 'Flow',
+  ops: 'TravelOps',
   explore: 'Explore',
   weather: 'Weather',
   expenses: 'Expenses',
@@ -406,6 +408,7 @@ export default function TripDetail() {
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
                   <TabsList className="w-full justify-start overflow-x-auto flex-nowrap hidden md:flex">
                     <TabsTrigger value="summary">Timeline</TabsTrigger>
+                    <TabsTrigger value="ops">TravelOps</TabsTrigger>
                     <TabsTrigger value="bookings">Bookings</TabsTrigger>
                     <TabsTrigger value="explore" className="relative">
                       Explore
@@ -444,6 +447,9 @@ export default function TripDetail() {
                         highlightId={drillTarget?.tab === 'bookings' ? drillTarget.recordId : undefined}
                         onHighlightConsumed={clearDrillTarget}
                       />
+                    </TabsContent>
+                    <TabsContent value="ops">
+                      <TravelOpsTab tripId={trip.id} trip={trip} />
                     </TabsContent>
                     <TabsContent value="timeline">
                       <TripBookingsContainer tripId={trip.id} trip={trip} />

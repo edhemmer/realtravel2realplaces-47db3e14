@@ -1,12 +1,12 @@
-import { Plane, Home, Car, Luggage, Compass, Receipt } from 'lucide-react';
+import { Plane, Home, Car, TrainFront, Building2, Receipt } from 'lucide-react';
 
 const parts = [
-  { icon: Plane, title: 'Flights', description: 'Departure times, airport codes, confirmation numbers — all in one place.' },
-  { icon: Home, title: 'Lodging', description: 'Address, check-in details, and saved links for every stay.' },
-  { icon: Car, title: 'Drives', description: 'Stop-by-stop timelines and drive-day logistics.' },
-  { icon: Luggage, title: 'Packing', description: 'Track what to bring and check items off as you pack.' },
-  { icon: Compass, title: 'Explore', description: 'Discover restaurants and things to do near your destination.' },
-  { icon: Receipt, title: 'Expenses', description: 'Log costs by category and trip — see totals and your share.' },
+  { icon: Plane, title: 'Flights', description: 'Departure times, airport codes, confirmations, and flight-day context in one travel timeline.' },
+  { icon: Building2, title: 'Airport maps', description: 'Official terminal maps, parking pages, and airport links where travelers need them.' },
+  { icon: Home, title: 'Lodging', description: 'Addresses, check-in details, saved links, and stay costs connected to the trip.' },
+  { icon: Car, title: 'Drive Cockpit', description: 'Navigation, gas, weather, road conditions, next stops, and CarPlay-ready trip context.' },
+  { icon: TrainFront, title: 'Local transit', description: 'Transit map windows and route handoffs for getting around without expensive API waste.' },
+  { icon: Receipt, title: 'Expenses', description: 'Offline-first expense capture, categories, totals, and business or personal trip records.' },
 ];
 
 export default function LandingMovingParts() {
@@ -15,8 +15,11 @@ export default function LandingMovingParts() {
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-10">
           <h2 className="landing-section-headline">
-            The moving parts of travel — organized.
+            Every travel window in one command center.
           </h2>
+          <p className="landing-section-subtext mt-3">
+            From simple weekends to complex business travel, the app keeps the operational pieces connected.
+          </p>
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">

@@ -1,10 +1,10 @@
-import { Route, Users, Repeat, Layers } from 'lucide-react';
+import { BriefcaseBusiness, Car, Repeat, Users } from 'lucide-react';
 
 const personas = [
-  { icon: Route, title: 'Multi-stop travelers', description: 'Keep every leg of a complex itinerary organized in one timeline.' },
-  { icon: Users, title: 'Family travel', description: 'Share trip details and track expenses across the group.' },
-  { icon: Repeat, title: 'Repeat travelers', description: 'Manage trip after trip without starting from scratch.' },
-  { icon: Layers, title: 'People who prefer structure', description: 'If scattered notes and browser tabs stress you out — this is for you.' },
+  { icon: BriefcaseBusiness, title: 'Business travelers', description: 'Keep bookings, expenses, receipts, transport, and daily movement decisions organized.' },
+  { icon: Car, title: 'Road-trip travelers', description: 'Use Drive Cockpit, gas search, weather, road context, and next stops from one place.' },
+  { icon: Users, title: 'Families and groups', description: 'Share trip details, divide expenses, and keep everyone aligned without text-thread chaos.' },
+  { icon: Repeat, title: 'Frequent travelers', description: 'Manage trip after trip with a familiar command center for airports, lodging, transit, and spend.' },
 ];
 
 export default function LandingWhoItsFor() {
@@ -13,10 +13,10 @@ export default function LandingWhoItsFor() {
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-10">
           <h2 className="landing-section-headline">
-            Built for people who actually travel.
+            Simple enough for weekends. Strong enough for business travel.
           </h2>
           <p className="landing-section-subtext mt-3">
-            Not everyone needs a travel dashboard. But if you do, this one is designed around how travel actually works.
+            RealTravel is built for travelers who need the trip to stay usable after booking is done.
           </p>
         </div>
 
