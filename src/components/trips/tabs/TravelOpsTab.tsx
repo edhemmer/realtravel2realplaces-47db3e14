@@ -7,9 +7,11 @@ import {
   CheckCircle2,
   CloudSun,
   Gauge,
+  MapPinned,
   Map,
   Navigation,
   Plane,
+  Plus,
   Route,
   ShieldCheck,
   TrainFront,
@@ -27,7 +29,6 @@ import { useExpenses } from '@/hooks/useExpenses';
 import { useParking } from '@/hooks/useParking';
 import { useTripWeather } from '@/hooks/useWeather';
 import { useAccess } from '@/hooks/useAccess';
-import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
 import { isOnline } from '@/lib/networkStatus';
 import { cn } from '@/lib/utils';
 import { getAirportByCode, type Airport } from '@/lib/airportData';
@@ -59,6 +60,35 @@ function destinationLabel(trip: Trip) {
   return [trip.destination_city, trip.destination_country].filter(Boolean).join(', ') || trip.name || 'Trip destination';
 }
 
+function routeOriginLabel(trip: Trip) {
+  return trip.origin_address?.trim() || '';
+}
+
+function routeDestinationLabel(trip: Trip) {
+  return trip.destination_address?.trim() || destinationLabel(trip);
+}
+
+function routeDirectionsUrl(trip: Trip) {
+  const destination = routeDestinationLabel(trip);
+  const origin = routeOriginLabel(trip);
+  const params = new URLSearchParams({
+    api: '1',
+    destination,
+    travelmode: 'driving',
+  });
+  if (origin) params.set('origin', origin);
+  return `https://www.google.com/maps/dir/?${params.toString()}`;
+}
+
+function routeMapEmbedUrl(trip: Trip) {
+  const destination = routeDestinationLabel(trip);
+  const origin = routeOriginLabel(trip);
+  if (origin) {
+    return `https://www.google.com/maps?output=embed&saddr=${encodeURIComponent(origin)}&daddr=${encodeURIComponent(destination)}`;
+  }
+  return `https://www.google.com/maps?output=embed&q=${encodeURIComponent(destination)}`;
+}
+
 function transitUrl(trip: Trip) {
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destinationLabel(trip))}&travelmode=transit`;
 }
@@ -80,6 +110,10 @@ function compareBookingsByTime(a: Booking, b: Booking): number {
 function isUpcomingBooking(booking: Booking): boolean {
   const timestamp = bookingTimestamp(booking);
   return timestamp > 0 && timestamp >= Date.now();
+}
+
+function bookingLabel(booking: Booking) {
+  return booking.vendor_name || booking.property_name || booking.rental_company || booking.booking_type;
 }
 
 function getUniqueAirports(bookings: Booking[]): AirportOps[] {
@@ -210,7 +244,6 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
   const { data: expenses = [] } = useExpenses(tripId);
   const { data: parking = [] } = useParking(tripId);
   const { isPro, canAccessBusinessFeatures } = useAccess();
-  const { timelineEvents, costs, hasFlights, hasRentals } = useCanonicalTripState(tripId, trip);
   const weather = useTripWeather(
     trip.destination_city,
     trip.destination_country,
@@ -220,12 +253,16 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
   );
 
   const online = isOnline();
+  const isDriveTrip = trip.transportation_mode === 'drive';
+  const hasFlights = bookings.some((booking) => booking.booking_type === 'flight');
+  const hasRentals = bookings.some((booking) => booking.booking_type === 'car_rental');
   const airports = useMemo(() => getUniqueAirports(bookings), [bookings]);
   const upcoming = useMemo(
-    () => (timelineEvents ?? [])
-      .filter((event) => getEventTimestamp(event.eventLocalDateTime, event.datetime) >= Date.now())
+    () => bookings
+      .filter(isUpcomingBooking)
+      .sort(compareBookingsByTime)
       .slice(0, 4),
-    [timelineEvents],
+    [bookings],
   );
   const nextBooking = useMemo(
     () => bookings
@@ -241,12 +278,16 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
     hasFlights ? airports.length > 0 : true,
     weather.data !== undefined || weather.isLoading,
     online,
-    trip.transportation_mode === 'drive' || hasFlights || hasRentals,
+    isDriveTrip || hasFlights || hasRentals,
     expenses.length > 0 || canAccessBusinessFeatures || isPro,
   ];
   const readiness = Math.round((readinessItems.filter(Boolean).length / readinessItems.length) * 100);
   const mapQuery = destinationLabel(trip);
-  const nextMoveLabel = nextBooking?.vendor_name || upcoming[0]?.title || (trip.transportation_mode === 'drive' ? 'Drive cockpit' : 'Add first booking');
+  const routeDestination = routeDestinationLabel(trip);
+  const routeOrigin = routeOriginLabel(trip);
+  const nextMoveLabel = nextBooking ? bookingLabel(nextBooking) : (isDriveTrip ? `Plan route to ${routeDestination}` : 'Add first booking');
+  const bookingCostTotal = bookings.reduce((sum, booking) => sum + Number(booking.my_share ?? booking.total_cost ?? 0), 0);
+  const managedSpend = bookingCostTotal + expenseTotal + parkingTotal;
 
   return (
     <div className="space-y-5 pb-20">
@@ -281,22 +322,93 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
 
       <section className="grid gap-3 lg:grid-cols-3">
         <GuidanceStep icon={<CheckCircle2 className="h-5 w-5" />} label="1. Confirm next move" detail={nextMoveLabel} />
-        <GuidanceStep icon={<Map className="h-5 w-5" />} label="2. Check the operating window" detail={`Map, transit, airport, and weather context for ${mapQuery}.`} />
-        <GuidanceStep icon={<ShieldCheck className="h-5 w-5" />} label="3. Finish the record" detail="Capture receipts, parking, notes, and business context while details are fresh." />
+        <GuidanceStep icon={<Map className="h-5 w-5" />} label="2. Check the operating window" detail={isDriveTrip ? 'Preview directions, route options, gas, and stops before departure.' : `Map, transit, airport, and weather context for ${mapQuery}.`} />
+        <GuidanceStep icon={<ShieldCheck className="h-5 w-5" />} label="3. Finish the plan" detail={isDriveTrip ? 'Add stops along the route, then keep receipts and notes tied to the trip.' : 'Capture receipts, parking, notes, and business context while details are fresh.'} />
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <OpsMetric icon={<Route className="h-5 w-5" />} label="Next move" value={nextMoveLabel} tone={nextBooking || upcoming.length ? 'good' : 'watch'} />
         <OpsMetric icon={<Plane className="h-5 w-5" />} label="Airports" value={airports.length ? airports.map((a) => a.code).join(' / ') : 'None linked'} tone={airports.length ? 'good' : 'neutral'} />
         <OpsMetric icon={<CloudSun className="h-5 w-5" />} label="Weather" value={weather.current ? `${weather.current.temperature}F ${weather.current.condition}` : 'Checking'} tone={weather.weatherAnalysis?.hasRain || weather.weatherAnalysis?.hasSnow ? 'watch' : 'good'} />
-        <OpsMetric icon={<BadgeDollarSign className="h-5 w-5" />} label="Managed spend" value={currency((costs?.totalCost ?? 0) + expenseTotal + parkingTotal)} tone="neutral" />
+        <OpsMetric icon={<BadgeDollarSign className="h-5 w-5" />} label="Managed spend" value={currency(managedSpend)} tone="neutral" />
       </section>
+
+      {isDriveTrip && (
+        <section className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
+          <OpsWindow
+            icon={<Route className="h-5 w-5" />}
+            title="Drive route planner"
+            detail="Open before the trip starts to compare proposed directions, route options, fuel stops, and stop planning."
+            badge="Planning"
+          >
+            <div className="overflow-hidden rounded-xl border border-border/50 bg-muted/30">
+              <iframe
+                title={`Driving route to ${routeDestination}`}
+                src={routeMapEmbedUrl(trip)}
+                className="h-[320px] w-full border-0"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <Button asChild size="sm" className="rounded-full">
+                <a href={routeDirectionsUrl(trip)} target="_blank" rel="noreferrer">
+                  <Navigation className="mr-2 h-4 w-4" />
+                  Route options
+                </a>
+              </Button>
+              <Button asChild size="sm" variant="outline" className="rounded-full">
+                <Link to={`/trip/${tripId}?tab=tour`}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add stop
+                </Link>
+              </Button>
+              <Button asChild size="sm" variant="outline" className="rounded-full">
+                <a href={mapSearchUrl(`gas stations between ${routeOrigin || 'current location'} and ${routeDestination}`)} target="_blank" rel="noreferrer">
+                  <Car className="mr-2 h-4 w-4" />
+                  Gas on route
+                </a>
+              </Button>
+              <Button asChild size="sm" variant="outline" className="rounded-full">
+                <Link to={`/trip/${tripId}/drive`}>
+                  <Gauge className="mr-2 h-4 w-4" />
+                  Drive cockpit
+                </Link>
+              </Button>
+            </div>
+          </OpsWindow>
+
+          <OpsWindow
+            icon={<MapPinned className="h-5 w-5" />}
+            title="Route setup"
+            detail="The route can be reviewed even before the active travel window. Add an origin for better door-to-door planning."
+            badge={routeOrigin ? 'Door-to-door' : 'Destination'}
+          >
+            <div className="space-y-3">
+              <div className="rounded-xl border border-border/50 bg-background/70 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Origin</p>
+                <p className="mt-1 text-sm font-semibold text-foreground">{routeOrigin || 'Current location when navigation starts'}</p>
+              </div>
+              <div className="rounded-xl border border-border/50 bg-background/70 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Destination</p>
+                <p className="mt-1 text-sm font-semibold text-foreground">{routeDestination}</p>
+              </div>
+              <div className="rounded-xl border border-border/50 bg-background/70 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Estimated distance</p>
+                <p className="mt-1 text-sm font-semibold text-foreground">
+                  {trip.estimated_miles ? `${trip.estimated_miles} miles` : 'Open route options for live distance'}
+                </p>
+              </div>
+            </div>
+          </OpsWindow>
+        </section>
+      )}
 
       <section className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
         <OpsWindow
           icon={<Map className="h-5 w-5" />}
-          title="Interactive destination map"
-          detail="A low-cost destination window for checking the area. Native iOS can hand off to the user's preferred map app."
+          title={isDriveTrip ? 'Destination area map' : 'Interactive destination map'}
+          detail={isDriveTrip ? 'Use this after route planning to inspect the arrival area, nearby transit, parking, and destination context.' : "A low-cost destination window for checking the area. Native iOS can hand off to the user's preferred map app."}
           badge="No API key"
         >
           <div className="overflow-hidden rounded-xl border border-border/50 bg-muted/30">
@@ -321,7 +433,7 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
                 Transit route
               </a>
             </Button>
-            {trip.transportation_mode === 'drive' && (
+            {isDriveTrip && (
               <Button asChild size="sm" variant="outline" className="rounded-full">
                 <Link to={`/trip/${tripId}/drive`}>
                   <Car className="mr-2 h-4 w-4" />
@@ -341,8 +453,8 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
           <div className="space-y-2">
             {upcoming.length > 0 ? upcoming.map((event) => (
               <div key={event.id} className="rounded-xl border border-border/50 bg-background/70 p-3">
-                <p className="truncate text-sm font-semibold text-foreground">{event.title}</p>
-                <p className="text-xs text-muted-foreground">{formatEventTime(event.eventLocalDateTime, event.datetime)}</p>
+                <p className="truncate text-sm font-semibold text-foreground">{bookingLabel(event)}</p>
+                <p className="text-xs text-muted-foreground">{formatEventTime(event.start_datetime)}</p>
               </div>
             )) : (
               <div className="rounded-xl border border-dashed border-border/70 p-5 text-center text-sm text-muted-foreground">
