@@ -701,6 +701,51 @@
   background: hsl(var(--landing-surface) / 0.3);
 }
 
+.landing-value-grid {
+  display: grid;
+  gap: 0.875rem;
+  margin: 0 auto 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .landing-value-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-bottom: 2rem;
+  }
+}
+
+.landing-value-card {
+  border: 1px solid hsl(var(--landing-border) / 0.32);
+  border-radius: 0.875rem;
+  padding: 1rem;
+  background:
+    linear-gradient(180deg, hsl(var(--landing-surface) / 0.52), hsl(var(--landing-surface) / 0.24)),
+    radial-gradient(220px 120px at 0% 0%, hsl(var(--landing-accent) / 0.11), transparent 65%);
+}
+
+.landing-value-kicker {
+  display: inline-flex;
+  margin-bottom: 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: hsl(var(--landing-accent));
+}
+
+.landing-value-card h3 {
+  margin: 0 0 0.375rem;
+  font-size: 1rem;
+  font-weight: 800;
+  color: hsl(var(--landing-text));
+}
+
+.landing-value-card p {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: hsl(var(--landing-text-muted) / 0.9);
+}
+
 .landing-comparison-table {
   width: 100%;
   border-collapse: collapse;

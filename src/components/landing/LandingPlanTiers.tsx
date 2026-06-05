@@ -5,7 +5,7 @@ const tiers = [
     name: 'Free',
     tagline: 'Powerful core for occasional travel',
     features: [
-      'Up to 5 lifetime trips with core features',
+      'Up to 2 lifetime trips with core features',
       'Track flights, stays, expenses, and packing',
       'Reminders and travel alerts built in',
       'One calm system instead of scattered notes',

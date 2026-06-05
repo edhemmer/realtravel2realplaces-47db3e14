@@ -8,7 +8,7 @@
  * The subscription_tier field in profiles is the ONLY source of truth.
  * 
  * ALLOWED VALUES:
- * - 'free': 5 lifetime trips, basic features
+ * - 'free': 2 lifetime trips, basic features
  * - 'pro': Unlimited trips, advanced features
  * - 'business': Pro features + Tour/Stops, advanced reports
  * 

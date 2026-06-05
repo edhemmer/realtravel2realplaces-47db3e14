@@ -7,7 +7,7 @@
  * - Derives plan EXCLUSIVELY from useAccess.tier
  * - useAccess.tier reads directly from profiles.subscription_tier (no overrides)
  * - Automatically updates when subscription queries are invalidated
- * - Shows 5-trip lifetime limit indicator for Free users
+ * - Shows 2-trip lifetime limit indicator for Free users
  * - Consistent styling across all plan types
  * 
  * DATA FLOW:
@@ -24,10 +24,11 @@
 import { Crown, User, Briefcase } from 'lucide-react';
 import { useAccess } from '@/hooks/useAccess';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { TIER_LIMITS } from '@/types/subscription';
 import { cn } from '@/lib/utils';
 
 interface PlanPillProps {
-  /** Show the trip limit info for Free users (e.g., "3 of 5") */
+  /** Show the trip limit info for Free users (e.g., "1 of 2") */
   showTripLimit?: boolean;
   /** Compact mode - smaller text */
   compact?: boolean;
@@ -44,7 +45,7 @@ export function PlanPill({ showTripLimit = false, compact = false, className }: 
   }
   
   const lifetimeTripCount = profile?.lifetime_trip_count ?? 0;
-  const maxTrips = 5;
+  const maxTrips = TIER_LIMITS.free.maxTripsLifetime;
   
   // Determine styling based on tier
   const getPillConfig = () => {
@@ -102,7 +103,7 @@ export function usePlanPillData() {
   const { data: profile } = useUserProfile();
   
   const lifetimeTripCount = profile?.lifetime_trip_count ?? 0;
-  const maxTrips = 5;
+  const maxTrips = TIER_LIMITS.free.maxTripsLifetime;
   const tripsRemaining = Math.max(0, maxTrips - lifetimeTripCount);
   
   return {

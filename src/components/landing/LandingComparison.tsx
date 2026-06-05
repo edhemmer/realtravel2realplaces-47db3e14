@@ -2,18 +2,16 @@ import { Check, X, Minus } from 'lucide-react';
 
 type FeatureStatus = 'yes' | 'no' | 'partial' | 'pro';
 
-const features: { name: string; us: FeatureStatus; tripit: FeatureStatus; wanderlog: FeatureStatus }[] = [
-  
-  { name: 'Real-time "What\'s Next"', us: 'yes', tripit: 'pro', wanderlog: 'no' },
-  { name: 'Leave-by timing', us: 'yes', tripit: 'no', wanderlog: 'no' },
-  { name: 'Built-in expense tracking', us: 'yes', tripit: 'no', wanderlog: 'no' },
-  { name: 'Cost splitting (companions)', us: 'yes', tripit: 'no', wanderlog: 'no' },
-  { name: 'Packing lists', us: 'yes', tripit: 'no', wanderlog: 'yes' },
-  { name: 'Multi-stop tour management', us: 'yes', tripit: 'no', wanderlog: 'partial' },
-  { name: 'Parking tracking & reminders', us: 'yes', tripit: 'no', wanderlog: 'no' },
-  { name: 'Trip sharing & collaboration', us: 'yes', tripit: 'yes', wanderlog: 'yes' },
-  { name: 'Free tier available', us: 'yes', tripit: 'yes', wanderlog: 'yes' },
-  { name: 'No ads', us: 'yes', tripit: 'no', wanderlog: 'no' },
+const features: { name: string; us: FeatureStatus; maps: FeatureStatus; airline: FeatureStatus; booking: FeatureStatus }[] = [
+  { name: 'One operating view across flights, lodging, drive, transit, parking, expenses, and notes', us: 'yes', maps: 'no', airline: 'no', booking: 'partial' },
+  { name: 'Real-time "what do I do next?" flow before and during travel', us: 'yes', maps: 'partial', airline: 'partial', booking: 'no' },
+  { name: 'Drive Cockpit with trip stops, gas shortcut, weather, road context, and offline details', us: 'yes', maps: 'partial', airline: 'no', booking: 'no' },
+  { name: 'Airport, local transit, weather, and parking windows in the trip context', us: 'yes', maps: 'partial', airline: 'partial', booking: 'no' },
+  { name: 'Business/personal expense capture, splitting, and export-ready reports', us: 'yes', maps: 'no', airline: 'no', booking: 'partial' },
+  { name: 'Companion sharing with scoped permissions and privacy masking', us: 'yes', maps: 'partial', airline: 'no', booking: 'partial' },
+  { name: 'Offline trip record when service is weak or gone', us: 'yes', maps: 'partial', airline: 'partial', booking: 'partial' },
+  { name: 'Turns confirmations and receipts into managed trip data', us: 'yes', maps: 'no', airline: 'partial', booking: 'partial' },
+  { name: 'Designed for the whole travel period, not just planning or one vendor', us: 'yes', maps: 'no', airline: 'no', booking: 'no' },
 ];
 
 function StatusIcon({ status }: { status: FeatureStatus }) {
@@ -29,11 +27,29 @@ export default function LandingComparison() {
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-10">
           <h2 className="landing-section-headline">
-            See how we compare.
+            Why pay when you already have travel apps?
           </h2>
           <p className="landing-section-subtext mt-3">
-            Most travel apps help you plan. We help you execute.
+            Google Maps, airline apps, and booking sites are excellent at their own lanes. RealTravel2RealPlaces is the paid operations layer that connects the lanes and tells you what matters next.
           </p>
+        </div>
+
+        <div className="landing-value-grid">
+          <div className="landing-value-card">
+            <span className="landing-value-kicker">Google Maps</span>
+            <h3>Knows the route.</h3>
+            <p>It does not know your hotel check-in, parking expiration, flight timing, receipts, companions, or business report.</p>
+          </div>
+          <div className="landing-value-card">
+            <span className="landing-value-kicker">Airline apps</span>
+            <h3>Know one airline.</h3>
+            <p>They do not manage your lodging, rental car, local transit, road trip, packing, expenses, or non-airline stops.</p>
+          </div>
+          <div className="landing-value-card">
+            <span className="landing-value-kicker">Expedia and booking apps</span>
+            <h3>Know the reservation.</h3>
+            <p>They do not run the trip day by day, preserve offline context, split costs, or produce operational reports.</p>
+          </div>
         </div>
 
         <div className="landing-comparison-table-wrap">
@@ -42,8 +58,9 @@ export default function LandingComparison() {
               <tr>
                 <th className="landing-ct-feature-col">Feature</th>
                 <th className="landing-ct-brand-col landing-ct-highlight">RT2RP</th>
-                <th className="landing-ct-brand-col">TripIt</th>
-                <th className="landing-ct-brand-col">Wanderlog</th>
+                <th className="landing-ct-brand-col">Maps</th>
+                <th className="landing-ct-brand-col">Airline apps</th>
+                <th className="landing-ct-brand-col">Booking apps</th>
               </tr>
             </thead>
             <tbody>
@@ -51,8 +68,9 @@ export default function LandingComparison() {
                 <tr key={f.name} className="landing-ct-row">
                   <td className="landing-ct-feature">{f.name}</td>
                   <td className="landing-ct-cell landing-ct-highlight"><StatusIcon status={f.us} /></td>
-                  <td className="landing-ct-cell"><StatusIcon status={f.tripit} /></td>
-                  <td className="landing-ct-cell"><StatusIcon status={f.wanderlog} /></td>
+                  <td className="landing-ct-cell"><StatusIcon status={f.maps} /></td>
+                  <td className="landing-ct-cell"><StatusIcon status={f.airline} /></td>
+                  <td className="landing-ct-cell"><StatusIcon status={f.booking} /></td>
                 </tr>
               ))}
             </tbody>

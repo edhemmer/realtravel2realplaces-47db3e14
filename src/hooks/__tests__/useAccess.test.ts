@@ -66,7 +66,7 @@ describe('useAccess', () => {
   describe('Free user', () => {
     beforeEach(() => {
       vi.mocked(useSubscription).mockReturnValue({
-        data: { tier: 'free', limits: { maxTripsLifetime: 5 } },
+        data: { tier: 'free', limits: { maxTripsLifetime: 2 } },
         isLoading: false,
       } as ReturnType<typeof useSubscription>);
       vi.mocked(useIsAdmin).mockReturnValue({
@@ -171,7 +171,7 @@ describe('useAccess', () => {
   describe('Admin user with Free plan (decoupled)', () => {
     beforeEach(() => {
       vi.mocked(useSubscription).mockReturnValue({
-        data: { tier: 'free', limits: { maxTripsLifetime: 5 } },
+        data: { tier: 'free', limits: { maxTripsLifetime: 2 } },
         isLoading: false,
       } as ReturnType<typeof useSubscription>);
       vi.mocked(useIsAdmin).mockReturnValue({
@@ -369,7 +369,7 @@ describe('Tier Transition Tests', () => {
   // Patch 2.6.27: Simplified mock - no more useIsPro
   const mockTier = (tier: 'free' | 'pro' | 'business') => {
     vi.mocked(useSubscription).mockReturnValue({
-      data: { tier, limits: { maxTripsLifetime: tier === 'free' ? 5 : -1 } },
+      data: { tier, limits: { maxTripsLifetime: tier === 'free' ? 2 : -1 } },
       isLoading: false,
     } as ReturnType<typeof useSubscription>);
     vi.mocked(useIsAdmin).mockReturnValue({

@@ -8,7 +8,7 @@ export interface SubscriptionLimits {
 
 export const TIER_LIMITS: Record<SubscriptionTier, SubscriptionLimits> = {
   free: {
-    maxTripsLifetime: 5,
+    maxTripsLifetime: 2,
   },
   pro: {
     maxTripsLifetime: -1, // unlimited

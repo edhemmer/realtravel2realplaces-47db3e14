@@ -8,6 +8,14 @@ Built by [InLight AI, LLC](https://inlightai.com).
 
 ---
 
+## Why Travelers Pay
+
+Google Maps knows a route. Airline apps know one airline. Booking apps know a reservation. RealTravel2RealPlaces manages the whole trip across all of them.
+
+The paid value is the operating layer: live next actions, Drive Cockpit, airport and transit windows, offline trip details, parking, weather, expenses, companions, and reports in one place. It is for travelers who want fewer missed details, less app-hopping, cleaner reimbursement records, and a calmer travel day.
+
+---
+
 ## What It Does
 
 | Capability | Description |
@@ -61,7 +69,7 @@ Built by [InLight AI, LLC](https://inlightai.com).
 
 | Tier | Trips | Key Features |
 |------|-------|-------------|
-| **Free** | 5 lifetime | Full booking/expense management, packing, sharing, calendar export |
+| **Free** | 2 lifetime | Full booking/expense management, packing, sharing, calendar export |
 | **Pro** | Unlimited | Timeline events, health checklist, parking alerts, explore engine, trip reports |
 | **Business** | Unlimited | Tour stops, business expense reporting, stop-level expense assignment |
 

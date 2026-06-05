@@ -4,6 +4,7 @@ import { Layout } from '@/components/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccess } from '@/hooks/useAccess';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { TIER_LIMITS } from '@/types/subscription';
 import { useIsAdmin } from '@/hooks/useAdminUsers';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -115,7 +116,7 @@ export default function Account() {
     }
     return (
       <>
-        <span className="font-medium text-foreground">Free plan</span> – {lifetimeTripCount} of 5 lifetime trips used.
+        <span className="font-medium text-foreground">Free plan</span> - {lifetimeTripCount} of {TIER_LIMITS.free.maxTripsLifetime} lifetime trips used.
       </>
     );
   };

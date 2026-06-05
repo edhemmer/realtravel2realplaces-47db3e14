@@ -99,7 +99,7 @@ Within that:
 
 | Tier | Price Target | Trip Limit | Core Value |
 |------|-------------|------------|------------|
-| **Free** | $0 | 5 lifetime trips | Full trip management — enough to prove value |
+| **Free** | $0 | 2 lifetime trips | Full trip management — enough to prove value |
 | **Pro** | $9.99/mo | Unlimited | Timeline events, health checklist, reports, sharing, alerts, Drive Mode |
 | **Business** | $19.99/mo | Unlimited | All Pro + tour stops, business expense reporting, multi-trip reports |
 

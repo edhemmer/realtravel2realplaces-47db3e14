@@ -17,7 +17,7 @@
  * - UI gating is a UX optimization; security is enforced at database level
  * 
  * TIER HIERARCHY:
- * - FREE: Basic trip management, 5 lifetime trip limit
+ * - FREE: Basic trip management, 2 lifetime trip limit
  * - PRO: Unlimited trips, timeline, weather, airport intelligence
  * - BUSINESS: Pro + Tour/Stops, Stop-level expense assignment, Advanced Reports
  * 

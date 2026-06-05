@@ -22,7 +22,7 @@ AS $$
   );
 $$;
 
--- Update function: Free = 5 trips lifetime, Pro = unlimited
+-- Historical migration: later migrations may override this free-tier limit.
 CREATE OR REPLACE FUNCTION public.user_can_create_trip(p_user_id uuid)
 RETURNS boolean
 LANGUAGE sql
@@ -36,7 +36,7 @@ AS $$
     END;
 $$;
 
--- Update function: Free = 5 trips, Pro = unlimited (-1)
+-- Historical migration: later migrations may override this free-tier limit.
 CREATE OR REPLACE FUNCTION public.get_user_trip_limit(p_user_id uuid)
 RETURNS integer
 LANGUAGE sql

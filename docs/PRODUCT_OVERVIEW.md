@@ -21,6 +21,21 @@ Current solutions either try to *plan* trips (TripIt, Google Trips) or are gener
 
 ---
 
+## Why Pay For This?
+
+Travelers already have Google Maps, airline apps, hotel apps, Expedia-style booking apps, email, notes, and spreadsheets. The problem is that each tool only understands one slice of the trip.
+
+RT2RP is valuable because it becomes the **operating layer across those tools**:
+
+- **Google Maps knows the route**; RT2RP knows the route in context with the next stop, lodging, parking, gas, weather, receipts, offline details, and trip timeline.
+- **Airline apps know one airline**; RT2RP manages the whole travel day across flights, lodging, rental car, drive segments, transit, companions, and expenses.
+- **Booking apps know the reservation**; RT2RP manages what happens before, during, and after the reservation: when to leave, what is missing, what changed, what was spent, and what needs to be reported.
+- **Notes and spreadsheets can store information**; RT2RP turns information into actions, reminders, summaries, reports, and a shared source of truth.
+
+The monthly value is not "another itinerary." It is fewer missed details, less travel friction, cleaner receipts, better shared coordination, stronger offline readiness, and a calm command center when travel becomes chaotic.
+
+---
+
 ## Solution
 
 Real Travel 2 Real Places provides:
@@ -57,7 +72,7 @@ Real Travel 2 Real Places provides:
 
 | Tier | Price | Limit | Core Value |
 |------|-------|-------|------------|
-| **Free** | $0 | 5 lifetime trips | Full trip management, EXPLORE, timeline, packing, calendar export |
+| **Free** | $0 | 2 lifetime trips | Full trip management, EXPLORE, timeline, packing, calendar export |
 | **Pro** | TBD | Unlimited | Drive Mode, reports, health checklist, sharing, alerts |
 | **Business** | TBD | Unlimited | All Pro + tour stops, business expense reporting |
 
@@ -73,6 +88,9 @@ Real Travel 2 Real Places provides:
 | Competitor | Focus | RT2RP Advantage |
 |-----------|-------|----------------|
 | TripIt | Trip *planning* | We manage *after* booking — execution, not planning |
+| Google Maps / Apple Maps | Point-to-point navigation | We manage the trip state around the route: stops, weather, parking, gas, timing, offline context, expenses |
+| Airline apps | One airline's status and reservation | We manage the entire travel operation across all vendors and non-airline movement |
+| Expedia / booking apps | Booking and reservation management | We manage execution, reporting, sharing, and daily trip operations after the booking exists |
 | Google Trips | Inbox scanning | We don't scan inboxes — users paste confirmations for control |
 | Concur/Navan | Enterprise expense | We serve individuals and small teams, not enterprises |
 | Spreadsheets | Manual tracking | AI parsing, canonical data, real-time execution |
@@ -112,7 +130,7 @@ Real Travel 2 Real Places provides:
 ## Pricing
 
 - **iOS App**: Free to download; SaaS membership (Free, Pro, or Business) required to use
-- **Web SaaS**: Free tier (5 trips) + Pro/Business subscriptions for unlimited usage — same account works on iOS
+- **Web SaaS**: Free tier (2 lifetime trips) + Pro/Business subscriptions for unlimited usage — same account works on iOS
 
 ---
 

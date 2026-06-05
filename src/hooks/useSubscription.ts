@@ -12,7 +12,7 @@
  * 
  * TIER LIMITS:
  * - Defined in TIER_LIMITS constant (types/subscription.ts)
- * - FREE: 5 lifetime trips, basic features
+ * - FREE: 2 lifetime trips, basic features
  * - PRO: Unlimited trips, advanced features
  * - BUSINESS: Pro features + Tour/Stops, advanced reports
  * 

@@ -278,7 +278,7 @@ Sensitive data (emails, phone, TSA/FF numbers, confirmation codes) masked via se
 
 | Tier | Trip Limit | Key Features |
 |------|------------|-------------|
-| Free | 5 lifetime | Full trip management, expenses, packing, sharing |
+| Free | 2 lifetime | Full trip management, expenses, packing, sharing |
 | Pro | Unlimited | Timeline events, health checklist, explore, reports, alerts, Google Places |
 | Business | Unlimited | All Pro + tour stops, business reporting |
 

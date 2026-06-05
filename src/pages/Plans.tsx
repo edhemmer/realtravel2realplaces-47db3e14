@@ -104,7 +104,7 @@ export default function Plans() {
   const currentTier = subscription?.tier || 'free';
 
   const freePlanFeatures: PlanFeature[] = [
-    { text: 'Up to 5 lifetime trips', included: true },
+    { text: 'Up to 2 lifetime trips', included: true },
     { text: 'Flights, stays & car rentals', included: true },
     { text: 'Basic trip timeline', included: true },
     { text: 'Trip-level expense tracking', included: true },
@@ -118,10 +118,12 @@ export default function Plans() {
   const proPlanFeatures: PlanFeature[] = [
     { text: 'Unlimited trips', included: true },
     { text: 'Everything in Free', included: true },
-    { text: 'Explore tab & discovery', included: true },
+    { text: 'TravelOps command center, Explore, and discovery', included: true },
+    { text: 'Drive Cockpit with road-trip operations', included: true },
+    { text: 'Airport, transit, weather, and offline travel windows', included: true },
     { text: 'Full timeline with events', included: true },
     { text: 'Advanced cost summaries', included: true },
-    { text: 'Trip health & gap analysis', included: true },
+    { text: 'Trip health, gap analysis, and next-action flow', included: true },
     { text: 'Parking expiration alerts', included: true },
     { text: 'Priority support', included: true },
   ];

@@ -1381,7 +1381,7 @@ const HELP_SECTIONS: HelpSection[] = [
             <div className="space-y-2">
               <p className="font-medium text-foreground">Free</p>
               <ul className="list-disc list-inside space-y-1 text-sm">
-                <li>Up to 5 lifetime trips</li>
+                <li>Up to 2 lifetime trips</li>
                 <li>Full trip management: bookings, expenses, packing, parking, notes</li>
                 <li>Today, Flow, Move, and Guide tabs — the full command-center experience</li>
                 <li>Discover — find places near your destination</li>
