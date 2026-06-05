@@ -81,6 +81,21 @@ function getUniqueAirports(bookings: Booking[]): AirportOps[] {
   return Array.from(seen.values());
 }
 
+function getEventTimestamp(eventLocalDateTime?: string, datetime?: Date): number {
+  if (eventLocalDateTime && eventLocalDateTime.length >= 10) {
+    const parsed = new Date(eventLocalDateTime.replace(' ', 'T')).getTime();
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  const fallback = datetime?.getTime?.();
+  return Number.isFinite(fallback) ? fallback : 0;
+}
+
+function formatEventTime(eventLocalDateTime?: string, datetime?: Date): string {
+  const timestamp = getEventTimestamp(eventLocalDateTime, datetime);
+  if (!timestamp) return 'Time TBD';
+  return format(new Date(timestamp), 'MMM d, h:mm a');
+}
+
 function OpsMetric({
   icon,
   label,
@@ -166,7 +181,9 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
   const online = isOnline();
   const airports = useMemo(() => getUniqueAirports(bookings), [bookings]);
   const upcoming = useMemo(
-    () => timelineEvents.filter((event) => new Date(event.startDateTime).getTime() >= Date.now()).slice(0, 4),
+    () => timelineEvents
+      .filter((event) => getEventTimestamp(event.eventLocalDateTime, event.datetime) >= Date.now())
+      .slice(0, 4),
     [timelineEvents],
   );
   const nextBooking = useMemo(
@@ -225,7 +242,7 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
         <OpsMetric icon={<Route className="h-5 w-5" />} label="Next move" value={nextBooking?.vendor_name || (trip.transportation_mode === 'drive' ? 'Drive cockpit' : 'Add booking')} tone={nextBooking ? 'good' : 'watch'} />
         <OpsMetric icon={<Plane className="h-5 w-5" />} label="Airports" value={airports.length ? airports.map((a) => a.code).join(' / ') : 'None linked'} tone={airports.length ? 'good' : 'neutral'} />
         <OpsMetric icon={<CloudSun className="h-5 w-5" />} label="Weather" value={weather.current ? `${weather.current.temperature}F ${weather.current.condition}` : 'Checking'} tone={weather.weatherAnalysis?.hasRain || weather.weatherAnalysis?.hasSnow ? 'watch' : 'good'} />
-        <OpsMetric icon={<BadgeDollarSign className="h-5 w-5" />} label="Managed spend" value={currency((costs?.totalTripCost ?? 0) + expenseTotal + parkingTotal)} tone="neutral" />
+        <OpsMetric icon={<BadgeDollarSign className="h-5 w-5" />} label="Managed spend" value={currency((costs?.totalCost ?? 0) + expenseTotal + parkingTotal)} tone="neutral" />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
@@ -278,7 +295,7 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
             {upcoming.length > 0 ? upcoming.map((event) => (
               <div key={event.id} className="rounded-xl border border-border/50 bg-background/70 p-3">
                 <p className="truncate text-sm font-semibold text-foreground">{event.title}</p>
-                <p className="text-xs text-muted-foreground">{format(new Date(event.startDateTime), 'MMM d, h:mm a')}</p>
+                <p className="text-xs text-muted-foreground">{formatEventTime(event.eventLocalDateTime, event.datetime)}</p>
               </div>
             )) : (
               <div className="rounded-xl border border-dashed border-border/70 p-5 text-center text-sm text-muted-foreground">
