@@ -192,11 +192,11 @@ export default function Dashboard() {
               <div className="min-w-0">
                 <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-primary/15 bg-primary/8 px-2.5 py-1 text-[11px] font-semibold uppercase text-primary">
                   <ShieldCheck className="h-3.5 w-3.5" />
-                  Premium travel command center
+                  Real-time travel operations
                 </div>
-                <h1 className="text-[30px] font-bold leading-[1.08] tracking-tight sm:text-4xl">My Trips</h1>
+                <h1 className="text-[30px] font-bold leading-[1.08] tracking-tight sm:text-4xl">Travel Operations Home</h1>
                 <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-                  Simple enough for a weekend away. Structured enough for business, teams, receipts, movement, and live travel decisions.
+                  A premium command layer for every trip: timing, movement, spend, reports, offline context, and the next action before travel chaos has a chance to spread.
                 </p>
               </div>
 
@@ -207,7 +207,7 @@ export default function Dashboard() {
                     className="h-11 shrink-0 rounded-xl bg-gradient-ocean px-4 font-semibold shadow-glow transition-opacity hover:opacity-90 sm:h-12"
                   >
                     <Plus className="mr-1.5 h-4 w-4" />
-                    <span>New Trip</span>
+                    <span>Build Trip</span>
                   </Button>
                 )}
               </div>
@@ -256,7 +256,12 @@ export default function Dashboard() {
             transition={{ delay: 0.12 }}
             className="motion-cinema space-y-4"
           >
-            <h2 className="text-lg font-semibold" />
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold">Managed trips</h2>
+                <p className="text-sm text-muted-foreground">Live, upcoming, shared, and archived trip operations in one governed view.</p>
+              </div>
+            </div>
             <motion.div
               variants={staggerParent(0.06, 0.04)}
               initial="hidden"

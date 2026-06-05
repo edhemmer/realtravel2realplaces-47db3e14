@@ -12,7 +12,26 @@ import { Layout } from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, MapPin, Calendar, Eye, Users } from 'lucide-react';
+import {
+  ArrowLeft,
+  MapPin,
+  Calendar,
+  Eye,
+  Users,
+  Activity,
+  BriefcaseBusiness,
+  CircleParking,
+  CloudSun,
+  Compass,
+  FileText,
+  LayoutDashboard,
+  NotebookTabs,
+  Package,
+  Plane,
+  ReceiptText,
+  Route,
+  ShieldCheck,
+} from 'lucide-react';
 import { format } from 'date-fns';
 // Patch 2.2.2: Import containers for canonical data flow
 import {
@@ -158,6 +177,33 @@ export default function TripDetail() {
     return !isUS && country.length > 0;
   }, [trip?.destination_country]);
 
+  const desktopOpsSignals = useMemo(() => [
+    {
+      label: 'Trip records',
+      value: bookings.length,
+      helper: bookings.length === 1 ? 'booking synced' : 'bookings synced',
+      icon: Activity,
+    },
+    {
+      label: 'Movement mode',
+      value: hasFlights ? 'Air' : trip?.transportation_mode === 'drive' ? 'Drive' : 'Mixed',
+      helper: hasFlights ? 'airport-aware' : trip?.transportation_mode === 'drive' ? 'drive cockpit ready' : 'timeline governed',
+      icon: hasFlights ? Plane : Route,
+    },
+    {
+      label: 'Operating context',
+      value: isInternational ? 'Global' : 'Domestic',
+      helper: isInternational ? 'intl planning' : 'local windows',
+      icon: ShieldCheck,
+    },
+    {
+      label: 'Plan tier',
+      value: tier === 'business' ? 'Business' : isPro ? 'Pro' : 'Core',
+      helper: canAccessBusinessFeatures ? 'reports enabled' : 'traveler tools',
+      icon: BriefcaseBusiness,
+    },
+  ], [bookings.length, canAccessBusinessFeatures, hasFlights, isInternational, isPro, tier, trip?.transportation_mode]);
+
   // v2.0.7: Handle drill-through navigation from timeline
   const handleDrillThrough = useCallback((target: DrillThroughTarget) => {
     if (!target) return;
@@ -272,28 +318,56 @@ export default function TripDetail() {
       <TripStatusHeroBar trip={trip} />
 
       {/* Desktop-only: full trip metadata */}
-      <div className="hidden md:flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-2xl md:text-3xl font-bold leading-tight">{trip.name}</h1>
-            {!isOwner && (
-              <Badge variant="outline" className="flex items-center gap-1 bg-primary/5 text-xs">
-                <Users className="w-3 h-3" />
-                {canEdit ? 'Shared (Edit)' : 'View Only'}
-              </Badge>
-            )}
+      <div className="hidden md:block">
+        <div className="premium-panel overflow-hidden rounded-2xl">
+          <div className="ops-hero relative px-5 py-5 lg:px-6">
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-signal/70 to-transparent" />
+            <div className="relative flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+              <div className="min-w-0 max-w-4xl">
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <Badge className="rounded-full bg-white/12 text-white hover:bg-white/12">Travel operations command</Badge>
+                  {!isOwner && (
+                    <Badge variant="outline" className="flex items-center gap-1 rounded-full border-white/20 bg-white/8 text-white">
+                      <Users className="w-3 h-3" />
+                      {canEdit ? 'Shared edit' : 'View only'}
+                    </Badge>
+                  )}
+                </div>
+                <h1 className="truncate text-3xl font-bold leading-tight tracking-tight lg:text-4xl">{trip.name}</h1>
+                <p className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <MapPin className="w-4 h-4 shrink-0 text-brand-signal" />
+                    {trip.destination_city}, {trip.destination_country}
+                  </span>
+                  <span className="text-white/25">/</span>
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="w-4 h-4 shrink-0 text-brand-champagne" />
+                    {format(new Date(trip.start_date + 'T00:00:00'), 'MMM d')} - {format(new Date(trip.end_date + 'T00:00:00'), 'MMM d, yyyy')}
+                  </span>
+                </p>
+              </div>
+
+              <div className="grid min-w-[420px] grid-cols-2 gap-2">
+                {desktopOpsSignals.map((signal) => {
+                  const Icon = signal.icon;
+                  return (
+                    <div key={signal.label} className="rounded-xl border border-white/10 bg-white/8 p-3 backdrop-blur-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase text-white/55">{signal.label}</p>
+                          <p className="mt-1 text-xl font-bold leading-none text-white">{signal.value}</p>
+                          <p className="mt-1 text-[11px] text-white/58">{signal.helper}</p>
+                        </div>
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 text-brand-signal">
+                          <Icon className="h-4 w-4" />
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
-          <p className="flex flex-wrap items-center gap-4 text-base text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <MapPin className="w-4 h-4 shrink-0" />
-              {trip.destination_city}, {trip.destination_country}
-            </span>
-            <span className="text-muted-foreground/30">·</span>
-            <span className="flex items-center gap-1">
-              <Calendar className="w-4 h-4 shrink-0" />
-              {format(new Date(trip.start_date + 'T00:00:00'), 'MMM d')} – {format(new Date(trip.end_date + 'T00:00:00'), 'MMM d, yyyy')}
-            </span>
-          </p>
         </div>
       </div>
 
@@ -406,11 +480,21 @@ export default function TripDetail() {
               {/* Desktop tab content section */}
               <div className="mt-4 md:mt-0">
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                  <TabsList className="w-full justify-start overflow-x-auto flex-nowrap hidden md:flex">
-                    <TabsTrigger value="summary">Timeline</TabsTrigger>
-                    <TabsTrigger value="ops">TravelOps</TabsTrigger>
-                    <TabsTrigger value="bookings">Bookings</TabsTrigger>
-                    <TabsTrigger value="explore" className="relative">
+                  <TabsList className="premium-tabs w-full justify-start gap-1 overflow-x-auto flex-nowrap hidden md:flex p-1">
+                    <TabsTrigger value="summary" className="gap-1.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                      <Route className="h-3.5 w-3.5" />
+                      Timeline
+                    </TabsTrigger>
+                    <TabsTrigger value="ops" className="gap-1.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                      <LayoutDashboard className="h-3.5 w-3.5" />
+                      TravelOps
+                    </TabsTrigger>
+                    <TabsTrigger value="bookings" className="gap-1.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                      <Plane className="h-3.5 w-3.5" />
+                      Bookings
+                    </TabsTrigger>
+                    <TabsTrigger value="explore" className="relative gap-1.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                      <Compass className="h-3.5 w-3.5" />
                       Explore
                       {!hasDiscoveredExplore && (
                         <Badge 
@@ -421,19 +505,46 @@ export default function TripDetail() {
                         </Badge>
                       )}
                     </TabsTrigger>
-                    <TabsTrigger value="expenses">Expenses</TabsTrigger>
-                    <TabsTrigger value="packing">Packing</TabsTrigger>
-                    <TabsTrigger value="weather">Weather</TabsTrigger>
-                    <TabsTrigger value="parking">Parking</TabsTrigger>
+                    <TabsTrigger value="expenses" className="gap-1.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                      <ReceiptText className="h-3.5 w-3.5" />
+                      Expenses
+                    </TabsTrigger>
+                    <TabsTrigger value="packing" className="gap-1.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                      <Package className="h-3.5 w-3.5" />
+                      Packing
+                    </TabsTrigger>
+                    <TabsTrigger value="weather" className="gap-1.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                      <CloudSun className="h-3.5 w-3.5" />
+                      Weather
+                    </TabsTrigger>
+                    <TabsTrigger value="parking" className="gap-1.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                      <CircleParking className="h-3.5 w-3.5" />
+                      Parking
+                    </TabsTrigger>
                     {isPro && (
-                      <TabsTrigger value="report">Report</TabsTrigger>
+                      <TabsTrigger value="report" className="gap-1.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                        <FileText className="h-3.5 w-3.5" />
+                        Report
+                      </TabsTrigger>
                     )}
-                    <TabsTrigger value="members">Members</TabsTrigger>
-                    <TabsTrigger value="companions">Companions</TabsTrigger>
+                    <TabsTrigger value="members" className="gap-1.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                      <Users className="h-3.5 w-3.5" />
+                      Members
+                    </TabsTrigger>
+                    <TabsTrigger value="companions" className="gap-1.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                      <Users className="h-3.5 w-3.5" />
+                      Companions
+                    </TabsTrigger>
                     {canAccessBusinessFeatures && (
-                      <TabsTrigger value="tour">Tour</TabsTrigger>
+                      <TabsTrigger value="tour" className="gap-1.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                        <BriefcaseBusiness className="h-3.5 w-3.5" />
+                        Tour
+                      </TabsTrigger>
                     )}
-                    <TabsTrigger value="notes">Notes & Safety</TabsTrigger>
+                    <TabsTrigger value="notes" className="gap-1.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                      <NotebookTabs className="h-3.5 w-3.5" />
+                      Notes
+                    </TabsTrigger>
                   </TabsList>
 
                   <div className="mt-4 sm:mt-6">

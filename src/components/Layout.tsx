@@ -4,7 +4,7 @@ import { useIsAdmin } from '@/hooks/useAdminUsers';
 import { useAccess } from '@/hooks/useAccess';
 import { useIdleLogout } from '@/hooks/useIdleLogout';
 import { Button } from '@/components/ui/button';
-import { LogOut, User, Settings, MessageCircleQuestion, ShieldCheck, BarChart3 } from 'lucide-react';
+import { LogOut, User, Settings, MessageCircleQuestion, ShieldCheck, BarChart3, Command, LifeBuoy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
@@ -39,22 +39,30 @@ export function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="app-canvas">
 
       {/* Header */}
-      <header className="sticky top-0 z-50 glass-chrome hairline-primary relative border-b pt-[var(--rt2rp-safe-top,env(safe-area-inset-top,0px))]">
-        <div className="mx-auto flex h-14 w-full max-w-[1400px] items-center justify-between px-4 sm:h-16 sm:px-6 lg:px-8">
+      <header className="sticky top-0 z-50 ops-topbar hairline-primary relative pt-[var(--rt2rp-safe-top,env(safe-area-inset-top,0px))]">
+        <div className="mx-auto flex h-16 w-full max-w-[1480px] items-center justify-between px-4 sm:h-[72px] sm:px-6 lg:px-8">
           <BrandHeader variant="app">
 
           {user && (
-            <div className="flex items-center gap-1">
-              <NetworkStatusIndicator />
-              <NotificationBell />
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="hidden items-center gap-2 rounded-full border border-border/45 bg-card/55 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm md:flex">
+                <Command className="h-3.5 w-3.5 text-primary" />
+                <span>Operations live</span>
+              </div>
+              <div className="rounded-full border border-border/40 bg-card/45 px-2 py-1 shadow-sm">
+                <NetworkStatusIndicator />
+              </div>
+              <div className="rounded-full border border-border/40 bg-card/45 shadow-sm">
+                <NotificationBell />
+              </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <User className="w-4 h-4 text-primary" />
+                  <Button variant="ghost" size="icon" className="rounded-full border border-border/40 bg-card/60 shadow-sm hover:bg-card">
+                    <div className="w-8 h-8 rounded-full bg-gradient-ocean flex items-center justify-center shadow-glow">
+                      <User className="w-4 h-4 text-brand-obsidian" />
                     </div>
                   </Button>
                 </DropdownMenuTrigger>
@@ -67,7 +75,7 @@ export function Layout({ children }: LayoutProps) {
                   Account Settings
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate('/help')} className="cursor-pointer">
-                  <MessageCircleQuestion className="w-4 h-4 mr-2" />
+                  <LifeBuoy className="w-4 h-4 mr-2" />
                   Help Center
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setSupportDialogOpen(true)} className="cursor-pointer">
@@ -107,7 +115,7 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Main Content */}
       <main
-        className="mx-auto w-full max-w-[1400px] overflow-x-clip pt-4 sm:pt-6"
+        className="relative mx-auto w-full max-w-[1480px] overflow-x-clip pt-4 sm:pt-6 lg:pt-8"
         style={{
           paddingLeft: 'max(1rem, env(safe-area-inset-left))',
           paddingRight: 'max(1rem, env(safe-area-inset-right))',

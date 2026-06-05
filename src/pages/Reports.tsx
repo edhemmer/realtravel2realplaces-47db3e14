@@ -74,6 +74,7 @@ import {
   BarChart3,
   X,
   Info,
+  ShieldCheck,
 } from 'lucide-react';
 import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
 import jsPDF from 'jspdf';
@@ -85,6 +86,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { GlassSurface } from '@/components/ui/glass-surface';
 
 // Category display labels
 const CATEGORY_LABELS: Record<string, string> = {
@@ -630,47 +632,51 @@ export default function Reports() {
     <Layout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <BarChart3 className="w-6 h-6 text-primary" />
-              Advanced Reports
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Filter and export expense data across your trips
-            </p>
-          </div>
+        <GlassSurface elevation="floating" className="overflow-hidden rounded-2xl">
+          <div className="h-1 bg-[linear-gradient(90deg,hsl(var(--brand-signal)),hsl(var(--brand-champagne)),hsl(var(--brand-ember)))]" />
+          <div className="grid gap-4 p-5 lg:grid-cols-[1fr_auto] lg:items-center lg:p-6">
+            <div className="min-w-0">
+              <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-primary/15 bg-primary/8 px-2.5 py-1 text-[11px] font-semibold uppercase text-primary">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Export-validated reporting
+              </div>
+              <h1 className="text-3xl font-bold leading-tight tracking-tight">Business Travel Reports</h1>
+              <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                Audit-ready filtering, totals, and exports across trips, stops, categories, and reimbursements.
+              </p>
+            </div>
 
-          {/* Export Pills - Patch 2.6.1: Clear disabled state feedback */}
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportPDF}
-              disabled={exporting !== null || sortedRows.length === 0}
-              className="rounded-full"
-              title={sortedRows.length === 0 ? 'No data to export — adjust filters or add expenses' : 'Export visible data as PDF'}
-            >
-              <FileText className="w-4 h-4 mr-1" />
-              {exporting === 'pdf' ? 'Exporting...' : 'PDF'}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExportCSV}
-              disabled={exporting !== null || sortedRows.length === 0}
-              className="rounded-full"
-              title={sortedRows.length === 0 ? 'No data to export — adjust filters or add expenses' : 'Export visible data as CSV'}
-            >
-              <FileSpreadsheet className="w-4 h-4 mr-1" />
-              {exporting === 'csv' ? 'Exporting...' : 'CSV'}
-            </Button>
+            {/* Export Pills - Patch 2.6.1: Clear disabled state feedback */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportPDF}
+                disabled={exporting !== null || sortedRows.length === 0}
+                className="h-10 rounded-xl border-border/60 bg-card/70 px-4"
+                title={sortedRows.length === 0 ? 'No data to export — adjust filters or add expenses' : 'Export visible data as PDF'}
+              >
+                <FileText className="w-4 h-4 mr-1" />
+                {exporting === 'pdf' ? 'Exporting...' : 'PDF'}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportCSV}
+                disabled={exporting !== null || sortedRows.length === 0}
+                className="h-10 rounded-xl border-border/60 bg-card/70 px-4"
+                title={sortedRows.length === 0 ? 'No data to export — adjust filters or add expenses' : 'Export visible data as CSV'}
+              >
+                <FileSpreadsheet className="w-4 h-4 mr-1" />
+                {exporting === 'csv' ? 'Exporting...' : 'CSV'}
+              </Button>
+            </div>
           </div>
-        </div>
+        </GlassSurface>
 
         {/* Help Panel - Report Accuracy Information */}
         <Collapsible open={helpOpen} onOpenChange={setHelpOpen}>
-          <Card className="border-muted">
+          <Card className="premium-panel rounded-2xl border-muted">
             <CollapsibleTrigger asChild>
               <CardHeader className="pb-2 cursor-pointer hover:bg-muted/30 transition-colors">
                 <CardTitle className="text-sm flex items-center gap-2 text-muted-foreground">
@@ -707,7 +713,7 @@ export default function Reports() {
         </Collapsible>
 
         {/* Filters Card */}
-        <Card>
+        <Card className="premium-panel rounded-2xl">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base flex items-center gap-2">
@@ -812,20 +818,20 @@ export default function Reports() {
         </Card>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-3 gap-4">
-          <Card>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Card className="premium-kpi rounded-2xl">
             <CardContent className="pt-4">
               <p className="text-sm text-muted-foreground">Total Rows</p>
               <p className="text-2xl font-bold">{sortedRows.length}</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="premium-kpi rounded-2xl">
             <CardContent className="pt-4">
               <p className="text-sm text-muted-foreground">Total Amount</p>
               <p className="text-2xl font-bold">${totals.totalAmount.toFixed(2)}</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="premium-kpi rounded-2xl">
             <CardContent className="pt-4">
               <p className="text-sm text-muted-foreground">My Share</p>
               <p className="text-2xl font-bold text-primary">${totals.totalMyShare.toFixed(2)}</p>
@@ -834,7 +840,7 @@ export default function Reports() {
         </div>
 
         {/* Results Table */}
-        <Card>
+        <Card className="premium-panel overflow-hidden rounded-2xl">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Results</CardTitle>
             <CardDescription>

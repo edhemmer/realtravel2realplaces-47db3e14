@@ -157,10 +157,13 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
   return (
     <div className="grid gap-3 md:grid-cols-3">
       {/* Weather Widget */}
-      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5 shadow-sm">
-        <CardHeader className="pb-1.5">
+      <Card className="premium-panel overflow-hidden rounded-2xl border-primary/20">
+        <div className="h-1 bg-[linear-gradient(90deg,hsl(var(--brand-signal)),hsl(var(--brand-champagne)))]" />
+        <CardHeader className="pb-1.5 pt-4">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <Thermometer className="w-4 h-4 text-primary" />
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Thermometer className="w-4 h-4" />
+            </span>
             Weather
           </CardTitle>
         </CardHeader>
@@ -170,10 +173,13 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
       </Card>
 
       {/* Cost Summary Widget */}
-      <Card className="shadow-sm">
-        <CardHeader className="pb-1.5">
+      <Card className="premium-panel overflow-hidden rounded-2xl">
+        <div className="h-1 bg-[linear-gradient(90deg,hsl(var(--brand-champagne)),hsl(var(--brand-ember)))]" />
+        <CardHeader className="pb-1.5 pt-4">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <DollarSign className="w-4 h-4 text-primary" />
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-champagne/15 text-amber-600 dark:text-brand-champagne">
+              <DollarSign className="w-4 h-4" />
+            </span>
             {TRIP_TOTAL_LABEL}
           </CardTitle>
         </CardHeader>
@@ -204,10 +210,13 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
       </Card>
 
       {/* Parking Activity Widget */}
-      <Card className="shadow-sm">
-        <CardHeader className="pb-1.5">
+      <Card className="premium-panel overflow-hidden rounded-2xl">
+        <div className="h-1 bg-[linear-gradient(90deg,hsl(var(--brand-violet)),hsl(var(--brand-signal)))]" />
+        <CardHeader className="pb-1.5 pt-4">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <CircleParking className="w-4 h-4 text-primary" />
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-violet/15 text-brand-violet">
+              <CircleParking className="w-4 h-4" />
+            </span>
             Parking
           </CardTitle>
         </CardHeader>
