@@ -316,7 +316,7 @@ export function formatTimeForDisplay(time: string | null): string {
 }
 
 /**
- * Build Google Maps URL for an address
+ * Build map URL for an address
  */
 export function buildMapsUrl(address: string): string {
   const encodedAddress = encodeURIComponent(address);

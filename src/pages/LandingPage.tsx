@@ -25,12 +25,12 @@ export default function LandingPage() {
         <meta name="description" content={seoDescription} />
         <meta
           name="keywords"
-          content="travel management app, trip operations app, trip management app, travel command center, itinerary management, why pay for travel app, Google Maps alternative for trip management, airline app alternative, Expedia alternative, drive cockpit, airport maps, local transit maps, travel expenses, offline travel app, business travel app, road trip management"
+          content="travel management app, trip operations app, trip management app, travel command center, itinerary management, why pay for travel app, map app alternative for trip management, airline app alternative, booking app alternative, drive cockpit, airport maps, local transit maps, travel expenses, offline travel app, business travel app, road trip management"
         />
         <link rel="canonical" href="https://realtravel2realplaces.app/" />
 
         <meta property="og:title" content="Real Travel 2 Real Places | Chaos to Clarity Travel Management" />
-        <meta property="og:description" content="The paid operations layer Google Maps, airline apps, and booking apps do not provide: next actions, Drive Cockpit, airport and transit windows, expenses, offline context, and reports." />
+        <meta property="og:description" content="The paid operations layer single-purpose travel apps do not provide: next actions, Drive Cockpit, airport and transit windows, expenses, offline context, and reports." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://realtravel2realplaces.app/" />
         <meta property="og:site_name" content="Real Travel 2 Real Places" />

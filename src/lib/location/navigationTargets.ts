@@ -85,7 +85,7 @@ export function buildNavTarget(ref: LocationRef | null | undefined): NavTarget |
 // ============================================================================
 
 /**
- * Build a Google Maps directions URL from a NavTarget.
+ * Build a map directions URL from a NavTarget.
  */
 export function buildMapsUrl(target: NavTarget): string {
   if (target.kind === 'COORDS') {
@@ -95,8 +95,8 @@ export function buildMapsUrl(target: NavTarget): string {
 }
 
 /**
- * Open Google Maps in a new tab for a NavTarget.
- * On iOS native uses Apple Maps URL schemes.
+ * Open map directions in a new tab for a NavTarget.
+ * On iOS native uses system map URL schemes.
  */
 export async function openNavTarget(target: NavTarget): Promise<void> {
   const url = buildMapsUrl(target);
@@ -120,7 +120,7 @@ export async function openNavTarget(target: NavTarget): Promise<void> {
 }
 
 /**
- * Build a Google Maps search URL from a NavTarget.
+ * Build a map search URL from a NavTarget.
  */
 export function buildMapsSearchUrl(target: NavTarget): string {
   if (target.kind === 'COORDS') {

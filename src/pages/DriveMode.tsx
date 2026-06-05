@@ -361,7 +361,7 @@ export default function DriveMode() {
                 <div className="relative aspect-[4/3] min-h-[320px] bg-muted md:aspect-[16/11]">
                   {cockpit.mapEmbedUrl ? (
                     <iframe
-                      title={`Google map for ${navTarget?.label ?? activeSegment.label}`}
+                      title={`Route map for ${navTarget?.label ?? activeSegment.label}`}
                       src={cockpit.mapEmbedUrl}
                       className="absolute inset-0 h-full w-full border-0"
                       loading="lazy"

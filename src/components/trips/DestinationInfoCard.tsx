@@ -5,7 +5,7 @@
 
 import { useMemo } from 'react';
 import { useDeviceLocation } from '@/hooks/useDeviceLocation';
-import { buildGoogleMapsSearchUrl, buildYelpSearchUrl, type LocationContext } from '@/lib/deviceLocation';
+import { buildDiningSearchUrl, buildGoogleMapsSearchUrl, type LocationContext } from '@/lib/deviceLocation';
 import { isOnline } from '@/lib/networkStatus';
 import { OfflineLocationContextCard } from '@/components/trips/OfflineLocationContextCard';
 import { Trip } from '@/types/database';
@@ -31,8 +31,8 @@ const getDestinationLinks = (city: string, state: string | undefined, country: s
       { label: 'Local Events', url: `https://www.eventbrite.com/d/${searchQuery.toLowerCase().replace(/\s+/g, '-')}/events/`, icon: Calendar },
     ],
     dining: [
-      { label: 'Yelp Restaurants', url: buildYelpSearchUrl('Restaurants', ctx), icon: Utensils },
-      { label: 'Google Maps Dining', url: buildGoogleMapsSearchUrl('restaurants', ctx), icon: MapPin },
+      { label: 'Restaurant Guide', url: buildDiningSearchUrl('Restaurants', ctx), icon: Utensils },
+      { label: 'Dining Map', url: buildGoogleMapsSearchUrl('restaurants', ctx), icon: MapPin },
     ],
     attractions: [
       { label: 'Top Attractions', url: `https://www.tripadvisor.com/Attractions-${searchQuery}`, icon: Camera },

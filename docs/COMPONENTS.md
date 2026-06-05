@@ -202,7 +202,7 @@ Parking entry management with expiration tracking.
 Business stops with auto-draft, import pipeline, and date-grouped layout.
 
 ### ExploreTab
-Google Places discovery with photos, ratings, and Add-to-Timeline.
+Place discovery with photos, ratings, and Add-to-Timeline.
 
 ### WeatherTab
 Weather forecast for trip destination.

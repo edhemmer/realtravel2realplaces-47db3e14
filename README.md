@@ -10,7 +10,7 @@ Built by [InLight AI, LLC](https://inlightai.com).
 
 ## Why Travelers Pay
 
-Google Maps knows a route. Airline apps know one airline. Booking apps know a reservation. RealTravel2RealPlaces manages the whole trip across all of them.
+Map apps know a route. Airline apps know one airline. Booking apps know a reservation. RealTravel2RealPlaces manages the whole trip across all of them.
 
 The paid value is the operating layer: live next actions, Drive Cockpit, airport and transit windows, offline trip details, parking, weather, expenses, companions, and reports in one place. It is for travelers who want fewer missed details, less app-hopping, cleaner reimbursement records, and a calmer travel day.
 

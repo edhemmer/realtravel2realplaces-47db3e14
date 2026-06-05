@@ -17,17 +17,17 @@ Travelers manage trip logistics across fragmented tools — email threads, sprea
 - **Fragile coordination**: Multiple travelers with no shared source of truth
 - **No real-time execution**: No system knows what's happening *right now* during travel
 
-Current solutions either try to *plan* trips (TripIt, Google Trips) or are generic note-taking tools. None focus on **managing the trip after booking**.
+Current solutions either try to *plan* trips or act as generic note-taking tools. None focus on **managing the trip after booking**.
 
 ---
 
 ## Why Pay For This?
 
-Travelers already have Google Maps, airline apps, hotel apps, Expedia-style booking apps, email, notes, and spreadsheets. The problem is that each tool only understands one slice of the trip.
+Travelers already have map apps, airline apps, hotel apps, booking apps, email, notes, and spreadsheets. The problem is that each tool only understands one slice of the trip.
 
 RT2RP is valuable because it becomes the **operating layer across those tools**:
 
-- **Google Maps knows the route**; RT2RP knows the route in context with the next stop, lodging, parking, gas, weather, receipts, offline details, and trip timeline.
+- **Map apps know the route**; RT2RP knows the route in context with the next stop, lodging, parking, gas, weather, receipts, offline details, and trip timeline.
 - **Airline apps know one airline**; RT2RP manages the whole travel day across flights, lodging, rental car, drive segments, transit, companions, and expenses.
 - **Booking apps know the reservation**; RT2RP manages what happens before, during, and after the reservation: when to leave, what is missing, what changed, what was spent, and what needs to be reported.
 - **Notes and spreadsheets can store information**; RT2RP turns information into actions, reminders, summaries, reports, and a shared source of truth.
@@ -45,7 +45,7 @@ Real Travel 2 Real Places provides:
 3. **Unified Trip View** — All bookings, expenses, parking, packing, companions, and notes in one canonical dashboard.
 4. **Execution-First Design** — The NOW tab shows what matters *right now*: next flight, checkout time, parking expiration, drive destination.
 5. **Drive Mode** — Focused navigation screen for road trips with route intelligence and one-tap directions.
-6. **EXPLORE** — Discover real places near your destination with photos, ratings, and reviews from Google Places. Add them directly to your timeline.
+6. **EXPLORE** — Discover real places near your destination with photos, ratings, and reviews from the place-data provider. Add them directly to your timeline.
 7. **Cost Clarity** — Real-time expense tracking with per-person splitting, category breakdowns, receipt OCR, and business/personal separation.
 8. **Smart Logistics** — Parking expiration alerts, weather awareness, calendar export, and configurable reminders.
 9. **Installable PWA** — Full Progressive Web App with offline caching, home screen install, and auto-updating service worker.
@@ -85,14 +85,14 @@ Real Travel 2 Real Places provides:
 
 ## Differentiation
 
-| Competitor | Focus | RT2RP Advantage |
+| Alternative | Focus | RT2RP Advantage |
 |-----------|-------|----------------|
-| TripIt | Trip *planning* | We manage *after* booking — execution, not planning |
-| Google Maps / Apple Maps | Point-to-point navigation | We manage the trip state around the route: stops, weather, parking, gas, timing, offline context, expenses |
+| Itinerary apps | Trip *planning* | We manage *after* booking — execution, not planning |
+| Map apps | Point-to-point navigation | We manage the trip state around the route: stops, weather, parking, gas, timing, offline context, expenses |
 | Airline apps | One airline's status and reservation | We manage the entire travel operation across all vendors and non-airline movement |
-| Expedia / booking apps | Booking and reservation management | We manage execution, reporting, sharing, and daily trip operations after the booking exists |
-| Google Trips | Inbox scanning | We don't scan inboxes — users paste confirmations for control |
-| Concur/Navan | Enterprise expense | We serve individuals and small teams, not enterprises |
+| Booking apps | Booking and reservation management | We manage execution, reporting, sharing, and daily trip operations after the booking exists |
+| Inbox-scanning tools | Inbox scanning | We don't scan inboxes — users paste confirmations for control |
+| Enterprise expense tools | Enterprise expense | We serve individuals and small teams, not enterprises |
 | Spreadsheets | Manual tracking | AI parsing, canonical data, real-time execution |
 
 ---
@@ -103,7 +103,7 @@ Real Travel 2 Real Places provides:
 - **No-Math Time Policy**: All datetime logic uses string primitives — zero timezone bugs
 - **AI Parsing Pipeline**: Gemini 2.5 Pro for itinerary parsing, Gemini Flash for booking/receipt extraction
 - **Drive Intelligence**: Centralized drive segment resolution with full-address navigation
-- **EXPLORE Engine**: Google Places integration with server-side photo proxy and weather-aware ranking
+- **EXPLORE Engine**: Place-data integration with server-side photo proxy and weather-aware ranking
 - **Progressive Web App**: Installable on mobile/desktop with offline support and auto-updating service worker via Workbox
 - **Native iOS App**: Capacitor-wrapped React app submitted to App Store; same backend, same features
 - **SEO Optimized**: Sitemap, structured data (JSON-LD), Open Graph, Twitter Cards, preconnect hints

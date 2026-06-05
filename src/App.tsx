@@ -65,8 +65,8 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 
 const queryClient = new QueryClient();
 
-// Persist ONLY Explore (Google Places) results to localStorage so survives
-// page refresh / tab close — protects against duplicate Google Places API
+// Persist ONLY Explore place-data results to localStorage so survives
+// page refresh / tab close and protects against duplicate provider API calls.
 // calls within the 5-minute staleTime window.
 if (typeof window !== "undefined") {
   try {

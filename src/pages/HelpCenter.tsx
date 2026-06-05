@@ -793,7 +793,7 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         question: 'Where does Discover get its data?',
         answer:
-          'Discover uses the Google Places service for real, up-to-date place data — names, addresses, photos, ratings, and review counts. Photos are served through a secure proxy.',
+          'Discover uses a place-data provider for real, up-to-date place data — names, addresses, photos, ratings, and review counts. Photos are served through a secure proxy.',
       },
       {
         question: 'Is Discover available on all plans?',
@@ -1028,7 +1028,7 @@ const HELP_SECTIONS: HelpSection[] = [
             <li>Open your Trip → <strong>Summary</strong> (or <strong>PLAN</strong> on mobile).</li>
             <li>Scroll to the <strong>Download Trip Calendar (.ics)</strong> button.</li>
             <li>Tap the button to download the .ics file.</li>
-            <li>Open the file to import it into Apple Calendar, Google Calendar, Outlook, or any calendar app.</li>
+            <li>Open the file to import it into your preferred calendar app.</li>
           </ol>
         ),
       },
@@ -1484,7 +1484,7 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         question: 'Discover',
         answer:
-          'The place-discovery surface, powered by Google Places. Surfaces restaurants, attractions, cafes, bars, parks, hiking trails, museums, and grocery stores near your Trip destination. Each place includes a real photo, rating, and review count. Available on all plans.',
+          'The place-discovery surface. Surfaces restaurants, attractions, cafes, bars, parks, hiking trails, museums, and grocery stores near your Trip destination. Each place includes a real photo, rating, and review count. Available on all plans.',
       },
       {
         question: 'Tours',

@@ -2,12 +2,12 @@
  * v1.0.0: Native Navigation Bridge
  *
  * Handles map and external URL launching on iOS native (Capacitor/WKWebView)
- * so navigation opens the native Apple Maps or Google Maps apps instead of
+ * so navigation opens native map apps instead of
  * a blank/web browser experience.
  *
  * On iOS native:
- *   - Uses maps:// URL scheme for Apple Maps (system scheme, always allowed)
- *   - Falls back to comgooglemaps:// for Google Maps app
+ *   - Uses maps:// URL scheme for the system map app
+ *   - Falls back to a secondary map-app URL scheme
  *   - Non-map URLs use Capacitor Browser (SFSafariViewController)
  *
  * On web / Android: keeps existing window.open behaviour.
@@ -39,7 +39,7 @@ export interface NativeMapSearchParams {
 // ============================================================================
 
 /**
- * Build an Apple Maps URL scheme for iOS native.
+ * Build a system map URL scheme for iOS native.
  * docs: https://developer.apple.com/documentation/mapkit/mklaunchoptions
  */
 export function buildAppleMapsUrl(params: NativeMapParams): string {
@@ -51,7 +51,7 @@ export function buildAppleMapsUrl(params: NativeMapParams): string {
 }
 
 /**
- * Build a Google Maps iOS app URL scheme.
+ * Build a secondary map-app iOS URL scheme.
  * docs: https://developers.google.com/maps/documentation/urls/ios-urlscheme
  */
 export function buildGoogleMapsAppUrl(params: NativeMapParams): string {
@@ -83,8 +83,8 @@ export function buildGoogleMapsSearchAppUrl(params: NativeMapSearchParams): stri
 // ============================================================================
 
 /**
- * Open a map destination on iOS native using Apple Maps URL scheme.
- * Falls back to Google Maps app scheme, then to Browser.open().
+ * Open a map destination on iOS native using map URL schemes.
+ * Falls back across supported map-app schemes, then to Browser.open().
  *
  * PRECONDITION: caller should have already checked isNativeIOS() if they
  * want platform-specific branching; this function is safe on any platform.
@@ -94,11 +94,11 @@ export async function openNativeMap(params: NativeMapParams): Promise<void> {
     return;
   }
 
-  // Google Maps first — preferred driver app
+  // Secondary map app first when available.
   const googleUrl = buildGoogleMapsAppUrl(params);
   try {
     window.location.href = googleUrl;
-    // Give iOS a moment to switch apps; if Google Maps isn't installed
+    // Give iOS a moment to switch apps; if the secondary app is not installed
     // the scheme silently fails and we fall through.
     await new Promise((r) => setTimeout(r, 500));
     if (document.visibilityState === 'hidden') return;
@@ -106,7 +106,7 @@ export async function openNativeMap(params: NativeMapParams): Promise<void> {
     // fall through
   }
 
-  // Apple Maps fallback — system scheme, always works on iOS
+  // System map fallback — system scheme, always works on iOS
   const appleUrl = buildAppleMapsUrl(params);
   try {
     window.location.href = appleUrl;
@@ -116,7 +116,7 @@ export async function openNativeMap(params: NativeMapParams): Promise<void> {
     // fall through
   }
 
-  // Ultimate fallback: in-app browser with web Google Maps
+  // Ultimate fallback: in-app browser with web map provider
   const webFallback = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(params.query)}`;
   try {
     await Browser.open({ url: webFallback });

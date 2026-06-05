@@ -1,7 +1,7 @@
 /**
  * v2.1.0: Airport Snapshot Card
  * Displays all unique airports for trips with flights
- * Includes tier-aware info access and Google Maps links
+ * Includes tier-aware info access and map links
  */
 
 import { Card, CardContent } from '@/components/ui/card';

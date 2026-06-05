@@ -249,7 +249,7 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
         <OpsWindow
           icon={<Map className="h-5 w-5" />}
           title="Interactive destination map"
-          detail="Embeds a free Google Maps place window now; native iOS can bolt into Apple/Google maps without burning Places search credits."
+          detail="Embeds a free destination map window now; native iOS can hand off to the user's preferred map app without burning place-search credits."
           badge="No API key"
         >
           <div className="overflow-hidden rounded-xl border border-border/50 bg-muted/30">

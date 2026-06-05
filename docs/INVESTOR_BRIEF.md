@@ -36,9 +36,9 @@ This fragmentation creates real cost:
 
 | Tool | What It Does | What It Doesn't Do |
 |------|-------------|-------------------|
-| TripIt | Scans email for itineraries | No expense tracking, no execution layer, no drive support |
-| Google Trips | Aggregated trip info | Discontinued consumer app; no active development |
-| Concur / Navan | Enterprise expense reporting | Designed for corporate finance teams, not individual travelers |
+| Itinerary tools | Organize reservations and schedules | No expense tracking, no execution layer, no drive support |
+| Legacy trip aggregators | Aggregate trip info | Limited active consumer innovation; no operational ownership |
+| Enterprise expense platforms | Enterprise expense reporting | Designed for corporate finance teams, not individual travelers |
 | Spreadsheets | Manual everything | No AI parsing, no real-time awareness, no mobile-first UX |
 
 **The gap**: Nobody owns the *execution layer* of travel — the logistics between booking and returning home.
@@ -57,7 +57,7 @@ RT2RP is a **trip command center** that centralizes everything a traveler needs 
 | **Unified Trip View** | One screen for bookings, expenses, parking, packing, companions, notes — per trip. |
 | **Execution-First Design** | A NOW tab shows what matters right now: next flight, checkout time, parking expiration, drive destination. |
 | **Drive Mode** | Focused navigation screen for road trips with route intelligence and one-tap directions. |
-| **EXPLORE** | Discover real places near your destination with photos, ratings, and reviews from Google Places. |
+| **EXPLORE** | Discover real places near your destination with photos, ratings, and reviews from the place-data provider. |
 | **Cost Clarity** | Real-time expense tracking with per-person splitting, receipt OCR, and business/personal separation. |
 | **Smart Logistics** | Parking expiration alerts, weather awareness, calendar export, packing lists with climate intelligence. |
 | **Installable PWA** | Works like a native app on iOS, Android, and desktop — with offline support. |
@@ -172,19 +172,19 @@ RT2RP is not a prototype. It is a **production-grade SaaS application** with:
 ```
                     PLANNING ←─────────────────────→ EXECUTION
                          │                              │
-              TripIt ○   │                              │
+       Itinerary tools ○  │                              │
                          │                              │
-    Google Trips ○       │                              │
-    (discontinued)       │                              │
+ Legacy aggregators ○    │                              │
                          │                              │
-    Wanderlog ○          │                              │   ★ RT2RP
+                         │                              │
+       Planning apps ○   │                              │   ★ RT2RP
                          │                              │
                          │                              │
               ───────────┼──────────────────────────────┼───────
               CONSUMER   │                              │  PROSUMER
                          │                              │
-         Concur ○        │                              │
-         Navan ○         │                              │
+  Enterprise tools ○     │                              │
+                         │                              │
                          │                              │
               ENTERPRISE │                              │
 ```
@@ -210,7 +210,7 @@ RT2RP is not a prototype. It is a **production-grade SaaS application** with:
 - **Product Hunt launch**: Target top-5 of the day
 
 ### Phase 2: Paid Acquisition (Months 6-12)
-- **Google Ads**: Target high-intent keywords ("travel expense tracker," "trip organizer app")
+- **Search ads**: Target high-intent keywords ("travel expense tracker," "trip organizer app")
 - **Instagram/TikTok**: Short-form content showing real-time trip management
 - **Affiliate partnerships**: Travel bloggers, road trip content creators
 
@@ -264,7 +264,7 @@ Product design, engineering, and AI integration. The founding team combines expe
 2. **PWA adoption**: Progressive Web Apps eliminate app store friction — install directly from the browser
 3. **Remote work**: 40% of knowledge workers now travel for hybrid work, creating a new class of frequent traveler
 4. **Expense tracking demand**: Post-pandemic expense tracking is table stakes for self-employed travelers (tax deductions)
-5. **No incumbent**: Google Trips is discontinued, TripIt hasn't innovated in years, and no one owns the execution layer
+5. **No incumbent**: Planning, navigation, booking, and expense tools each own a slice, but no one owns the traveler execution layer
 
 ---
 

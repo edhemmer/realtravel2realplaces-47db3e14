@@ -154,7 +154,7 @@ export interface LocationContext {
 }
 
 /**
- * Build a Google Maps search URL that prefers device coordinates.
+ * Build a map search URL that prefers device coordinates.
  */
 export function buildGoogleMapsSearchUrl(searchTerm: string, ctx: LocationContext): string {
   if (ctx.deviceCoords) {
@@ -166,9 +166,9 @@ export function buildGoogleMapsSearchUrl(searchTerm: string, ctx: LocationContex
 }
 
 /**
- * Build a Yelp search URL that prefers device coordinates.
+ * Build a dining search URL that prefers device coordinates.
  */
-export function buildYelpSearchUrl(searchDesc: string, ctx: LocationContext): string {
+export function buildDiningSearchUrl(searchDesc: string, ctx: LocationContext): string {
   if (ctx.deviceCoords) {
     const { lat, lng } = ctx.deviceCoords;
     return `https://www.yelp.com/search?find_desc=${encodeURIComponent(searchDesc)}&l=g:${lng},${lat},${lng + 0.05},${lat + 0.05}&attrs=RestaurantsPriceRange2.1,RestaurantsPriceRange2.2`;

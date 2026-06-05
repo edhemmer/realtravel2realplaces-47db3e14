@@ -1,7 +1,7 @@
 /**
  * v4.5.0: Real Places Explore Hook
  *
- * Replaces mock useAttractions with real Google Places API via placesEngine.
+ * Replaces mock useAttractions with real place-data results via placesEngine.
  * Queries multiple categories in parallel and maps to AttractionSuggestion[].
  */
 

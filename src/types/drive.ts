@@ -162,7 +162,7 @@ export interface DriveFuelPlan {
 export interface DriveNavigationTarget {
   /** Label for the button */
   label: string;
-  /** Google Maps URL (destination only, no fake origins) */
+  /** Map provider URL (destination only, no fake origins) */
   url: string;
   /** Whether this is the primary navigation action */
   isPrimary: boolean;

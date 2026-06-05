@@ -400,7 +400,7 @@ export function getTodayCriticalActionsWithBuffer(
 // ============================================================================
 
 /**
- * Build a Google Maps gas station search URL from a CriticalActionNavTarget.
+ * Build a gas station search URL from a CriticalActionNavTarget.
  */
 export function buildGasSearchUrl(navTarget: CriticalActionNavTarget): string {
   if (navTarget.lat != null && navTarget.lng != null) {
@@ -413,7 +413,7 @@ export function buildGasSearchUrl(navTarget: CriticalActionNavTarget): string {
 }
 
 /**
- * v3.10.7: Build a Google Maps directions URL for DRIVE_SMART.
+ * v3.10.7: Build a map directions URL for DRIVE_SMART.
  * Uses origin + destination for traffic-aware "depart now" routing.
  */
 export function buildDriveSmartUrl(navTarget: CriticalActionNavTarget): string {
@@ -426,7 +426,7 @@ export function buildDriveSmartUrl(navTarget: CriticalActionNavTarget): string {
   } else if (navTarget.originAddress) {
     params.set('origin', navTarget.originAddress);
   }
-  // If no origin, Google Maps defaults to current location
+  // If no origin, the map provider defaults to current location
 
   // Destination
   if (navTarget.destinationLat != null && navTarget.destinationLng != null) {

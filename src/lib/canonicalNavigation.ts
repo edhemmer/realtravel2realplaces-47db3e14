@@ -230,7 +230,7 @@ function buildResult(dest: MapsDestination, labelHint: string): CanonicalNavResu
 
 /**
  * Open the canonical navigation result in Maps.
- * On iOS native uses Apple Maps URL schemes; on web uses iframe-breakout chain.
+ * On iOS native uses system map URL schemes; on web uses iframe-breakout chain.
  */
 export async function openCanonicalNav(result: CanonicalNavResult): Promise<void> {
   await openNavigationResult({

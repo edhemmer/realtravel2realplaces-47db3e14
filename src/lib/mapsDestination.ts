@@ -148,7 +148,7 @@ export function resolveMapsDestination(input: MapsDestinationInput): MapsDestina
 // ============================================================================
 
 /**
- * Build a Google Maps directions URL from a resolved destination.
+ * Build a map directions URL from a resolved destination.
  * Uses the Directions API (destination= param) so the user gets
  * door-to-door routing from their current location.
  */
@@ -162,7 +162,7 @@ export function buildMapsDirectionsUrl(dest: MapsDestination): string {
 /**
  * Open Maps in a new tab for a resolved destination.
  * Convenience wrapper used by all launch points.
- * On iOS native uses Apple Maps URL schemes.
+ * On iOS native uses system map URL schemes.
  */
 export async function openMapsDestination(dest: MapsDestination): Promise<void> {
   const url = buildMapsDirectionsUrl(dest);

@@ -3,7 +3,7 @@
  * 
  * Provider-abstract interface for city autocomplete.
  * Currently implements OSM Photon (free, keyless).
- * Stub for Google Places included for future migration.
+ * Stub for a place-data provider included for future migration.
  */
 
 import { PlacesProviderType } from './types';
@@ -78,7 +78,7 @@ export const serverPlacesProvider: PlacesProvider = {
 // ============================================================================
 
 /**
- * TODO: Wire Google Places API when PAYG keys are available.
+ * TODO: Wire a place-data API when PAYG keys are available.
  * 
  * Implementation notes:
  * - Will require GOOGLE_PLACES_API_KEY secret in edge function

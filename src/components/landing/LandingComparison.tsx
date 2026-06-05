@@ -30,13 +30,13 @@ export default function LandingComparison() {
             Why pay when you already have travel apps?
           </h2>
           <p className="landing-section-subtext mt-3">
-            Google Maps, airline apps, and booking sites are excellent at their own lanes. RealTravel2RealPlaces is the paid operations layer that connects the lanes and tells you what matters next.
+            Map apps, airline apps, and booking sites are excellent at their own lanes. RealTravel2RealPlaces is the paid operations layer that connects the lanes and tells you what matters next.
           </p>
         </div>
 
         <div className="landing-value-grid">
           <div className="landing-value-card">
-            <span className="landing-value-kicker">Google Maps</span>
+            <span className="landing-value-kicker">Map apps</span>
             <h3>Knows the route.</h3>
             <p>It does not know your hotel check-in, parking expiration, flight timing, receipts, companions, or business report.</p>
           </div>
@@ -46,7 +46,7 @@ export default function LandingComparison() {
             <p>They do not manage your lodging, rental car, local transit, road trip, packing, expenses, or non-airline stops.</p>
           </div>
           <div className="landing-value-card">
-            <span className="landing-value-kicker">Expedia and booking apps</span>
+            <span className="landing-value-kicker">Booking apps</span>
             <h3>Know the reservation.</h3>
             <p>They do not run the trip day by day, preserve offline context, split costs, or produce operational reports.</p>
           </div>

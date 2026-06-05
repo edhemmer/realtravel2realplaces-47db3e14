@@ -453,7 +453,7 @@ export function getExploreOriginSubtitle(source: ExploreOriginSource): string {
 // ============================================================================
 
 /**
- * v3.5.3: Build a Google Maps search URL using ONLY lat/lng coordinates.
+ * v3.5.3: Build a map search URL using ONLY lat/lng coordinates.
  * NEVER passes strings like "Nearby", city names, or airport codes as the query.
  * Returns null if no coordinates are available.
  */
@@ -462,7 +462,7 @@ export function buildExploreMapSearchUrl(origin: ExploreOrigin): string {
 }
 
 /**
- * v3.5.3: Build a Google Maps search URL for a specific place using coordinates.
+ * v3.5.3: Build a map search URL for a specific place using coordinates.
  * Falls back to null if no coordinates are provided.
  */
 export function buildExplorePlaceMapUrl(coords: { lat: number; lng: number }): string {
@@ -470,7 +470,7 @@ export function buildExplorePlaceMapUrl(coords: { lat: number; lng: number }): s
 }
 
 /**
- * v3.5.3: Open Google Maps centered on the Explore origin coordinates.
+ * v3.5.3: Open a map centered on the Explore origin coordinates.
  * NEVER opens with string-based queries.
  */
 export function openExploreOriginMap(origin: ExploreOrigin): void {

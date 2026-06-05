@@ -113,8 +113,8 @@ supabase/
 │   ├── normalize-airfare-costs/ # Cost normalization
 │   ├── send-companion-summary/ # Email notifications
 │   ├── trip-lifecycle-enforcement/ # Cron-authenticated lifecycle manager
-│   ├── nearby-places/   # Google Places API search with photos (v4.8.0)
-│   ├── places-photo/    # Google Places photo proxy (v4.8.0)
+│   ├── nearby-places/   # Place-data provider search with photos (v4.8.0)
+│   ├── places-photo/    # Place-data photo proxy (v4.8.0)
 │   ├── places-search/   # Legacy places search
 │   ├── admin-get-support-tickets/
 │   └── admin-update-ticket-status/
@@ -279,7 +279,7 @@ Sensitive data (emails, phone, TSA/FF numbers, confirmation codes) masked via se
 | Tier | Trip Limit | Key Features |
 |------|------------|-------------|
 | Free | 2 lifetime | Full trip management, expenses, packing, sharing |
-| Pro | Unlimited | Timeline events, health checklist, explore, reports, alerts, Google Places |
+| Pro | Unlimited | Timeline events, health checklist, explore, reports, alerts, place discovery |
 | Business | Unlimited | All Pro + tour stops, business reporting |
 
 ### Gating Philosophy
