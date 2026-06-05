@@ -19,7 +19,7 @@
   --landing-violet: 226 28% 56%;
   --landing-gradient-start: 196 72% 34%;
   --landing-gradient-mid: 194 78% 52%;
-  --landing-gradient-end: 43 42% 72%;
+  --landing-gradient-end: 196 72% 34%;
 }
 
 /* ===========================================
@@ -296,9 +296,9 @@
   padding: 1px;
   background: linear-gradient(
     135deg,
-    hsl(var(--landing-accent) / 0.55) 0%,
-    hsl(var(--landing-violet) / 0.18) 46%,
-    hsl(var(--landing-ember) / 0.42) 100%
+    hsl(var(--landing-accent) / 0.42) 0%,
+    hsl(var(--landing-border) / 0.34) 54%,
+    hsl(var(--landing-champagne) / 0.22) 100%
   );
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -313,7 +313,7 @@
   position: absolute;
   inset: -2px;
   border-radius: 1.5rem;
-  background: linear-gradient(135deg, hsl(var(--landing-accent) / 0.12), hsl(var(--landing-ember) / 0.08));
+  background: linear-gradient(135deg, hsl(var(--landing-accent) / 0.10), hsl(var(--landing-bg-secondary) / 0.28));
   z-index: -1;
   animation: landing-glow-pulse 4s ease-in-out infinite;
 }
@@ -339,8 +339,8 @@
   width: 0.3rem;
   height: 0.3rem;
   border-radius: 999px;
-  background: hsl(var(--landing-ember));
-  box-shadow: 0 0 14px hsl(var(--landing-ember) / 0.8);
+  background: hsl(var(--landing-champagne));
+  box-shadow: 0 0 12px hsl(var(--landing-champagne) / 0.36);
 }
 
 .landing-hero-headline {
@@ -366,18 +366,8 @@
 }
 
 .landing-hero-headline-accent {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--landing-champagne)) 0%,
-    hsl(var(--landing-accent)) 42%,
-    hsl(var(--landing-gradient-mid)) 68%,
-    hsl(var(--landing-ember)) 100%
-  );
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: landing-shimmer 4s linear infinite;
+  color: hsl(var(--landing-accent-glow));
+  text-shadow: 0 0 34px hsl(var(--landing-accent) / 0.18);
 }
 
 .landing-hero-subtext {
@@ -448,12 +438,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(
-    135deg,
-    hsl(var(--landing-champagne)) 0%,
-    hsl(var(--landing-accent)) 45%,
-    hsl(var(--landing-ember)) 100%
-  );
+  background: hsl(var(--landing-accent));
   color: hsl(228 42% 5%);
   font-weight: 800;
   font-size: 0.9375rem;
@@ -465,9 +450,8 @@
   text-decoration: none;
   white-space: nowrap;
   box-shadow:
-    0 12px 34px hsl(var(--landing-accent) / 0.24),
-    0 7px 22px hsl(var(--landing-ember) / 0.16),
-    inset 0 1px 0 hsl(0 0% 100% / 0.42);
+    0 12px 34px hsl(var(--landing-accent) / 0.22),
+    inset 0 1px 0 hsl(0 0% 100% / 0.28);
   position: relative;
   overflow: hidden;
 }
@@ -481,10 +465,10 @@
 
 .landing-btn-primary-hero:hover {
   transform: translateY(-2px);
+  background: hsl(var(--landing-accent-glow));
   box-shadow:
-    0 18px 46px hsl(var(--landing-accent) / 0.32),
-    0 10px 30px hsl(var(--landing-ember) / 0.22),
-    0 0 42px hsl(var(--landing-champagne) / 0.12);
+    0 18px 46px hsl(var(--landing-accent) / 0.30),
+    0 0 34px hsl(var(--landing-accent) / 0.12);
 }
 
 .landing-btn-primary-hero:active {
@@ -520,8 +504,8 @@
 
 .landing-btn-secondary-hero:hover {
   color: hsl(var(--landing-text));
-  background: linear-gradient(135deg, hsl(var(--landing-surface-elevated) / 0.8), hsl(var(--landing-surface) / 0.54));
-  border-color: hsl(var(--landing-champagne) / 0.34);
+  background: hsl(var(--landing-surface-elevated) / 0.72);
+  border-color: hsl(var(--landing-accent) / 0.32);
   box-shadow: 0 12px 34px hsl(0 0% 0% / 0.25);
 }
 
@@ -1418,8 +1402,8 @@
   align-items: center;
   gap: 0.25rem;
   padding: 0.1875rem 0.5rem;
-  background: linear-gradient(135deg, hsl(var(--landing-accent) / 0.12), hsl(var(--landing-champagne) / 0.08));
-  border: 1px solid hsl(var(--landing-accent) / 0.2);
+  background: hsl(var(--landing-surface-elevated) / 0.52);
+  border: 1px solid hsl(var(--landing-border) / 0.48);
   border-radius: 1rem;
   font-size: 0.625rem;
   color: hsl(var(--landing-text) / 0.86);
