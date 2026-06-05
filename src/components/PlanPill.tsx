@@ -54,13 +54,13 @@ export function PlanPill({ showTripLimit = false, compact = false, className }: 
         return {
           label: 'BUSINESS',
           icon: Briefcase,
-          className: 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-sm shadow-amber-500/25',
+          className: 'bg-secondary text-secondary-foreground shadow-sm',
         };
       case 'pro':
         return {
           label: 'PRO',
           icon: Crown,
-          className: 'bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-sm shadow-purple-500/25',
+          className: 'bg-primary text-primary-foreground shadow-sm shadow-primary/20',
         };
       case 'free':
       default:

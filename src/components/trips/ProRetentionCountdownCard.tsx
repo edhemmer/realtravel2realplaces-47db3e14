@@ -40,14 +40,14 @@
      <Card className={cn(
        'relative overflow-hidden border-2 transition-all duration-500',
        // Glassmorphism effect
-       'bg-gradient-to-br from-white/80 via-white/60 to-purple-50/40 dark:from-slate-900/80 dark:via-slate-900/60 dark:to-purple-950/40',
+       'bg-gradient-to-br from-white/85 via-white/70 to-slate-50/60 dark:from-slate-900/85 dark:via-slate-900/70 dark:to-slate-800/40',
        'backdrop-blur-xl',
        isUrgent 
          ? 'border-amber-400/60 shadow-lg shadow-amber-500/20' 
          : 'border-purple-300/40 dark:border-purple-700/40'
      )}>
        {/* Decorative gradient overlay */}
-       <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-transparent to-pink-500/5 pointer-events-none" />
+       <div className="absolute inset-0 bg-gradient-to-r from-primary/6 via-transparent to-secondary/6 pointer-events-none" />
        
        <div className="relative p-6">
          <div className="flex flex-col sm:flex-row gap-6">

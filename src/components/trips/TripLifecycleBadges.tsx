@@ -99,7 +99,7 @@
        {showPlanBadge && isPro && (
          <Badge 
            className={cn(
-             'bg-gradient-to-r from-violet-500 to-purple-600 text-white border-0 shadow-sm shadow-purple-500/20 flex items-center gap-1',
+             'bg-primary text-primary-foreground border-0 shadow-sm shadow-primary/20 flex items-center gap-1',
              compact && 'text-[10px] px-1.5 py-0'
            )}
          >

@@ -12,14 +12,14 @@
   --landing-border: 222 18% 26%;
   --landing-text: 42 48% 96%;
   --landing-text-muted: 218 18% 70%;
-  --landing-accent: 194 100% 58%;
-  --landing-accent-glow: 194 100% 68%;
-  --landing-ember: 18 96% 62%;
-  --landing-champagne: 42 92% 72%;
-  --landing-violet: 264 72% 68%;
-  --landing-gradient-start: 194 100% 56%;
-  --landing-gradient-mid: 264 72% 68%;
-  --landing-gradient-end: 18 96% 62%;
+  --landing-accent: 194 78% 52%;
+  --landing-accent-glow: 194 78% 62%;
+  --landing-ember: 18 42% 54%;
+  --landing-champagne: 43 42% 72%;
+  --landing-violet: 226 28% 56%;
+  --landing-gradient-start: 196 72% 34%;
+  --landing-gradient-mid: 194 78% 52%;
+  --landing-gradient-end: 43 42% 72%;
 }
 
 /* ===========================================
@@ -96,8 +96,8 @@
   inset: 0;
   background:
     linear-gradient(115deg, hsl(var(--landing-accent) / 0.12) 0%, transparent 24%),
-    linear-gradient(245deg, hsl(var(--landing-ember) / 0.10) 0%, transparent 30%),
-    linear-gradient(180deg, transparent 0%, hsl(var(--landing-violet) / 0.055) 52%, transparent 100%);
+    linear-gradient(245deg, hsl(var(--landing-champagne) / 0.08) 0%, transparent 30%),
+    linear-gradient(180deg, transparent 0%, hsl(var(--landing-violet) / 0.045) 52%, transparent 100%);
 }
 
 /* Subtle grid pattern overlay */
@@ -173,7 +173,7 @@
 }
 
 .landing-btn-header {
-  background: linear-gradient(135deg, hsl(var(--landing-accent) / 0.18), hsl(var(--landing-ember) / 0.12));
+  background: linear-gradient(135deg, hsl(var(--landing-accent) / 0.18), hsl(var(--landing-champagne) / 0.10));
   color: hsl(var(--landing-text));
   font-weight: 600;
   font-size: 0.8125rem;
@@ -186,7 +186,7 @@
 }
 
 .landing-btn-header:hover {
-  background: linear-gradient(135deg, hsl(var(--landing-accent) / 0.28), hsl(var(--landing-ember) / 0.18));
+  background: linear-gradient(135deg, hsl(var(--landing-accent) / 0.28), hsl(var(--landing-champagne) / 0.15));
   border-color: hsl(var(--landing-champagne) / 0.55);
   box-shadow: 0 0 26px hsl(var(--landing-accent) / 0.2);
 }

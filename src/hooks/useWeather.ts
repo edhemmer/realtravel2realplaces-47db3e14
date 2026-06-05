@@ -266,9 +266,10 @@ export function useTripWeather(
   // Limit to MAX_FORECAST_DAYS consecutive days
   // Memoize to prevent unnecessary re-renders
   const tripForecast = useMemo(() => {
-    return (weatherQuery.data?.forecast.filter(day => {
+    const forecast = Array.isArray(weatherQuery.data?.forecast) ? weatherQuery.data.forecast : [];
+    return forecast.filter(day => {
       return day.date >= startDate && day.date <= endDate;
-    }) || []).slice(0, MAX_FORECAST_DAYS);
+    }).slice(0, MAX_FORECAST_DAYS);
   }, [weatherQuery.data?.forecast, startDate, endDate]);
   
   // Analyze weather for packing recommendations and badges

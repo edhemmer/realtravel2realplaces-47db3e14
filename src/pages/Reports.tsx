@@ -633,7 +633,7 @@ export default function Reports() {
       <div className="space-y-6">
         {/* Header */}
         <GlassSurface elevation="floating" className="overflow-hidden rounded-2xl">
-          <div className="h-1 bg-[linear-gradient(90deg,hsl(var(--brand-signal)),hsl(var(--brand-champagne)),hsl(var(--brand-ember)))]" />
+          <div className="h-1 bg-[linear-gradient(90deg,hsl(var(--brand-signal-deep)),hsl(var(--brand-signal)),hsl(var(--brand-champagne)))]" />
           <div className="grid gap-4 p-5 lg:grid-cols-[1fr_auto] lg:items-center lg:p-6">
             <div className="min-w-0">
               <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-primary/15 bg-primary/8 px-2.5 py-1 text-[11px] font-semibold uppercase text-primary">

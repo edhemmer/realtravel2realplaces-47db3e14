@@ -1,6 +1,7 @@
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import { getSupportContactHref, SUPPORT_CONTACT_MASKED } from '@/lib/supportContact';
 import '@/styles/landing.css';
 
 export default function Terms() {
@@ -78,9 +79,9 @@ export default function Terms() {
 
             <h2 className="text-xl font-semibold text-white mt-8 mb-4">Contact</h2>
             <p>
-              For questions about these terms, email us at{' '}
-              <a href="mailto:support@realtravel2realplaces.com" className="text-[hsl(var(--landing-accent))] hover:underline">
-                support@realtravel2realplaces.com
+              For questions about these terms, contact{' '}
+              <a href={getSupportContactHref()} aria-label="Contact InLight AI support" className="text-[hsl(var(--landing-accent))] hover:underline">
+                {SUPPORT_CONTACT_MASKED}
               </a>
             </p>
 

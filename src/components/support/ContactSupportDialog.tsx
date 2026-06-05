@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
+import { SUPPORT_CONTACT_LABEL } from '@/lib/supportContact';
 
 interface ContactSupportDialogProps {
   open: boolean;
@@ -119,7 +120,7 @@ export function ContactSupportDialog({ open, onOpenChange }: ContactSupportDialo
         <DialogHeader>
           <DialogTitle>Contact support</DialogTitle>
           <DialogDescription>
-            Let us know what's going on and we'll get back to you.
+            Send a private ticket to {SUPPORT_CONTACT_LABEL}. Include the trip, screen, and action you expected so we can route it quickly.
           </DialogDescription>
         </DialogHeader>
 
@@ -151,7 +152,7 @@ export function ContactSupportDialog({ open, onOpenChange }: ContactSupportDialo
               className="resize-none"
             />
             <p className="text-xs text-muted-foreground">
-              Include what you were trying to do and what you expected to see.
+              Best signal: what you tapped, what happened, and what should have happened next.
             </p>
           </div>
 

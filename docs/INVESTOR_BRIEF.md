@@ -281,7 +281,7 @@ Product design, engineering, and AI integration. The founding team combines expe
 ## Contact
 
 **InLight AI, LLC**
-Email: [support@realtravel2realplaces.com](mailto:support@realtravel2realplaces.com)
+Email: inlightai26 [at] gmail [dot] com
 Product: [realtravel2realplaces.lovable.app](https://realtravel2realplaces.lovable.app)
 
 ---

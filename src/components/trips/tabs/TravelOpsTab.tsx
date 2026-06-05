@@ -4,12 +4,12 @@ import {
   BadgeDollarSign,
   Building2,
   Car,
+  CheckCircle2,
   CloudSun,
   Gauge,
   Map,
   Navigation,
   Plane,
-  RadioTower,
   Route,
   ShieldCheck,
   TrainFront,
@@ -55,19 +55,38 @@ function mapSearchUrl(query: string) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
+function destinationLabel(trip: Trip) {
+  return [trip.destination_city, trip.destination_country].filter(Boolean).join(', ') || trip.name || 'Trip destination';
+}
+
 function transitUrl(trip: Trip) {
-  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${trip.destination_city}, ${trip.destination_country}`)}&travelmode=transit`;
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destinationLabel(trip))}&travelmode=transit`;
 }
 
 function localTransitSearchUrl(trip: Trip) {
-  return mapSearchUrl(`public transit stations near ${trip.destination_city}, ${trip.destination_country}`);
+  return mapSearchUrl(`public transit stations near ${destinationLabel(trip)}`);
+}
+
+function bookingTimestamp(booking: Booking): number {
+  const raw = booking.start_datetime || booking.end_datetime || '';
+  const timestamp = raw ? new Date(raw).getTime() : 0;
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function compareBookingsByTime(a: Booking, b: Booking): number {
+  return bookingTimestamp(a) - bookingTimestamp(b);
+}
+
+function isUpcomingBooking(booking: Booking): boolean {
+  const timestamp = bookingTimestamp(booking);
+  return timestamp > 0 && timestamp >= Date.now();
 }
 
 function getUniqueAirports(bookings: Booking[]): AirportOps[] {
   const seen = new Map<string, AirportOps>();
   bookings
     .filter((booking) => booking.booking_type === 'flight')
-    .sort((a, b) => a.start_datetime.localeCompare(b.start_datetime))
+    .sort(compareBookingsByTime)
     .forEach((booking) => {
       const dep = booking.departure_airport_code?.trim().toUpperCase();
       const arr = booking.arrival_airport_code?.trim().toUpperCase();
@@ -128,6 +147,28 @@ function OpsMetric({
   );
 }
 
+function GuidanceStep({
+  icon,
+  label,
+  detail,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  detail: string;
+}) {
+  return (
+    <div className="flex gap-3 rounded-xl border border-border/50 bg-background/70 p-3">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-foreground">{label}</p>
+        <p className="text-xs leading-relaxed text-muted-foreground">{detail}</p>
+      </div>
+    </div>
+  );
+}
+
 function OpsWindow({
   icon,
   title,
@@ -169,7 +210,7 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
   const { data: expenses = [] } = useExpenses(tripId);
   const { data: parking = [] } = useParking(tripId);
   const { isPro, canAccessBusinessFeatures } = useAccess();
-  const { timelineEvents, costs, hasFlights, hasStays, hasRentals } = useCanonicalTripState(tripId, trip);
+  const { timelineEvents, costs, hasFlights, hasRentals } = useCanonicalTripState(tripId, trip);
   const weather = useTripWeather(
     trip.destination_city,
     trip.destination_country,
@@ -181,20 +222,20 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
   const online = isOnline();
   const airports = useMemo(() => getUniqueAirports(bookings), [bookings]);
   const upcoming = useMemo(
-    () => timelineEvents
+    () => (timelineEvents ?? [])
       .filter((event) => getEventTimestamp(event.eventLocalDateTime, event.datetime) >= Date.now())
       .slice(0, 4),
     [timelineEvents],
   );
   const nextBooking = useMemo(
     () => bookings
-      .filter((booking) => new Date(booking.start_datetime).getTime() >= Date.now())
-      .sort((a, b) => a.start_datetime.localeCompare(b.start_datetime))[0],
+      .filter(isUpcomingBooking)
+      .sort(compareBookingsByTime)[0],
     [bookings],
   );
 
-  const expenseTotal = expenses.reduce((sum, expense) => sum + (expense.converted_amount ?? expense.my_share ?? expense.amount ?? 0), 0);
-  const parkingTotal = parking.reduce((sum, item) => sum + (item.my_share ?? item.total_cost ?? 0), 0);
+  const expenseTotal = expenses.reduce((sum, expense) => sum + Number(expense.converted_amount ?? expense.my_share ?? expense.amount ?? 0), 0);
+  const parkingTotal = parking.reduce((sum, item) => sum + Number(item.my_share ?? item.total_cost ?? 0), 0);
   const readinessItems = [
     bookings.length > 0,
     hasFlights ? airports.length > 0 : true,
@@ -204,12 +245,12 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
     expenses.length > 0 || canAccessBusinessFeatures || isPro,
   ];
   const readiness = Math.round((readinessItems.filter(Boolean).length / readinessItems.length) * 100);
-  const mapQuery = `${trip.destination_city}, ${trip.destination_country}`;
-  const sponsorSlots = [hasFlights ? 'Airline' : 'Travel', hasStays ? 'Lodging' : 'Stay', hasRentals || trip.transportation_mode === 'drive' ? 'Rental / Gas' : 'Transport'];
+  const mapQuery = destinationLabel(trip);
+  const nextMoveLabel = nextBooking?.vendor_name || upcoming[0]?.title || (trip.transportation_mode === 'drive' ? 'Drive cockpit' : 'Add first booking');
 
   return (
     <div className="space-y-5 pb-20">
-      <section className="overflow-hidden rounded-2xl border border-border/50 bg-[linear-gradient(135deg,hsl(var(--primary)/0.14),hsl(var(--card))_48%,hsl(var(--accent)/0.12))] p-4 shadow-sm md:p-5">
+      <section className="overflow-hidden rounded-2xl border border-border/50 bg-[linear-gradient(135deg,hsl(var(--primary)/0.10),hsl(var(--card))_48%,hsl(var(--muted)/0.12))] p-4 shadow-sm md:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
             <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -221,10 +262,10 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
               <Badge variant="outline" className="rounded-full">Low-credit mode</Badge>
             </div>
             <h2 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
-              Manage the trip in real time
+              Start here, then move with confidence
             </h2>
             <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-              Timeline, movement, airports, local transit, weather, money, offline readiness, and future sponsor inventory in one daily-use command layer.
+              TravelOps turns the trip into a short operating sequence: next move, local context, route support, weather, spend, and offline readiness.
             </p>
           </div>
           <div className="min-w-[220px] rounded-2xl border border-border/50 bg-background/70 p-4">
@@ -233,13 +274,19 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
               <span className="text-foreground">{readiness}%</span>
             </div>
             <Progress value={readiness} className="h-2" />
-            <p className="mt-2 text-xs text-muted-foreground">Uses existing canonical engines and cached provider windows.</p>
+            <p className="mt-2 text-xs text-muted-foreground">Built from existing canonical trip data and cached external windows.</p>
           </div>
         </div>
       </section>
 
+      <section className="grid gap-3 lg:grid-cols-3">
+        <GuidanceStep icon={<CheckCircle2 className="h-5 w-5" />} label="1. Confirm next move" detail={nextMoveLabel} />
+        <GuidanceStep icon={<Map className="h-5 w-5" />} label="2. Check the operating window" detail={`Map, transit, airport, and weather context for ${mapQuery}.`} />
+        <GuidanceStep icon={<ShieldCheck className="h-5 w-5" />} label="3. Finish the record" detail="Capture receipts, parking, notes, and business context while details are fresh." />
+      </section>
+
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <OpsMetric icon={<Route className="h-5 w-5" />} label="Next move" value={nextBooking?.vendor_name || (trip.transportation_mode === 'drive' ? 'Drive cockpit' : 'Add booking')} tone={nextBooking ? 'good' : 'watch'} />
+        <OpsMetric icon={<Route className="h-5 w-5" />} label="Next move" value={nextMoveLabel} tone={nextBooking || upcoming.length ? 'good' : 'watch'} />
         <OpsMetric icon={<Plane className="h-5 w-5" />} label="Airports" value={airports.length ? airports.map((a) => a.code).join(' / ') : 'None linked'} tone={airports.length ? 'good' : 'neutral'} />
         <OpsMetric icon={<CloudSun className="h-5 w-5" />} label="Weather" value={weather.current ? `${weather.current.temperature}F ${weather.current.condition}` : 'Checking'} tone={weather.weatherAnalysis?.hasRain || weather.weatherAnalysis?.hasSnow ? 'watch' : 'good'} />
         <OpsMetric icon={<BadgeDollarSign className="h-5 w-5" />} label="Managed spend" value={currency((costs?.totalCost ?? 0) + expenseTotal + parkingTotal)} tone="neutral" />
@@ -249,7 +296,7 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
         <OpsWindow
           icon={<Map className="h-5 w-5" />}
           title="Interactive destination map"
-          detail="Embeds a free destination map window now; native iOS can hand off to the user's preferred map app without burning place-search credits."
+          detail="A low-cost destination window for checking the area. Native iOS can hand off to the user's preferred map app."
           badge="No API key"
         >
           <div className="overflow-hidden rounded-xl border border-border/50 bg-muted/30">
@@ -288,7 +335,7 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
         <OpsWindow
           icon={<Gauge className="h-5 w-5" />}
           title="Execution stack"
-          detail="The next few operational moments the traveler actually needs today."
+          detail="The next operational moments that deserve attention before the traveler starts scrolling."
           badge="Canonical"
         >
           <div className="space-y-2">
@@ -306,7 +353,7 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
         </OpsWindow>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-3">
+      <section className="grid gap-4 lg:grid-cols-2">
         <OpsWindow
           icon={<Building2 className="h-5 w-5" />}
           title="Airport windows"
@@ -336,13 +383,13 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
         <OpsWindow
           icon={<TrainFront className="h-5 w-5" />}
           title="Local transit window"
-          detail="HERE Transit is already governed and cached; outbound maps provide a credit-free fallback for local agencies."
+          detail="Live transit can be cached when coordinates exist; outbound local station maps provide a credit-free fallback."
           badge="3-min cache"
         >
           <div className="space-y-3">
             <div className="rounded-xl border border-border/50 bg-background/70 p-3">
               <p className="text-sm font-semibold">Transit readiness</p>
-              <p className="text-xs text-muted-foreground">Use live HERE when coordinates exist; otherwise open local station maps.</p>
+              <p className="text-xs text-muted-foreground">Use cached live data when available; otherwise open local agency and station maps.</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button asChild size="sm" className="rounded-full">
@@ -351,26 +398,6 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
               <Button asChild size="sm" variant="outline" className="rounded-full">
                 <a href={transitUrl(trip)} target="_blank" rel="noreferrer">Directions</a>
               </Button>
-            </div>
-          </div>
-        </OpsWindow>
-
-        <OpsWindow
-          icon={<RadioTower className="h-5 w-5" />}
-          title="Future paid banner rail"
-          detail="Reserved inventory for airline, lodging, rental car, and mobility partners without showing ads yet."
-          badge="Ready"
-        >
-          <div className="space-y-2">
-            {sponsorSlots.map((slot) => (
-              <div key={slot} className="flex items-center justify-between rounded-xl border border-dashed border-border/70 bg-muted/20 p-3">
-                <span className="text-sm font-semibold text-foreground">{slot}</span>
-                <Badge variant="outline" className="rounded-full text-[10px]">Logo banner</Badge>
-              </div>
-            ))}
-            <div className="flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs text-emerald-700">
-              <ShieldCheck className="h-4 w-4 shrink-0" />
-              Kept separate from core travel tools so monetization does not damage trust.
             </div>
           </div>
         </OpsWindow>

@@ -174,7 +174,7 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
 
       {/* Cost Summary Widget */}
       <Card className="premium-panel overflow-hidden rounded-2xl">
-        <div className="h-1 bg-[linear-gradient(90deg,hsl(var(--brand-champagne)),hsl(var(--brand-ember)))]" />
+        <div className="h-1 bg-[linear-gradient(90deg,hsl(var(--brand-signal-deep)),hsl(var(--brand-champagne)))]" />
         <CardHeader className="pb-1.5 pt-4">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-champagne/15 text-amber-600 dark:text-brand-champagne">
@@ -211,7 +211,7 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
 
       {/* Parking Activity Widget */}
       <Card className="premium-panel overflow-hidden rounded-2xl">
-        <div className="h-1 bg-[linear-gradient(90deg,hsl(var(--brand-violet)),hsl(var(--brand-signal)))]" />
+        <div className="h-1 bg-[linear-gradient(90deg,hsl(var(--brand-signal-deep)),hsl(var(--brand-signal)))]" />
         <CardHeader className="pb-1.5 pt-4">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-violet/15 text-brand-violet">

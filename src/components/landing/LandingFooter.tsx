@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { getSupportContactHref, SUPPORT_CONTACT_LABEL } from '@/lib/supportContact';
 
 export default function LandingFooter() {
   const currentYear = new Date().getFullYear();
@@ -26,7 +27,7 @@ export default function LandingFooter() {
             <Link to="/terms" className="landing-footer-link">
               Terms
             </Link>
-            <a href="mailto:support@realtravel2realplaces.com" className="landing-footer-link">
+            <a href={getSupportContactHref()} aria-label={`Contact ${SUPPORT_CONTACT_LABEL}`} className="landing-footer-link">
               Contact
             </a>
           </div>
