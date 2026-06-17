@@ -21,6 +21,7 @@ import NotFound from "./pages/NotFound";
 // Lazy: everything else — split into per-route chunks to shrink the main bundle
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const CompleteProfile = lazy(() => import("./pages/CompleteProfile"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const TripDetail = lazy(() => import("./pages/TripDetail"));
@@ -148,6 +149,7 @@ function AppRoutes() {
       {/* Public landing page */}
       <Route path="/" element={<RootRoute />} />
       <Route path="/auth" element={<Auth />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/privacy" element={<Privacy />} />
@@ -240,9 +242,9 @@ function AppRoutes() {
       />
       
       {/* Admin routes */}
-      <Route path="/admin/users" element={<AdminUsers />} />
-      <Route path="/admin/plans" element={<AdminPlans />} />
-      <Route path="/admin/support-tickets" element={<AdminSupportTickets />} />
+      <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
+      <Route path="/admin/plans" element={<ProtectedRoute><AdminPlans /></ProtectedRoute>} />
+      <Route path="/admin/support-tickets" element={<ProtectedRoute><AdminSupportTickets /></ProtectedRoute>} />
       
       {/* Legacy route redirect */}
       <Route path="/login" element={<Navigate to="/auth" replace />} />

@@ -12,7 +12,7 @@ Real Travel 2 Real Places (RT2RP) is a **Travel Relationship Management (TRM)** 
 
 RT2RP fills this gap with a production-grade, AI-powered trip command center that replaces scattered emails, spreadsheets, and note apps with a calm, unified system.
 
-**Live product**: [realtravel2realplaces.lovable.app](https://realtravel2realplaces.lovable.app)
+**Live product**: [realtravel2realplaces.app](https://realtravel2realplaces.app)
 
 ---
 
@@ -282,7 +282,7 @@ Product design, engineering, and AI integration. The founding team combines expe
 
 **InLight AI, LLC**
 Email: inlightai26 [at] gmail [dot] com
-Product: [realtravel2realplaces.lovable.app](https://realtravel2realplaces.lovable.app)
+Product: [realtravel2realplaces.app](https://realtravel2realplaces.app)
 
 ---
 

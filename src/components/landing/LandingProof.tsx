@@ -24,7 +24,7 @@ export default function LandingProof() {
                 <span /><span /><span />
               </div>
               <div className="landing-browser-url">
-                realtravel2realplaces.lovable.app
+                realtravel2realplaces.app
               </div>
             </div>
             <div className="landing-browser-content">

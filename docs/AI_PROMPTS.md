@@ -772,7 +772,7 @@ Horizontal scrolling cards with per-city color dots (blue, amber, emerald, viole
 ### API Configuration
 
 ```javascript
-const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const AI_GATEWAY_URL = "configured by supabase/functions/_shared/ai-provider.ts";
 
 // Models used
 const MODELS = {

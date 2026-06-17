@@ -9,7 +9,7 @@
  * App Store Guideline 5.1.1(v): in-app account deletion.
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeaders, handleCors } from "../_shared/cors.ts";
+import { corsJsonHeaders, handleCors } from "../_shared/cors.ts";
 
 Deno.serve(async (req) => {
   const pre = handleCors(req);
@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
     if (!authHeader.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: corsJsonHeaders(req),
       });
     }
 
@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     if (claimsErr || !claimsData?.claims?.sub) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: corsJsonHeaders(req),
       });
     }
     const userId = claimsData.claims.sub as string;
@@ -50,19 +50,19 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: deleteErr.message || "Delete failed" }),
         {
           status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: corsJsonHeaders(req),
         },
       );
     }
 
     return new Response(JSON.stringify({ ok: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: corsJsonHeaders(req),
     });
   } catch (err) {
     console.error("[delete-account] error:", err);
     return new Response(JSON.stringify({ error: "Internal error" }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: corsJsonHeaders(req),
     });
   }
 });

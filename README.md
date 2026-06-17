@@ -40,8 +40,8 @@ The paid value is the operating layer: live next actions, Drive Cockpit, airport
 | Styling | Tailwind CSS + shadcn/ui |
 | State Management | TanStack Query (React Query v5) |
 | Routing | React Router v6 |
-| Backend | Lovable Cloud (PostgreSQL + Edge Functions) |
-| AI Services | Lovable AI (Gemini models) |
+| Backend | Supabase PostgreSQL + Edge Functions |
+| AI Services | Supabase Edge Functions with provider-managed model keys |
 | Auth | Email/password with session management |
 | Security | Row-Level Security (RLS) on all tables, PII masking for non-owners |
 | Native iOS | Capacitor (bundled React app with native shell) |
@@ -120,13 +120,13 @@ docs/
 
 ```bash
 # Install dependencies
-bun install
+npm install
 
 # Start development server
-bun run dev
+npm run dev
 
 # Run tests
-bun run test
+npm run test
 ```
 
 ### Auto-Generated Files (Do Not Edit)
@@ -139,9 +139,9 @@ bun run test
 
 ## Deployment
 
-- **Frontend**: Published via Lovable (click Publish → Update)
-- **Backend**: Edge functions and migrations deploy automatically
-- **Production URL**: [realtravel2realplaces.lovable.app](https://realtravel2realplaces.lovable.app)
+- **Frontend**: Deployed from GitHub to Vercel
+- **Backend**: Supabase migrations and Edge Functions deploy through the Supabase CLI
+- **Production URL**: [realtravel2realplaces.app](https://realtravel2realplaces.app)
 - **Custom Domain**: [realtravel2realplaces.app](https://realtravel2realplaces.app)
 - **iOS App**: Free download on the App Store — Capacitor-native build with full feature parity; SaaS membership required to sign in
 

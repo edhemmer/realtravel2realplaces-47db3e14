@@ -33,7 +33,7 @@ export type CommandItem = {
   perform: (nav: (path: string) => void) => void;
 };
 
-const RECENT_KEY = 'lovable:cmdk:recent-trip-ids';
+const RECENT_KEY = 'rt2rp:cmdk:recent-trip-ids';
 const RECENT_MAX = 5;
 
 export function rememberRecentTrip(tripId: string): void {

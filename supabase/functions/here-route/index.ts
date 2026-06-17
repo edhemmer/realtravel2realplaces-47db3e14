@@ -8,21 +8,20 @@
  * Returns a normalized response for trafficIntelligenceEngine consumption.
  */
 
-import { corsHeaders } from '../_shared/cors.ts';
+import { corsJsonHeaders, handleCors } from '../_shared/cors.ts';
 
 const HERE_API_BASE = 'https://router.hereapi.com/v8/routes';
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const preflight = handleCors(req);
+  if (preflight) return preflight;
 
   try {
     const HERE_API_KEY = Deno.env.get('HERE_API_KEY');
     if (!HERE_API_KEY) {
       return new Response(
         JSON.stringify({ error: 'HERE_API_KEY not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 500, headers: corsJsonHeaders(req) }
       );
     }
 
@@ -35,7 +34,7 @@ Deno.serve(async (req) => {
     ) {
       return new Response(
         JSON.stringify({ error: 'Invalid coordinates' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: corsJsonHeaders(req) }
       );
     }
 
@@ -76,7 +75,7 @@ Deno.serve(async (req) => {
       console.error(`HERE live route failed [${liveRes.status}]: ${errText}`);
       return new Response(
         JSON.stringify({ error: 'HERE API request failed', status: liveRes.status }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 502, headers: corsJsonHeaders(req) }
       );
     }
 
@@ -90,7 +89,7 @@ Deno.serve(async (req) => {
     if (!liveSection) {
       return new Response(
         JSON.stringify({ error: 'No route found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 404, headers: corsJsonHeaders(req) }
       );
     }
 
@@ -115,13 +114,13 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify(result),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: corsJsonHeaders(req) }
     );
   } catch (error) {
     console.error('HERE route proxy error:', error);
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: corsJsonHeaders(req) }
     );
   }
 });

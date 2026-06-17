@@ -1,22 +1,40 @@
-project_id = "tlrviwlfckiahhfmeilv"
+project_id = "ipshyjotathcwetqvhxv"
 
 [functions.trip-lifecycle-enforcement]
 verify_jwt = false
 
 [functions.parse-booking]
-verify_jwt = false
+verify_jwt = true
 
 [functions.parse-receipt-image]
-verify_jwt = false
+verify_jwt = true
 
 [functions.parse-booking-image]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-notifications]
 verify_jwt = false
 
 [functions.places-search]
+verify_jwt = true
+
+[functions.flight-status]
+verify_jwt = true
+
+[functions.here-route]
+verify_jwt = true
+
+[functions.here-transit]
+verify_jwt = true
+
+[functions.delete-account]
+verify_jwt = true
+
+[functions.places-photo]
 verify_jwt = false
+
+[functions.trip-assistant]
+verify_jwt = true
 
 [functions.inbound-email]
 verify_jwt = false
@@ -28,19 +46,25 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.generate-packing-list]
-verify_jwt = false
+verify_jwt = true
 
 [functions.normalize-airfare-costs]
-verify_jwt = false
+verify_jwt = true
 
 [functions.parse-itinerary]
-verify_jwt = false
+verify_jwt = true
 
 [functions.send-companion-summary]
-verify_jwt = false
+verify_jwt = true
 
 [functions.admin-get-support-tickets]
-verify_jwt = false
+verify_jwt = true
 
 [functions.admin-update-ticket-status]
-verify_jwt = false
+verify_jwt = true
+
+[functions.send-push]
+verify_jwt = true
+
+[functions.apns-verify]
+verify_jwt = true

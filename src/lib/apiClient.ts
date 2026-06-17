@@ -38,7 +38,10 @@ export async function handleSessionExpired(): Promise<void> {
   }
   
   // Clear any local storage auth tokens
-  localStorage.removeItem('sb-tlrviwlfckiahhfmeilv-auth-token');
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  if (projectId) {
+    localStorage.removeItem(`sb-${projectId}-auth-token`);
+  }
   
   // Redirect to auth page with reason
   window.location.href = '/auth?reason=sessionExpired';

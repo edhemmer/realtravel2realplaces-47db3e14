@@ -1,17 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { corsJsonHeaders, handleCors } from "../_shared/cors.ts";
+import { validateAuth } from "../_shared/auth.ts";
+import { callAiChatCompletion, AiProviderConfigError } from "../_shared/ai-provider.ts";
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   try {
+    const auth = await validateAuth(req);
+    if (!auth.success) return auth.errorResponse!;
+
     const body = await req.json();
     const { 
       destination_city, destination_state, destination_country, 
@@ -29,20 +28,15 @@ serve(async (req) => {
     
     if (!effectiveCity) {
       return new Response(JSON.stringify({ success: false, error: "Destination city or bookings are required" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: corsJsonHeaders(req),
       });
     }
     if (!start_date || !end_date) {
       return new Response(JSON.stringify({ success: false, error: "Trip dates are required" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: corsJsonHeaders(req),
       });
     }
     
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
-
     const startD = new Date(start_date);
     const endD = new Date(end_date);
     const tripNights = Math.max(1, Math.ceil((endD.getTime() - startD.getTime()) / (1000 * 60 * 60 * 24)));
@@ -139,13 +133,7 @@ Categories: Clothing Core, Layers & Outerwear, Rain & Wet Weather, Footwear, Acc
 
     const userPrompt = `Generate the packing list now. Remember: underwear=${dailyWearCap}, socks=${dailyWearCap}, NO item above 7. color_tip on EVERY item. applies_to on EVERY item.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    const response = await callAiChatCompletion({
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
@@ -209,7 +197,6 @@ Categories: Clothing Core, Layers & Outerwear, Rain & Wet Weather, Footwear, Acc
           },
         ],
         tool_choice: { type: "function", function: { name: "generate_packing_list" } },
-      }),
     });
 
     if (!response.ok) {
@@ -218,17 +205,17 @@ Categories: Clothing Core, Layers & Outerwear, Rain & Wet Weather, Footwear, Acc
       
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: corsJsonHeaders(req),
         });
       }
       if (response.status === 402) {
         return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 402, headers: corsJsonHeaders(req),
         });
       }
       
       return new Response(JSON.stringify({ error: "AI generation failed" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: corsJsonHeaders(req),
       });
     }
 
@@ -246,17 +233,27 @@ Categories: Clothing Core, Layers & Outerwear, Rain & Wet Weather, Footwear, Acc
           legCount: legs.length,
         }
       }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: corsJsonHeaders(req),
       });
     }
 
     return new Response(JSON.stringify({ success: false, error: "Could not generate packing list" }), {
-      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 400, headers: corsJsonHeaders(req),
     });
   } catch (error) {
+    if (error instanceof AiProviderConfigError) {
+      console.error("AI provider is not configured");
+      return new Response(JSON.stringify({
+        success: false,
+        error: "AI parsing is temporarily unavailable. Please enter details manually.",
+      }), {
+        status: 200,
+        headers: corsJsonHeaders(req),
+      });
+    }
     console.error("generate-packing-list error:", error);
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: corsJsonHeaders(req),
     });
   }
 });

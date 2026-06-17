@@ -7,21 +7,20 @@
  * Returns normalized response for transitIntelligenceEngine consumption.
  */
 
-import { corsHeaders } from '../_shared/cors.ts';
+import { corsJsonHeaders, handleCors } from '../_shared/cors.ts';
 
 const HERE_TRANSIT_BASE = 'https://transit.router.hereapi.com/v8/routes';
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const preflight = handleCors(req);
+  if (preflight) return preflight;
 
   try {
     const HERE_API_KEY = Deno.env.get('HERE_API_KEY');
     if (!HERE_API_KEY) {
       return new Response(
         JSON.stringify({ error: 'HERE_API_KEY not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 500, headers: corsJsonHeaders(req) }
       );
     }
 
@@ -34,7 +33,7 @@ Deno.serve(async (req) => {
     ) {
       return new Response(
         JSON.stringify({ error: 'Invalid coordinates' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: corsJsonHeaders(req) }
       );
     }
 
@@ -72,13 +71,13 @@ Deno.serve(async (req) => {
       if (res.status === 400) {
         return new Response(
           JSON.stringify({ routes: [], noTransit: true }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 200, headers: corsJsonHeaders(req) }
         );
       }
 
       return new Response(
         JSON.stringify({ error: 'HERE Transit API request failed', status: res.status }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 502, headers: corsJsonHeaders(req) }
       );
     }
 
@@ -163,13 +162,13 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({ routes, noTransit: false, fetchedAt: Date.now() }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: corsJsonHeaders(req) }
     );
   } catch (error) {
     console.error('HERE Transit proxy error:', error);
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: corsJsonHeaders(req) }
     );
   }
 });

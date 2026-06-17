@@ -8,7 +8,8 @@
  * Output: { success, candidates: PlaceCandidate[] }
  */
 
-import { corsHeaders, handleCors } from "../_shared/cors.ts";
+import { corsJsonHeaders, handleCors } from "../_shared/cors.ts";
+import { validateAuth } from "../_shared/auth.ts";
 
 // ============================================================================
 // TYPES
@@ -204,12 +205,15 @@ Deno.serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
+    const auth = await validateAuth(req);
+    if (!auth.success) return auth.errorResponse!;
+
     const body: SearchRequest = await req.json();
 
     if (!body.query || body.query.trim().length < 2) {
       return new Response(
         JSON.stringify({ success: true, candidates: [] }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: corsJsonHeaders(req) }
       );
     }
 
@@ -219,7 +223,7 @@ Deno.serve(async (req) => {
     if (cached && (Date.now() - cached.timestamp) < CACHE_TTL_MS) {
       return new Response(
         JSON.stringify({ success: true, candidates: cached.candidates }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { headers: corsJsonHeaders(req) }
       );
     }
 
@@ -241,13 +245,13 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({ success: true, candidates }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: corsJsonHeaders(req) }
     );
   } catch (err) {
     console.error('[places-search] Error:', err);
     return new Response(
       JSON.stringify({ success: false, candidates: [], message: 'Internal error' }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: corsJsonHeaders(req) }
     );
   }
 });

@@ -8,8 +8,11 @@ SELECT cron.schedule(
   '0 3 * * *',
   $$
   SELECT net.http_post(
-    url := 'https://tlrviwlfckiahhfmeilv.supabase.co/functions/v1/trip-lifecycle-enforcement',
-    headers := '{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRscnZpd2xmY2tpYWhoZm1laWx2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0MzI4NDEsImV4cCI6MjA4NTAwODg0MX0.-2FrPdsU_qyc9XCg2gQux0VsA8RLQlS1CfEm-BrMVdA"}'::jsonb,
+    url := 'https://ipshyjotathcwetqvhxv.supabase.co/functions/v1/trip-lifecycle-enforcement',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer ' || current_setting('app.settings.cron_secret_key', true)
+    ),
     body := '{}'::jsonb
   ) AS request_id;
   $$

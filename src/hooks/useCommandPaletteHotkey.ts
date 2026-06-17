@@ -9,7 +9,7 @@
 
 import { useEffect } from 'react';
 
-const EVENT = 'lovable:command-palette:toggle';
+const EVENT = 'rt2rp:command-palette:toggle';
 
 export function openCommandPalette(): void {
   window.dispatchEvent(new CustomEvent(EVENT, { detail: { open: true } }));

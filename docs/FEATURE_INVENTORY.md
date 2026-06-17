@@ -306,5 +306,5 @@ Complete list of implemented features organized by tier and domain.
 | Platform | URL / Status | Pricing |
 |----------|-------------|---------|
 | **Web (Custom Domain)** | [realtravel2realplaces.app](https://realtravel2realplaces.app) | Free tier + Pro/Business SaaS |
-| **Web (Lovable)** | [realtravel2realplaces.lovable.app](https://realtravel2realplaces.lovable.app) | Free tier + Pro/Business SaaS |
+| **Web (Vercel)** | [realtravel2realplaces.app](https://realtravel2realplaces.app) | Free tier + Pro/Business SaaS |
 | **iOS** | App Store — **Free download** | SaaS membership required (Free/Pro/Business) |

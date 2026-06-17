@@ -29,16 +29,12 @@ import {
   ENTITY_TYPE_LABELS,
 } from "../_shared/parse-contract.ts";
 import { deriveTripDatesFromBookings, type CanonicalBooking } from "../_shared/import-contract.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { corsJsonHeaders, handleCors } from "../_shared/cors.ts";
+import { callAiChatCompletion, AiProviderConfigError } from "../_shared/ai-provider.ts";
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   try {
     // Verify authentication
@@ -46,7 +42,7 @@ serve(async (req) => {
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ 
         success: false, data: {}, message: "Please sign in to use this feature." 
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
@@ -62,7 +58,7 @@ serve(async (req) => {
       console.error("Auth validation failed:", authError?.message);
       return new Response(JSON.stringify({ 
         success: false, data: {}, message: "Your session has expired. Please sign in again." 
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
     let text: string;
@@ -73,22 +69,13 @@ serve(async (req) => {
     } catch {
       return new Response(JSON.stringify({ 
         success: false, data: {}, message: "Invalid request format. Please try again." 
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
     if (!text || typeof text !== 'string' || text.trim().length === 0) {
       return new Response(JSON.stringify({ 
         success: false, data: {}, message: "No text provided to parse. Please paste or drop an itinerary." 
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    
-    if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY is not configured");
-      return new Response(JSON.stringify({ 
-        success: false, data: {}, message: "AI parsing is temporarily unavailable. Please enter details manually." 
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
     const systemPrompt = `You are a travel itinerary and booking confirmation parser. Your job is to extract TRIP-LEVEL information from booking confirmations, itineraries, or travel documents.
@@ -221,13 +208,7 @@ IMPORTANT: Count ALL flight header blocks in the itinerary. If there are 4 fligh
 
     let response;
     try {
-      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      response = await callAiChatCompletion({
           model: "google/gemini-2.5-pro",
           messages: [
             { role: "system", content: systemPrompt },
@@ -296,13 +277,18 @@ IMPORTANT: Count ALL flight header blocks in the itinerary. If there are 4 fligh
             },
           ],
           tool_choice: { type: "function", function: { name: "extract_itinerary" } },
-        }),
       });
     } catch (fetchError) {
+      if (fetchError instanceof AiProviderConfigError) {
+        console.error("AI provider is not configured");
+        return new Response(JSON.stringify({
+          success: false, data: {}, message: "AI parsing is temporarily unavailable. Please enter details manually."
+        }), { status: 200, headers: corsJsonHeaders(req) });
+      }
       console.error("AI gateway fetch error:", fetchError);
       return new Response(JSON.stringify({ 
         success: false, data: {}, message: "Unable to connect to AI service. Please try again or enter details manually." 
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
     if (!response.ok) {
@@ -315,7 +301,7 @@ IMPORTANT: Count ALL flight header blocks in the itinerary. If there are 4 fligh
       
       return new Response(JSON.stringify({ 
         success: false, data: {}, message: userMessage 
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
     let data;
@@ -325,7 +311,7 @@ IMPORTANT: Count ALL flight header blocks in the itinerary. If there are 4 fligh
       console.error("Failed to parse AI response JSON");
       return new Response(JSON.stringify({ 
         success: false, data: {}, message: "Received an invalid response from AI. Please enter details manually." 
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
@@ -505,23 +491,23 @@ IMPORTANT: Count ALL flight header blocks in the itinerary. If there are 4 fligh
           message: summaryParts.length > 0
             ? `Created: ${summaryParts.join(', ')}.`
             : `Successfully parsed ${parsed.bookings?.length || 0} booking(s).`,
-        }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }), { status: 200, headers: corsJsonHeaders(req) });
       } catch {
         console.error("Failed to parse tool call arguments");
         return new Response(JSON.stringify({ 
           success: false, data: {}, message: "AI returned incomplete data. Please review and complete the details manually." 
-        }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }), { status: 200, headers: corsJsonHeaders(req) });
       }
     }
 
     return new Response(JSON.stringify({ 
       success: false, data: {}, message: "We couldn't extract details from this text. Please enter the information manually." 
-    }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }), { status: 200, headers: corsJsonHeaders(req) });
   } catch (error) {
     console.error("Parse itinerary error:", error);
     return new Response(JSON.stringify({ 
       success: false, data: {}, message: "An unexpected error occurred. Please enter details manually." 
-    }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }), { status: 200, headers: corsJsonHeaders(req) });
   }
 });
 

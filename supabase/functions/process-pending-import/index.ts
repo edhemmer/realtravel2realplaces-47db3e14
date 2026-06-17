@@ -20,6 +20,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAiGateway } from "../_shared/ai-client.ts";
+import { validateInternalWorkerSecret } from "../_shared/internal-auth.ts";
 import {
   normalizeDatetime,
   normalizeReceiptDate,
@@ -48,8 +49,7 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const authHeader = req.headers.get("x-internal-secret");
-  if (authHeader !== SERVICE_ROLE_KEY) {
+  if (!validateInternalWorkerSecret(req)) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401, headers: { "Content-Type": "application/json" },
     });

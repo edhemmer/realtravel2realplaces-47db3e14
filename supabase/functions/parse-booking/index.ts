@@ -41,6 +41,8 @@ import {
   type CanonicalImportBatch,
   deriveTripDatesFromBookings,
 } from "../_shared/import-contract.ts";
+import { corsJsonHeaders, handleCors } from "../_shared/cors.ts";
+import { callAiChatCompletion, AiProviderConfigError } from "../_shared/ai-provider.ts";
 
 // ============================================================================
 // v3.9.25: TEXT NORMALIZATION (parse-time only)
@@ -80,11 +82,6 @@ function normalizeForParsing(rawText: string): string {
 
   return result.join('\n');
 }
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
 
 // ============================================================================
 // v4.5.0: MULTI-LEG NORMALIZER
@@ -257,9 +254,8 @@ function buildCanonicalBookings(
 // ============================================================================
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   try {
     // Verify authentication
@@ -267,7 +263,7 @@ serve(async (req) => {
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ 
         success: false, data: {}, message: "Please sign in to use this feature." 
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
@@ -283,7 +279,7 @@ serve(async (req) => {
       console.error("Auth validation failed:", authError?.message);
       return new Response(JSON.stringify({ 
         success: false, data: {}, message: "Your session has expired. Please sign in again." 
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
     let text: string;
@@ -296,27 +292,18 @@ serve(async (req) => {
     } catch {
       return new Response(JSON.stringify({ 
         success: false, data: {}, message: "Invalid request format. Please try again." 
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
     if (!text || typeof text !== 'string' || text.trim().length === 0) {
       return new Response(JSON.stringify({ 
         success: false, data: {}, message: "No text provided to parse. Please paste or drop a booking confirmation." 
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
     // ── v3.9.25: Normalize text for parsing (collapse blank lines, strip invisible chars) ──
     // This is parse-time only — the original raw text is NOT modified for storage.
     const normalizedText = normalizeForParsing(text);
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    
-    if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY is not configured");
-      return new Response(JSON.stringify({ 
-        success: false, data: {}, message: "AI parsing is temporarily unavailable. Please enter details manually." 
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
 
     const systemPrompt = type === 'receipt' 
       ? `You are an expense receipt parser for travel expense tracking. Extract and categorize items from the receipt.
@@ -447,13 +434,7 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
 
     let response;
     try {
-      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      response = await callAiChatCompletion({
           model: "google/gemini-2.5-flash",
           messages: [
             { role: "system", content: systemPrompt },
@@ -534,13 +515,18 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
             },
           ],
           tool_choice: { type: "function", function: { name: type === 'receipt' ? "extract_receipt" : "extract_booking" } },
-        }),
       });
     } catch (fetchError) {
+      if (fetchError instanceof AiProviderConfigError) {
+        console.error("AI provider is not configured");
+        return new Response(JSON.stringify({
+          success: false, data: {}, message: "AI parsing is temporarily unavailable. Please enter details manually."
+        }), { status: 200, headers: corsJsonHeaders(req) });
+      }
       console.error("AI gateway fetch error:", fetchError);
       return new Response(JSON.stringify({ 
         success: false, data: {}, message: "Unable to connect to AI service. Please try again or enter details manually." 
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
     if (!response.ok) {
@@ -553,7 +539,7 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
       
       return new Response(JSON.stringify({ 
         success: false, data: {}, message: userMessage 
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
     let data;
@@ -563,7 +549,7 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
       console.error("Failed to parse AI response JSON");
       return new Response(JSON.stringify({ 
         success: false, data: {}, message: "Received an invalid response from AI. Please enter details manually." 
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
@@ -622,7 +608,7 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
             is_receipt_only: true,
             doc_classification: 'RECEIPT',
             message: `This appears to be a ${entityLabel.toLowerCase()} receipt without service dates. An expense will be created instead.`
-          }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          }), { status: 200, headers: corsJsonHeaders(req) });
         }
         
         // ── CONFIRMATION PATH ────────────────────────────────────────
@@ -643,7 +629,7 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
               has_issues: true,
               missing_fields: issue.missingFields,
               message: `${entityLabel} confirmation parsed, but missing: ${issue.missingFields.map(f => f.replace(/_/g, ' ')).join(', ')}. Please complete these fields manually.`
-            }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+            }), { status: 200, headers: corsJsonHeaders(req) });
           }
           
           // All required fields present — clean confirmation
@@ -656,7 +642,7 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
             is_receipt_only: false,
             doc_classification: docClass,
             message: `Successfully parsed booking details.${legMsg}`
-          }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          }), { status: 200, headers: corsJsonHeaders(req) });
         }
         
         // ── CHANGE/CANCEL PATH ───────────────────────────────────────
@@ -668,30 +654,30 @@ Return a JSON object with these fields. Use null for any fields you cannot deter
             is_receipt_only: false,
             doc_classification: 'CHANGE_OR_CANCEL',
             message: "This appears to be a change or cancellation notice. Please review your existing bookings."
-          }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          }), { status: 200, headers: corsJsonHeaders(req) });
         }
         
         // Fallback
         return new Response(JSON.stringify({ 
           success: true, data: parsed, canonical_import: canonicalBatch, is_receipt_only: false, doc_classification: 'UNKNOWN',
           message: "Successfully parsed booking details."
-        }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }), { status: 200, headers: corsJsonHeaders(req) });
         
       } catch {
         console.error("Failed to parse tool call arguments");
         return new Response(JSON.stringify({ 
           success: false, data: {}, message: "AI returned incomplete data. Please review and complete the details manually." 
-        }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }), { status: 200, headers: corsJsonHeaders(req) });
       }
     }
 
     return new Response(JSON.stringify({ 
       success: false, data: {}, message: "We couldn't extract details from this text. Please enter the information manually." 
-    }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }), { status: 200, headers: corsJsonHeaders(req) });
   } catch (error) {
     console.error("Parse booking error:", error);
     return new Response(JSON.stringify({ 
       success: false, data: {}, message: "An unexpected error occurred. Please enter details manually." 
-    }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }), { status: 200, headers: corsJsonHeaders(req) });
   }
 });

@@ -143,6 +143,6 @@ Real Travel 2 Real Places provides:
 ## Links
 
 - **Production (Web)**: [realtravel2realplaces.app](https://realtravel2realplaces.app)
-- **Published URL**: [realtravel2realplaces.lovable.app](https://realtravel2realplaces.lovable.app)
+- **Published URL**: [realtravel2realplaces.app](https://realtravel2realplaces.app)
 - **Architecture**: [docs/ARCHITECTURE.md](./ARCHITECTURE.md)
 - **Feature Inventory**: [docs/FEATURE_INVENTORY.md](./FEATURE_INVENTORY.md)

@@ -2,7 +2,7 @@
 // Signs a JWT with the stored .p8 key and pings Apple's APNs server
 // to confirm credentials are valid end-to-end.
 
-import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { corsJsonHeaders, handleCors } from '../_shared/cors.ts';
 import { create, getNumericDate } from 'https://deno.land/x/djwt@v3.0.2/mod.ts';
 
 function b64urlToUint8(b64url: string): Uint8Array {
@@ -25,7 +25,8 @@ function pemToPkcs8(pem: string): Uint8Array {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  const preflight = handleCors(req);
+  if (preflight) return preflight;
 
   const checks: Record<string, { ok: boolean; detail: string }> = {};
 
@@ -127,6 +128,6 @@ Deno.serve(async (req) => {
 
   return new Response(
     JSON.stringify({ ok: allOk, checks }, null, 2),
-    { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    { status: 200, headers: corsJsonHeaders(req) },
   );
 });

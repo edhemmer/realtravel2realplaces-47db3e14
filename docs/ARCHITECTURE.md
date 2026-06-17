@@ -415,7 +415,7 @@ The iOS app is the same React codebase wrapped in a Capacitor native shell. No f
 | Aspect | Implementation |
 |--------|---------------|
 | **Framework** | `@capacitor/core` + `@capacitor/ios` |
-| **Bundle ID** | `app.lovable.314579f7aa3c49b7b1788640b495f1f7` |
+| **Bundle ID** | `com.inlighttai.rt2rp` |
 | **App Name** | `realtravel2realplaces` |
 | **Build output** | `.ipa` via Xcode Archive → App Store Connect |
 
@@ -469,6 +469,6 @@ Lovable edits → GitHub export → npm install → npm run build → npx cap sy
 | Platform | URL / Status |
 |----------|-------------|
 | **Web (Custom Domain)** | [realtravel2realplaces.app](https://realtravel2realplaces.app) |
-| **Web (Lovable)** | [realtravel2realplaces.lovable.app](https://realtravel2realplaces.lovable.app) |
+| **Web (Vercel)** | [realtravel2realplaces.app](https://realtravel2realplaces.app) |
 | **iOS** | App Store Connect — submitted for App Store review |
 | **Build Guide** | [IOS_BUILD.md](../../IOS_BUILD.md) |

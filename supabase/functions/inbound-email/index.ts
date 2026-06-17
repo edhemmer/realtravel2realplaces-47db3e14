@@ -12,6 +12,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const WEBHOOK_SECRET = Deno.env.get("INBOUND_EMAIL_WEBHOOK_SECRET")!;
+const INTERNAL_WORKER_SECRET = Deno.env.get("INTERNAL_WORKER_SECRET")!;
 
 function unauthorized(msg = "Unauthorized") {
   return new Response(JSON.stringify({ error: msg }), {
@@ -172,7 +173,7 @@ Deno.serve(async (req: Request) => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-internal-secret": SERVICE_ROLE_KEY,
+        "x-internal-secret": INTERNAL_WORKER_SECRET,
       },
       body: JSON.stringify({ import_id: inserted.id }),
     }).catch((e) => console.error("inbound-email: async trigger failed", e));

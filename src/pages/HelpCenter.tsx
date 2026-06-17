@@ -1634,7 +1634,7 @@ export default function HelpCenter() {
           name="description"
           content="Complete user manual for Real Travel 2 Real Places. Step-by-step guides for Today, Flow, Move, Guide, Discover, Tours, Drive Mode, expenses, packing, sharing, and more."
         />
-        <link rel="canonical" href="https://realtravel2realplaces.lovable.app/help" />
+        <link rel="canonical" href="https://realtravel2realplaces.app/help" />
       </Helmet>
       <FaqJsonLd />
       <Layout>

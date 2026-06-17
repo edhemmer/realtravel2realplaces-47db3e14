@@ -10,7 +10,8 @@
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { corsHeaders, handleCors } from "../_shared/cors.ts";
+import { corsJsonHeaders, handleCors } from "../_shared/cors.ts";
+import { callAiChatCompletion, AiProviderConfigError } from "../_shared/ai-provider.ts";
 import { 
   normalizeDatetime, 
   cleanNullStrings,
@@ -33,7 +34,7 @@ serve(async (req) => {
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ 
         success: false, data: null, message: "Please sign in to use this feature.", error: 'NOT_AUTHENTICATED'
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
@@ -48,7 +49,7 @@ serve(async (req) => {
     if (authError || !user) {
       return new Response(JSON.stringify({ 
         success: false, data: null, message: "Your session has expired. Please sign in again.", error: 'SESSION_EXPIRED'
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
     let tripId: string;
@@ -63,13 +64,13 @@ serve(async (req) => {
     } catch {
       return new Response(JSON.stringify({ 
         success: false, data: null, message: "Invalid request format.", error: 'INVALID_REQUEST'
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
     if (!tripId || !imageBase64) {
       return new Response(JSON.stringify({ 
         success: false, data: null, message: "Missing required fields (tripId, imageBase64).", error: 'MISSING_FIELDS'
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
     const { data: hasAccess } = await supabaseClient
@@ -78,14 +79,7 @@ serve(async (req) => {
     if (!hasAccess) {
       return new Response(JSON.stringify({ 
         success: false, data: null, message: "You don't have access to this trip.", error: 'PERMISSION_DENIED'
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ 
-        success: false, data: null, message: "AI parsing is temporarily unavailable.", error: 'AI_UNAVAILABLE'
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
     const typeHintInstruction = typeHint === 'flight' 
@@ -122,13 +116,7 @@ Return structured data via the tool call. Use null for fields you cannot determi
 
     let response;
     try {
-      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      response = await callAiChatCompletion({
           model: "google/gemini-2.5-flash",
           messages: [
             { role: "system", content: systemPrompt },
@@ -178,13 +166,18 @@ Return structured data via the tool call. Use null for fields you cannot determi
             },
           ],
           tool_choice: { type: "function", function: { name: "extract_booking_from_image" } },
-        }),
       });
     } catch (fetchError) {
+      if (fetchError instanceof AiProviderConfigError) {
+        console.error("AI provider is not configured");
+        return new Response(JSON.stringify({
+          success: false, data: null, message: "AI parsing is temporarily unavailable.", error: 'AI_UNAVAILABLE'
+        }), { status: 200, headers: corsJsonHeaders(req) });
+      }
       console.error("AI gateway fetch error:", fetchError);
       return new Response(JSON.stringify({ 
         success: false, data: null, message: "Unable to connect to AI service. Please try again.", error: 'AI_FETCH_ERROR'
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
     if (!response.ok) {
@@ -196,7 +189,7 @@ Return structured data via the tool call. Use null for fields you cannot determi
       
       return new Response(JSON.stringify({ 
         success: false, data: null, message: userMessage, error: 'AI_ERROR'
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
     let aiResponse;
@@ -205,7 +198,7 @@ Return structured data via the tool call. Use null for fields you cannot determi
     } catch {
       return new Response(JSON.stringify({ 
         success: false, data: null, message: "Invalid AI response. Please enter details manually.", error: 'AI_PARSE_ERROR'
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
     const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
@@ -213,7 +206,7 @@ Return structured data via the tool call. Use null for fields you cannot determi
     if (!toolCall?.function?.arguments) {
       return new Response(JSON.stringify({ 
         success: false, data: null, message: "AI couldn't extract details from this image.", error: 'NO_DATA'
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
     let parsed;
@@ -222,7 +215,7 @@ Return structured data via the tool call. Use null for fields you cannot determi
     } catch {
       return new Response(JSON.stringify({ 
         success: false, data: null, message: "AI returned incomplete data.", error: 'PARSE_FAILED'
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
     if (!parsed.readable) {
@@ -230,7 +223,7 @@ Return structured data via the tool call. Use null for fields you cannot determi
         success: false, data: null,
         message: parsed.reason || "Unable to read the image. Please take a clearer photo.",
         error: 'NOT_READABLE'
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
     // Clean up parsed data
@@ -297,7 +290,7 @@ Return structured data via the tool call. Use null for fields you cannot determi
           is_receipt_only: true,
         },
         message: `Parsed ${entityLabel.toLowerCase()} receipt from ${draftBooking.vendor_name || 'image'}.`
-      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
     // Required field enforcement
@@ -323,12 +316,12 @@ Return structured data via the tool call. Use null for fields you cannot determi
         missing_fields: issue?.missingFields || [],
       },
       message: `Parsed ${draftBooking.booking_type} confirmation${draftBooking.vendor_name ? ` from ${draftBooking.vendor_name}` : ''}.`
-    }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }), { status: 200, headers: corsJsonHeaders(req) });
 
   } catch (error) {
     console.error("Parse booking image error:", error);
     return new Response(JSON.stringify({ 
       success: false, data: null, message: "An unexpected error occurred. Please enter details manually.", error: 'INTERNAL_ERROR'
-    }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }), { status: 200, headers: corsJsonHeaders(req) });
   }
 });

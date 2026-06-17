@@ -13,7 +13,7 @@ You don't need to own a Mac. Pick a build path, follow it once, and you're in Te
    # one-time
    xcode-select --install
    ```
-4. Clone your GitHub export of this Lovable project:
+4. Clone this GitHub repository:
    ```bash
    git clone https://github.com/<you>/<repo>.git
    cd <repo>
@@ -23,7 +23,7 @@ You don't need to own a Mac. Pick a build path, follow it once, and you're in Te
    ```
 5. Xcode opens the Xcode project (`App.xcodeproj`). Select your **Apple Developer team** in *Signing & Capabilities*, then hit **Run** or **Archive**.
 
-For every later change pushed from Lovable:
+For every later change pushed to GitHub:
 ```bash
 git pull && npm install && npm run ios:sync && open ios/App/App.xcodeproj
 ```
@@ -54,10 +54,10 @@ This is the right path if you don't want to touch Xcode at all.
 
 ## Apple Sign-In (required by App Store if Google sign-in is present)
 
-Already supported by Lovable Cloud. To enable:
-1. Open the backend dashboard from Lovable.
-2. Authentication → Sign-In Methods → **Apple** → toggle on (managed credentials).
-3. In `src/pages/Auth.tsx`, add an "Sign in with Apple" button that calls `supabase.auth.signInWithOAuth({ provider: 'apple' })`.
+Configure this in Supabase Auth:
+1. Open the Supabase dashboard for project `ipshyjotathcwetqvhxv`.
+2. Authentication → Providers → **Apple** → configure the Apple service credentials.
+3. Add the Vercel production URL and iOS callback/deep-link URLs to Supabase Auth redirect allow-lists.
 
 ## Release checklist (run before every TestFlight build)
 
@@ -88,9 +88,9 @@ Store metadata
 
 ---
 
-## Release build (drop the dev server.url)
+## Release build
 
-Production builds already load bundled assets by default. Run `npm run ios:sync`, open `ios/App/App.xcodeproj`, then archive in Xcode (Product → Archive → Distribute → App Store Connect).
+Production builds load bundled assets by default. Run `npm run ios:sync`, open `ios/App/App.xcodeproj`, then archive in Xcode (Product → Archive → Distribute → App Store Connect).
 
 ## If Xcode says “Missing package product 'CapApp-SPM'”
 

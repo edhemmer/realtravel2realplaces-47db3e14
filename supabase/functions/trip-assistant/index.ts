@@ -4,11 +4,9 @@
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { corsJsonHeaders, handleCors } from "../_shared/cors.ts";
+import { validateAuth } from "../_shared/auth.ts";
+import { callAiChatCompletion, AiProviderConfigError } from "../_shared/ai-provider.ts";
 
 const SYSTEM_PROMPT = `You are a concise travel assistant embedded in a trip management app. You answer ONLY based on the trip context provided. You MUST follow these rules:
 
@@ -27,32 +25,26 @@ RULES:
 FORMAT: Plain text only. No markdown, no bullet points, no lists.`;
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   try {
+    const auth = await validateAuth(req);
+    if (!auth.success) return auth.errorResponse!;
+
     const { question, tripContext } = await req.json();
 
     if (!question || typeof question !== "string" || question.trim().length === 0) {
       return new Response(
         JSON.stringify({ error: "Question is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: corsJsonHeaders(req) }
       );
     }
 
     if (!tripContext || typeof tripContext !== "object") {
       return new Response(
         JSON.stringify({ error: "Trip context is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(
-        JSON.stringify({ error: "AI service is temporarily unavailable" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: corsJsonHeaders(req) }
       );
     }
 
@@ -72,39 +64,32 @@ ${tripContext.weather ? `Weather: High ${tripContext.weather.high}°${tripContex
 ${tripContext.transportMode ? `Transport: ${tripContext.transportMode}` : ""}
 ${tripContext.scheduleDensity ? `Schedule: ${tripContext.scheduleDensity}` : ""}`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    const response = await callAiChatCompletion({
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: `${contextBlock}\n\nUSER QUESTION: ${question.trim()}` },
         ],
-      }),
     });
 
     if (!response.ok) {
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ error: "Too many requests. Please try again in a moment." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 429, headers: corsJsonHeaders(req) }
         );
       }
       if (response.status === 402) {
         return new Response(
           JSON.stringify({ error: "AI credits exhausted. Please add funds in workspace settings." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 402, headers: corsJsonHeaders(req) }
         );
       }
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
       return new Response(
         JSON.stringify({ error: "Unable to get a response right now. Please try again." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: corsJsonHeaders(req) }
       );
     }
 
@@ -114,19 +99,25 @@ ${tripContext.scheduleDensity ? `Schedule: ${tripContext.scheduleDensity}` : ""}
     if (!content) {
       return new Response(
         JSON.stringify({ error: "No response generated. Please try rephrasing your question." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: corsJsonHeaders(req) }
       );
     }
 
     return new Response(
       JSON.stringify({ answer: content.trim() }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: corsJsonHeaders(req) }
     );
   } catch (e) {
+    if (e instanceof AiProviderConfigError) {
+      return new Response(
+        JSON.stringify({ error: "AI service is temporarily unavailable" }),
+        { status: 500, headers: corsJsonHeaders(req) }
+      );
+    }
     console.error("trip-assistant error:", e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: corsJsonHeaders(req) }
     );
   }
 });

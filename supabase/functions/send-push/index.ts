@@ -5,14 +5,14 @@
 // Required secrets:
 //   APNS_KEY_ID       — 10-char Key ID from Apple Developer
 //   APNS_TEAM_ID      — 10-char Team ID
-//   APNS_BUNDLE_ID    — e.g. app.lovable.a314579f7aa3c49b7b1788640b495f1f7
+//   APNS_BUNDLE_ID    — e.g. com.inlighttai.rt2rp
 //   APNS_PRIVATE_KEY  — full contents of AuthKey_XXX.p8 (PEM)
 //   APNS_USE_SANDBOX  — "true" for dev (sandbox.push.apple.com), "false" for prod
 //
 // Body: { user_id: uuid, title: string, body: string, data?: object }
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { corsJsonHeaders, handleCors } from '../_shared/cors.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -94,13 +94,14 @@ async function sendToApns(opts: {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  const preflight = handleCors(req);
+  if (preflight) return preflight;
 
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'missing auth' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401, headers: corsJsonHeaders(req),
       });
     }
 
@@ -112,14 +113,14 @@ Deno.serve(async (req) => {
     const { data: userData, error: userErr } = await userClient.auth.getUser();
     if (userErr || !userData.user) {
       return new Response(JSON.stringify({ error: 'unauthorized' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401, headers: corsJsonHeaders(req),
       });
     }
 
     const body = (await req.json()) as Partial<Body>;
     if (!body.user_id || !body.title || !body.body) {
       return new Response(JSON.stringify({ error: 'user_id, title, body required' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400, headers: corsJsonHeaders(req),
       });
     }
 
@@ -133,7 +134,7 @@ Deno.serve(async (req) => {
     const iosTokens = (tokens ?? []).filter((t) => t.platform === 'ios');
     if (iosTokens.length === 0) {
       return new Response(JSON.stringify({ sent: 0, note: 'no ios device tokens' }), {
-        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200, headers: corsJsonHeaders(req),
       });
     }
 
@@ -152,7 +153,7 @@ Deno.serve(async (req) => {
           !P8 && 'APNS_PRIVATE_KEY',
         ].filter(Boolean),
       }), {
-        status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 503, headers: corsJsonHeaders(req),
       });
     }
 
@@ -178,12 +179,12 @@ Deno.serve(async (req) => {
 
     const sent = results.filter((r) => r.ok).length;
     return new Response(JSON.stringify({ sent, failed: results.length - sent, pruned: stale.length }), {
-      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200, headers: corsJsonHeaders(req),
     });
   } catch (err) {
     console.error('[send-push] error', err);
     return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500, headers: corsJsonHeaders(req),
     });
   }
 });

@@ -6,7 +6,7 @@
  * Output: Image binary (proxied from Google)
  */
 
-import { corsHeaders, handleCors } from "../_shared/cors.ts";
+import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
 
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
@@ -19,7 +19,14 @@ Deno.serve(async (req) => {
     if (!ref) {
       return new Response('Missing ref parameter', {
         status: 400,
-        headers: corsHeaders,
+        headers: getCorsHeaders(req),
+      });
+    }
+
+    if (!/^places\/[^/]+\/photos\/[^/]+\/media$/.test(ref)) {
+      return new Response('Invalid ref parameter', {
+        status: 400,
+        headers: getCorsHeaders(req),
       });
     }
 
@@ -27,7 +34,7 @@ Deno.serve(async (req) => {
     if (!apiKey) {
       return new Response('Not configured', {
         status: 503,
-        headers: corsHeaders,
+        headers: getCorsHeaders(req),
       });
     }
 
@@ -38,7 +45,7 @@ Deno.serve(async (req) => {
       console.error(`[places-photo] Google error: ${response.status}`);
       return new Response('Photo not available', {
         status: 404,
-        headers: corsHeaders,
+        headers: getCorsHeaders(req),
       });
     }
 
@@ -47,7 +54,7 @@ Deno.serve(async (req) => {
 
     return new Response(imageData, {
       headers: {
-        ...corsHeaders,
+        ...getCorsHeaders(req),
         'Content-Type': contentType,
         'Cache-Control': 'public, max-age=86400', // Cache 24h
       },
@@ -56,7 +63,7 @@ Deno.serve(async (req) => {
     console.error('[places-photo] Error:', err);
     return new Response('Error', {
       status: 500,
-      headers: corsHeaders,
+      headers: getCorsHeaders(req),
     });
   }
 });

@@ -9,7 +9,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MapPin, Calendar, Eye, EyeOff, Loader2, AlertCircle, Mail, Lock } from 'lucide-react';
 import { User } from 'lucide-react';
 import logoImg from '@/assets/rt2rp-logo.png';
-import { lovable } from '@/integrations/lovable';
 import { supabase } from '@/integrations/supabase/client';
 
 function AppleIcon({ className }: { className?: string }) {
@@ -44,10 +43,16 @@ export default function Auth() {
   // Check for session expired or idle logout reason
   useEffect(() => {
     const reason = searchParams.get('reason');
+    const verified = searchParams.get('verified');
+    const callbackError = searchParams.get('error');
     if (reason === 'sessionExpired') {
       setError('Your session has expired. Please log in again.');
     } else if (reason === 'idle') {
       setError('You were logged out after 2 hours of inactivity for security.');
+    } else if (verified === '1') {
+      setSuccessMessage('Email verified. Please sign in to continue.');
+    } else if (callbackError === 'verification') {
+      setError('We could not finish email verification. Please try signing in again.');
     }
   }, [searchParams]);
 
@@ -179,16 +184,16 @@ export default function Auth() {
         navigate('/dashboard');
         return;
       }
-      const result = await lovable.auth.signInWithOAuth('apple', {
-        redirect_uri: window.location.origin + '/dashboard',
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'apple',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`,
+        },
       });
-      if (result.error) {
-        setError(result.error.message || 'Could not sign in with Apple.');
+      if (error) {
+        setError(error.message || 'Could not sign in with Apple.');
         setLoading(false);
-        return;
       }
-      if (result.redirected) return;
-      navigate('/dashboard');
     } catch (err: any) {
       // User cancellation = silent
       const msg = String(err?.message || err || '');

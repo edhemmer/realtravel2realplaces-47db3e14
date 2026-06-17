@@ -26,10 +26,10 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     await req.json().catch(() => ({}));
     const isCron =
-      authHeader === `Bearer ${cronSecret}` ||
-      (authHeader?.startsWith("Bearer ") && cronSecret === "");
+      cronSecret.length > 0 &&
+      authHeader === `Bearer ${cronSecret}`;
 
-    if (!isCron && !authHeader?.startsWith("Bearer ")) {
+    if (!isCron) {
       return new Response(
         JSON.stringify({ success: false, message: "Unauthorized" }),
         {

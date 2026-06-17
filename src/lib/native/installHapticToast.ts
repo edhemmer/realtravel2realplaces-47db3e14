@@ -15,7 +15,7 @@
 import { toast } from 'sonner';
 import { haptic } from './haptics';
 
-const PATCHED = Symbol.for('lovable.haptic-toast-patched');
+const PATCHED = Symbol.for('rt2rp.haptic-toast-patched');
 
 type Patchable = {
   success?: (...args: unknown[]) => unknown;
