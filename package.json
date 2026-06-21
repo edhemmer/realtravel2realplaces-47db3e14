@@ -12,7 +12,7 @@
     "ios:sync": "npm run build && npx cap sync ios",
     "ios:run": "npm run ios:sync && npx cap run ios",
     "ios:dev-server": "CAP_DEV_SERVER=1 npx cap sync ios && CAP_DEV_SERVER=1 npx cap run ios",
-    "ios:release": "CAP_BUNDLED=1 npm run build && CAP_BUNDLED=1 npx cap sync ios",
+    "ios:release": "CAP_BUNDLED=1 CAP_DEV_SERVER=0 npm run build && CAP_BUNDLED=1 CAP_DEV_SERVER=0 npx cap sync ios",
     "test": "vitest run",
     "test:watch": "vitest"
   },

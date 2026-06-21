@@ -10,7 +10,8 @@ import type { CapacitorConfig } from '@capacitor/cli';
  *   CAP_DEV_SERVER=1 CAP_DEV_SERVER_URL=http://localhost:8080 npx cap run ios
  */
 const devServerUrl = process.env.CAP_DEV_SERVER_URL ?? 'http://localhost:8080';
-const useDevServer = process.env.CAP_DEV_SERVER === '1';
+const isBundledRelease = process.env.CAP_BUNDLED === '1';
+const useDevServer = !isBundledRelease && process.env.CAP_DEV_SERVER === '1';
 
 const config: CapacitorConfig = {
   appId: 'com.inlighttai.rt2rp',
