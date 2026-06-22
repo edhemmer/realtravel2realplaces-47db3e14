@@ -12,7 +12,9 @@ createRoot(document.getElementById("root")!).render(
 );
 
 // PWA auto-update service worker registration (web only — Capacitor ignores SW)
-registerSW({ immediate: true });
+if (!__CAP_BUNDLED__) {
+  registerSW({ immediate: true });
+}
 
 // Native (iOS/Android) bootstrap — no-op on web
 bootstrapNativePlatform();
