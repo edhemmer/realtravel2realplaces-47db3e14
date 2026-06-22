@@ -14,9 +14,6 @@ const isCapBundled = process.env.CAP_BUNDLED === "1";
 
 export default defineConfig(({ mode }) => ({
   base: isCapBundled ? "./" : "/",
-  define: {
-    __CAP_BUNDLED__: JSON.stringify(isCapBundled),
-  },
   server: {
     host: "::",
     port: 8080,
@@ -26,7 +23,8 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    VitePWA({
+    !isCapBundled && VitePWA({
+      injectRegister: "auto",
       registerType: "autoUpdate",
       includeAssets: ["favicon.png", "favicon.ico", "rt2rp-logo.png"],
       workbox: {
@@ -85,7 +83,7 @@ export default defineConfig(({ mode }) => ({
         ],
       },
     }),
-  ],
+  ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
