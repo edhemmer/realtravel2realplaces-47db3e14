@@ -7,12 +7,12 @@ export default function LandingProof() {
         {/* Section Header */}
         <div className="text-center mb-8">
           <h2 className="landing-section-headline">
-            This isn't a demo. This is the real system.
+            A preview of the operating system travelers actually use.
           </h2>
           <p className="landing-section-subtext">
-            Real Travel 2 Real Places is already managing real trips with real confirmations.
+            Real Travel 2 Real Places manages real trips from real confirmations.
             <br className="hidden sm:block" />
-            What you see is what you use.
+            The app turns those moving parts into live operating windows, offline context, and next actions.
           </p>
         </div>
 

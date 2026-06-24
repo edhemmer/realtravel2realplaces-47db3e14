@@ -8,6 +8,7 @@
  */
 
 import { corsJsonHeaders, handleCors } from '../_shared/cors.ts';
+import { validateAuth } from '../_shared/auth.ts';
 
 const HERE_TRANSIT_BASE = 'https://transit.router.hereapi.com/v8/routes';
 
@@ -16,6 +17,9 @@ Deno.serve(async (req) => {
   if (preflight) return preflight;
 
   try {
+    const auth = await validateAuth(req);
+    if (!auth.success) return auth.errorResponse!;
+
     const HERE_API_KEY = Deno.env.get('HERE_API_KEY');
     if (!HERE_API_KEY) {
       return new Response(

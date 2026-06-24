@@ -207,6 +207,7 @@ function buildTextQuery(type: string, lat: number, lng: number): { textQuery: st
     case 'grocery_store':
       return { textQuery: 'grocery stores and supermarkets', includedType: 'grocery_store' };
     case 'gas_station':
+      return { textQuery: 'gas stations', includedType: 'gas_station' };
     case 'convenience_store':
       return { textQuery: 'convenience stores', includedType: 'convenience_store' };
     default:
