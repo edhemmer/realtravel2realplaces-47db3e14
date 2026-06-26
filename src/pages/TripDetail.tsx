@@ -303,7 +303,7 @@ export default function TripDetail() {
 
   // v2.3.x: Shared header content for both mobile and desktop
   const renderTripHeader = () => (
-    <div className="space-y-3 md:space-y-6 animate-fade-in pt-safe">
+    <div className="rt-page-stack animate-fade-in pt-safe">
       {/* Back row */}
       <div className="flex flex-col gap-1.5 md:gap-4">
         <Button asChild variant="ghost" className="w-fit -ml-2 h-8 md:h-10 text-xs md:text-sm">
@@ -314,12 +314,14 @@ export default function TripDetail() {
         </Button>
       </div>
 
-      {/* v2.3.x: TripStatusHeroBar */}
-      <TripStatusHeroBar trip={trip} />
+      {/* v2.3.x: Mobile status hero. Desktop has a single command hero below. */}
+      <div className="md:hidden">
+        <TripStatusHeroBar trip={trip} />
+      </div>
 
       {/* Desktop-only: full trip metadata */}
       <div className="hidden md:block">
-        <div className="premium-panel overflow-hidden rounded-2xl">
+        <div className="rt-command-panel">
           <div className="ops-hero relative px-5 py-5 lg:px-6">
             <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-signal/70 to-transparent" />
             <div className="relative flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
@@ -351,7 +353,7 @@ export default function TripDetail() {
                 {desktopOpsSignals.map((signal) => {
                   const Icon = signal.icon;
                   return (
-                    <div key={signal.label} className="rounded-xl border border-white/10 bg-white/8 p-3 backdrop-blur-sm">
+                    <div key={signal.label} className="rt-hero-kpi p-3">
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <p className="text-[11px] font-semibold uppercase text-white/55">{signal.label}</p>
@@ -402,7 +404,7 @@ export default function TripDetail() {
 
       {/* v2.6.13: Primary zone — single-row horizontal scroll on mobile */}
       {/* v2.6.19: MobileNextUpCard and MobileAddExpenseCard moved to NOW execution pills — only ProRetention stays in header */}
-      <div className="flex gap-2 overflow-x-auto md:flex-col md:overflow-visible md:space-y-6 md:gap-0 px-0.5 md:px-0 scrollbar-hide pb-1 md:pb-0">
+      <div className="flex gap-2 overflow-x-auto md:flex-col md:overflow-visible md:gap-4 px-0.5 md:px-0 scrollbar-hide pb-1 md:pb-0">
         <div className="shrink-0 md:shrink md:w-full min-w-[280px] md:min-w-0">
           <ProRetentionCountdownCard trip={trip} />
         </div>
@@ -480,20 +482,20 @@ export default function TripDetail() {
               {/* Desktop tab content section */}
               <div className="mt-4 md:mt-0">
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                  <TabsList className="premium-tabs w-full justify-start gap-1 overflow-x-auto flex-nowrap hidden md:flex p-1">
-                    <TabsTrigger value="summary" className="gap-1.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  <TabsList className="premium-tabs w-full justify-start gap-1 overflow-x-auto flex-nowrap hidden md:flex p-1.5">
+                    <TabsTrigger value="summary" className="rt-tab-trigger">
                       <Route className="h-3.5 w-3.5" />
                       Timeline
                     </TabsTrigger>
-                    <TabsTrigger value="ops" className="gap-1.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <TabsTrigger value="ops" className="rt-tab-trigger">
                       <LayoutDashboard className="h-3.5 w-3.5" />
                       TravelOps
                     </TabsTrigger>
-                    <TabsTrigger value="bookings" className="gap-1.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <TabsTrigger value="bookings" className="rt-tab-trigger">
                       <Plane className="h-3.5 w-3.5" />
                       Bookings
                     </TabsTrigger>
-                    <TabsTrigger value="explore" className="relative gap-1.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <TabsTrigger value="explore" className="rt-tab-trigger relative">
                       <Compass className="h-3.5 w-3.5" />
                       Explore
                       {!hasDiscoveredExplore && (
@@ -505,43 +507,43 @@ export default function TripDetail() {
                         </Badge>
                       )}
                     </TabsTrigger>
-                    <TabsTrigger value="expenses" className="gap-1.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <TabsTrigger value="expenses" className="rt-tab-trigger">
                       <ReceiptText className="h-3.5 w-3.5" />
                       Expenses
                     </TabsTrigger>
-                    <TabsTrigger value="packing" className="gap-1.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <TabsTrigger value="packing" className="rt-tab-trigger">
                       <Package className="h-3.5 w-3.5" />
                       Packing
                     </TabsTrigger>
-                    <TabsTrigger value="weather" className="gap-1.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <TabsTrigger value="weather" className="rt-tab-trigger">
                       <CloudSun className="h-3.5 w-3.5" />
                       Weather
                     </TabsTrigger>
-                    <TabsTrigger value="parking" className="gap-1.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <TabsTrigger value="parking" className="rt-tab-trigger">
                       <CircleParking className="h-3.5 w-3.5" />
                       Parking
                     </TabsTrigger>
                     {isPro && (
-                      <TabsTrigger value="report" className="gap-1.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                      <TabsTrigger value="report" className="rt-tab-trigger">
                         <FileText className="h-3.5 w-3.5" />
                         Report
                       </TabsTrigger>
                     )}
-                    <TabsTrigger value="members" className="gap-1.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <TabsTrigger value="members" className="rt-tab-trigger">
                       <Users className="h-3.5 w-3.5" />
                       Members
                     </TabsTrigger>
-                    <TabsTrigger value="companions" className="gap-1.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <TabsTrigger value="companions" className="rt-tab-trigger">
                       <Users className="h-3.5 w-3.5" />
                       Companions
                     </TabsTrigger>
                     {canAccessBusinessFeatures && (
-                      <TabsTrigger value="tour" className="gap-1.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                      <TabsTrigger value="tour" className="rt-tab-trigger">
                         <BriefcaseBusiness className="h-3.5 w-3.5" />
                         Tour
                       </TabsTrigger>
                     )}
-                    <TabsTrigger value="notes" className="gap-1.5 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                    <TabsTrigger value="notes" className="rt-tab-trigger">
                       <NotebookTabs className="h-3.5 w-3.5" />
                       Notes
                     </TabsTrigger>

@@ -70,10 +70,10 @@ export function DriveModeEntryCard({ tripId, trip, canonicalState }: DriveModeEn
   return (
     <Link
       to={`/trip/${tripId}/drive`}
-      className="block rounded-lg border border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors px-4 py-3"
+      className="rt-command-panel block px-4 py-3 transition-colors hover:border-primary/35"
     >
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+        <div className="rt-icon-tile">
           <Car className="w-4.5 h-4.5 text-primary" />
         </div>
         <div className="flex-1 min-w-0">

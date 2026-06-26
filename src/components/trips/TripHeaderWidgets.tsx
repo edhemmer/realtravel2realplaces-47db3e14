@@ -155,13 +155,12 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
   };
 
   return (
-    <div className="grid gap-3 md:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-3">
       {/* Weather Widget */}
-      <Card className="premium-panel overflow-hidden rounded-2xl border-primary/20">
-        <div className="h-1 bg-[linear-gradient(90deg,hsl(var(--brand-signal)),hsl(var(--brand-champagne)))]" />
+      <Card className="rt-command-panel">
         <CardHeader className="pb-1.5 pt-4">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <span className="rt-icon-tile">
               <Thermometer className="w-4 h-4" />
             </span>
             Weather
@@ -173,11 +172,10 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
       </Card>
 
       {/* Cost Summary Widget */}
-      <Card className="premium-panel overflow-hidden rounded-2xl">
-        <div className="h-1 bg-[linear-gradient(90deg,hsl(var(--brand-signal-deep)),hsl(var(--brand-champagne)))]" />
+      <Card className="rt-command-panel">
         <CardHeader className="pb-1.5 pt-4">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-champagne/15 text-amber-600 dark:text-brand-champagne">
+            <span className="rt-icon-tile bg-brand-champagne/15 text-amber-600 dark:text-brand-champagne">
               <DollarSign className="w-4 h-4" />
             </span>
             {TRIP_TOTAL_LABEL}
@@ -210,11 +208,10 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
       </Card>
 
       {/* Parking Activity Widget */}
-      <Card className="premium-panel overflow-hidden rounded-2xl">
-        <div className="h-1 bg-[linear-gradient(90deg,hsl(var(--brand-signal-deep)),hsl(var(--brand-signal)))]" />
+      <Card className="rt-command-panel">
         <CardHeader className="pb-1.5 pt-4">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-violet/15 text-brand-violet">
+            <span className="rt-icon-tile bg-brand-violet/15 text-brand-violet">
               <CircleParking className="w-4 h-4" />
             </span>
             Parking

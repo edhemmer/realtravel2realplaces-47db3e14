@@ -162,13 +162,13 @@ function OpsMetric({
 }) {
   return (
     <Card className={cn(
-      'overflow-hidden border-border/50 bg-card/90 shadow-sm',
+      'rt-command-panel',
       tone === 'good' && 'border-emerald-500/20 bg-emerald-500/5',
       tone === 'watch' && 'border-amber-500/25 bg-amber-500/7',
     )}>
       <CardContent className="p-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <div className="rt-icon-tile h-10 w-10">
             {icon}
           </div>
           <div className="min-w-0">
@@ -191,8 +191,8 @@ function GuidanceStep({
   detail: string;
 }) {
   return (
-    <div className="flex gap-3 rounded-xl border border-border/50 bg-background/70 p-3">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+    <div className="rt-kpi-panel flex gap-3 p-3">
+      <div className="rt-icon-tile">
         {icon}
       </div>
       <div className="min-w-0">
@@ -217,11 +217,11 @@ function OpsWindow({
   children: React.ReactNode;
 }) {
   return (
-    <Card className="border-border/50 bg-card/95 shadow-sm">
+    <Card className="rt-command-panel">
       <CardContent className="p-4">
         <div className="mb-3 flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <div className="rt-icon-tile">
               {icon}
             </div>
             <div>
@@ -290,8 +290,9 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
   const managedSpend = bookingCostTotal + expenseTotal + parkingTotal;
 
   return (
-    <div className="space-y-5 pb-20">
-      <section className="overflow-hidden rounded-2xl border border-border/50 bg-[linear-gradient(135deg,hsl(var(--primary)/0.10),hsl(var(--card))_48%,hsl(var(--muted)/0.12))] p-4 shadow-sm md:p-5">
+    <div className="rt-page-stack pb-20">
+      <section className="rt-command-panel">
+        <div className="rt-panel-body">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
             <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -309,7 +310,7 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
               TravelOps turns the trip into a short operating sequence: next move, local context, route support, weather, spend, and offline readiness.
             </p>
           </div>
-          <div className="min-w-[220px] rounded-2xl border border-border/50 bg-background/70 p-4">
+          <div className="rt-kpi-panel min-w-[220px] p-4">
             <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Trip readiness
               <span className="text-foreground">{readiness}%</span>
@@ -317,6 +318,7 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
             <Progress value={readiness} className="h-2" />
             <p className="mt-2 text-xs text-muted-foreground">Built from existing canonical trip data and cached external windows.</p>
           </div>
+        </div>
         </div>
       </section>
 

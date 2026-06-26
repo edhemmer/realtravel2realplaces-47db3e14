@@ -17,7 +17,7 @@ interface MobileAddExpenseCardProps {
 export function MobileAddExpenseCard({ onTap }: MobileAddExpenseCardProps) {
   return (
     <div className="block md:hidden">
-      <Card className="border-muted-foreground/10 bg-muted/30">
+      <Card className="rt-command-panel">
         <CardContent className="px-3 py-2.5">
           <div className="flex items-center gap-2 mb-1.5">
             <Receipt className="w-4 h-4 text-primary shrink-0" />
