@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import MockTripCard from './MockTripCard';
+import ProductTripCard from './ProductTripCard';
 
 export default function LandingHero() {
   return (
@@ -39,9 +39,9 @@ export default function LandingHero() {
             </div>
           </div>
 
-          <div className="landing-hero-visual" aria-label="Product preview">
+          <div className="landing-hero-visual" aria-label="Travel operations command view">
             <div className="landing-hero-visual-frame">
-              <MockTripCard />
+              <ProductTripCard />
             </div>
           </div>
         </div>

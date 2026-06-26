@@ -1,8 +1,8 @@
 import { Building2, Car, CheckCircle2, CloudSun, Plane, Receipt, TrainFront } from 'lucide-react';
 
-export default function MockTripCard() {
+export default function ProductTripCard() {
   return (
-    <div className="mock-ui-card p-3 sm:p-4 w-full">
+    <div className="product-ui-card p-3 sm:p-4 w-full">
       <div className="mb-3">
         <div className="flex items-center justify-between gap-3">
           <div>

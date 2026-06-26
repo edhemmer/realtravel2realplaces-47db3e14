@@ -1,4 +1,4 @@
-import MockTripCard from './MockTripCard';
+import ProductTripCard from './ProductTripCard';
 
 export default function LandingProof() {
   return (
@@ -7,7 +7,7 @@ export default function LandingProof() {
         {/* Section Header */}
         <div className="text-center mb-8">
           <h2 className="landing-section-headline">
-            A preview of the operating system travelers actually use.
+            The operating model travelers actually use.
           </h2>
           <p className="landing-section-subtext">
             Real Travel 2 Real Places manages real trips from real confirmations.
@@ -28,7 +28,7 @@ export default function LandingProof() {
               </div>
             </div>
             <div className="landing-browser-content">
-              <MockTripCard />
+              <ProductTripCard />
             </div>
           </div>
         </div>

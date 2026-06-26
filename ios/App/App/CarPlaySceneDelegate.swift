@@ -53,7 +53,10 @@ class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationSceneDelegate {
         }
 
         if stops.isEmpty {
-            let empty = CPListItem(text: "Open Drive Cockpit", detailText: "Next stops will appear here while Drive Mode is active.")
+            let detail = state == nil
+                ? "Open a drive trip on iPhone to load route, weather, fuel, and next stops."
+                : "Open Drive Cockpit to sync route stops, weather, fuel, and road context."
+            let empty = CPListItem(text: "Sync Drive Cockpit", detailText: detail)
             empty.handler = { _, completion in
                 completion()
             }

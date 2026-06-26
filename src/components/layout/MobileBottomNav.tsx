@@ -77,13 +77,13 @@ const PRIMARY_NAV_ITEMS: NavItem[] = [
   { id: 'today', label: 'Today', icon: <CalendarDays className="w-5 h-5" /> },
   { id: 'ops', label: 'Ops', icon: <LayoutDashboard className="w-5 h-5" /> },
   { id: 'flow', label: 'Flow', icon: <Route className="w-5 h-5" /> },
-  { id: 'move', label: 'Move', icon: <Compass className="w-5 h-5" /> },
+  { id: 'explore', label: 'Explore', icon: <Compass className="w-5 h-5" /> },
   { id: 'expenses', label: 'Expenses', icon: <DollarSign className="w-5 h-5" /> },
 ];
 
 const MORE_NAV_ITEMS: NavItem[] = [
+  { id: 'move', label: 'Move', icon: <Compass className="w-4 h-4" /> },
   { id: 'bookings', label: 'Bookings', icon: <Plane className="w-4 h-4" /> },
-  { id: 'explore', label: 'Explore', icon: <Compass className="w-4 h-4" /> },
   { id: 'packing', label: 'Packing', icon: <Package className="w-4 h-4" /> },
   { id: 'weather', label: 'Weather', icon: <CloudSun className="w-4 h-4" /> },
   { id: 'guide', label: 'Guide', icon: <Bell className="w-4 h-4" /> },

@@ -1383,9 +1383,9 @@
 }
 
 /* ===========================================
-   MOCK UI — Trip card for hero
+   Product UI — Trip card for hero
    =========================================== */
-.mock-ui-card {
+.product-ui-card {
   background:
     linear-gradient(180deg, hsl(226 32% 16% / 0.74), hsl(228 34% 10% / 0.58));
   border: 1px solid hsl(var(--landing-border) / 0.42);

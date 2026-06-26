@@ -906,7 +906,7 @@ const [gasDialogOpen, setGasDialogOpen] = useState(false);
                 </h4>
                 <p className="text-sm text-muted-foreground text-center max-w-sm mb-4">
                   {activeCategory === 'all' 
-                    ? 'Expenses you add will appear here. Track meals, transport, activities, and shared costs.'
+                    ? 'Track meals, transport, activities, and shared costs here; RT2RP keeps the running total attached to the trip.'
                     : `No expenses in this category yet. Add one or check other categories.`
                   }
                 </p>

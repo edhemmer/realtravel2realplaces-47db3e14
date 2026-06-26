@@ -134,7 +134,7 @@ export function MoveTab({ tripId, trip }: MoveTabProps) {
       <div className="text-center py-12 pb-20">
         <Car className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
         <p className="text-sm text-muted-foreground">No transport options to show yet.</p>
-        <p className="text-xs text-muted-foreground/60 mt-1">Once you add flights, rentals, or set up a drive, your options will appear here.</p>
+        <p className="text-xs text-muted-foreground/60 mt-1">Add a flight, rental, rail, or drive plan to turn this into your movement command surface.</p>
       </div>
     );
   }

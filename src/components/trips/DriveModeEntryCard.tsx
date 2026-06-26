@@ -1,9 +1,8 @@
 /**
- * v4.0.1: Drive Mode Entry Card
+ * Drive Mode Entry Card
  *
- * Small card/button on Trip Detail that appears when trip is within
- * 1 calendar day of start or currently in progress AND has drive segments.
- * All eligibility logic uses driveIntelligenceHelper — no local reimplementation.
+ * Small card/button on Trip Detail for future or active drive trips.
+ * Eligibility stays tied to the canonical drive intelligence helper.
  */
 
 import { useMemo } from 'react';
@@ -19,34 +18,16 @@ interface DriveModeEntryCardProps {
   canonicalState: CanonicalTripState | null;
 }
 
-/**
- * Determine if today is within 1 day before trip start or during the trip.
- * Pure string comparison — no timezone math.
- */
-function isDriveModeEligible(trip: Trip): boolean {
+function todayLocalDate(): string {
   const now = new Date();
   const y = now.getFullYear();
   const m = String(now.getMonth() + 1).padStart(2, '0');
   const d = String(now.getDate()).padStart(2, '0');
-  const today = `${y}-${m}-${d}`;
+  return `${y}-${m}-${d}`;
+}
 
-  // Trip in the past
-  if (today > trip.end_date) return false;
-
-  // Trip starts more than 1 day from now
-  // Compute "tomorrow" string
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const ty = tomorrow.getFullYear();
-  const tm = String(tomorrow.getMonth() + 1).padStart(2, '0');
-  const td = String(tomorrow.getDate()).padStart(2, '0');
-  const tomorrowStr = `${ty}-${tm}-${td}`;
-
-  // Eligible if: today >= start_date - 1 day AND today <= end_date
-  // start_date - 1 day ≈ trip.start_date <= tomorrowStr
-  if (trip.start_date > tomorrowStr) return false;
-
-  return true;
+function isDriveModeEligible(trip: Trip): boolean {
+  return todayLocalDate() <= trip.end_date;
 }
 
 export function DriveModeEntryCard({ tripId, trip, canonicalState }: DriveModeEntryCardProps) {
@@ -59,12 +40,7 @@ export function DriveModeEntryCard({ tripId, trip, canonicalState }: DriveModeEn
 
   if (!eligible || !hasSegment) return null;
 
-  // Determine subtitle based on timing
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  const d = String(now.getDate()).padStart(2, '0');
-  const today = `${y}-${m}-${d}`;
+  const today = todayLocalDate();
   const isInTrip = today >= trip.start_date && today <= trip.end_date;
 
   return (
@@ -81,7 +57,7 @@ export function DriveModeEntryCard({ tripId, trip, canonicalState }: DriveModeEn
           <p className="text-xs text-muted-foreground">
             {isInTrip
               ? 'Open drive view for this leg.'
-              : 'Preview your route and alerts before you leave.'}
+              : 'Plan route options, stops, fuel, and alerts before departure.'}
           </p>
         </div>
         <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />

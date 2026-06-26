@@ -212,7 +212,7 @@ function resolveWeatherCard(weather: WeatherEngineResult | null): TripReadinessC
     return {
       type: 'WEATHER',
       title: 'Weather',
-      subtitle: 'Weather will appear once destination is available.',
+      subtitle: 'Add a destination to activate the weather window.',
     };
   }
 

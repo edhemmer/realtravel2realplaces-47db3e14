@@ -1,7 +1,7 @@
 /**
  * UpgradePlanDialog.tsx
  * 
- * Informational dialog for upgrade path. Billing is intentionally disabled.
+ * Informational dialog for controlled upgrade access.
  * This component explains available plans without collecting payment details.
  * 
  * v2.6.4: Initial implementation with disabled billing state
@@ -121,21 +121,20 @@ export function UpgradePlanDialog({
                     <TooltipTrigger asChild>
                       <div>
                         {/* 
-                          v2.6.5: Track intent when disabled button is clicked
-                          Button is visually disabled but onClick still fires for tracking
+                          v2.6.5: Track access intent for follow-up
                         */}
                         <Button 
-                          className="w-full opacity-50 cursor-not-allowed" 
+                          className="w-full" 
                           aria-describedby="billing-note"
                           onClick={() => trackUpgradeIntent('pro', entryPoint)}
                         >
                           <Crown className="w-4 h-4 mr-2" />
-                          Upgrade to Pro
+                          Request Pro Access
                         </Button>
                       </div>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="max-w-xs">
-                      <p>Billing is not active yet. Upgrades will be available soon.</p>
+                      <p>We&apos;ll record your request and follow up with plan access.</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -148,7 +147,7 @@ export function UpgradePlanDialog({
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <h3 className="font-semibold text-lg">Business Plan</h3>
-                <Badge variant="outline" className="text-xs">Coming Soon</Badge>
+                <Badge variant="outline" className="text-xs">Team Access</Badge>
               </div>
               <p className="text-sm text-muted-foreground">
                 Advanced features for business travel and expense management.
@@ -170,21 +169,20 @@ export function UpgradePlanDialog({
                   <TooltipTrigger asChild>
                     <div>
                       {/* 
-                        v2.6.5: Track intent when disabled button is clicked
-                        Button is visually disabled but onClick still fires for tracking
+                        v2.6.5: Track access intent for follow-up
                       */}
                       <Button 
-                        className="w-full opacity-50 cursor-not-allowed" 
+                        className="w-full" 
                         aria-describedby="billing-note"
                         onClick={() => trackUpgradeIntent('business', entryPoint)}
                       >
                         <Briefcase className="w-4 h-4 mr-2" />
-                        Upgrade to Business
+                        Request Business Access
                       </Button>
                     </div>
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="max-w-xs">
-                    <p>Business plan is coming soon. Billing is not active yet.</p>
+                    <p>We&apos;ll record your team request and follow up with the right plan path.</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -199,8 +197,8 @@ export function UpgradePlanDialog({
         >
           <Info className="w-4 h-4 mt-0.5 shrink-0" />
           <p>
-            Upgrades will be available soon. Billing is not active yet. 
-            Continue using the app and we'll notify you when plans are ready.
+            Paid plan access is handled through a controlled rollout so support,
+            account setup, and travel operations stay reliable.
           </p>
         </div>
 

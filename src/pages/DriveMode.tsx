@@ -314,12 +314,12 @@ export default function DriveMode() {
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
               <Car className="h-7 w-7 text-muted-foreground" />
             </div>
-            <h2 className="text-lg font-semibold">No drive segment detected</h2>
+            <h2 className="text-lg font-semibold">Drive Cockpit is standing by</h2>
             <p className="max-w-xs text-sm text-muted-foreground">
-              There's no active or upcoming drive for this trip right now.
+              Add or schedule a drive segment to open route options, weather, fuel, and offline road context.
             </p>
             <Button asChild variant="outline" size="sm">
-              <Link to={`/trip/${tripId}`}>Back to Trip</Link>
+              <Link to={`/trip/${tripId}`}>Return to TravelOps</Link>
             </Button>
           </div>
         ) : (

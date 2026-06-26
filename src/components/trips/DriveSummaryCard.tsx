@@ -316,7 +316,7 @@ export function DriveSummaryCard({ trip, drivePlan, onAddGasExpense }: DriveSumm
 
         {suggestions.eligible && placesUnavailable && gasPlaces.length === 0 && foodPlaces.length === 0 && (
           <div className="text-xs text-muted-foreground pl-[18px] italic">
-            Suggestions will appear when available.
+            Live stop suggestions are offline right now. Use route options for fuel and food along the way.
           </div>
         )}
 
@@ -354,7 +354,7 @@ export function DriveSummaryCard({ trip, drivePlan, onAddGasExpense }: DriveSumm
         {!suggestions.eligible && suggestions.reason === 'WINDOW_COORDS_MISSING' && fuelIntelligence.enabled && (
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <MapPin className="w-3 h-3" />
-            <span>Suggestions will appear once route details are available.</span>
+            <span>Add route anchors to enable fuel and food suggestions near the next drive window.</span>
           </div>
         )}
 
@@ -378,7 +378,7 @@ export function DriveSummaryCard({ trip, drivePlan, onAddGasExpense }: DriveSumm
               disabled
             >
               <Navigation className="w-4 h-4" />
-              No route available
+              Add route details
             </Button>
           )}
           <Button

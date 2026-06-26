@@ -123,17 +123,11 @@ export function NowCommandCenter({
     [canonicalState, activeDriveSegment],
   );
 
-  // v4.0.3: Drive Mode eligibility — trip within 1 day of start or active
+  // v5.7.0: Drive Mode is useful before departure for route and stop planning.
   const showDriveMode = useMemo(() => {
     if (!activeDriveSegment) return false;
     const today = getLocalNowString().substring(0, 10);
-    if (today > trip.end_date) return false;
-    // Check within 1 day before start
-    const now = new Date();
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
-    return trip.start_date <= tStr;
+    return today <= trip.end_date;
   }, [activeDriveSegment, trip]);
 
   const handleDriveMode = useCallback(() => {

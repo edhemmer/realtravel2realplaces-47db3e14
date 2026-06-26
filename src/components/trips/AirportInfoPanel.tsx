@@ -113,16 +113,17 @@ export function AirportInfoPanel({
                     </div>
                   )}
                   <Separator className="my-2" />
-                  <p className="text-xs text-muted-foreground italic">
-                    Airport-specific details (terminal maps, services) will appear here when available. 
-                    General airport guidance is shown below.
+                  <p className="text-xs text-muted-foreground">
+                    Use the official airport windows below for terminal maps, transport, parking,
+                    and airport-specific services.
                   </p>
                 </div>
               ) : (
                 <div className="text-sm text-muted-foreground space-y-2">
                   <p>Airport code: <span className="font-mono font-semibold">{airportCode}</span></p>
-                  <p className="text-xs italic">
-                    Airport-specific details will appear here when available.
+                  <p className="text-xs">
+                    Verify this airport code with your carrier, then use official airport tools
+                    for terminal maps, parking, and transport.
                   </p>
                 </div>
               )}

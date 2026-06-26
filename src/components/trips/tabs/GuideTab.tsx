@@ -171,7 +171,7 @@ export function GuideTab({ tripId, trip }: GuideTabProps) {
       <div className="text-center py-12 pb-20">
         <CloudSun className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
         <p className="text-sm text-muted-foreground">Everything looks good — nothing to flag right now.</p>
-        <p className="text-xs text-muted-foreground/60 mt-1">Guidance will appear when something needs your attention.</p>
+        <p className="text-xs text-muted-foreground/60 mt-1">All clear. RT2RP surfaces guidance automatically when timing, weather, route, or booking details need attention.</p>
       </div>
     );
   }

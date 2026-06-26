@@ -66,7 +66,7 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
       return <p className="text-sm text-muted-foreground">Loading...</p>;
     }
     if (!weather) {
-      return <p className="text-sm text-muted-foreground">Weather will appear once your destination is available.</p>;
+      return <p className="text-sm text-muted-foreground">Add a destination to activate the weather window.</p>;
     }
 
     const { weatherMode, summary, envelope } = weather;

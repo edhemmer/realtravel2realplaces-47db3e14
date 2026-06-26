@@ -228,7 +228,7 @@ export function MobileNavigationRouter({
             {!online && displayEvents.length === 0 && (
               <div className="flex items-center gap-2 px-3 py-6 rounded-lg bg-muted/30 border border-border/30 justify-center">
                 <WifiOff className="w-4 h-4 text-muted-foreground/60" />
-                <p className="text-xs text-muted-foreground">Offline — Trip details will appear when a connection is available.</p>
+                <p className="text-xs text-muted-foreground">Offline cache is ready. Reconnect to refresh trip operations.</p>
               </div>
             )}
             <TripTimeline events={displayEvents} datetimeFormat={datetimeFormat} onExploreNearby={handleExploreNearby} />

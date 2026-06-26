@@ -15,7 +15,7 @@ const useDevServer = !isBundledRelease && process.env.CAP_DEV_SERVER === '1';
 
 const config: CapacitorConfig = {
   appId: 'com.inlighttai.rt2rp',
-  appName: 'realtravel2realplaces',
+  appName: 'RealTravel2RealPlaces',
   webDir: 'dist',
   ...(useDevServer
     ? {
@@ -44,12 +44,12 @@ const config: CapacitorConfig = {
   plugins: {
     StatusBar: {
       overlaysWebView: false,
-      style: 'DARK',
-      backgroundColor: '#F6F8FB',
+      style: 'LIGHT',
+      backgroundColor: '#07111F',
     },
     SplashScreen: {
       launchShowDuration: 600,
-      backgroundColor: '#F6F8FB',
+      backgroundColor: '#07111F',
       showSpinner: false,
     },
   },

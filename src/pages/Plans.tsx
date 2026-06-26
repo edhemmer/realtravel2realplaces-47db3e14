@@ -34,7 +34,7 @@ interface PlanCardProps {
   icon: React.ReactNode;
   features: PlanFeature[];
   isCurrent: boolean;
-  isComingSoon?: boolean;
+  requiresAccessRequest?: boolean;
   onUpgradeClick?: () => void;
   accentClass?: string;
 }
@@ -45,7 +45,7 @@ function PlanCard({
   icon, 
   features, 
   isCurrent, 
-  isComingSoon,
+  requiresAccessRequest,
   onUpgradeClick,
   accentClass = ''
 }: PlanCardProps) {
@@ -78,10 +78,10 @@ function PlanCard({
         {!isCurrent && (
           <Button 
             className="w-full" 
-            variant={isComingSoon ? 'outline' : 'default'}
+            variant={requiresAccessRequest ? 'outline' : 'default'}
             onClick={onUpgradeClick}
           >
-            {isComingSoon ? 'Coming Soon' : 'Upgrade'}
+            {requiresAccessRequest ? 'Request Access' : 'Upgrade'}
           </Button>
         )}
         {isCurrent && (
@@ -249,7 +249,7 @@ export default function Plans() {
               icon={<Briefcase className="w-6 h-6 text-primary" />}
               features={businessPlanFeatures}
               isCurrent={false}
-              isComingSoon
+              requiresAccessRequest
               onUpgradeClick={() => setUpgradeDialogOpen(true)}
             />
           </div>
@@ -258,25 +258,25 @@ export default function Plans() {
         {/* Footer Note */}
         <div className="text-center text-sm text-muted-foreground py-4">
           <Sparkles className="w-4 h-4 inline-block mr-1" />
-          Start free and upgrade anytime when Pro launches.
+          Start free, then request paid access when your travel operations need more capacity.
         </div>
       </div>
 
-      {/* Upgrade Coming Soon Dialog */}
+      {/* Upgrade request dialog */}
       <Dialog open={upgradeDialogOpen} onOpenChange={setUpgradeDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-primary" />
-              Upgrades Coming Soon
+              Request plan access
             </DialogTitle>
             <DialogDescription className="pt-2 space-y-3">
               <p>
-                We're working hard to bring you Pro and Business plans with advanced features, 
-                unlimited trips, and powerful insights.
+                RT2RP is approving paid plan access in a controlled rollout so account, support,
+                and travel operations stay reliable.
               </p>
               <p>
-                For now, enjoy the Free plan and we'll notify you when upgrades are available.
+                Send your request and we&apos;ll follow up with the right plan path for your travel needs.
               </p>
             </DialogDescription>
           </DialogHeader>
@@ -292,19 +292,19 @@ export default function Plans() {
                       onClick={() => trackUpgradeIntent('pro', 'plans_page')}
                     >
                       <Crown className="w-4 h-4 mr-2" />
-                      Upgrade to Pro
+                      Request Pro Access
                     </Button>
                   </div>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-xs">
-                  <p>Billing is not active yet. Upgrades will be available soon.</p>
+                  <p>We&apos;ll record your request and follow up with plan access.</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
             
             <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1">
               <Info className="w-3 h-3" />
-              Billing is not active yet
+              Controlled rollout for paid access
             </p>
           </div>
           

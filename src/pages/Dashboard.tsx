@@ -336,7 +336,7 @@ export default function Dashboard() {
                 <p className="text-muted-foreground text-center mb-6 max-w-md text-sm leading-relaxed">
                   {CAN_CREATE_TRIPS
                     ? 'Add your first trip to bring Today, Move, Guide, and Flow to life — bookings, timing, and the next step in one calm place.'
-                    : 'Your trips will appear here once created on the web. Visit realtravel2realplaces.app from a browser to create your first trip.'}
+                    : 'Create or import trips from the secure web command center. They sync here automatically for mobile operations.'}
                 </p>
 
                 {CAN_CREATE_TRIPS && (

@@ -194,7 +194,7 @@ export function EmptyExpensesState({ className, onAction, actionLabel = "Add Exp
         <h4 className="text-base font-medium mb-1">No expenses recorded</h4>
         <p className="text-sm text-muted-foreground mb-4 max-w-sm">
           Track meals, transport, activities, and other trip costs here.
-          Totals will appear as you add expenses and bookings with costs.
+          Add expenses and booking costs to keep the trip total current.
         </p>
         {canEdit && onAction && (
           <Button onClick={onAction} className="bg-gradient-ocean hover:opacity-90">
@@ -244,7 +244,7 @@ export function EmptyAlertsState({ className }: { className?: string }) {
         </div>
         <h4 className="text-base font-medium mb-1">No active alerts</h4>
         <p className="text-sm text-muted-foreground max-w-sm">
-          Weather alerts, departure reminders, and parking expiration notices will appear here.
+          All clear. RT2RP monitors weather, departure reminders, and parking expiration notices here.
         </p>
       </CardContent>
     </Card>
