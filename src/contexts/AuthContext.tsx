@@ -21,7 +21,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (data: SignUpData) => Promise<{ error: AuthError | null }>;
+  signUp: (data: SignUpData) => Promise<{ error: AuthError | null; existingAccount?: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
 }
@@ -91,8 +91,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
     });
     
-    // If signup succeeded, update the profile with first/last name
-    if (!error && data.user) {
+    const existingAccount =
+      !error &&
+      !!data.user &&
+      Array.isArray(data.user.identities) &&
+      data.user.identities.length === 0;
+
+    // If signup succeeded for a new user, update the profile with first/last name.
+    // Supabase can return a user with no identities for existing emails.
+    if (!error && data.user && !existingAccount) {
       // Use raw update since types may not be regenerated yet
       const { error: profileError } = await supabase
         .from('profiles')
@@ -108,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
     
-    return { error };
+    return { error, existingAccount };
   };
 
   const signIn = async (email: string, password: string) => {
