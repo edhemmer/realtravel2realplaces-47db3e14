@@ -121,12 +121,21 @@ The repair script:
 
 - Runs the web build and `npx cap sync ios`.
 - Normalizes `ios/App/CapApp-SPM/Package.swift` paths for macOS SwiftPM.
+- Patches the Apple Sign-In plugin's local SwiftPM manifest so it resolves against this app's Capacitor 8.3.4 runtime.
 - Clears stale project SwiftPM package state.
 - Clears this app's Xcode DerivedData folders.
 - Verifies the Xcode project links the standard `CapApp-SPM` product.
 - Verifies every local Capacitor Swift package exists under `node_modules`.
 
 If the repair command reports missing package files, run `npm install` again, then rerun `npm run ios:repair`.
+
+If Xcode reports a SwiftPM version conflict around `capacitor-swift-pm`, do not remove `CapApp-SPM` from Frameworks. Close Xcode and rerun:
+
+```bash
+npm install
+npm run ios:repair
+open ios/App/App.xcodeproj
+```
 
 ## CarPlay
 

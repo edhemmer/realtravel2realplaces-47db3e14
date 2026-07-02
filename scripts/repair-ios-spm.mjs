@@ -25,6 +25,7 @@ const packageResolved = join(
 const xcodeDerivedData = join(homedir(), 'Library', 'Developer', 'Xcode', 'DerivedData');
 const pbxprojPath = join(projectRoot, 'ios', 'App', 'App.xcodeproj', 'project.pbxproj');
 const packagePath = join(projectRoot, 'ios', 'App', 'CapApp-SPM', 'Package.swift');
+const appleSignInPackagePath = join(projectRoot, 'node_modules', '@capacitor-community', 'apple-sign-in', 'Package.swift');
 const requiredLocalPackages = [
   ['@capacitor-community/apple-sign-in', 'node_modules/@capacitor-community/apple-sign-in/Package.swift'],
   ['@capacitor/app', 'node_modules/@capacitor/app/Package.swift'],
@@ -74,6 +75,7 @@ if (!existsSync(packagePath)) {
 
 const pbxproj = readFileSync(pbxprojPath, 'utf8');
 const packageSwift = readFileSync(packagePath, 'utf8');
+const appleSignInPackage = existsSync(appleSignInPackagePath) ? readFileSync(appleSignInPackagePath, 'utf8') : '';
 
 if (!pbxproj.includes('/* CapApp-SPM in Frameworks */') || !pbxproj.includes('productName = "CapApp-SPM"')) {
   throw new Error('Xcode project is missing standard CapApp-SPM linkage. Pull latest main and rerun npm run ios:repair.');
@@ -81,6 +83,10 @@ if (!pbxproj.includes('/* CapApp-SPM in Frameworks */') || !pbxproj.includes('pr
 
 if (packageSwift.includes('\\')) {
   throw new Error('CapApp-SPM Package.swift still contains Windows backslashes. Run node scripts/normalize-capapp-spm.mjs.');
+}
+
+if (appleSignInPackage.includes('from: "7.0.0"')) {
+  throw new Error('Apple Sign-In still points SwiftPM at Capacitor 7. Run node scripts/patch-ios-spm-compat.mjs, then rerun npm run ios:repair.');
 }
 
 const missingPackages = requiredLocalPackages.filter(([, relativePath]) => !existsSync(join(projectRoot, relativePath)));
