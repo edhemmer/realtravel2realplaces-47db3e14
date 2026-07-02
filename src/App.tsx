@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { persistQueryClient } from "@tanstack/react-query-persist-client";
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useOnboardingStatus } from "@/hooks/useOnboardingStatus";
@@ -99,6 +99,7 @@ if (typeof window !== "undefined") {
  */
 function ProtectedRoute({ children, skipOnboardingGate }: { children: React.ReactNode; skipOnboardingGate?: boolean }) {
   const { user, loading: authLoading } = useAuth();
+  const location = useLocation();
   const { data: profile, isLoading: profileLoading } = useUserProfile();
   const { shouldShowOnboarding, isLoading: onboardingLoading } = useOnboardingStatus();
 
@@ -109,7 +110,8 @@ function ProtectedRoute({ children, skipOnboardingGate }: { children: React.Reac
 
   // Redirect to login if not authenticated
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    const redirect = `${location.pathname}${location.search}${location.hash}`;
+    return <Navigate to={`/auth?redirect=${encodeURIComponent(redirect)}`} replace />;
   }
 
   // v3.8.20: New users go directly to wizard — no intro slides

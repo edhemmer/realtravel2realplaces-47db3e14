@@ -4,11 +4,24 @@ import type { Database } from './types';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const FALLBACK_SUPABASE_URL = 'https://missing-supabase-config.supabase.co';
+const FALLBACK_SUPABASE_KEY = 'missing-supabase-publishable-key';
+
+export const supabaseConfig = {
+  hasConfig: Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY),
+  missingKeys: [
+    !SUPABASE_URL ? 'VITE_SUPABASE_URL' : null,
+    !SUPABASE_PUBLISHABLE_KEY ? 'VITE_SUPABASE_PUBLISHABLE_KEY' : null,
+  ].filter(Boolean) as string[],
+};
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+export const supabase = createClient<Database>(
+  SUPABASE_URL || FALLBACK_SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY || FALLBACK_SUPABASE_KEY,
+  {
   auth: {
     storage: localStorage,
     persistSession: true,

@@ -1,14 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session, AuthError } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-
-/**
- * AuthContext - Core authentication provider
- * 
- * Patch 2.1.18: Removed all hard-coded plan overrides.
- * Plan tier is determined ONLY by profiles.subscription_tier in the database.
- * No user, email, or user ID should ever be forced to a specific plan in code.
- */
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { AuthError, Session, User } from '@supabase/supabase-js';
+import { supabase, supabaseConfig } from '@/integrations/supabase/client';
 
 interface SignUpData {
   email: string;
@@ -17,133 +9,191 @@ interface SignUpData {
   lastName: string;
 }
 
+type AuthStatus = 'loading' | 'authenticated' | 'anonymous';
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (data: SignUpData) => Promise<{ error: AuthError | null; existingAccount?: boolean }>;
-  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  status: AuthStatus;
+  refreshSession: () => Promise<Session | null>;
+  signUp: (data: SignUpData) => Promise<{
+    error: AuthError | null;
+    existingAccount?: boolean;
+    session?: Session | null;
+  }>;
+  signIn: (email: string, password: string) => Promise<{
+    error: AuthError | null;
+    session?: Session | null;
+  }>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const missingConfigMessage = `Supabase is not configured. Missing ${supabaseConfig.missingKeys.join(', ')}.`;
+
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
+function profileNameData(firstName: string, lastName: string) {
+  const first = firstName.trim();
+  const last = lastName.trim();
+  return {
+    first_name: first,
+    last_name: last,
+    display_name: `${first} ${last}`.trim(),
+  };
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Set up auth state listener BEFORE getting initial session
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', event);
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-
-        // Handle session expiration
-        if (event === 'TOKEN_REFRESHED') {
-          console.log('Token refreshed successfully');
-        }
-
-        // Password recovery: force user to /reset-password instead of
-        // letting protected routes drop them on the dashboard.
-        if (event === 'PASSWORD_RECOVERY') {
-          if (window.location.pathname !== '/reset-password') {
-            window.location.replace('/reset-password');
-          }
-        }
-
-        if (event === 'SIGNED_OUT') {
-          // Clear any cached data
-          setSession(null);
-          setUser(null);
-        }
-      }
-    );
-
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.error('Error getting session:', error);
-      }
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+  const applySession = useCallback((nextSession: Session | null) => {
+    setSession(nextSession);
+    setLoading(false);
   }, []);
 
-  const signUp = async ({ email, password, firstName, lastName }: SignUpData) => {
-    const normalizedEmail = email.trim().toLowerCase();
+  const refreshSession = useCallback(async () => {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) {
+      console.error('Error refreshing auth session:', error);
+      applySession(null);
+      return null;
+    }
+
+    applySession(data.session ?? null);
+    return data.session ?? null;
+  }, [applySession]);
+
+  useEffect(() => {
+    if (!supabaseConfig.hasConfig) {
+      setLoading(false);
+      return;
+    }
+
+    let mounted = true;
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (!mounted) return;
+
+      applySession(nextSession ?? null);
+
+      if (event === 'PASSWORD_RECOVERY' && window.location.pathname !== '/reset-password') {
+        window.location.assign('/reset-password');
+      }
+    });
+
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (!mounted) return;
+
+      if (error) {
+        console.error('Error loading auth session:', error);
+        applySession(null);
+        return;
+      }
+
+      applySession(data.session ?? null);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [applySession]);
+
+  const signUp = useCallback(async ({ email, password, firstName, lastName }: SignUpData) => {
+    if (!supabaseConfig.hasConfig) {
+      return { error: new Error(missingConfigMessage) as AuthError };
+    }
+
+    const normalizedEmail = normalizeEmail(email);
+    const nameData = profileNameData(firstName, lastName);
+
     const { data, error } = await supabase.auth.signUp({
       email: normalizedEmail,
       password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
-        data: {
-          first_name: firstName.trim(),
-          last_name: lastName.trim(),
-          display_name: `${firstName.trim()} ${lastName.trim()}`.trim(),
-        },
+        data: nameData,
       },
     });
-    
+
     const existingAccount =
       !error &&
       !!data.user &&
       Array.isArray(data.user.identities) &&
       data.user.identities.length === 0;
 
-    // If signup succeeded for a new user, update the profile with first/last name.
-    // Supabase can return a user with no identities for existing emails.
+    if (!error && data.session) {
+      applySession(data.session);
+    }
+
     if (!error && data.user && !existingAccount) {
-      // Use raw update since types may not be regenerated yet
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
-          first_name: firstName.trim(),
-          last_name: lastName.trim(),
+          first_name: nameData.first_name,
+          last_name: nameData.last_name,
         } as Record<string, unknown>)
         .eq('user_id', data.user.id);
-      
+
       if (profileError) {
-        console.error('Error updating profile with names:', profileError);
-        // Don't fail the signup, names can be added later
+        console.error('Error updating profile after signup:', profileError);
       }
     }
-    
-    return { error, existingAccount };
-  };
 
-  const signIn = async (email: string, password: string) => {
-    const normalizedEmail = email.trim().toLowerCase();
-    const { error } = await supabase.auth.signInWithPassword({
-      email: normalizedEmail,
+    return { error, existingAccount, session: data.session ?? null };
+  }, [applySession]);
+
+  const signIn = useCallback(async (email: string, password: string) => {
+    if (!supabaseConfig.hasConfig) {
+      return { error: new Error(missingConfigMessage) as AuthError, session: null };
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: normalizeEmail(email),
       password,
     });
-    
-    // Patch 2.1.18: No hard-coded plan overrides - plan comes from DB only
-    return { error };
-  };
 
-  const signOut = async () => {
+    if (!error && data.session) {
+      applySession(data.session);
+    }
+
+    return { error, session: data.session ?? null };
+  }, [applySession]);
+
+  const signOut = useCallback(async () => {
+    if (!supabaseConfig.hasConfig) {
+      applySession(null);
+      return;
+    }
+
     const { error } = await supabase.auth.signOut();
     if (error) {
       console.error('Sign out error:', error);
     }
-    // Force clear state even if there's an error
-    setSession(null);
-    setUser(null);
-  };
+    applySession(null);
+  }, [applySession]);
 
-  return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  const value = useMemo<AuthContextType>(() => {
+    const user = session?.user ?? null;
+    const status: AuthStatus = loading ? 'loading' : user ? 'authenticated' : 'anonymous';
+
+    return {
+      user,
+      session,
+      loading,
+      status,
+      refreshSession,
+      signUp,
+      signIn,
+      signOut,
+    };
+  }, [loading, refreshSession, session, signIn, signOut, signUp]);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
