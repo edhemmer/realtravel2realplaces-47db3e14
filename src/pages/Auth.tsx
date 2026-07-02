@@ -31,7 +31,9 @@ export default function Auth() {
   const {
     signIn,
     signUp,
-    user
+    user,
+    session,
+    loading: authLoading,
   } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -58,20 +60,20 @@ export default function Auth() {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (user) {
+    if (!authLoading && (user || session?.user)) {
       navigate('/dashboard');
     }
-  }, [user, navigate]);
-  const clearMessages = () => {
+  }, [authLoading, user, session, navigate]);
+  const clearMessages = ({ clearPassword = true }: { clearPassword?: boolean } = {}) => {
     setError('');
     setSuccessMessage('');
-    setPassword('');
+    if (clearPassword) setPassword('');
   };
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading) return; // Prevent double submission
+    if (loading || authLoading) return; // Prevent double submission while session restores
 
-    clearMessages();
+    clearMessages({ clearPassword: false });
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail) {
       setError('Email is required.');
@@ -79,10 +81,22 @@ export default function Auth() {
     }
     setLoading(true);
     try {
+      const { data: existingSession } = await supabase.auth.getSession();
+      if (existingSession.session?.user) {
+        navigate('/dashboard');
+        return;
+      }
+
       const {
         error
       } = await signIn(normalizedEmail, password);
       if (error) {
+        const { data: restoredSession } = await supabase.auth.getSession();
+        if (restoredSession.session?.user) {
+          navigate('/dashboard');
+          return;
+        }
+
         // User-friendly error messages
         if (error.message.includes('Invalid login credentials')) {
           setError('Incorrect email or password.');
@@ -102,7 +116,7 @@ export default function Auth() {
   };
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading) return; // Prevent double submission
+    if (loading || authLoading) return; // Prevent double submission
 
     clearMessages();
 
@@ -148,7 +162,7 @@ export default function Auth() {
     }
   };
   const handleApple = async () => {
-    if (loading) return;
+    if (loading || authLoading) return;
     clearMessages();
     setLoading(true);
     try {
@@ -245,14 +259,14 @@ export default function Auth() {
                   <Label htmlFor="signin-email">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input id="signin-email" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} className="pl-10" required disabled={loading} autoComplete="email" />
+                    <Input id="signin-email" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} className="pl-10" required disabled={loading || authLoading} autoComplete="email" />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signin-password">Password</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input id="signin-password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} className="pl-10 pr-10" required disabled={loading} autoComplete="current-password" />
+                    <Input id="signin-password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} className="pl-10 pr-10" required disabled={loading || authLoading} autoComplete="current-password" />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" tabIndex={-1}>
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -268,10 +282,10 @@ export default function Auth() {
                     {successMessage}
                   </div>}
 
-                <Button type="submit" className="w-full bg-gradient-ocean hover:opacity-90 transition-opacity" disabled={loading}>
-                  {loading ? <>
+                <Button type="submit" className="w-full bg-gradient-ocean hover:opacity-90 transition-opacity" disabled={loading || authLoading}>
+                  {loading || authLoading ? <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Signing in...
+                      {authLoading ? 'Restoring session...' : 'Signing in...'}
                     </> : 'Sign In'}
                 </Button>
 
@@ -280,7 +294,7 @@ export default function Auth() {
                   <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">or</span></div>
                 </div>
 
-                <Button type="button" variant="outline" onClick={handleApple} disabled={loading} className="w-full h-11 rounded-xl bg-black text-white hover:bg-black/90 border-black focus-ring-canonical">
+                <Button type="button" variant="outline" onClick={handleApple} disabled={loading || authLoading} className="w-full h-11 rounded-xl bg-black text-white hover:bg-black/90 border-black focus-ring-canonical">
                   <AppleIcon className="w-4 h-4 mr-2" />
                   Continue with Apple
                 </Button>
@@ -300,14 +314,14 @@ export default function Auth() {
                     <Label htmlFor="signup-firstname">First Name</Label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input id="signup-firstname" type="text" value={firstName} onChange={e => setFirstName(e.target.value)} className="pl-10" required disabled={loading} autoComplete="given-name" />
+                      <Input id="signup-firstname" type="text" value={firstName} onChange={e => setFirstName(e.target.value)} className="pl-10" required disabled={loading || authLoading} autoComplete="given-name" />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-lastname">Last Name</Label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input id="signup-lastname" type="text" value={lastName} onChange={e => setLastName(e.target.value)} className="pl-10" required disabled={loading} autoComplete="family-name" />
+                      <Input id="signup-lastname" type="text" value={lastName} onChange={e => setLastName(e.target.value)} className="pl-10" required disabled={loading || authLoading} autoComplete="family-name" />
                     </div>
                   </div>
                 </div>
@@ -315,14 +329,14 @@ export default function Auth() {
                   <Label htmlFor="signup-email">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input id="signup-email" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} className="pl-10" required disabled={loading} autoComplete="email" />
+                    <Input id="signup-email" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} className="pl-10" required disabled={loading || authLoading} autoComplete="email" />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-password">Password</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input id="signup-password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} className="pl-10 pr-10" required minLength={6} disabled={loading} autoComplete="new-password" />
+                    <Input id="signup-password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} className="pl-10 pr-10" required minLength={6} disabled={loading || authLoading} autoComplete="new-password" />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" tabIndex={-1}>
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -341,10 +355,10 @@ export default function Auth() {
                     {successMessage}
                   </div>}
 
-                <Button type="submit" className="w-full bg-gradient-ocean hover:opacity-90 transition-opacity" disabled={loading}>
-                  {loading ? <>
+                <Button type="submit" className="w-full bg-gradient-ocean hover:opacity-90 transition-opacity" disabled={loading || authLoading}>
+                  {loading || authLoading ? <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Creating account...
+                      {authLoading ? 'Restoring session...' : 'Creating account...'}
                     </> : 'Create Account'}
                 </Button>
 
@@ -353,7 +367,7 @@ export default function Auth() {
                   <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">or</span></div>
                 </div>
 
-                <Button type="button" variant="outline" onClick={handleApple} disabled={loading} className="w-full h-11 rounded-xl bg-black text-white hover:bg-black/90 border-black focus-ring-canonical">
+                <Button type="button" variant="outline" onClick={handleApple} disabled={loading || authLoading} className="w-full h-11 rounded-xl bg-black text-white hover:bg-black/90 border-black focus-ring-canonical">
                   <AppleIcon className="w-4 h-4 mr-2" />
                   Continue with Apple
                 </Button>
