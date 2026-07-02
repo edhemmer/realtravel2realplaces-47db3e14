@@ -113,8 +113,8 @@ open ios/App/App.xcodeproj
 ```
 
 The repair script clears stale SwiftPM package state, normalizes
-`ios/App/CapApp-SPM/Package.swift` paths, and verifies the Xcode project no
-longer links the fragile `CapApp-SPM` aggregate product directly.
+`ios/App/CapApp-SPM/Package.swift` paths, and verifies the Xcode project uses
+Capacitor's standard `CapApp-SPM` package linkage.
 # CarPlay
 
 The app includes native CarPlay scene scaffolding for Drive Mode:

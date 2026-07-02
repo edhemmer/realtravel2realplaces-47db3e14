@@ -62,12 +62,12 @@ if (!existsSync(packagePath)) {
 const pbxproj = readFileSync(pbxprojPath, 'utf8');
 const packageSwift = readFileSync(packagePath, 'utf8');
 
-if (pbxproj.includes('/* CapApp-SPM in Frameworks */') || pbxproj.includes('productName = "CapApp-SPM"')) {
-  throw new Error('Xcode project still links CapApp-SPM directly. Pull latest main and rerun npm run ios:repair.');
+if (!pbxproj.includes('/* CapApp-SPM in Frameworks */') || !pbxproj.includes('productName = "CapApp-SPM"')) {
+  throw new Error('Xcode project is missing standard CapApp-SPM linkage. Pull latest main and rerun npm run ios:repair.');
 }
 
 if (packageSwift.includes('\\')) {
   throw new Error('CapApp-SPM Package.swift still contains Windows backslashes. Run node scripts/normalize-capapp-spm.mjs.');
 }
 
-console.log('iOS SwiftPM repair checks passed.');
+console.log('iOS SwiftPM repair checks passed. Standard CapApp-SPM linkage is present.');
