@@ -1,11 +1,11 @@
 import { Building2, Car, LayoutDashboard, ListChecks, Route, WifiOff } from 'lucide-react';
 
 const capabilities = [
-  { icon: LayoutDashboard, title: 'TravelOps', description: 'A management dashboard for the live trip: maps, movement, airports, spend, weather, and readiness.' },
+  { icon: LayoutDashboard, title: 'Trip home', description: 'One place for the live trip: itinerary, maps, movement, airports, spend, weather, and readiness.' },
   { icon: ListChecks, title: 'Today', description: 'The next action, next deadline, and next place to be - one calm screen.' },
-  { icon: Car, title: 'Drive Cockpit', description: 'Road-trip mode with navigation, gas, weather, road conditions, offline state, and CarPlay-ready stops.' },
+  { icon: Car, title: 'Drive mode', description: 'Road-trip mode with navigation, gas, weather, road conditions, offline state, and CarPlay-ready stops.' },
   { icon: Building2, title: 'Airport windows', description: 'Terminal maps, parking links, airport context, and flight details without digging through tabs.' },
-  { icon: Route, title: 'Transit and flow', description: 'Local transit windows, movement decisions, and the full trip timeline connected together.' },
+  { icon: Route, title: 'Itinerary and transit', description: 'Local transit windows, movement decisions, and the full trip timeline connected together.' },
   { icon: WifiOff, title: 'Offline ready', description: 'Key trip details and expense capture stay useful when signal gets weak or disappears.' },
 ];
 
@@ -18,7 +18,7 @@ export default function LandingSolution() {
             Built for travel management, not just planning.
           </h2>
           <p className="landing-section-subtext mt-3">
-            RealTravel turns the messy travel day into operational windows you can actually use while moving.
+            RealTravel turns the messy travel day into simple windows you can actually use while moving.
           </p>
         </div>
 

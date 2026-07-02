@@ -2,9 +2,9 @@ import { BriefcaseBusiness, Car, Repeat, Users } from 'lucide-react';
 
 const personas = [
   { icon: BriefcaseBusiness, title: 'Business travelers', description: 'Keep bookings, expenses, receipts, transport, and daily movement decisions organized.' },
-  { icon: Car, title: 'Road-trip travelers', description: 'Use Drive Cockpit, gas search, weather, road context, and next stops from one place.' },
+  { icon: Car, title: 'Road-trip travelers', description: 'Use Drive mode, gas search, weather, road context, and next stops from one place.' },
   { icon: Users, title: 'Families and groups', description: 'Share trip details, divide expenses, and keep everyone aligned without text-thread chaos.' },
-  { icon: Repeat, title: 'Frequent travelers', description: 'Manage trip after trip with a familiar command center for airports, lodging, transit, and spend.' },
+  { icon: Repeat, title: 'Frequent travelers', description: 'Manage trip after trip with a familiar home for airports, lodging, transit, and spend.' },
 ];
 
 export default function LandingWhoItsFor() {

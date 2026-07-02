@@ -2,7 +2,7 @@
  * Help Center — v4.11.0
  *
  * Complete user manual for Real Travel 2 Real Places.
- * Reflects the Today / Flow / Move / Guide command-center model,
+ * Reflects the Today / Itinerary / Move / Trip Guide model,
  * Tours workspace, grounded Ask AI, capability-scoped sharing, and
  * the offline execution window. Step-by-step guides only — no fluff.
  * Full product name: Real Travel 2 Real Places (never abbreviated).
@@ -454,7 +454,7 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         question: 'When is Today available?',
         answer:
-          'Today is available from 14 days before departure through the end of the trip. Before that window, your Trip opens to Flow (the full timeline) by default.',
+          'Today is available from 14 days before departure through the end of the trip. Before that window, your Trip opens to Itinerary (the full timeline) by default.',
       },
       {
         question: 'What does "Leave By" mean?',
@@ -469,17 +469,17 @@ const HELP_SECTIONS: HelpSection[] = [
    * ================================================================ */
   {
     id: 'flow-tab',
-    title: 'Flow — Full Timeline',
+    title: 'Itinerary - Full Timeline',
     icon: <Calendar className="w-5 h-5 text-primary" />,
     description: 'The chronological view of every event in your trip.',
     items: [
       {
-        question: 'What is the Flow tab?',
+        question: 'What is the Itinerary tab?',
         answer:
-          'Flow is the full chronological timeline of your trip — flights, lodging check-ins and check-outs, rental pickups and returns, parking, transport, tour stops, and scheduled places. It is the answer to "what is the whole picture?" while Today answers "what now?".',
+          'Itinerary is the full chronological timeline of your trip — flights, lodging check-ins and check-outs, rental pickups and returns, parking, transport, tour stops, and scheduled places. It is the answer to "what is the whole picture?" while Today answers "what now?".',
       },
       {
-        question: 'How is Flow sorted?',
+        question: 'How is Itinerary sorted?',
         answer: (
           <ul className="list-disc list-inside space-y-1.5">
             <li><strong>Today</strong> events are pinned to the top.</li>
@@ -489,10 +489,10 @@ const HELP_SECTIONS: HelpSection[] = [
         ),
       },
       {
-        question: 'How do events get on Flow?',
+        question: 'How do events get on Itinerary?',
         answer: (
           <div className="space-y-2">
-            <p>Flow is generated automatically from your data — you do not create timeline events directly. Sources include:</p>
+            <p>Itinerary is generated automatically from your data — you do not create timeline events directly. Sources include:</p>
             <ul className="list-disc list-inside space-y-1">
               <li><strong>Bookings</strong> — flights, lodging, car rentals, transport, activities.</li>
               <li><strong>Parking</strong> — start and expiration events.</li>
@@ -503,10 +503,10 @@ const HELP_SECTIONS: HelpSection[] = [
         ),
       },
       {
-        question: 'How do I navigate or explore from Flow?',
+        question: 'How do I navigate or explore from Itinerary?',
         answer: (
           <ol className="list-decimal list-inside space-y-1.5">
-            <li>Find the event in Flow.</li>
+            <li>Find the event in Itinerary.</li>
             <li>Tap <strong>Navigate</strong> to open directions in your maps app.</li>
             <li>Tap <strong>Explore nearby</strong> to discover places around that event's location.</li>
           </ol>
@@ -571,12 +571,12 @@ const HELP_SECTIONS: HelpSection[] = [
     description: 'The short list of things worth your attention right now.',
     items: [
       {
-        question: 'What is the Guide tab?',
+        question: 'What is the Trip Guide?',
         answer:
-          'Guide surfaces the top contextual alerts for your trip — timing risks, weather changes, sequence problems between bookings, and notable external signals. It is capped at the most important items so you can scan it in seconds.',
+          'Trip Guide surfaces the top contextual alerts for your trip — timing risks, weather changes, sequence problems between bookings, and notable external signals. It is capped at the most important items so you can scan it in seconds.',
       },
       {
-        question: 'How are Guide alerts prioritized?',
+        question: 'How are Trip Guide alerts prioritized?',
         answer: (
           <ul className="list-disc list-inside space-y-1.5">
             <li><strong>Timing</strong> first — anything that affects whether you make a flight, check-in, or scheduled stop.</li>
@@ -586,7 +586,7 @@ const HELP_SECTIONS: HelpSection[] = [
         ),
       },
       {
-        question: 'What kinds of alerts can Guide show?',
+        question: 'What kinds of alerts can Trip Guide show?',
         answer: (
           <ul className="list-disc list-inside space-y-1.5">
             <li>Leave-by warnings when traffic or transit tightens.</li>
@@ -612,7 +612,7 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         question: 'What is the Tours workspace?',
         answer:
-          'Tours is where you plan stops that do not come from a booking — sightseeing routes, multi-stop work days, a day of errands. Each stop you add becomes an event on your Flow timeline automatically.',
+          'Tours is where you plan stops that do not come from a booking — sightseeing routes, multi-stop work days, a day of errands. Each stop you add becomes an event on your Itinerary timeline automatically.',
       },
       {
         question: 'How do I add a stop?',
@@ -622,7 +622,7 @@ const HELP_SECTIONS: HelpSection[] = [
             <li>Tap <strong>Add Stop</strong>.</li>
             <li>Enter the place name and address, and pick a date.</li>
             <li>Set a time, or leave it as <strong>TBD</strong> and we will slot it in a sensible order.</li>
-            <li>Tap <strong>Save</strong>. The stop appears in Tours and on Flow.</li>
+            <li>Tap <strong>Save</strong>. The stop appears in Tours and on Itinerary.</li>
           </ol>
         ),
       },
@@ -634,7 +634,7 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         question: 'Are Tours the same as Bookings?',
         answer:
-          'No. Bookings are monetary records (flights, lodging, rentals, paid activities) — they carry costs. Tours are manual stops with no money attached. Both feed Flow, but they live in separate workspaces so financial reporting stays clean.',
+          'No. Bookings are monetary records (flights, lodging, rentals, paid activities) — they carry costs. Tours are manual stops with no money attached. Both feed Itinerary, but they live in separate workspaces so financial reporting stays clean.',
       },
     ],
   },
@@ -736,7 +736,7 @@ const HELP_SECTIONS: HelpSection[] = [
         answer: (
           <div className="space-y-2">
             <p>
-              Discover surfaces real places near your Trip destination — restaurants, attractions, cafes, parks, museums, and more. Each result includes a real photo, star rating, and review count, and you can add any place straight to your Flow timeline.
+              Discover surfaces real places near your Trip destination — restaurants, attractions, cafes, parks, museums, and more. Each result includes a real photo, star rating, and review count, and you can add any place straight to your Itinerary timeline.
             </p>
             <p className="font-medium text-foreground mt-3">Categories:</p>
             <ul className="list-disc list-inside space-y-1">
@@ -756,7 +756,7 @@ const HELP_SECTIONS: HelpSection[] = [
         question: 'How do I use Discover?',
         answer: (
           <ol className="list-decimal list-inside space-y-1.5">
-            <li>Open your Trip and open the Discover surface from the navigation (or tap <strong>Explore nearby</strong> on a Flow event).</li>
+            <li>Open your Trip and open the Discover surface from the navigation (or tap <strong>Explore nearby</strong> on an Itinerary event).</li>
             <li>The <strong>Right Now</strong> section shows a curated mix of top-rated places, adjusted for time of day and weather.</li>
             <li>Below that, each category shows 3 places. Tap <strong>See all</strong> to expand.</li>
             <li>Each place card shows a real photo, star rating, review count, and category.</li>
@@ -771,7 +771,7 @@ const HELP_SECTIONS: HelpSection[] = [
             <li>Tap <strong>Add to Timeline</strong> on a place card.</li>
             <li>Pick a <strong>date</strong> (within your trip dates) and a <strong>time</strong>.</li>
             <li>Choose a <strong>duration</strong> (30 min, 1 hour, 2 hours, 3 hours, or None).</li>
-            <li>Tap <strong>Add to Timeline</strong>. The place appears on Flow at the scheduled date and time.</li>
+            <li>Tap <strong>Add to Timeline</strong>. The place appears on Itinerary at the scheduled date and time.</li>
           </ol>
         ),
       },
@@ -1281,9 +1281,9 @@ const HELP_SECTIONS: HelpSection[] = [
             <p>On phones, your Trip uses a bottom navigation bar with these tabs:</p>
             <ul className="list-disc list-inside space-y-1">
               <li><strong>Today</strong> — the command center for an active trip (next action, leave-by, quick actions)</li>
-              <li><strong>Flow</strong> — the full chronological timeline</li>
+              <li><strong>Itinerary</strong> — the full chronological timeline</li>
               <li><strong>Move</strong> — directive transport guidance for the next leg</li>
-              <li><strong>Guide</strong> — the short list of heads-up alerts worth your attention</li>
+              <li><strong>Trip Guide</strong> — the short list of heads-up alerts worth your attention</li>
               <li><strong>More</strong> — bookings, expenses, tours, companions, parking, packing, notes, members, reports, and Ask AI</li>
             </ul>
           </div>
@@ -1383,7 +1383,7 @@ const HELP_SECTIONS: HelpSection[] = [
               <ul className="list-disc list-inside space-y-1 text-sm">
                 <li>Up to 2 lifetime trips</li>
                 <li>Full trip management: bookings, expenses, packing, parking, notes</li>
-                <li>Today, Flow, Move, and Guide tabs — the full command-center experience</li>
+                <li>Today, Itinerary, Move, and Trip Guide tabs — the full command-center experience</li>
                 <li>Discover — find places near your destination</li>
                 <li>Tours — manual stops workspace</li>
                 <li>Ask AI — grounded in-trip assistant</li>
@@ -1462,7 +1462,7 @@ const HELP_SECTIONS: HelpSection[] = [
           'The command-center tab for an active trip. Shows your next action, leave-by timing, navigation, and quick actions. Available from 14 days before departure through the end of the trip.',
       },
       {
-        question: 'Flow',
+        question: 'Itinerary',
         answer:
           'The full chronological timeline of your trip. Today events pinned to the top, future events in ascending order, past events in descending order at the bottom.',
       },
@@ -1472,7 +1472,7 @@ const HELP_SECTIONS: HelpSection[] = [
           'The transport guidance tab. Shows exactly two options — recommended and alternative — for getting to your next destination, with live ETAs and Navigate.',
       },
       {
-        question: 'Guide',
+        question: 'Trip Guide',
         answer:
           'The contextual alerts tab. Surfaces the top heads-up items worth your attention right now, prioritized Timing → Weather → Sequence and external signals.',
       },
@@ -1489,7 +1489,7 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         question: 'Tours',
         answer:
-          'The workspace for manual stops that are not tied to a booking. Stops can be timed or marked TBD (sorted by nearest-neighbor geography). Tour stops flow into Flow automatically.',
+          'The workspace for manual stops that are not tied to a booking. Stops can be timed or marked TBD (sorted by nearest-neighbor geography). Tour stops flow into Itinerary automatically.',
       },
       {
         question: 'Ask AI',
@@ -1522,7 +1522,7 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         question: 'Engagement',
         answer:
-          'An activity scheduled from Discover or added as a Tour stop. Engagements appear on Flow alongside bookings and parking.',
+          'An activity scheduled from Discover or added as a Tour stop. Engagements appear on Itinerary alongside bookings and parking.',
       },
       {
         question: 'Expense',
@@ -1552,9 +1552,9 @@ const HELP_SECTIONS: HelpSection[] = [
           'Not all confirmation formats are supported. If automatic parsing misses details, tap Edit on the booking to correct fields manually. You can also add bookings entirely by hand.',
       },
       {
-        question: 'I added a place from Discover but it does not appear on Flow.',
+        question: 'I added a place from Discover but it does not appear on Itinerary.',
         answer:
-          'Places added from Discover appear as engagement events on Flow. Make sure the date you selected is within your trip date range. Refresh the page if the event does not appear immediately.',
+          'Places added from Discover appear as engagement events on Itinerary. Make sure the date you selected is within your trip date range. Refresh the page if the event does not appear immediately.',
       },
       {
         question: 'My invitation link is not working.',
@@ -1632,7 +1632,7 @@ export default function HelpCenter() {
         <title>Help Center — Real Travel 2 Real Places | User Manual</title>
         <meta
           name="description"
-          content="Complete user manual for Real Travel 2 Real Places. Step-by-step guides for Today, Flow, Move, Guide, Discover, Tours, Drive Mode, expenses, packing, sharing, and more."
+          content="Complete user manual for Real Travel 2 Real Places. Step-by-step guides for Today, Itinerary, Move, Trip Guide, Explore, Work Stops, Drive Mode, expenses, packing, sharing, and more."
         />
         <link rel="canonical" href="https://realtravel2realplaces.app/help" />
       </Helmet>

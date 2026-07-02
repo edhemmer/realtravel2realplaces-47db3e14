@@ -79,7 +79,7 @@ export default function WelcomeChoice() {
               </div>
               <h1 className="text-2xl font-bold">Your command center is ready</h1>
               <p className="text-muted-foreground leading-relaxed">
-                Add a trip to see Today, Move, Guide, and Flow come to life — or look around the dashboard first.
+                Add a trip to see Today, Itinerary, Move, Explore, and Spend come to life - or look around the dashboard first.
               </p>
             </div>
 

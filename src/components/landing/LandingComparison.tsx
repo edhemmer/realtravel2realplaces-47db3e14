@@ -3,9 +3,9 @@ import { Check, X, Minus } from 'lucide-react';
 type FeatureStatus = 'yes' | 'no' | 'partial' | 'pro';
 
 const features: { name: string; us: FeatureStatus; maps: FeatureStatus; airline: FeatureStatus; booking: FeatureStatus }[] = [
-  { name: 'One operating view across flights, lodging, drive, transit, parking, expenses, and notes', us: 'yes', maps: 'no', airline: 'no', booking: 'partial' },
-  { name: 'Real-time "what do I do next?" flow before and during travel', us: 'yes', maps: 'partial', airline: 'partial', booking: 'no' },
-  { name: 'Drive Cockpit with trip stops, gas shortcut, weather, road context, and offline details', us: 'yes', maps: 'partial', airline: 'no', booking: 'no' },
+  { name: 'One trip home across flights, lodging, drive, transit, parking, expenses, and notes', us: 'yes', maps: 'no', airline: 'no', booking: 'partial' },
+  { name: 'Real-time "what do I do next?" guidance before and during travel', us: 'yes', maps: 'partial', airline: 'partial', booking: 'no' },
+  { name: 'Drive mode with trip stops, gas shortcut, weather, road context, and offline details', us: 'yes', maps: 'partial', airline: 'no', booking: 'no' },
   { name: 'Airport, local transit, weather, and parking windows in the trip context', us: 'yes', maps: 'partial', airline: 'partial', booking: 'no' },
   { name: 'Business/personal expense capture, splitting, and export-ready reports', us: 'yes', maps: 'no', airline: 'no', booking: 'partial' },
   { name: 'Companion sharing with scoped permissions and privacy masking', us: 'yes', maps: 'partial', airline: 'no', booking: 'partial' },

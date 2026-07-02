@@ -194,9 +194,9 @@ export default function Dashboard() {
                   <ShieldCheck className="h-3.5 w-3.5" />
                   Real-time travel operations
                 </div>
-                <h1 className="text-[30px] font-bold leading-[1.08] tracking-tight sm:text-4xl">Travel Operations Home</h1>
+                <h1 className="text-[30px] font-bold leading-[1.08] tracking-tight sm:text-4xl">Your Trip Home</h1>
                 <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-                  A premium command layer for every trip: timing, movement, spend, reports, offline context, and the next action before travel chaos has a chance to spread.
+                  Book anywhere. Bring the trip here. RT2RP keeps timing, movement, spend, reports, offline context, and the next step in one calm place.
                 </p>
               </div>
 
@@ -332,11 +332,11 @@ export default function Dashboard() {
                 <div className="w-16 h-16 rounded-2xl bg-gradient-ocean flex items-center justify-center mb-4 shadow-glow">
                   <Plane className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Your command center is waiting</h3>
+                <h3 className="text-xl font-semibold mb-2">Your first trip is waiting</h3>
                 <p className="text-muted-foreground text-center mb-6 max-w-md text-sm leading-relaxed">
                   {CAN_CREATE_TRIPS
-                    ? 'Add your first trip to bring Today, Move, Guide, and Flow to life — bookings, timing, and the next step in one calm place.'
-                    : 'Create or import trips from the secure web command center. They sync here automatically for mobile operations.'}
+                    ? 'Add a trip to bring Today, Itinerary, Move, Explore, and Spend to life - reservations, timing, and the next step in one calm place.'
+                    : 'Create or import trips from the secure web app. They sync here automatically for mobile use.'}
                 </p>
 
                 {CAN_CREATE_TRIPS && (
@@ -358,14 +358,14 @@ export default function Dashboard() {
                     <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
                       <ListChecks className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                       <div>
-                        <div className="text-xs font-semibold">Guide</div>
-                        <div className="text-[11px] text-muted-foreground leading-snug">Alerts that actually matter.</div>
+                        <div className="text-xs font-semibold">Explore</div>
+                          <div className="text-[11px] text-muted-foreground leading-snug">Nearby places and local context.</div>
                       </div>
                     </div>
                     <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
                       <Route className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                       <div>
-                        <div className="text-xs font-semibold">Flow</div>
+                        <div className="text-xs font-semibold">Itinerary</div>
                         <div className="text-[11px] text-muted-foreground leading-snug">Your trip on one timeline.</div>
                       </div>
                     </div>
@@ -556,7 +556,7 @@ const TripCard = React.memo(function TripCard({
           </div>
           <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-[10px] font-semibold uppercase text-muted-foreground/70">
             <span className="h-1.5 rounded-full bg-primary/25" />
-            <span>{isActive ? 'Live now' : isPastTrip ? 'Archived flow' : 'Ready flow'}</span>
+            <span>{isActive ? 'Live now' : isPastTrip ? 'Archived trip' : 'Ready trip'}</span>
             <span className="h-1.5 rounded-full bg-amber-400/30" />
           </div>
           <div className="flex items-center justify-between">

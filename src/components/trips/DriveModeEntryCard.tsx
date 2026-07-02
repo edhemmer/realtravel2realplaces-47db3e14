@@ -54,7 +54,7 @@ export function DriveModeEntryCard({ tripId, trip, canonicalState }: DriveModeEn
           <Car className="w-4.5 h-4.5 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-foreground">Drive Cockpit</p>
+          <p className="text-sm font-semibold text-foreground">Drive Mode</p>
           <p className="text-xs text-muted-foreground">
             {isInTrip
               ? 'Open drive view for this leg.'

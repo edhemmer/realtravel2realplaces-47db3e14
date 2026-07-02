@@ -293,9 +293,9 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
     <div className="rt-page-stack pb-20">
       <AppModuleHeader
         icon={LayoutDashboard}
-        eyebrow="Operations center"
-        title="TravelOps"
-        description="Start here, then move through next action, local context, route support, weather, spend, and offline readiness."
+        eyebrow="Move"
+        title="Routes, airports, and local transit"
+        description="Use this before and during travel to review how you get there, what happens next, nearby map context, weather, spend, and offline readiness."
         status={online ? 'Live windows' : 'Offline cache'}
         statusTone={online ? 'live' : 'cached'}
       >
@@ -305,18 +305,18 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
               <span className="text-foreground">{readiness}%</span>
             </div>
             <Progress value={readiness} className="h-2" />
-            <p className="mt-2 text-xs text-muted-foreground">Canonical trip data</p>
+            <p className="mt-2 text-xs text-muted-foreground">Trip readiness</p>
           </div>
       </AppModuleHeader>
 
       <section className="grid gap-3 lg:grid-cols-3">
-        <GuidanceStep icon={<CheckCircle2 className="h-5 w-5" />} label="1. Confirm next move" detail={nextMoveLabel} />
-        <GuidanceStep icon={<Map className="h-5 w-5" />} label="2. Check the operating window" detail={isDriveTrip ? 'Preview directions, route options, gas, and stops before departure.' : `Map, transit, airport, and weather context for ${mapQuery}.`} />
-        <GuidanceStep icon={<ShieldCheck className="h-5 w-5" />} label="3. Finish the plan" detail={isDriveTrip ? 'Add stops along the route, then keep receipts and notes tied to the trip.' : 'Capture receipts, parking, notes, and business context while details are fresh.'} />
+        <GuidanceStep icon={<CheckCircle2 className="h-5 w-5" />} label="1. Know the next step" detail={nextMoveLabel} />
+        <GuidanceStep icon={<Map className="h-5 w-5" />} label="2. Review the route" detail={isDriveTrip ? 'Preview directions, route options, gas, and stops before departure.' : `Map, transit, airport, and weather context for ${mapQuery}.`} />
+        <GuidanceStep icon={<ShieldCheck className="h-5 w-5" />} label="3. Keep proof and notes" detail={isDriveTrip ? 'Add stops along the route, then keep receipts and notes tied to the trip.' : 'Capture receipts, parking, notes, and business context while details are fresh.'} />
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <OpsMetric icon={<Route className="h-5 w-5" />} label="Next move" value={nextMoveLabel} tone={nextBooking || upcoming.length ? 'good' : 'watch'} />
+        <OpsMetric icon={<Route className="h-5 w-5" />} label="Next step" value={nextMoveLabel} tone={nextBooking || upcoming.length ? 'good' : 'watch'} />
         <OpsMetric icon={<Plane className="h-5 w-5" />} label="Airports" value={airports.length ? airports.map((a) => a.code).join(' / ') : 'None linked'} tone={airports.length ? 'good' : 'neutral'} />
         <OpsMetric icon={<CloudSun className="h-5 w-5" />} label="Weather" value={weather.current ? `${weather.current.temperature}F ${weather.current.condition}` : 'Checking'} tone={weather.weatherAnalysis?.hasRain || weather.weatherAnalysis?.hasSnow ? 'watch' : 'good'} />
         <OpsMetric icon={<BadgeDollarSign className="h-5 w-5" />} label="Managed spend" value={currency(managedSpend)} tone="neutral" />
@@ -326,7 +326,7 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
         <section className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
           <OpsWindow
             icon={<Route className="h-5 w-5" />}
-            title="Drive route planner"
+            title="Drive route"
             detail="Open before the trip starts to compare proposed directions, route options, fuel stops, and stop planning."
             badge="Planning"
           >
@@ -369,7 +369,7 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
 
           <OpsWindow
             icon={<MapPinned className="h-5 w-5" />}
-            title="Route setup"
+            title="Route details"
             detail="The route can be reviewed even before the active travel window. Add an origin for better door-to-door planning."
             badge={routeOrigin ? 'Door-to-door' : 'Destination'}
           >
@@ -435,9 +435,9 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
 
         <OpsWindow
           icon={<Gauge className="h-5 w-5" />}
-          title="Execution stack"
-          detail="The next operational moments that deserve attention before the traveler starts scrolling."
-          badge="Canonical"
+          title="Coming up"
+          detail="The next timed items from the trip itinerary."
+          badge="Timeline"
         >
           <div className="space-y-2">
             {upcoming.length > 0 ? upcoming.map((event) => (
@@ -457,7 +457,7 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
       <section className="grid gap-4 lg:grid-cols-2">
         <OpsWindow
           icon={<Building2 className="h-5 w-5" />}
-          title="Airport windows"
+          title="Airport maps"
           detail="Official maps, parking, and airport pages beat scraping, reduce support risk, and cost zero credits."
           badge="Official links"
         >
@@ -483,7 +483,7 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
 
         <OpsWindow
           icon={<TrainFront className="h-5 w-5" />}
-          title="Local transit window"
+          title="Local transit"
           detail="Live transit can be cached when coordinates exist; outbound local station maps provide a credit-free fallback."
           badge="3-min cache"
         >

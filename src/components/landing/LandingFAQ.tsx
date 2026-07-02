@@ -12,7 +12,7 @@ const faqs = [
   },
   {
     question: 'Does it support road trips and driving?',
-    answer: 'Yes. Drive Cockpit is built for driving days with navigation handoff, next stops, gas search, weather, road context, offline status, and CarPlay-ready trip context for iOS.',
+    answer: 'Yes. Drive mode is built for driving days with navigation handoff, next stops, gas search, weather, road context, offline status, and CarPlay-ready trip context for iOS.',
   },
   {
     question: 'Does it include airport maps and local transit?',

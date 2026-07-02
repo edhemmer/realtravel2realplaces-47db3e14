@@ -118,12 +118,12 @@ export default function Plans() {
   const proPlanFeatures: PlanFeature[] = [
     { text: 'Unlimited trips', included: true },
     { text: 'Everything in Free', included: true },
-    { text: 'TravelOps command center, Explore, and discovery', included: true },
-    { text: 'Drive Cockpit with road-trip operations', included: true },
+    { text: 'Trip home with Today, Itinerary, Move, Explore, and Spend', included: true },
+    { text: 'Drive mode with route, stops, fuel, and road-trip context', included: true },
     { text: 'Airport, transit, weather, and offline travel windows', included: true },
     { text: 'Full timeline with events', included: true },
     { text: 'Advanced cost summaries', included: true },
-    { text: 'Trip health, gap analysis, and next-action flow', included: true },
+    { text: 'Trip health, gap analysis, and next-step guidance', included: true },
     { text: 'Parking expiration alerts', included: true },
     { text: 'Priority support', included: true },
   ];
@@ -258,7 +258,7 @@ export default function Plans() {
         {/* Footer Note */}
         <div className="text-center text-sm text-muted-foreground py-4">
           <Sparkles className="w-4 h-4 inline-block mr-1" />
-          Start free, then request paid access when your travel operations need more capacity.
+          Start free, then request paid access when your trips need more capacity.
         </div>
       </div>
 
@@ -273,7 +273,7 @@ export default function Plans() {
             <DialogDescription className="pt-2 space-y-3">
               <p>
                 RT2RP is approving paid plan access in a controlled rollout so account, support,
-                and travel operations stay reliable.
+                and trip management stay reliable.
               </p>
               <p>
                 Send your request and we&apos;ll follow up with the right plan path for your travel needs.

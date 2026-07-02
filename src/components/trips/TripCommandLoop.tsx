@@ -32,9 +32,9 @@ interface TripCommandLoopProps {
 
 function tripPhase(trip: Trip): { label: string; tone: 'setup' | 'live' | 'complete'; detail: string } {
   const today = getLocalNowString().substring(0, 10);
-  if (today < trip.start_date) return { label: 'Prepare', tone: 'setup', detail: 'Trip has not started yet' };
-  if (today > trip.end_date) return { label: 'Close out', tone: 'complete', detail: 'Trip is complete' };
-  return { label: 'Operate', tone: 'live', detail: 'Trip is active now' };
+  if (today < trip.start_date) return { label: 'Get ready', tone: 'setup', detail: 'Review plans before travel starts' };
+  if (today > trip.end_date) return { label: 'Wrap up', tone: 'complete', detail: 'Finish receipts and trip notes' };
+  return { label: 'Travel day', tone: 'live', detail: 'Trip is active now' };
 }
 
 function formatDateTime(date?: string, time?: string): string {
@@ -73,11 +73,11 @@ export function TripCommandLoop({
     },
     {
       label: 'Next move',
-      title: nextStop.nextStop?.displayName || (missingBookings ? 'Add the first trip record' : 'Timeline ready'),
+      title: nextStop.nextStop?.displayName || (missingBookings ? 'Add your first plan' : 'Itinerary ready'),
       detail: nextStop.nextStop
         ? formatDateTime(nextStop.nextStop.eventLocalDate, nextStop.nextStop.eventLocalTime)
         : missingBookings
-          ? 'Flights, lodging, drive, train, or activity'
+          ? 'Flights, lodging, drive, train, activity, or work stop'
           : 'No timed action is currently due',
       icon: MapPin,
       tone: nextStop.nextStop ? 'live' : 'setup',
@@ -86,16 +86,16 @@ export function TripCommandLoop({
         : undefined,
     },
     {
-      label: 'Risk',
-      title: primaryAlert?.title || 'No critical trip risk',
-      detail: primaryAlert?.message || 'Alerts, weather, and parking are quiet',
+      label: 'Heads up',
+      title: primaryAlert?.title || 'No urgent issues',
+      detail: primaryAlert?.message || 'Weather, timing, and parking look quiet',
       icon: primaryAlert ? AlertTriangle : ShieldCheck,
       tone: primaryAlert ? 'setup' : 'complete',
     },
     {
-      label: 'Capture',
-      title: missingExpenses ? 'No expenses captured' : `${expenses.length} expense records`,
-      detail: missingExpenses ? 'Add receipts while details are fresh' : 'Spend record is active',
+      label: 'Receipts',
+      title: missingExpenses ? 'No receipts yet' : `${expenses.length} saved`,
+      detail: missingExpenses ? 'Capture spend while details are fresh' : 'Trip spend is being tracked',
       icon: ReceiptText,
       tone: missingExpenses ? 'setup' : 'complete',
     },
@@ -112,10 +112,10 @@ export function TripCommandLoop({
       <div className="rt-panel-body space-y-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="rt-muted-label">Command loop</p>
-            <h2 className="mt-1 text-2xl font-bold tracking-tight text-foreground">What needs attention?</h2>
+            <p className="rt-muted-label">Today</p>
+            <h2 className="mt-1 text-2xl font-bold tracking-tight text-foreground">Your trip, organized from any booking source.</h2>
             <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              RT2RP turns this trip into a live operating loop: next move, risks, missing info, local context, and capture.
+              Add reservations, drive plans, receipts, notes, and local context from wherever you booked. RT2RP keeps the next step clear.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -123,7 +123,7 @@ export function TripCommandLoop({
               <Button asChild className="rt-primary-action h-10 px-4">
                 <Link to={`/trip/${tripId}/drive`}>
                   <Car className="mr-2 h-4 w-4" />
-                  Drive Cockpit
+                  Drive Mode
                 </Link>
               </Button>
             )}
@@ -170,7 +170,7 @@ export function TripCommandLoop({
 
         <div className="grid gap-2 md:grid-cols-3">
           <div className="rt-kpi-panel p-3">
-            <p className="rt-muted-label">Trip records</p>
+            <p className="rt-muted-label">Itinerary items</p>
             <p className="mt-1 text-lg font-bold">{bookings.length}</p>
           </div>
           <div className="rt-kpi-panel p-3">
@@ -181,8 +181,8 @@ export function TripCommandLoop({
             </p>
           </div>
           <div className="rt-kpi-panel p-3">
-            <p className="rt-muted-label">Source state</p>
-            <p className="mt-1 text-lg font-bold">{canonicalState.timelineEvents.length} timeline events</p>
+            <p className="rt-muted-label">Timeline</p>
+            <p className="mt-1 text-lg font-bold">{canonicalState.timelineEvents.length} events</p>
           </div>
         </div>
       </div>

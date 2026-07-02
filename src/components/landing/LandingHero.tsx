@@ -10,7 +10,7 @@ export default function LandingHero() {
             <div className="landing-hero-kicker">
               <span>Chaos to Clarity</span>
               <span className="landing-hero-kicker-dot" />
-              <span>Travel Operations</span>
+              <span>Trip Management</span>
             </div>
 
             <h1 className="landing-hero-headline">
@@ -20,12 +20,12 @@ export default function LandingHero() {
             </h1>
 
             <p className="landing-hero-subtext">
-              RealTravel2RealPlaces turns every moving part of the trip into a live travel operations layer: flights, lodging, Drive Cockpit, airport maps, local transit, weather, expenses, offline details, and the next clear move.
+              RealTravel2RealPlaces turns any trip you booked anywhere into one organized travel home: itinerary, lodging, drive mode, airport maps, local transit, weather, expenses, offline details, and the next clear step.
             </p>
 
             <div className="landing-hero-proof-row" aria-label="Product capabilities">
-              <span>TravelOps dashboard</span>
-              <span>Drive Cockpit</span>
+              <span>Any booking source</span>
+              <span>Drive mode</span>
               <span>Airport + transit windows</span>
             </div>
 

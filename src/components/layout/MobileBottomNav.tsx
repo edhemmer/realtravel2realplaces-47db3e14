@@ -78,25 +78,25 @@ interface NavItem {
 
 const PRIMARY_NAV_ITEMS: NavItem[] = [
   { id: 'today', label: 'Today', icon: <CalendarDays className="w-5 h-5" /> },
-  { id: 'ops', label: 'Ops', icon: <LayoutDashboard className="w-5 h-5" /> },
-  { id: 'flow', label: 'Flow', icon: <Route className="w-5 h-5" /> },
+  { id: 'flow', label: 'Itinerary', icon: <Route className="w-5 h-5" /> },
+  { id: 'ops', label: 'Move', icon: <LayoutDashboard className="w-5 h-5" /> },
   { id: 'explore', label: 'Explore', icon: <Compass className="w-5 h-5" /> },
-  { id: 'expenses', label: 'Expenses', icon: <DollarSign className="w-5 h-5" /> },
+  { id: 'expenses', label: 'Spend', icon: <DollarSign className="w-5 h-5" /> },
 ];
 
 const MORE_NAV_ITEMS: NavItem[] = [
-  { id: 'drive', label: 'Drive', icon: <Car className="w-4 h-4" /> },
-  { id: 'move', label: 'Move', icon: <Compass className="w-4 h-4" /> },
-  { id: 'bookings', label: 'Bookings', icon: <Plane className="w-4 h-4" /> },
-  { id: 'packing', label: 'Packing', icon: <Package className="w-4 h-4" /> },
+  { id: 'drive', label: 'Drive mode', icon: <Car className="w-4 h-4" /> },
+  { id: 'move', label: 'Local map', icon: <Compass className="w-4 h-4" /> },
+  { id: 'bookings', label: 'Reservations', icon: <Plane className="w-4 h-4" /> },
+  { id: 'packing', label: 'Pack', icon: <Package className="w-4 h-4" /> },
   { id: 'weather', label: 'Weather', icon: <CloudSun className="w-4 h-4" /> },
-  { id: 'guide', label: 'Guide', icon: <Bell className="w-4 h-4" /> },
+  { id: 'guide', label: 'Trip guide', icon: <Bell className="w-4 h-4" /> },
   { id: 'parking', label: 'Parking', icon: <CircleParking className="w-4 h-4" /> },
   { id: 'report', label: 'Report', icon: <FileText className="w-4 h-4" />, requiresPro: true },
-  { id: 'members', label: 'Members', icon: <Users className="w-4 h-4" /> },
-  { id: 'companions', label: 'Companions', icon: <Users className="w-4 h-4" /> },
-  { id: 'notes', label: 'Notes & Safety', icon: <StickyNote className="w-4 h-4" /> },
-  { id: 'tour', label: 'Tour', icon: <MapPin className="w-4 h-4" />, requiresBusiness: true },
+  { id: 'members', label: 'Team access', icon: <Users className="w-4 h-4" /> },
+  { id: 'companions', label: 'Travelers', icon: <Users className="w-4 h-4" /> },
+  { id: 'notes', label: 'Safety notes', icon: <StickyNote className="w-4 h-4" /> },
+  { id: 'tour', label: 'Work stops', icon: <MapPin className="w-4 h-4" />, requiresBusiness: true },
   { id: 'alerts', label: 'Alerts', icon: <Bell className="w-4 h-4" /> },
 ];
 

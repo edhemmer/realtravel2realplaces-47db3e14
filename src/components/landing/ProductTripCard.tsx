@@ -7,10 +7,10 @@ export default function ProductTripCard() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <h3 className="text-base font-semibold text-white mb-0.5">
-              TravelOps
+              Trip Home
             </h3>
             <p className="text-xs text-[hsl(var(--landing-text-muted))]">
-              Orlando Weekend - Live command center
+              Orlando Weekend - organized from any source
             </p>
           </div>
           <div className="mock-chip">
@@ -34,7 +34,7 @@ export default function ProductTripCard() {
             <Car className="w-3 h-3 text-[hsl(var(--landing-accent))]" />
             <span className="text-[0.625rem] font-medium text-[hsl(var(--landing-text-muted))] uppercase tracking-wide">Drive</span>
           </div>
-          <p className="text-sm font-semibold text-white">Cockpit ready</p>
+          <p className="text-sm font-semibold text-white">Route ready</p>
           <p className="text-[0.6875rem] text-[hsl(var(--landing-text-muted))]">Gas - roads - weather</p>
         </div>
       </div>

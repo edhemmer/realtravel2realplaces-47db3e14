@@ -105,24 +105,24 @@ export type DrillThroughTarget = {
 const MOBILE_SECTION_LABELS: Partial<Record<TripTab, string>> = {
   now: 'Today',
   today: 'Today',
-  plan: 'Flow',
-  flow: 'Flow',
-  ops: 'TravelOps',
+  plan: 'Itinerary',
+  flow: 'Itinerary',
+  ops: 'Move',
   explore: 'Explore',
   weather: 'Weather',
-  expenses: 'Expenses',
-  bookings: 'Bookings',
-  tour: 'Tour',
-  members: 'Members',
-  companions: 'Companions',
+  expenses: 'Spend',
+  bookings: 'Reservations',
+  tour: 'Work Stops',
+  members: 'Team Access',
+  companions: 'Travelers',
   parking: 'Parking',
-  packing: 'Packing',
+  packing: 'Pack',
   alerts: 'Alerts',
   report: 'Report',
-  notes: 'Notes & Safety',
-  move: 'Move',
-  drive: 'Drive Cockpit',
-  guide: 'Guide',
+  notes: 'Safety Notes',
+  move: 'Local Map',
+  drive: 'Drive Mode',
+  guide: 'Trip Guide',
 };
 
 export default function TripDetail() {
@@ -234,14 +234,14 @@ export default function TripDetail() {
       {
         key: 'summary' as TripTab,
         label: 'Today',
-        detail: bookings.length ? 'Next stop, timeline, readiness' : 'Create the operating record',
+        detail: bookings.length ? 'Next step, alerts, receipts' : 'Add any reservation or stop',
         icon: LayoutDashboard,
         action: () => handleTabChange('summary'),
       },
       {
         key: isDriveTrip ? 'drive' as TripTab : 'ops' as TripTab,
-        label: isDriveTrip ? 'Drive' : hasFlights ? 'Flight' : 'Move',
-        detail: isDriveTrip ? 'Cockpit, route, fuel, location' : hasFlights ? 'Airports, timing, transit' : 'Movement and local transit',
+        label: isDriveTrip ? 'Drive' : 'Move',
+        detail: isDriveTrip ? 'Route, stops, fuel, location' : hasFlights ? 'Airports, timing, transit' : 'Routes, transit, and maps',
         icon: isDriveTrip ? Car : hasFlights ? Plane : Route,
         href: isDriveTrip ? `/trip/${trip.id}/drive` : undefined,
         action: isDriveTrip ? undefined : () => handleTabChange('ops'),
@@ -249,14 +249,14 @@ export default function TripDetail() {
       {
         key: 'explore' as TripTab,
         label: 'Explore',
-        detail: 'Places, food, maps, local context',
+        detail: 'Nearby food, places, context',
         icon: Compass,
         action: () => handleTabChange('explore'),
       },
       {
         key: 'expenses' as TripTab,
         label: 'Spend',
-        detail: canAccessBusinessFeatures ? 'Receipts, expenses, reports' : 'Receipts and trip costs',
+        detail: canAccessBusinessFeatures ? 'Receipts, costs, reports' : 'Receipts and trip costs',
         icon: ReceiptText,
         action: () => handleTabChange('expenses'),
       },
@@ -559,14 +559,14 @@ export default function TripDetail() {
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <div>
-                      <p className="rt-muted-label">Trip modules</p>
-                      <p className="text-xs text-muted-foreground">Everything stays tied to this trip record.</p>
+                      <p className="rt-muted-label">Trip workspace</p>
+                      <p className="text-xs text-muted-foreground">Book anywhere. Keep the whole trip organized here.</p>
                     </div>
                     {isDriveTrip && (
                       <Button asChild size="sm" className="rt-primary-action h-9 px-4">
                         <Link to={`/trip/${trip.id}/drive`}>
                           <Car className="mr-2 h-4 w-4" />
-                          Drive Cockpit
+                          Drive Mode
                         </Link>
                       </Button>
                     )}
@@ -578,11 +578,11 @@ export default function TripDetail() {
                     </TabsTrigger>
                     <TabsTrigger value="ops" className="rt-tab-trigger">
                       <LayoutDashboard className="h-3.5 w-3.5" />
-                      Ops
+                      Move
                     </TabsTrigger>
                     <TabsTrigger value="bookings" className="rt-tab-trigger">
                       <Plane className="h-3.5 w-3.5" />
-                      Plans
+                      Itinerary
                     </TabsTrigger>
                     <TabsTrigger value="explore" className="rt-tab-trigger relative">
                       <Compass className="h-3.5 w-3.5" />
@@ -602,7 +602,7 @@ export default function TripDetail() {
                     </TabsTrigger>
                     <TabsTrigger value="packing" className="rt-tab-trigger">
                       <Package className="h-3.5 w-3.5" />
-                      Packing
+                      Pack
                     </TabsTrigger>
                     <TabsTrigger value="weather" className="rt-tab-trigger">
                       <CloudSun className="h-3.5 w-3.5" />
@@ -620,21 +620,21 @@ export default function TripDetail() {
                     )}
                     <TabsTrigger value="members" className="rt-tab-trigger">
                       <Users className="h-3.5 w-3.5" />
-                      Team
+                      Access
                     </TabsTrigger>
                     <TabsTrigger value="companions" className="rt-tab-trigger">
                       <Users className="h-3.5 w-3.5" />
-                      Companions
+                      Travelers
                     </TabsTrigger>
                     {canAccessBusinessFeatures && (
                       <TabsTrigger value="tour" className="rt-tab-trigger">
                         <BriefcaseBusiness className="h-3.5 w-3.5" />
-                        Tour
+                        Work Stops
                       </TabsTrigger>
                     )}
                     <TabsTrigger value="notes" className="rt-tab-trigger">
                       <NotebookTabs className="h-3.5 w-3.5" />
-                      Safety
+                      Notes
                     </TabsTrigger>
                   </TabsList>
 

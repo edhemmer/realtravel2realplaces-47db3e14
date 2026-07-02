@@ -1,7 +1,7 @@
 /**
  * Onboarding Page — v3.11.0: Command-center intro
  *
- * Premium intro card that frames the four pillars (Today / Move / Guide / Flow)
+ * Premium intro card that frames the four pillars (Today / Itinerary / Move / Explore)
  * and the core promises (offline, multi-currency, shareable) before routing
  * into the Create Trip Wizard. No upload/import/paste prompts in onboarding.
  */
@@ -115,14 +115,14 @@ export default function Onboarding() {
             <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
               <ListChecks className="w-4 h-4 text-primary mt-0.5 shrink-0" />
               <div>
-                <div className="text-xs font-semibold">Guide</div>
-                <div className="text-[11px] text-muted-foreground leading-snug">Alerts that actually matter.</div>
+                <div className="text-xs font-semibold">Explore</div>
+                <div className="text-[11px] text-muted-foreground leading-snug">Nearby places and local context.</div>
               </div>
             </div>
             <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
               <Plane className="w-4 h-4 text-primary mt-0.5 shrink-0" />
               <div>
-                <div className="text-xs font-semibold">Flow</div>
+                <div className="text-xs font-semibold">Itinerary</div>
                 <div className="text-[11px] text-muted-foreground leading-snug">Your trip on one timeline.</div>
               </div>
             </div>

@@ -3,10 +3,10 @@ import { Check } from 'lucide-react';
 const reasons = [
   'See the next thing to do, where it is, and when to leave for it',
   'Open airport maps, parking, local transit, and drive navigation from the trip',
-  'Use Drive Cockpit for road conditions, gas, weather, next stops, and offline context',
+  'Use Drive mode for road conditions, gas, weather, next stops, and offline context',
   'Track expenses in the moment before receipts and details disappear',
   'Keep the trip usable on planes, in garages, in airports, and in weak service areas',
-  'Manage simple family trips and complex business travel from the same operating layer',
+  'Manage simple family trips and complex business travel from the same trip home',
 ];
 
 export default function LandingWhyDuringTrip() {
