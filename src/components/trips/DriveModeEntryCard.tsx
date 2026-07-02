@@ -37,8 +37,9 @@ export function DriveModeEntryCard({ tripId, trip, canonicalState }: DriveModeEn
     () => getActiveDriveSegment(canonicalState, new Date()) !== null,
     [canonicalState],
   );
+  const isDriveTrip = trip.transportation_mode === 'drive';
 
-  if (!eligible || !hasSegment) return null;
+  if (!eligible || (!isDriveTrip && !hasSegment)) return null;
 
   const today = todayLocalDate();
   const isInTrip = today >= trip.start_date && today <= trip.end_date;
@@ -53,7 +54,7 @@ export function DriveModeEntryCard({ tripId, trip, canonicalState }: DriveModeEn
           <Car className="w-4.5 h-4.5 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-foreground">Drive Mode</p>
+          <p className="text-sm font-semibold text-foreground">Drive Cockpit</p>
           <p className="text-xs text-muted-foreground">
             {isInTrip
               ? 'Open drive view for this leg.'

@@ -228,6 +228,58 @@ function buildDriveSegments(events: CanonicalTimelineEvent[]): DriveSegment[] {
   return segments;
 }
 
+function tripDestinationLabel(tripState: CanonicalTripState): string {
+  const trip = tripState.trip;
+  return trip.destination_address?.trim()
+    || [trip.destination_city, trip.destination_state, trip.destination_country].filter(Boolean).join(', ')
+    || trip.name
+    || 'destination';
+}
+
+function parseDateAtNoon(dateStr: string): Date {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  return new Date(year, month - 1, day, 12, 0, 0);
+}
+
+function fallbackDriveTripSegment(tripState: CanonicalTripState, now: Date): DriveSegment | null {
+  const trip = tripState.trip;
+  if (trip.transportation_mode !== 'drive') return null;
+
+  const today = localNowString(now).substring(0, 10);
+  if (today > trip.end_date) return null;
+
+  const dateStr = today < trip.start_date ? trip.start_date : today;
+  const destination = tripDestinationLabel(tripState);
+  const eventLocalDateTime = `${dateStr}T09:00:00`;
+  const sourceEvent: CanonicalTimelineEvent = {
+    id: `${trip.id}-drive-trip`,
+    sourceId: trip.id,
+    sourceType: 'booking',
+    bookingType: 'transport',
+    eventType: 'transport_departure',
+    title: `Drive to ${destination}`,
+    subtitle: trip.origin_address?.trim()
+      ? `${trip.origin_address.trim()} to ${destination}`
+      : destination,
+    datetime: parseDateAtNoon(dateStr),
+    hasExplicitTime: false,
+    address: trip.destination_address?.trim() || destination,
+    transportMode: 'other',
+    eventLocalDateTime,
+    eventTimeZone: null,
+  };
+
+  return {
+    id: `drive-seg-${trip.id}`,
+    kind: 'DRIVE_TRIP',
+    label: sourceEvent.title,
+    sourceEvent,
+    dateStr,
+    timeStr: null,
+    sortKey: buildSortKey(dateStr, null),
+  };
+}
+
 // ============================================================================
 // CORE FUNCTIONS
 // ============================================================================
@@ -243,7 +295,7 @@ export function getActiveDriveSegment(
 ): DriveSegment | null {
   if (!tripState) return null;
   const segments = buildDriveSegments(tripState.timelineEvents);
-  if (segments.length === 0) return null;
+  if (segments.length === 0) return fallbackDriveTripSegment(tripState, now);
 
   const nowStr = localNowString(now);
 
@@ -272,6 +324,13 @@ export function getNavigationTarget(
     return {
       label: activeSegment.label,
       addressString: ev.address.trim(),
+    };
+  }
+
+  if (tripState.trip.destination_address?.trim()) {
+    return {
+      label: activeSegment.label,
+      addressString: tripState.trip.destination_address.trim(),
     };
   }
 

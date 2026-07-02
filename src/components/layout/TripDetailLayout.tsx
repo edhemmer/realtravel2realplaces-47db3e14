@@ -22,13 +22,15 @@ interface TripDetailLayoutProps {
   onTabChange: (tab: TripTab) => void;
   /** Whether to show bottom nav - typically true for trip detail page */
   showBottomNav?: boolean;
+  showDriveNav?: boolean;
 }
 
 export function TripDetailLayout({ 
   children, 
   activeTab, 
   onTabChange,
-  showBottomNav = true 
+  showBottomNav = true,
+  showDriveNav = false,
 }: TripDetailLayoutProps) {
   const isMobile = useIsMobile();
 
@@ -50,6 +52,7 @@ export function TripDetailLayout({
           <MobileBottomNav 
             activeTab={activeTab} 
             onTabChange={onTabChange} 
+            showDrive={showDriveNav}
           />
         </>
       )}

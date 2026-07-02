@@ -7,7 +7,7 @@
  */
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Trip } from '@/types/database';
 import { useAccess } from '@/hooks/useAccess';
 import { useExploreDiscovery } from '@/hooks/useExploreDiscovery';
@@ -51,6 +51,7 @@ const MORE_TAB_LABELS: Partial<Record<TripTab, string>> = {
   flow: 'Flow',
   ops: 'TravelOps',
   move: 'Move',
+  drive: 'Drive Cockpit',
   guide: 'Guide',
   weather: 'Weather',
   parking: 'Parking',
@@ -94,6 +95,7 @@ export function MobileNavigationRouter({
   onExternalTabConsumed,
   onActiveTabChange,
 }: MobileNavigationRouterProps) {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { isPro, canAccessBusinessFeatures } = useAccess();
   const { hasDiscovered: hasDiscoveredExplore, markDiscovered: markExploreDiscovered } = useExploreDiscovery();
@@ -118,6 +120,7 @@ export function MobileNavigationRouter({
   // v4.1.0: Initialize from externalTab so dashboard ?tab= links land correctly
   const resolveInitialTab = (tab?: TripTab): TripTab => {
     if (!tab) return 'today';
+    if (tab === 'drive') return 'today';
     if (tab === 'summary') return 'today';
     if (tab === 'now') return 'today';
     if (tab === 'plan') return 'flow';
@@ -147,6 +150,11 @@ export function MobileNavigationRouter({
   // Consume external tab changes
   useEffect(() => {
     if (externalTab) {
+      if (externalTab === 'drive') {
+        navigate(`/trip/${tripId}/drive`);
+        onExternalTabConsumed?.();
+        return;
+      }
       if (externalTab === 'summary' || externalTab === 'now') {
         setActiveTab('today');
       } else if (externalTab === 'plan' || externalTab === 'timeline') {
@@ -156,10 +164,14 @@ export function MobileNavigationRouter({
       }
       onExternalTabConsumed?.();
     }
-  }, [externalTab, onExternalTabConsumed]);
+  }, [externalTab, navigate, onExternalTabConsumed, tripId]);
 
   // v3.5.1: Canonical tab change
   const handleTabChange = useCallback((tab: TripTab) => {
+    if (tab === 'drive') {
+      navigate(`/trip/${tripId}/drive`);
+      return;
+    }
     if (tab === 'summary' || tab === 'now') {
       setActiveTab('today');
       return;
@@ -173,7 +185,7 @@ export function MobileNavigationRouter({
     if (tab === 'explore' && !hasDiscoveredExplore) {
       markExploreDiscovered();
     }
-  }, [hasDiscoveredExplore, markExploreDiscovered]);
+  }, [hasDiscoveredExplore, markExploreDiscovered, navigate, tripId]);
 
   // v3.12.4: Explore nearby from timeline item
   const handleExploreNearby = useCallback((eventId: string) => {
@@ -236,6 +248,8 @@ export function MobileNavigationRouter({
         );
       case 'move':
         return <MoveTab tripId={tripId} trip={trip} />;
+      case 'drive':
+        return null;
       case 'ops':
         return <TravelOpsTab tripId={tripId} trip={trip} />;
       case 'guide':
@@ -305,6 +319,7 @@ export function MobileNavigationRouter({
       activeTab={activeTab}
       onTabChange={handleTabChange}
       showBottomNav={true}
+      showDriveNav={trip.transportation_mode === 'drive'}
     >
       {renderTabContent()}
     </TripDetailLayout>

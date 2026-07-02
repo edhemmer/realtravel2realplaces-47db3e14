@@ -26,6 +26,7 @@ import {
   StickyNote,
   Bell,
   CloudSun,
+  Car,
   LayoutDashboard,
 } from 'lucide-react';
 import { useAccess } from '@/hooks/useAccess';
@@ -43,6 +44,7 @@ export type TripTab =
   | 'flow'
   | 'ops'
   | 'move'
+  | 'drive'
   | 'guide'
   | 'summary' 
   | 'bookings' 
@@ -63,6 +65,7 @@ interface MobileBottomNavProps {
   activeTab: TripTab;
   onTabChange: (tab: TripTab) => void;
   className?: string;
+  showDrive?: boolean;
 }
 
 interface NavItem {
@@ -82,6 +85,7 @@ const PRIMARY_NAV_ITEMS: NavItem[] = [
 ];
 
 const MORE_NAV_ITEMS: NavItem[] = [
+  { id: 'drive', label: 'Drive', icon: <Car className="w-4 h-4" /> },
   { id: 'move', label: 'Move', icon: <Compass className="w-4 h-4" /> },
   { id: 'bookings', label: 'Bookings', icon: <Plane className="w-4 h-4" /> },
   { id: 'packing', label: 'Packing', icon: <Package className="w-4 h-4" /> },
@@ -96,7 +100,7 @@ const MORE_NAV_ITEMS: NavItem[] = [
   { id: 'alerts', label: 'Alerts', icon: <Bell className="w-4 h-4" /> },
 ];
 
-export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBottomNavProps) {
+export function MobileBottomNav({ activeTab, onTabChange, className, showDrive = false }: MobileBottomNavProps) {
   const { canAccessBusinessFeatures, isPro } = useAccess();
   
   const visiblePrimaryItems = PRIMARY_NAV_ITEMS.filter(item => {
@@ -105,6 +109,7 @@ export function MobileBottomNav({ activeTab, onTabChange, className }: MobileBot
   });
 
   const visibleMoreItems = MORE_NAV_ITEMS.filter(item => {
+    if (item.id === 'drive') return showDrive;
     if (item.requiresBusiness) return canAccessBusinessFeatures;
     if (item.requiresPro) return isPro;
     return true;

@@ -20,6 +20,7 @@ import {
   Users,
   Activity,
   BriefcaseBusiness,
+  Car,
   CircleParking,
   CloudSun,
   Compass,
@@ -120,6 +121,7 @@ const MOBILE_SECTION_LABELS: Partial<Record<TripTab, string>> = {
   report: 'Report',
   notes: 'Notes & Safety',
   move: 'Move',
+  drive: 'Drive Cockpit',
   guide: 'Guide',
 };
 
@@ -170,6 +172,7 @@ export default function TripDetail() {
 
   // v4.0.1: Canonical state for Drive Mode entry card
   const { state: driveModeCanonicalState } = useCanonicalTripState(tripId || '', trip || null);
+  const isDriveTrip = trip?.transportation_mode === 'drive';
 
   const isInternational = useMemo(() => {
     const country = trip?.destination_country?.toLowerCase() || '';
@@ -405,12 +408,14 @@ export default function TripDetail() {
       {/* v2.6.13: Primary zone — single-row horizontal scroll on mobile */}
       {/* v2.6.19: MobileNextUpCard and MobileAddExpenseCard moved to NOW execution pills — only ProRetention stays in header */}
       <div className="flex gap-2 overflow-x-auto md:flex-col md:overflow-visible md:gap-4 px-0.5 md:px-0 scrollbar-hide pb-1 md:pb-0">
+        {/* v4.0.1: Drive Mode entry card */}
+        {isDriveTrip && (
+          <div className="shrink-0 md:shrink md:w-full min-w-[280px] md:min-w-0">
+            <DriveModeEntryCard tripId={trip.id} trip={trip} canonicalState={driveModeCanonicalState} />
+          </div>
+        )}
         <div className="shrink-0 md:shrink md:w-full min-w-[280px] md:min-w-0">
           <ProRetentionCountdownCard trip={trip} />
-        </div>
-        {/* v4.0.1: Drive Mode entry card */}
-        <div className="shrink-0 md:shrink md:w-full min-w-[280px] md:min-w-0">
-          <DriveModeEntryCard tripId={trip.id} trip={trip} canonicalState={driveModeCanonicalState} />
         </div>
         <div className="hidden md:block shrink-0 md:shrink md:w-full min-w-[280px] md:min-w-0">
           <MobileNextUpCard tripId={trip.id} trip={trip} />
@@ -491,6 +496,12 @@ export default function TripDetail() {
                       <LayoutDashboard className="h-3.5 w-3.5" />
                       TravelOps
                     </TabsTrigger>
+                    {isDriveTrip && (
+                      <Link to={`/trip/${trip.id}/drive`} className="rt-tab-trigger inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-all hover:bg-background/80 hover:text-foreground">
+                        <Car className="h-3.5 w-3.5" />
+                        Drive Cockpit
+                      </Link>
+                    )}
                     <TabsTrigger value="bookings" className="rt-tab-trigger">
                       <Plane className="h-3.5 w-3.5" />
                       Bookings
