@@ -14,6 +14,7 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { useDriveEngine } from '@/hooks/useDriveEngine';
 import { useTripReadiness } from '@/hooks/useTripReadiness';
 import { TripBriefSection } from '@/components/trips/TripBriefSection';
+import { TripCommandLoop } from '@/components/trips/TripCommandLoop';
 import { Trip, Booking, Parking, Companion } from '@/types/database';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -213,6 +214,18 @@ export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onV
 
   return (
     <div className="space-y-3 md:space-y-5">
+      <TripCommandLoop
+        tripId={tripId}
+        trip={trip}
+        canonicalState={canonicalState}
+        bookings={bookings}
+        expenses={expenses}
+        parkingList={parkingList}
+        alerts={alerts}
+        onExplore={onExploreTab}
+        onDrillThrough={onDrillThrough}
+      />
+
       {/* v3.12.0: Trip Brief */}
       {tripBrief && <TripBriefSection brief={tripBrief} onAction={handleBriefAction} />}
 
