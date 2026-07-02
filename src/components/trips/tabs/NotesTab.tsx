@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { FileText, Phone, Link, Save } from 'lucide-react';
 import { useTripPermission } from '@/pages/TripDetail';
+import { AppModuleHeader } from '@/components/trips/AppModuleHeader';
 
 interface NotesTabProps {
   tripId: string;
@@ -56,8 +57,14 @@ export function NotesTab({ tripId }: NotesTabProps) {
   return (
     <div className="space-y-4">
       {/* Header v1.3.2 */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h3 className="text-lg font-semibold">Notes & Safety</h3>
+      <AppModuleHeader
+        icon={FileText}
+        eyebrow="Trip memory"
+        title="Notes & Safety"
+        description="Keep emergency numbers, important links, and trip notes attached to the trip record."
+        status={hasChanges ? 'Unsaved changes' : 'Saved'}
+        statusTone={hasChanges ? 'setup' : 'neutral'}
+      >
         {canEdit && (
           <Button
             onClick={handleSave}
@@ -68,7 +75,7 @@ export function NotesTab({ tripId }: NotesTabProps) {
             {upsertNotes.isPending ? 'Saving...' : 'Save Changes'}
           </Button>
         )}
-      </div>
+      </AppModuleHeader>
 
       <div className="grid gap-6">
         {/* General Notes */}

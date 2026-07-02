@@ -27,6 +27,8 @@ import { useCanonicalTripStateFromData } from '@/hooks/useCanonicalTripState';
 import { useDesktopTripShell } from './DesktopTripShell';
 import { TripSectionLoading, TripSectionError } from '@/components/trips/TripSectionStates';
 import { SummaryTab } from '@/components/trips/tabs/SummaryTab';
+import { AppModuleHeader } from '@/components/trips/AppModuleHeader';
+import { LayoutDashboard } from 'lucide-react';
 import type { DrillThroughTarget } from '@/pages/TripDetail';
 
 interface TripSummaryContainerProps {
@@ -78,13 +80,23 @@ export function TripSummaryContainer({ tripId, trip, onDrillThrough, maxVisibleA
   // Render the presentational view
   // SummaryTab handles its own data display internally
   return (
-    <SummaryTab 
-      tripId={tripId} 
-      trip={trip} 
-      onDrillThrough={onDrillThrough}
-      maxVisibleAlerts={maxVisibleAlerts}
-      onViewAllAlerts={onViewAllAlerts}
-      onExploreTab={onExploreTab}
-    />
+    <div className="space-y-4">
+      <AppModuleHeader
+        icon={LayoutDashboard}
+        eyebrow="Today"
+        title="Today"
+        description="The current operating view: next stop, timeline, readiness, alerts, and the actions that keep the trip moving."
+        status={shell?.hasAlerts ? `${shell.criticalAlertCount} critical alerts` : 'Trip context'}
+        statusTone={shell?.criticalAlertCount ? 'cached' : 'neutral'}
+      />
+      <SummaryTab
+        tripId={tripId}
+        trip={trip}
+        onDrillThrough={onDrillThrough}
+        maxVisibleAlerts={maxVisibleAlerts}
+        onViewAllAlerts={onViewAllAlerts}
+        onExploreTab={onExploreTab}
+      />
+    </div>
   );
 }

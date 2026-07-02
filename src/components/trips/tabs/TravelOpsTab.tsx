@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   CloudSun,
   Gauge,
+  LayoutDashboard,
   MapPinned,
   Map,
   Navigation,
@@ -15,14 +16,13 @@ import {
   Route,
   ShieldCheck,
   TrainFront,
-  Wifi,
-  WifiOff,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { AppModuleHeader } from '@/components/trips/AppModuleHeader';
 import { Trip, Booking } from '@/types/database';
 import { useBookings } from '@/hooks/useBookings';
 import { useExpenses } from '@/hooks/useExpenses';
@@ -291,36 +291,23 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
 
   return (
     <div className="rt-page-stack pb-20">
-      <section className="rt-command-panel">
-        <div className="rt-panel-body">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-2xl">
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <Badge className="rounded-full bg-primary text-primary-foreground">TravelOps</Badge>
-              <Badge variant="outline" className="rounded-full">
-                {online ? <Wifi className="mr-1 h-3 w-3" /> : <WifiOff className="mr-1 h-3 w-3" />}
-                {online ? 'Live windows' : 'Offline cache'}
-              </Badge>
-              <Badge variant="outline" className="rounded-full">Low-credit mode</Badge>
-            </div>
-            <h2 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
-              Start here, then move with confidence
-            </h2>
-            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-              TravelOps turns the trip into a short operating sequence: next move, local context, route support, weather, spend, and offline readiness.
-            </p>
-          </div>
-          <div className="rt-kpi-panel min-w-[220px] p-4">
+      <AppModuleHeader
+        icon={LayoutDashboard}
+        eyebrow="Operations center"
+        title="TravelOps"
+        description="Start here, then move through next action, local context, route support, weather, spend, and offline readiness."
+        status={online ? 'Live windows' : 'Offline cache'}
+        statusTone={online ? 'live' : 'cached'}
+      >
+          <div className="rt-kpi-panel min-w-[220px] p-3">
             <div className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Trip readiness
               <span className="text-foreground">{readiness}%</span>
             </div>
             <Progress value={readiness} className="h-2" />
-            <p className="mt-2 text-xs text-muted-foreground">Built from existing canonical trip data and cached external windows.</p>
+            <p className="mt-2 text-xs text-muted-foreground">Canonical trip data</p>
           </div>
-        </div>
-        </div>
-      </section>
+      </AppModuleHeader>
 
       <section className="grid gap-3 lg:grid-cols-3">
         <GuidanceStep icon={<CheckCircle2 className="h-5 w-5" />} label="1. Confirm next move" detail={nextMoveLabel} />

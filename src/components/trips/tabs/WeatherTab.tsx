@@ -33,6 +33,7 @@ import {
   formatSnapshotTimestamp,
   type WeatherSnapshotRecord,
 } from '@/lib/weatherSnapshotCache';
+import { AppModuleHeader } from '@/components/trips/AppModuleHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -521,15 +522,14 @@ export function WeatherTab({ tripId, trip }: WeatherTabProps) {
   if (!online && locations.length === 0 && offlineSnapshots.length > 0) {
     return (
       <div className="space-y-4">
-        <div className="px-1">
-          <h2 className="text-xl font-bold text-foreground tracking-tight">Weather</h2>
-          <div className="flex items-center gap-2 mt-1">
-            <WifiOff className="w-3.5 h-3.5 text-orange-500" />
-            <p className="text-sm text-muted-foreground">
-              Not live. Showing last synced forecast.
-            </p>
-          </div>
-        </div>
+        <AppModuleHeader
+          icon={CloudSun}
+          eyebrow="Weather intelligence"
+          title="Weather"
+          description="Not live. Showing the last synced forecast saved to this trip."
+          status="Cached"
+          statusTone="cached"
+        />
         {offlineSnapshots.map((snap) => (
           <OfflineWeatherCard key={snap.id} snapshot={snap} temperatureUnit={temperatureUnit} />
         ))}
@@ -557,19 +557,15 @@ export function WeatherTab({ tripId, trip }: WeatherTabProps) {
 
   return (
     <div className="space-y-4">
+      <AppModuleHeader
+        icon={CloudSun}
+        eyebrow="Weather intelligence"
+        title="Weather"
+        description="Forecasts for every airport, lodging, destination, and transport window in this trip."
+        status={online ? `${locations.length} trip locations` : 'Cached/offline'}
+        statusTone={online ? 'live' : 'cached'}
+      />
       <div className="px-1">
-        <h2 className="text-xl font-bold text-foreground tracking-tight">Weather</h2>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          Forecasts for every location in your trip
-        </p>
-        {!online && (
-          <div className="flex items-center gap-2 mt-1">
-            <WifiOff className="w-3.5 h-3.5 text-orange-500" />
-            <p className="text-xs text-muted-foreground">
-              Not live. Showing last synced forecast.
-            </p>
-          </div>
-        )}
         {/* Legend */}
         <div className="flex flex-wrap gap-3 mt-2">
           {Object.entries(MODE_CONFIG).map(([key, config]) => (

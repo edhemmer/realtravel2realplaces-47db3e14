@@ -19,6 +19,8 @@ import { useBookings } from '@/hooks/useBookings';
 import { TripSectionLoading, TripSectionError } from '@/components/trips/TripSectionStates';
 import { BookingsTab } from '@/components/trips/tabs/BookingsTab';
 import { useFlightAirportRepair } from '@/hooks/useFlightAirportRepair';
+import { AppModuleHeader } from '@/components/trips/AppModuleHeader';
+import { Plane } from 'lucide-react';
 
 interface TripBookingsContainerProps {
   tripId: string;
@@ -63,10 +65,20 @@ export function TripBookingsContainer({
   // Render the presentational view
   // BookingsTab handles its own data fetching and mutations internally
   return (
-    <BookingsTab 
-      tripId={tripId}
-      highlightId={highlightId}
-      onHighlightConsumed={onHighlightConsumed}
-    />
+    <div className="space-y-4">
+      <AppModuleHeader
+        icon={Plane}
+        eyebrow="Trip records"
+        title="Plans"
+        description="Flights, lodging, rentals, transport, and activities become one operating record for the trip."
+        status={bookings.length > 0 ? `${bookings.length} records` : 'Setup needed'}
+        statusTone={bookings.length > 0 ? 'neutral' : 'setup'}
+      />
+      <BookingsTab
+        tripId={tripId}
+        highlightId={highlightId}
+        onHighlightConsumed={onHighlightConsumed}
+      />
+    </div>
   );
 }

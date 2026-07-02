@@ -24,6 +24,8 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { useBookingExpenseSync } from '@/hooks/useBookingExpenseSync';
 import { TripSectionLoading, TripSectionError } from '@/components/trips/TripSectionStates';
 import { ExpensesTab } from '@/components/trips/tabs/ExpensesTab';
+import { AppModuleHeader } from '@/components/trips/AppModuleHeader';
+import { ReceiptText } from 'lucide-react';
 
 interface TripExpensesContainerProps {
   tripId: string;
@@ -78,6 +80,16 @@ export function TripExpensesContainer({ tripId, trip, autoOpenAdd, onAutoOpenCon
   }
   
   return (
-    <ExpensesTab tripId={tripId} autoOpenAdd={autoOpenAdd} onAutoOpenConsumed={onAutoOpenConsumed} />
+    <div className="space-y-4">
+      <AppModuleHeader
+        icon={ReceiptText}
+        eyebrow="Spend control"
+        title="Spend"
+        description="Capture receipts, reconcile booking costs, and keep trip spend report-ready while details are fresh."
+        status={refreshQueued ? 'Offline queue' : `${expenses.length} expenses`}
+        statusTone={refreshQueued ? 'cached' : 'neutral'}
+      />
+      <ExpensesTab tripId={tripId} autoOpenAdd={autoOpenAdd} onAutoOpenConsumed={onAutoOpenConsumed} />
+    </div>
   );
 }

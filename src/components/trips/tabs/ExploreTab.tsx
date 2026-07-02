@@ -20,6 +20,7 @@ import { ExploreCarousel } from '@/components/trips/explore/ExploreCarousel';
 import { ExploreSectionFeed } from '@/components/trips/explore/ExploreSectionFeed';
 import { ExploreAreaPicker } from '@/components/trips/explore/ExploreAreaPicker';
 import { AddToTimelineModal } from '@/components/trips/explore/AddToTimelineModal';
+import { AppModuleHeader } from '@/components/trips/AppModuleHeader';
 import { useExplorePagination } from '@/hooks/useExplorePagination';
 import { isOnline } from '@/lib/networkStatus';
 import {
@@ -40,7 +41,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import {
   Loader2, AlertCircle,
-  Building2, Navigation, RefreshCw, Search, MapPinned, X, Plane, WifiOff,
+  Building2, Navigation, RefreshCw, Search, MapPinned, X, Plane, WifiOff, Compass,
 } from 'lucide-react';
 
 interface ExploreTabProps {
@@ -273,14 +274,25 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
   const OriginIcon = origin.source === 'DEVICE' ? Navigation
     : origin.source === 'ARRIVAL_AIRPORT' ? Plane
     : Building2;
+  const exploreStatus = !isOnline()
+    ? 'Cached/offline'
+    : attractions.length > 0
+      ? `${attractions.length} live places`
+      : 'Live source';
 
   // === MAIN EXPLORE SCREEN ===
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="space-y-1 px-1">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-foreground tracking-tight">Explore</h2>
+      <div className="space-y-3">
+        <AppModuleHeader
+          icon={Compass}
+          eyebrow="Local operating window"
+          title="Explore"
+          description="Find useful places near the right trip context: current location, airport, lodging, or destination area."
+          status={exploreStatus}
+          statusTone={!isOnline() ? 'cached' : 'live'}
+        >
           <Button
             variant="ghost"
             size="icon"
@@ -290,7 +302,7 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
           >
             <RefreshCw className="w-4 h-4 text-muted-foreground" />
           </Button>
-        </div>
+        </AppModuleHeader>
 
         {/* Subtitle */}
         <div className="flex items-center gap-1.5">

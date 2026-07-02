@@ -13,6 +13,7 @@ import { Plus, Trash2, CircleParking, MapPin, Clock, AlertTriangle, Pencil, Navi
 import { toast } from 'sonner';
 import { navigateTo } from '@/lib/canonicalNavigation';
 import { ParkingExpirationIndicator } from '@/components/trips/ParkingExpirationIndicator';
+import { AppModuleHeader } from '@/components/trips/AppModuleHeader';
 import { cn } from '@/lib/utils';
 import { UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
 import { extractDatetimeLocalValue, formatLocalTimeDirect, formatLocalDateDirect } from '@/lib/canonicalTimeNormalizer';
@@ -243,15 +244,21 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
   return (
     <div className="space-y-4">
       {/* Header v1.3.2 */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h3 className="text-lg font-semibold">Parking</h3>
+      <AppModuleHeader
+        icon={CircleParking}
+        eyebrow="Arrival utility"
+        title="Parking"
+        description="Save the spot, expiration, cost, and directions back before the detail gets lost."
+        status={parkingList.length > 0 ? `${parkingList.length} saved` : 'Setup needed'}
+        statusTone={parkingList.length > 0 ? 'live' : 'setup'}
+      >
         {canEdit && (
           <Button onClick={() => { resetForm(); setDialogOpen(true); }} className="bg-gradient-ocean hover:opacity-90">
             <Plus className="w-4 h-4 mr-2" />
             Add Parking
           </Button>
         )}
-      </div>
+      </AppModuleHeader>
 
       {/* Summary */}
       <Card>
