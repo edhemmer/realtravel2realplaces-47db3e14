@@ -25,6 +25,19 @@ const packageResolved = join(
 const xcodeDerivedData = join(homedir(), 'Library', 'Developer', 'Xcode', 'DerivedData');
 const pbxprojPath = join(projectRoot, 'ios', 'App', 'App.xcodeproj', 'project.pbxproj');
 const packagePath = join(projectRoot, 'ios', 'App', 'CapApp-SPM', 'Package.swift');
+const requiredLocalPackages = [
+  ['@capacitor-community/apple-sign-in', 'node_modules/@capacitor-community/apple-sign-in/Package.swift'],
+  ['@capacitor/app', 'node_modules/@capacitor/app/Package.swift'],
+  ['@capacitor/browser', 'node_modules/@capacitor/browser/Package.swift'],
+  ['@capacitor/geolocation', 'node_modules/@capacitor/geolocation/Package.swift'],
+  ['@capacitor/haptics', 'node_modules/@capacitor/haptics/Package.swift'],
+  ['@capacitor/keyboard', 'node_modules/@capacitor/keyboard/Package.swift'],
+  ['@capacitor/local-notifications', 'node_modules/@capacitor/local-notifications/Package.swift'],
+  ['@capacitor/network', 'node_modules/@capacitor/network/Package.swift'],
+  ['@capacitor/push-notifications', 'node_modules/@capacitor/push-notifications/Package.swift'],
+  ['@capacitor/splash-screen', 'node_modules/@capacitor/splash-screen/Package.swift'],
+  ['@capacitor/status-bar', 'node_modules/@capacitor/status-bar/Package.swift'],
+];
 
 function removePath(path, label) {
   if (!existsSync(path)) return;
@@ -70,4 +83,12 @@ if (packageSwift.includes('\\')) {
   throw new Error('CapApp-SPM Package.swift still contains Windows backslashes. Run node scripts/normalize-capapp-spm.mjs.');
 }
 
-console.log('iOS SwiftPM repair checks passed. Standard CapApp-SPM linkage is present.');
+const missingPackages = requiredLocalPackages.filter(([, relativePath]) => !existsSync(join(projectRoot, relativePath)));
+if (missingPackages.length > 0) {
+  const missingList = missingPackages.map(([name]) => `- ${name}`).join('\n');
+  throw new Error(
+    `Capacitor local Swift packages are missing under node_modules:\n${missingList}\n\nRun npm install, then npm run ios:repair before opening Xcode.`,
+  );
+}
+
+console.log('iOS SwiftPM repair checks passed. Standard CapApp-SPM linkage and local Capacitor packages are present.');

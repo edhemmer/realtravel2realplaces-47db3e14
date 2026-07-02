@@ -1,121 +1,134 @@
-# iOS Build Guide — realtravel2realplaces
+# iOS Build Guide - realtravel2realplaces
 
 You don't need to own a Mac. Pick a build path, follow it once, and you're in TestFlight.
 
 ---
 
-## Path A — MacInCloud (recommended for solo dev, ~$1/hr)
+## Path A - MacInCloud or local Mac
 
-1. Sign up at https://www.macincloud.com → pick a **Pay-As-You-Go** plan.
-2. Connect via RDP (Windows) or Microsoft Remote Desktop (any OS).
-3. On the cloud Mac, open Terminal:
+1. Sign up at https://www.macincloud.com if you need a cloud Mac.
+2. Connect via RDP, Microsoft Remote Desktop, or use your local Mac.
+3. On the Mac, open Terminal:
    ```bash
-   # one-time
    xcode-select --install
    ```
-4. Clone this GitHub repository:
+4. Clone or update this GitHub repository:
    ```bash
-   git clone https://github.com/<you>/<repo>.git
-   cd <repo>
+   git clone https://github.com/edhemmer/realtravel2realplaces-47db3e14.git
+   cd realtravel2realplaces-47db3e14
    npm install
-   npm run ios:sync
+   npm run ios:repair
    open ios/App/App.xcodeproj
    ```
-5. Xcode opens the Xcode project (`App.xcodeproj`). Select your **Apple Developer team** in *Signing & Capabilities*, then hit **Run** or **Archive**.
+5. In Xcode, open `App.xcodeproj`, select the Apple Developer team in **Signing & Capabilities**, then run or archive.
 
 For every later change pushed to GitHub:
-```bash
-git pull && npm install && npm run ios:sync && open ios/App/App.xcodeproj
-```
-
-## Path B — Ionic Appflow (no Mac ever, ~$0–$49/mo)
-
-1. Sign up at https://ionic.io/appflow.
-2. Connect this GitHub repo.
-3. Add **iOS Native build**, upload your Apple Developer signing certificate + provisioning profile (Appflow walks you through it).
-4. Push to `main` → Appflow builds an `.ipa` → uploads to TestFlight automatically.
-
-This is the right path if you don't want to touch Xcode at all.
-
----
-
-## App Store prerequisites (one-time)
-
-- **Apple Developer Program**: $99/year — https://developer.apple.com/programs/
-- **Bundle ID**: `com.inlighttai.rt2rp` (already set in `capacitor.config.ts` and `ios/App/App/Info.plist`)
-- **App icon**: 1024×1024 PNG, no transparency. Place in `ios/App/App/Assets.xcassets/AppIcon.appiconset/` after `cap add ios`.
-- **Launch screen**: handled by `@capacitor/splash-screen` — replace the default in `ios/App/App/Assets.xcassets/Splash.imageset/`.
-- **Privacy strings** in `ios/App/App/Info.plist`:
-  - `NSLocationWhenInUseUsageDescription` — "Your location is used to surface nearby trip stops and time your departures while the app is open."
-  - `NSLocationAlwaysAndWhenInUseUsageDescription` — "Your location is used to surface nearby trip stops and time your departures even when the app is in the background." *(Required by App Store as of May 2026; see `ios/App/App/Info.plist` in this repo.)*
-  - `NSCameraUsageDescription` (if scanning receipts) — "The camera is used to capture receipts and tickets for expense tracking."
-  - `NSPhotoLibraryUsageDescription` (if importing from camera roll) — "Photo library access is used to import receipts and tickets for expense tracking."
-  - `NSUserTrackingUsageDescription` — only if you add analytics SDKs.
-
-## Apple Sign-In (required by App Store if Google sign-in is present)
-
-Configure this in Supabase Auth:
-1. Open the Supabase dashboard for project `ipshyjotathcwetqvhxv`.
-2. Authentication → Providers → **Apple** → configure the Apple service credentials.
-3. Add the Vercel production URL and iOS callback/deep-link URLs to Supabase Auth redirect allow-lists.
-
-## Release checklist (run before every TestFlight build)
-
-Functional
-- [ ] Login (email, Google, Apple) works on simulator and real device
-- [ ] Trip list loads, opens, and renders Now / Today / Move tabs without console errors
-- [ ] Add Expense flow completes online AND offline (offline queue syncs on reconnect)
-- [ ] Navigation buttons open Apple Maps with correct coordinates
-- [ ] Pull-to-refresh works on trip list
-
-Polish
-- [ ] No content sits under the Dynamic Island or home indicator (safe-area)
-- [ ] Keyboard never covers focused input
-- [ ] Status bar text is readable on every screen
-- [ ] No web fonts flash (FOIT)
-- [ ] All buttons ≥ 44×44 pt
-- [ ] Haptic feedback fires on: expense added, Next Action acknowledged, navigation launched
-
-Performance
-- [ ] Cold launch < 2.5s on iPhone 12 or newer
-- [ ] No dropped frames scrolling the Today timeline
-
-Store metadata
-- [ ] App icon present at all required sizes
-- [ ] Screenshots for 6.7", 6.5", 5.5" devices
-- [ ] Privacy policy URL (`/privacy`) reachable from a public URL
-- [ ] App Privacy questionnaire filled in App Store Connect (location, email, analytics)
-
----
-
-## Release build
-
-Production builds load bundled assets by default. Run `npm run ios:sync`, open `ios/App/App.xcodeproj`, then archive in Xcode (Product → Archive → Distribute → App Store Connect).
-
-## If Xcode says “Missing package product 'CapApp-SPM'”
-
-This project uses Capacitor's Swift Package Manager setup. Close Xcode completely and run:
 
 ```bash
-git pull
+git checkout main
+git pull --ff-only
 npm install
-npm run ios:sync
-open ios/App/App.xcodeproj
-```
-
-If Xcode is already open, quit it before running the command. Open `App.xcodeproj`; do not use a Pods workspace.
-
-If the package folder exists but Xcode still reports it missing, run:
-
-```bash
 npm run ios:repair
 open ios/App/App.xcodeproj
 ```
 
-The repair script clears stale SwiftPM package state, normalizes
-`ios/App/CapApp-SPM/Package.swift` paths, and verifies the Xcode project uses
-Capacitor's standard `CapApp-SPM` package linkage.
-# CarPlay
+## Path B - Ionic Appflow
+
+1. Sign up at https://ionic.io/appflow.
+2. Connect this GitHub repo.
+3. Add an **iOS Native build**, then upload your Apple Developer signing certificate and provisioning profile.
+4. Push to `main`; Appflow builds an `.ipa` and uploads to TestFlight automatically.
+
+This is the right path if you do not want to touch Xcode at all.
+
+---
+
+## App Store Prerequisites
+
+- **Apple Developer Program**: $99/year - https://developer.apple.com/programs/
+- **Bundle ID**: `com.inlighttai.rt2rp`
+- **App icon**: 1024x1024 PNG, no transparency.
+- **Launch screen**: handled by `@capacitor/splash-screen`.
+- **Privacy strings** in `ios/App/App/Info.plist`:
+  - `NSLocationWhenInUseUsageDescription` - "Your location is used to surface nearby trip stops and time your departures while the app is open."
+  - `NSLocationAlwaysAndWhenInUseUsageDescription` - "Your location is used to surface nearby trip stops and time your departures even when the app is in the background."
+  - `NSCameraUsageDescription` - "The camera is used to capture receipts and tickets for expense tracking."
+  - `NSPhotoLibraryUsageDescription` - "Photo library access is used to import receipts and tickets for expense tracking."
+  - `NSUserTrackingUsageDescription` - only if you add analytics SDKs.
+
+## Apple Sign-In
+
+Apple Sign-In is required by App Store policy if another third-party sign-in option is present.
+
+1. Open the Supabase dashboard for the production project.
+2. Authentication > Providers > **Apple** > configure the Apple service credentials.
+3. Add the Vercel production URL and iOS callback/deep-link URLs to Supabase Auth redirect allow-lists.
+
+## Release Checklist
+
+Functional:
+
+- [ ] Login works on simulator and real device.
+- [ ] Trip list loads, opens, and renders the main trip tabs without console errors.
+- [ ] Add Expense flow completes online and offline.
+- [ ] Navigation buttons open maps with correct coordinates.
+- [ ] Pull-to-refresh works on the trip list.
+
+Polish:
+
+- [ ] No content sits under the Dynamic Island or home indicator.
+- [ ] Keyboard never covers focused input.
+- [ ] Status bar text is readable on every screen.
+- [ ] No web fonts flash.
+- [ ] All buttons are at least 44x44 pt.
+- [ ] Haptic feedback fires on key travel actions.
+
+Performance:
+
+- [ ] Cold launch is under 2.5 seconds on iPhone 12 or newer.
+- [ ] Scrolling the Today timeline stays smooth.
+
+Store metadata:
+
+- [ ] App icon present at all required sizes.
+- [ ] Screenshots for required iPhone sizes.
+- [ ] Privacy policy URL is reachable from a public URL.
+- [ ] App Privacy questionnaire filled in App Store Connect.
+
+---
+
+## Release Build
+
+Production builds load bundled assets by default. Run `npm run ios:repair`, open `ios/App/App.xcodeproj`, then archive in Xcode with **Product > Archive > Distribute > App Store Connect**.
+
+## If Xcode Says "Missing package product 'CapApp-SPM'"
+
+This project uses Capacitor's standard Swift Package Manager setup. The Xcode project links one local package product named `CapApp-SPM`, and that package points to installed Capacitor packages in `node_modules`.
+
+Close Xcode completely before doing repair work. Then run this from the repository root on the Mac:
+
+```bash
+git checkout main
+git pull --ff-only
+npm install
+npm run ios:repair
+open ios/App/App.xcodeproj
+```
+
+Open `App.xcodeproj`; do not use a Pods workspace. In Xcode, use **File > Packages > Reset Package Caches**, then **File > Packages > Resolve Package Versions**.
+
+The repair script:
+
+- Runs the web build and `npx cap sync ios`.
+- Normalizes `ios/App/CapApp-SPM/Package.swift` paths for macOS SwiftPM.
+- Clears stale project SwiftPM package state.
+- Clears this app's Xcode DerivedData folders.
+- Verifies the Xcode project links the standard `CapApp-SPM` product.
+- Verifies every local Capacitor Swift package exists under `node_modules`.
+
+If the repair command reports missing package files, run `npm install` again, then rerun `npm run ios:repair`.
+
+## CarPlay
 
 The app includes native CarPlay scene scaffolding for Drive Mode:
 
