@@ -8,8 +8,19 @@
 
 /* Begin PBXBuildFile section */
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
-		4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = 4D22ABE82AF431CB00220026 /* CapApp-SPM */; };
 		4D22ABEA2AF431CB00220026 /* Capacitor in Frameworks */ = {isa = PBXBuildFile; productRef = 4D22ABEB2AF431CB00220026 /* Capacitor */; };
+		4D23AC012AF431CB00220026 /* Cordova in Frameworks */ = {isa = PBXBuildFile; productRef = 4D23ABF12AF431CB00220026 /* Cordova */; };
+		4D23AC022AF431CB00220026 /* CapacitorCommunityAppleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 4D23ABF22AF431CB00220026 /* CapacitorCommunityAppleSignIn */; };
+		4D23AC032AF431CB00220026 /* CapacitorApp in Frameworks */ = {isa = PBXBuildFile; productRef = 4D23ABF32AF431CB00220026 /* CapacitorApp */; };
+		4D23AC042AF431CB00220026 /* CapacitorBrowser in Frameworks */ = {isa = PBXBuildFile; productRef = 4D23ABF42AF431CB00220026 /* CapacitorBrowser */; };
+		4D23AC052AF431CB00220026 /* CapacitorGeolocation in Frameworks */ = {isa = PBXBuildFile; productRef = 4D23ABF52AF431CB00220026 /* CapacitorGeolocation */; };
+		4D23AC062AF431CB00220026 /* CapacitorHaptics in Frameworks */ = {isa = PBXBuildFile; productRef = 4D23ABF62AF431CB00220026 /* CapacitorHaptics */; };
+		4D23AC072AF431CB00220026 /* CapacitorKeyboard in Frameworks */ = {isa = PBXBuildFile; productRef = 4D23ABF72AF431CB00220026 /* CapacitorKeyboard */; };
+		4D23AC082AF431CB00220026 /* CapacitorLocalNotifications in Frameworks */ = {isa = PBXBuildFile; productRef = 4D23ABF82AF431CB00220026 /* CapacitorLocalNotifications */; };
+		4D23AC092AF431CB00220026 /* CapacitorNetwork in Frameworks */ = {isa = PBXBuildFile; productRef = 4D23ABF92AF431CB00220026 /* CapacitorNetwork */; };
+		4D23AC0A2AF431CB00220026 /* CapacitorPushNotifications in Frameworks */ = {isa = PBXBuildFile; productRef = 4D23ABFA2AF431CB00220026 /* CapacitorPushNotifications */; };
+		4D23AC0B2AF431CB00220026 /* CapacitorSplashScreen in Frameworks */ = {isa = PBXBuildFile; productRef = 4D23ABFB2AF431CB00220026 /* CapacitorSplashScreen */; };
+		4D23AC0C2AF431CB00220026 /* CapacitorStatusBar in Frameworks */ = {isa = PBXBuildFile; productRef = 4D23ABFC2AF431CB00220026 /* CapacitorStatusBar */; };
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
 		504EC3081FED79650016851F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504EC3071FED79650016851F /* AppDelegate.swift */; };
 		8A2000012C00000100CA0001 /* CarPlaySceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A2000002C00000100CA0001 /* CarPlaySceneDelegate.swift */; };
@@ -43,8 +54,19 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */,
 				4D22ABEA2AF431CB00220026 /* Capacitor in Frameworks */,
+				4D23AC012AF431CB00220026 /* Cordova in Frameworks */,
+				4D23AC022AF431CB00220026 /* CapacitorCommunityAppleSignIn in Frameworks */,
+				4D23AC032AF431CB00220026 /* CapacitorApp in Frameworks */,
+				4D23AC042AF431CB00220026 /* CapacitorBrowser in Frameworks */,
+				4D23AC052AF431CB00220026 /* CapacitorGeolocation in Frameworks */,
+				4D23AC062AF431CB00220026 /* CapacitorHaptics in Frameworks */,
+				4D23AC072AF431CB00220026 /* CapacitorKeyboard in Frameworks */,
+				4D23AC082AF431CB00220026 /* CapacitorLocalNotifications in Frameworks */,
+				4D23AC092AF431CB00220026 /* CapacitorNetwork in Frameworks */,
+				4D23AC0A2AF431CB00220026 /* CapacitorPushNotifications in Frameworks */,
+				4D23AC0B2AF431CB00220026 /* CapacitorSplashScreen in Frameworks */,
+				4D23AC0C2AF431CB00220026 /* CapacitorStatusBar in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -104,8 +126,19 @@
 			);
 			name = App;
 			packageProductDependencies = (
-				4D22ABE82AF431CB00220026 /* CapApp-SPM */,
 				4D22ABEB2AF431CB00220026 /* Capacitor */,
+				4D23ABF12AF431CB00220026 /* Cordova */,
+				4D23ABF22AF431CB00220026 /* CapacitorCommunityAppleSignIn */,
+				4D23ABF32AF431CB00220026 /* CapacitorApp */,
+				4D23ABF42AF431CB00220026 /* CapacitorBrowser */,
+				4D23ABF52AF431CB00220026 /* CapacitorGeolocation */,
+				4D23ABF62AF431CB00220026 /* CapacitorHaptics */,
+				4D23ABF72AF431CB00220026 /* CapacitorKeyboard */,
+				4D23ABF82AF431CB00220026 /* CapacitorLocalNotifications */,
+				4D23ABF92AF431CB00220026 /* CapacitorNetwork */,
+				4D23ABFA2AF431CB00220026 /* CapacitorPushNotifications */,
+				4D23ABFB2AF431CB00220026 /* CapacitorSplashScreen */,
+				4D23ABFC2AF431CB00220026 /* CapacitorStatusBar */,
 			);
 			productName = App;
 			productReference = 504EC3041FED79650016851F /* App.app */;
@@ -137,8 +170,18 @@
 			);
 			mainGroup = 504EC2FB1FED79650016851F;
 			packageReferences = (
-				D4C12C0A2AAA248700AAC8A2 /* XCLocalSwiftPackageReference "CapApp-SPM" */,
 				D4C12C0B2AAA248700AAC8A2 /* XCRemoteSwiftPackageReference "capacitor-swift-pm" */,
+				4D23AC112AF431CB00220026 /* XCLocalSwiftPackageReference "apple-sign-in" */,
+				4D23AC122AF431CB00220026 /* XCLocalSwiftPackageReference "app" */,
+				4D23AC132AF431CB00220026 /* XCLocalSwiftPackageReference "browser" */,
+				4D23AC142AF431CB00220026 /* XCLocalSwiftPackageReference "geolocation" */,
+				4D23AC152AF431CB00220026 /* XCLocalSwiftPackageReference "haptics" */,
+				4D23AC162AF431CB00220026 /* XCLocalSwiftPackageReference "keyboard" */,
+				4D23AC172AF431CB00220026 /* XCLocalSwiftPackageReference "local-notifications" */,
+				4D23AC182AF431CB00220026 /* XCLocalSwiftPackageReference "network" */,
+				4D23AC192AF431CB00220026 /* XCLocalSwiftPackageReference "push-notifications" */,
+				4D23AC1A2AF431CB00220026 /* XCLocalSwiftPackageReference "splash-screen" */,
+				4D23AC1B2AF431CB00220026 /* XCLocalSwiftPackageReference "status-bar" */,
 			);
 			productRefGroup = 504EC3051FED79650016851F /* Products */;
 			projectDirPath = "";
@@ -377,9 +420,49 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		D4C12C0A2AAA248700AAC8A2 /* XCLocalSwiftPackageReference "CapApp-SPM" */ = {
+		4D23AC112AF431CB00220026 /* XCLocalSwiftPackageReference "apple-sign-in" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = "CapApp-SPM";
+			relativePath = "../../node_modules/@capacitor-community/apple-sign-in";
+		};
+		4D23AC122AF431CB00220026 /* XCLocalSwiftPackageReference "app" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../node_modules/@capacitor/app";
+		};
+		4D23AC132AF431CB00220026 /* XCLocalSwiftPackageReference "browser" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../node_modules/@capacitor/browser";
+		};
+		4D23AC142AF431CB00220026 /* XCLocalSwiftPackageReference "geolocation" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../node_modules/@capacitor/geolocation";
+		};
+		4D23AC152AF431CB00220026 /* XCLocalSwiftPackageReference "haptics" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../node_modules/@capacitor/haptics";
+		};
+		4D23AC162AF431CB00220026 /* XCLocalSwiftPackageReference "keyboard" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../node_modules/@capacitor/keyboard";
+		};
+		4D23AC172AF431CB00220026 /* XCLocalSwiftPackageReference "local-notifications" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../node_modules/@capacitor/local-notifications";
+		};
+		4D23AC182AF431CB00220026 /* XCLocalSwiftPackageReference "network" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../node_modules/@capacitor/network";
+		};
+		4D23AC192AF431CB00220026 /* XCLocalSwiftPackageReference "push-notifications" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../node_modules/@capacitor/push-notifications";
+		};
+		4D23AC1A2AF431CB00220026 /* XCLocalSwiftPackageReference "splash-screen" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../node_modules/@capacitor/splash-screen";
+		};
+		4D23AC1B2AF431CB00220026 /* XCLocalSwiftPackageReference "status-bar" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = "../../node_modules/@capacitor/status-bar";
 		};
 /* End XCLocalSwiftPackageReference section */
 
@@ -395,15 +478,70 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		4D22ABE82AF431CB00220026 /* CapApp-SPM */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = D4C12C0A2AAA248700AAC8A2 /* XCLocalSwiftPackageReference "CapApp-SPM" */;
-			productName = "CapApp-SPM";
-		};
 		4D22ABEB2AF431CB00220026 /* Capacitor */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = D4C12C0B2AAA248700AAC8A2 /* XCRemoteSwiftPackageReference "capacitor-swift-pm" */;
 			productName = Capacitor;
+		};
+		4D23ABF12AF431CB00220026 /* Cordova */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D4C12C0B2AAA248700AAC8A2 /* XCRemoteSwiftPackageReference "capacitor-swift-pm" */;
+			productName = Cordova;
+		};
+		4D23ABF22AF431CB00220026 /* CapacitorCommunityAppleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4D23AC112AF431CB00220026 /* XCLocalSwiftPackageReference "apple-sign-in" */;
+			productName = CapacitorCommunityAppleSignIn;
+		};
+		4D23ABF32AF431CB00220026 /* CapacitorApp */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4D23AC122AF431CB00220026 /* XCLocalSwiftPackageReference "app" */;
+			productName = CapacitorApp;
+		};
+		4D23ABF42AF431CB00220026 /* CapacitorBrowser */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4D23AC132AF431CB00220026 /* XCLocalSwiftPackageReference "browser" */;
+			productName = CapacitorBrowser;
+		};
+		4D23ABF52AF431CB00220026 /* CapacitorGeolocation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4D23AC142AF431CB00220026 /* XCLocalSwiftPackageReference "geolocation" */;
+			productName = CapacitorGeolocation;
+		};
+		4D23ABF62AF431CB00220026 /* CapacitorHaptics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4D23AC152AF431CB00220026 /* XCLocalSwiftPackageReference "haptics" */;
+			productName = CapacitorHaptics;
+		};
+		4D23ABF72AF431CB00220026 /* CapacitorKeyboard */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4D23AC162AF431CB00220026 /* XCLocalSwiftPackageReference "keyboard" */;
+			productName = CapacitorKeyboard;
+		};
+		4D23ABF82AF431CB00220026 /* CapacitorLocalNotifications */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4D23AC172AF431CB00220026 /* XCLocalSwiftPackageReference "local-notifications" */;
+			productName = CapacitorLocalNotifications;
+		};
+		4D23ABF92AF431CB00220026 /* CapacitorNetwork */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4D23AC182AF431CB00220026 /* XCLocalSwiftPackageReference "network" */;
+			productName = CapacitorNetwork;
+		};
+		4D23ABFA2AF431CB00220026 /* CapacitorPushNotifications */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4D23AC192AF431CB00220026 /* XCLocalSwiftPackageReference "push-notifications" */;
+			productName = CapacitorPushNotifications;
+		};
+		4D23ABFB2AF431CB00220026 /* CapacitorSplashScreen */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4D23AC1A2AF431CB00220026 /* XCLocalSwiftPackageReference "splash-screen" */;
+			productName = CapacitorSplashScreen;
+		};
+		4D23ABFC2AF431CB00220026 /* CapacitorStatusBar */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4D23AC1B2AF431CB00220026 /* XCLocalSwiftPackageReference "status-bar" */;
+			productName = CapacitorStatusBar;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
