@@ -70,4 +70,4 @@ const contents = {
 };
 await writeFile(path.join(OUT, "Contents.json"), JSON.stringify(contents, null, 2));
 console.log("✓ Contents.json");
-console.log("\nDone. Now run: npx cap sync ios && open ios/App/App.xcworkspace");
+console.log("\nDone. Now run: npm run ios:sync && open ios/App/App.xcodeproj");

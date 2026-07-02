@@ -104,6 +104,12 @@ open ios/App/App.xcodeproj
 ```
 
 If Xcode is already open, quit it before running the command. Open `App.xcodeproj`; do not use a Pods workspace.
+
+If the package folder exists but Xcode still reports it missing, check
+`ios/App/CapApp-SPM/Package.swift`. The local package paths must use forward
+slashes, for example `../../../node_modules/@capacitor/app`. The `ios:sync`
+script normalizes these paths after Capacitor sync so macOS SwiftPM can resolve
+the package.
 # CarPlay
 
 The app includes native CarPlay scene scaffolding for Drive Mode:
