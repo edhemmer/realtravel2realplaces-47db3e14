@@ -24,6 +24,13 @@ export interface DeviceLocationResult {
   status: LocationStatus;
 }
 
+export interface DeviceLocationOptions {
+  highAccuracy?: boolean;
+  timeoutMs?: number;
+  maximumAgeMs?: number;
+  forceRefresh?: boolean;
+}
+
 // ============================================================================
 // SESSION CACHE (module-level singleton)
 // ============================================================================
@@ -37,9 +44,13 @@ let pendingRequest: Promise<DeviceLocationResult> | null = null;
  * Returns cached result on subsequent calls.
  * Never prompts more than once.
  */
-export async function getDeviceLocation(): Promise<DeviceLocationResult> {
+export async function getDeviceLocation(options: DeviceLocationOptions = {}): Promise<DeviceLocationResult> {
+  const enableHighAccuracy = options.highAccuracy ?? false;
+  const timeout = options.timeoutMs ?? (enableHighAccuracy ? 12000 : 8000);
+  const maximumAge = options.maximumAgeMs ?? (enableHighAccuracy ? 30000 : 300000);
+
   // Already resolved (granted or denied) — return cache
-  if (cachedStatus === 'granted' || cachedStatus === 'denied' || cachedStatus === 'unavailable') {
+  if (!options.forceRefresh && (cachedStatus === 'granted' || cachedStatus === 'denied' || cachedStatus === 'unavailable')) {
     return { coords: cachedCoords, status: cachedStatus };
   }
 
@@ -70,9 +81,9 @@ export async function getDeviceLocation(): Promise<DeviceLocationResult> {
             }
           }
           const pos = await Geolocation.getCurrentPosition({
-            enableHighAccuracy: false,
-            timeout: 8000,
-            maximumAge: 300000,
+            enableHighAccuracy,
+            timeout,
+            maximumAge,
           });
           cachedCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
           cachedStatus = 'granted';
@@ -112,9 +123,9 @@ export async function getDeviceLocation(): Promise<DeviceLocationResult> {
           resolve({ coords: null, status: 'denied' });
         },
         {
-          enableHighAccuracy: false,
-          timeout: 8000,
-          maximumAge: 300000,
+          enableHighAccuracy,
+          timeout,
+          maximumAge,
         }
       );
     });

@@ -22,6 +22,7 @@ import {
   Map,
   Navigation,
   ParkingCircle,
+  Route,
   Satellite,
   ShieldCheck,
   Timer,
@@ -121,7 +122,11 @@ export default function DriveMode() {
   const { state: canonicalState, isLoading: stateLoading, weatherByKey } = useCanonicalTripState(tripId || '', trip || null);
   const { data: parkingList = [] } = useParking(tripId || '');
   const { data: userProfile } = useUserProfile();
-  const { coords: deviceCoords, status: locationStatus, isLoading: locationLoading } = useDeviceLocation();
+  const { coords: deviceCoords, status: locationStatus, isLoading: locationLoading } = useDeviceLocation({
+    highAccuracy: true,
+    maximumAgeMs: 30000,
+    refreshMs: 60000,
+  });
   const [now, setNow] = useState(() => new Date());
   const [online, setOnline] = useState(() => isOnline());
 
@@ -194,13 +199,14 @@ export default function DriveMode() {
     () => resolveDriveCockpitModel({
       navTarget,
       deviceCoords,
+      originAddress: trip?.origin_address,
       routePreview,
       alerts,
       weatherRisk,
       fuelProjection,
       online,
     }),
-    [navTarget, deviceCoords, routePreview, alerts, weatherRisk, fuelProjection, online],
+    [navTarget, deviceCoords, trip?.origin_address, routePreview, alerts, weatherRisk, fuelProjection, online],
   );
 
   const carPlayWidgets = useMemo<CarPlayWidgetPayload[]>(
@@ -419,6 +425,24 @@ export default function DriveMode() {
                     <MiniStatus icon={Timer} label="Updated" value={format(now, 'h:mm a')} />
                   </div>
                 </div>
+              </div>
+
+              <div className="rounded-2xl border border-border/50 bg-card/85 p-4 shadow-elevation-raised backdrop-blur-glass">
+                <p className="mb-3 text-xs font-semibold uppercase text-muted-foreground">Route confidence</p>
+                <div className="space-y-2">
+                  <MiniStatus icon={LocateFixed} label="Origin" value={cockpit.originLabel} />
+                  <MiniStatus icon={Route} label="Routing" value={cockpit.routeSourceLabel} />
+                  <MiniStatus
+                    icon={Satellite}
+                    label="Location mode"
+                    value={locationStatus === 'granted' ? 'High accuracy refresh' : 'Needs permission'}
+                  />
+                </div>
+                {!deviceCoords && (
+                  <p className="mt-3 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-700 dark:text-amber-300">
+                    Allow location before departure for current-origin routing and nearby gas. Without it, the cockpit uses the saved trip origin or destination.
+                  </p>
+                )}
               </div>
 
               <div className="rounded-2xl border border-border/50 bg-card/85 p-4 shadow-elevation-raised backdrop-blur-glass">

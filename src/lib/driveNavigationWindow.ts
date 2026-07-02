@@ -4,6 +4,7 @@ import type { DeviceCoords } from '@/lib/deviceLocation';
 export interface DriveCockpitInput {
   navTarget: DriveNavigationTarget | null;
   deviceCoords: DeviceCoords | null;
+  originAddress?: string | null;
   routePreview: RoutePreview;
   alerts: DriveAlert[];
   weatherRisk: WeatherRisk;
@@ -23,6 +24,8 @@ export interface DriveCockpitModel {
   offlineLabel: string;
   routeLabel: string;
   fuelLabel: string;
+  originLabel: string;
+  routeSourceLabel: string;
 }
 
 const GAS_SEARCH_ZOOM_FOR_15_MILES = 11;
@@ -38,14 +41,37 @@ function buildDestinationQuery(navTarget: DriveNavigationTarget): string {
   return navTarget.addressString;
 }
 
-export function buildDriveMapEmbedUrl(navTarget: DriveNavigationTarget | null): string | null {
-  if (!navTarget) return null;
-  return `https://www.google.com/maps?output=embed&q=${encode(buildDestinationQuery(navTarget))}`;
+function buildOriginQuery(input?: Pick<DriveCockpitInput, 'deviceCoords' | 'originAddress'>): string | null {
+  if (!input) return null;
+  if (input.deviceCoords) return `${input.deviceCoords.lat},${input.deviceCoords.lng}`;
+  const origin = input.originAddress?.trim();
+  return origin || null;
 }
 
-export function buildDriveMapFallbackUrl(navTarget: DriveNavigationTarget | null): string | null {
+export function buildDriveMapEmbedUrl(
+  navTarget: DriveNavigationTarget | null,
+  input?: Pick<DriveCockpitInput, 'deviceCoords' | 'originAddress'>,
+): string | null {
   if (!navTarget) return null;
-  return `https://www.google.com/maps/dir/?api=1&destination=${encode(buildDestinationQuery(navTarget))}`;
+  const destination = buildDestinationQuery(navTarget);
+  const origin = buildOriginQuery(input);
+  if (origin) return `https://www.google.com/maps?output=embed&saddr=${encode(origin)}&daddr=${encode(destination)}`;
+  return `https://www.google.com/maps?output=embed&q=${encode(destination)}`;
+}
+
+export function buildDriveMapFallbackUrl(
+  navTarget: DriveNavigationTarget | null,
+  input?: Pick<DriveCockpitInput, 'deviceCoords' | 'originAddress'>,
+): string | null {
+  if (!navTarget) return null;
+  const params = new URLSearchParams({
+    api: '1',
+    destination: buildDestinationQuery(navTarget),
+    travelmode: 'driving',
+  });
+  const origin = buildOriginQuery(input);
+  if (origin) params.set('origin', origin);
+  return `https://www.google.com/maps/dir/?${params.toString()}`;
 }
 
 export function buildGasSearchUrl(params: {
@@ -82,16 +108,28 @@ export function resolveDriveCockpitModel(input: DriveCockpitInput): DriveCockpit
   const routeLabel =
     distance != null && duration != null ? `${distance} mi · about ${Math.max(1, Math.round(duration / 60))} hr`
     : distance != null ? `${distance} mi`
-    : 'Live route from Maps';
+    : 'Open route for live distance';
 
   const fuelLabel =
     input.fuelProjection.fuelStatus === 'REFUEL_RECOMMENDED' ? 'Fuel stop recommended'
     : input.fuelProjection.fuelStatus === 'OK_FOR_SEGMENT' ? 'Fuel range OK'
     : 'Fuel range unknown';
 
+  const originLabel = input.deviceCoords
+    ? 'Current location'
+    : input.originAddress?.trim()
+      ? input.originAddress.trim()
+      : 'Origin needed';
+
+  const routeSourceLabel = input.deviceCoords
+    ? 'Live device origin'
+    : input.originAddress?.trim()
+      ? 'Saved trip origin'
+      : 'Destination only';
+
   return {
-    mapEmbedUrl: buildDriveMapEmbedUrl(input.navTarget),
-    mapFallbackUrl: buildDriveMapFallbackUrl(input.navTarget),
+    mapEmbedUrl: buildDriveMapEmbedUrl(input.navTarget, input),
+    mapFallbackUrl: buildDriveMapFallbackUrl(input.navTarget, input),
     gasSearchUrl: input.deviceCoords
       ? `https://www.google.com/maps/search/${encode('gas station')}/@${input.deviceCoords.lat},${input.deviceCoords.lng},${GAS_SEARCH_ZOOM_FOR_15_MILES}z`
       : 'https://www.google.com/maps/search/?api=1&query=gas%20station',
@@ -103,6 +141,8 @@ export function resolveDriveCockpitModel(input: DriveCockpitInput): DriveCockpit
     offlineLabel: input.online ? 'Live sync on' : 'Offline cache active',
     routeLabel,
     fuelLabel,
+    originLabel,
+    routeSourceLabel,
   };
 }
 
