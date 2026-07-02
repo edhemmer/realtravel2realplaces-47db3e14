@@ -227,6 +227,42 @@ export default function TripDetail() {
     }
   }, [hasDiscoveredExplore, markExploreDiscovered]);
 
+  const commandLanes = useMemo(() => {
+    if (!trip) return [];
+
+    return [
+      {
+        key: 'summary' as TripTab,
+        label: 'Today',
+        detail: bookings.length ? 'Next stop, timeline, readiness' : 'Create the operating record',
+        icon: LayoutDashboard,
+        action: () => handleTabChange('summary'),
+      },
+      {
+        key: isDriveTrip ? 'drive' as TripTab : 'ops' as TripTab,
+        label: isDriveTrip ? 'Drive' : hasFlights ? 'Flight' : 'Move',
+        detail: isDriveTrip ? 'Cockpit, route, fuel, location' : hasFlights ? 'Airports, timing, transit' : 'Movement and local transit',
+        icon: isDriveTrip ? Car : hasFlights ? Plane : Route,
+        href: isDriveTrip ? `/trip/${trip.id}/drive` : undefined,
+        action: isDriveTrip ? undefined : () => handleTabChange('ops'),
+      },
+      {
+        key: 'explore' as TripTab,
+        label: 'Explore',
+        detail: 'Places, food, maps, local context',
+        icon: Compass,
+        action: () => handleTabChange('explore'),
+      },
+      {
+        key: 'expenses' as TripTab,
+        label: 'Spend',
+        detail: canAccessBusinessFeatures ? 'Receipts, expenses, reports' : 'Receipts and trip costs',
+        icon: ReceiptText,
+        action: () => handleTabChange('expenses'),
+      },
+    ];
+  }, [bookings.length, canAccessBusinessFeatures, handleTabChange, hasFlights, isDriveTrip, trip]);
+
   // v2.3.x: Mobile "Add Expense" handler — sets external tab for mobile router
   const handleMobileAddExpense = useCallback(() => {
     if (isMobile) {
@@ -327,10 +363,13 @@ export default function TripDetail() {
         <div className="rt-command-panel">
           <div className="ops-hero relative px-5 py-5 lg:px-6">
             <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-signal/70 to-transparent" />
-            <div className="relative flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+            <div className="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
               <div className="min-w-0 max-w-4xl">
                 <div className="mb-3 flex flex-wrap items-center gap-2">
-                  <Badge className="rounded-full bg-white/12 text-white hover:bg-white/12">Travel operations command</Badge>
+                  <Badge className="rounded-full bg-white/12 text-white hover:bg-white/12">Chaos to Clarity</Badge>
+                  <Badge variant="outline" className="rounded-full border-white/20 bg-white/8 text-white">
+                    Travel Operating System
+                  </Badge>
                   {!isOwner && (
                     <Badge variant="outline" className="flex items-center gap-1 rounded-full border-white/20 bg-white/8 text-white">
                       <Users className="w-3 h-3" />
@@ -374,6 +413,37 @@ export default function TripDetail() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="hidden md:grid gap-3 lg:grid-cols-4">
+        {commandLanes.map((lane) => {
+          const Icon = lane.icon;
+          const content = (
+            <div className="rt-ops-lane group flex h-full items-start gap-3 p-4 text-left">
+              <span className="rt-icon-tile mt-0.5 group-hover:bg-primary/15">
+                <Icon className="h-4 w-4" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-bold text-foreground">{lane.label}</span>
+                <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">{lane.detail}</span>
+              </span>
+            </div>
+          );
+
+          if (lane.href) {
+            return (
+              <Link key={lane.key} to={lane.href} className="block">
+                {content}
+              </Link>
+            );
+          }
+
+          return (
+            <button key={lane.key} type="button" onClick={lane.action} className="block w-full">
+              {content}
+            </button>
+          );
+        })}
       </div>
 
       {/* Mobile-only: mode bar + metadata */}
@@ -485,26 +555,34 @@ export default function TripDetail() {
             {/* v2.6.12: DesktopTripShell — canonical state computed once for all tabs */}
             <DesktopTripShell tripId={trip.id} trip={trip}>
               {/* Desktop tab content section */}
-              <div className="mt-4 md:mt-0">
+              <div className="mt-4 md:mt-0 rt-app-workspace">
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-                  <TabsList className="premium-tabs w-full justify-start gap-1 overflow-x-auto flex-nowrap hidden md:flex p-1.5">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="rt-muted-label">Trip modules</p>
+                      <p className="text-xs text-muted-foreground">Everything stays tied to this trip record.</p>
+                    </div>
+                    {isDriveTrip && (
+                      <Button asChild size="sm" className="rt-primary-action h-9 px-4">
+                        <Link to={`/trip/${trip.id}/drive`}>
+                          <Car className="mr-2 h-4 w-4" />
+                          Drive Cockpit
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
+                  <TabsList className="rt-module-tabs w-full justify-start gap-1 overflow-x-auto flex-nowrap hidden md:flex p-1.5">
                     <TabsTrigger value="summary" className="rt-tab-trigger">
                       <Route className="h-3.5 w-3.5" />
-                      Timeline
+                      Today
                     </TabsTrigger>
                     <TabsTrigger value="ops" className="rt-tab-trigger">
                       <LayoutDashboard className="h-3.5 w-3.5" />
-                      TravelOps
+                      Ops
                     </TabsTrigger>
-                    {isDriveTrip && (
-                      <Link to={`/trip/${trip.id}/drive`} className="rt-tab-trigger inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-all hover:bg-background/80 hover:text-foreground">
-                        <Car className="h-3.5 w-3.5" />
-                        Drive Cockpit
-                      </Link>
-                    )}
                     <TabsTrigger value="bookings" className="rt-tab-trigger">
                       <Plane className="h-3.5 w-3.5" />
-                      Bookings
+                      Plans
                     </TabsTrigger>
                     <TabsTrigger value="explore" className="rt-tab-trigger relative">
                       <Compass className="h-3.5 w-3.5" />
@@ -520,7 +598,7 @@ export default function TripDetail() {
                     </TabsTrigger>
                     <TabsTrigger value="expenses" className="rt-tab-trigger">
                       <ReceiptText className="h-3.5 w-3.5" />
-                      Expenses
+                      Spend
                     </TabsTrigger>
                     <TabsTrigger value="packing" className="rt-tab-trigger">
                       <Package className="h-3.5 w-3.5" />
@@ -542,7 +620,7 @@ export default function TripDetail() {
                     )}
                     <TabsTrigger value="members" className="rt-tab-trigger">
                       <Users className="h-3.5 w-3.5" />
-                      Members
+                      Team
                     </TabsTrigger>
                     <TabsTrigger value="companions" className="rt-tab-trigger">
                       <Users className="h-3.5 w-3.5" />
@@ -556,11 +634,11 @@ export default function TripDetail() {
                     )}
                     <TabsTrigger value="notes" className="rt-tab-trigger">
                       <NotebookTabs className="h-3.5 w-3.5" />
-                      Notes
+                      Safety
                     </TabsTrigger>
                   </TabsList>
 
-                  <div className="mt-4 sm:mt-6">
+                  <div className="mt-4 sm:mt-5">
                     <TabsContent value="summary">
                       <TripSummaryContainer tripId={trip.id} trip={trip} onDrillThrough={handleDrillThrough} onExploreTab={() => handleTabChange('explore')} />
                     </TabsContent>
