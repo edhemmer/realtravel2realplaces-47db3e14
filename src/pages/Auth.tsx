@@ -1,6 +1,21 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { AlertCircle, Calendar, Eye, EyeOff, Loader2, Lock, Mail, MapPin, User } from 'lucide-react';
+import {
+  AlertCircle,
+  Building2,
+  CalendarDays,
+  Car,
+  Eye,
+  EyeOff,
+  Loader2,
+  Lock,
+  Mail,
+  Navigation,
+  Plane,
+  Receipt,
+  ShieldCheck,
+  User,
+} from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -238,173 +253,305 @@ export default function Auth() {
   };
 
   const blocked = submitting || status !== 'anonymous' || Boolean(authConfigError);
+  const formStatus = status === 'loading' || status === 'authenticated';
+  const activeMessage = authConfigError || error;
+  const fieldChrome = 'h-12 rounded-xl border-white/10 bg-white/[0.04] text-slate-50 placeholder:text-slate-500 shadow-inner shadow-black/20 focus-visible:ring-brand-signal/70';
+  const labelChrome = 'text-xs font-semibold uppercase tracking-[0.12em] text-slate-400';
 
   return (
-    <div className="min-h-screen bg-gradient-dawn flex flex-col items-center justify-center p-4">
-      <div className="absolute bottom-10 right-10 text-primary/20 animate-float" style={{ animationDelay: '2s' }}>
-        <MapPin className="w-12 h-12" />
-      </div>
-      <div className="absolute top-1/4 right-20 text-accent-foreground/20 animate-float" style={{ animationDelay: '1s' }}>
-        <Calendar className="w-10 h-10" />
-      </div>
+    <div className="relative min-h-screen overflow-hidden bg-[hsl(var(--brand-obsidian))] text-slate-50">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_10%,hsl(var(--brand-signal)/0.18),transparent_34%),radial-gradient(circle_at_88%_18%,hsl(var(--brand-champagne)/0.10),transparent_32%),linear-gradient(135deg,hsl(228_42%_5%),hsl(224_44%_7%)_46%,hsl(220_32%_11%))]" />
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-signal/60 to-transparent" />
 
-      <img
-        src={logoImg}
-        alt="RealTravel2RealPlaces"
-        className="w-20 h-20 mb-6 rounded-2xl shadow-md animate-fade-in"
-      />
+      <main className="relative mx-auto grid min-h-screen w-full max-w-7xl grid-cols-1 items-center gap-10 px-5 py-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(420px,0.82fr)] lg:px-10">
+        <section className="hidden lg:block">
+          <div className="mb-10 flex items-center gap-4">
+            <img src={logoImg} alt="RealTravel2RealPlaces" className="h-14 w-14 rounded-2xl shadow-glow" />
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-brand-champagne">Chaos to Clarity</p>
+              <p className="mt-1 text-sm text-slate-400">RealTravel2RealPlaces travel operations</p>
+            </div>
+          </div>
 
-      <Card className="w-full max-w-md animate-fade-in shadow-lg border-0">
-        <CardHeader className="text-center pb-4">
-          <CardTitle className="text-2xl">Welcome</CardTitle>
-          <CardDescription>Sign in to manage your trips</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {status === 'loading' || status === 'authenticated' ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
-              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          <div className="max-w-2xl">
+            <h1 className="text-5xl font-semibold leading-[0.98] tracking-[-0.04em] text-white xl:text-6xl">
+              Travel operations that hold together when the trip does not.
+            </h1>
+            <p className="mt-6 max-w-xl text-lg leading-8 text-slate-300">
+              One operating layer for flights, lodging, drive days, local movement, receipts, weather, timing, and the next right move.
+            </p>
+          </div>
+
+          <div className="mt-10 grid max-w-2xl grid-cols-3 gap-3">
+            {[
+              { icon: Plane, label: 'Flights', value: 'watch timing' },
+              { icon: Car, label: 'Drive', value: 'route ready' },
+              { icon: Receipt, label: 'Spend', value: 'receipts held' },
+            ].map((item) => (
+              <div key={item.label} className="rounded-2xl border border-white/10 bg-white/[0.045] p-4 shadow-2xl shadow-black/20 backdrop-blur-xl">
+                <item.icon className="h-4 w-4 text-brand-signal" />
+                <p className="mt-4 text-sm font-semibold text-white">{item.label}</p>
+                <p className="mt-1 text-xs text-slate-400">{item.value}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 max-w-2xl rounded-[1.35rem] border border-white/10 bg-white/[0.055] p-5 shadow-2xl shadow-black/30 backdrop-blur-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-4">
               <div>
-                <p className="text-sm font-medium">Checking your session</p>
-                <p className="mt-1 text-xs text-muted-foreground">We are securely opening your travel dashboard.</p>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-champagne">Today command</p>
+                <h2 className="mt-2 text-xl font-semibold text-white">Orlando weekend</h2>
+              </div>
+              <div className="rounded-full border border-brand-signal/30 bg-brand-signal/10 px-3 py-1 text-xs font-semibold text-brand-signal">
+                Live ready
               </div>
             </div>
-          ) : (
-            <Tabs value={activeTab} className="w-full" onValueChange={handleTabChange}>
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="signin">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
-              </TabsList>
 
-              <TabsContent value="signin">
-                <form onSubmit={handleSignIn} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-email">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input id="signin-email" type="email" placeholder="you@example.com" value={email} onChange={(event) => setEmail(event.target.value)} className="pl-10" required disabled={blocked} autoComplete="email" />
-                    </div>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              {[
+                { icon: Navigation, title: 'Next move', detail: 'Leave by 7:10 AM' },
+                { icon: Building2, title: 'Airport window', detail: 'Terminal, parking, map' },
+                { icon: CalendarDays, title: 'Local timing', detail: 'Weather and transit' },
+                { icon: ShieldCheck, title: 'Prepared', detail: 'Docs and receipts synced' },
+              ].map((item) => (
+                <div key={item.title} className="rounded-2xl bg-black/20 p-4">
+                  <item.icon className="h-4 w-4 text-brand-signal" />
+                  <p className="mt-3 text-sm font-semibold text-white">{item.title}</p>
+                  <p className="mt-1 text-xs text-slate-400">{item.detail}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto w-full max-w-md lg:mx-0">
+          <div className="mb-6 flex items-center justify-center gap-3 lg:hidden">
+            <img src={logoImg} alt="RealTravel2RealPlaces" className="h-14 w-14 rounded-2xl shadow-glow" />
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-champagne">Chaos to Clarity</p>
+              <p className="text-sm text-slate-400">Travel operations</p>
+            </div>
+          </div>
+
+          <Card className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-slate-950/78 text-slate-50 shadow-2xl shadow-black/40 backdrop-blur-2xl">
+            <CardHeader className="space-y-3 border-b border-white/10 px-6 pb-5 pt-6">
+              <CardTitle className="text-2xl tracking-[-0.03em] text-white">
+                {activeTab === 'signin' ? 'Open your command center' : 'Create your command center'}
+              </CardTitle>
+              <CardDescription className="text-slate-400">
+                {activeTab === 'signin'
+                  ? 'Sign in to manage the moving parts of every trip.'
+                  : 'Start with one place for every trip detail after booking.'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-6 pb-6 pt-5">
+              {formStatus ? (
+                <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+                  <Loader2 className="h-5 w-5 animate-spin text-brand-signal" />
+                  <div>
+                    <p className="text-sm font-medium text-white">Checking your session</p>
+                    <p className="mt-1 text-xs text-slate-400">Securely opening your travel dashboard.</p>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-password">Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input id="signin-password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={(event) => setPassword(event.target.value)} className="pl-10 pr-10" required disabled={blocked} autoComplete="current-password" />
-                      <button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" tabIndex={-1}>
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
+                </div>
+              ) : (
+                <Tabs value={activeTab} className="w-full" onValueChange={handleTabChange}>
+                  <TabsList className="mb-6 grid h-12 w-full grid-cols-2 rounded-2xl border border-white/10 bg-white/[0.055] p-1">
+                    <TabsTrigger value="signin" className="rounded-xl text-sm font-semibold text-slate-300 data-[state=active]:bg-white data-[state=active]:text-slate-950">
+                      Sign In
+                    </TabsTrigger>
+                    <TabsTrigger value="signup" className="rounded-xl text-sm font-semibold text-slate-300 data-[state=active]:bg-white data-[state=active]:text-slate-950">
+                      Sign Up
+                    </TabsTrigger>
+                  </TabsList>
 
-                  {(authConfigError || error) && (
-                    <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                      <span>{authConfigError || error}</span>
-                    </div>
-                  )}
-
-                  {successMessage && <div className="text-sm text-success bg-success/10 p-3 rounded-md">{successMessage}</div>}
-
-                  <Button type="submit" className="w-full bg-gradient-ocean hover:opacity-90 transition-opacity" disabled={blocked}>
-                    {submitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Signing in...
-                      </>
-                    ) : 'Sign In'}
-                  </Button>
-
-                  <div className="relative my-2">
-                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/60" /></div>
-                    <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">or</span></div>
-                  </div>
-
-                  <Button type="button" variant="outline" onClick={handleApple} disabled={blocked} className="w-full h-11 rounded-xl bg-black text-white hover:bg-black/90 border-black focus-ring-canonical">
-                    <AppleIcon className="w-4 h-4 mr-2" />
-                    Continue with Apple
-                  </Button>
-
-                  <div className="text-center">
-                    <Link to="/forgot-password" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                      Forgot password?
-                    </Link>
-                  </div>
-                </form>
-              </TabsContent>
-
-              <TabsContent value="signup">
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-firstname">First Name</Label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input id="signup-firstname" type="text" value={firstName} onChange={(event) => setFirstName(event.target.value)} className="pl-10" required disabled={blocked} autoComplete="given-name" />
+                  <TabsContent value="signin">
+                    <form onSubmit={handleSignIn} className="space-y-4">
+                      <AuthEmailField id="signin-email" value={email} onChange={setEmail} disabled={blocked} labelChrome={labelChrome} fieldChrome={fieldChrome} />
+                      <AuthPasswordField id="signin-password" value={password} onChange={setPassword} disabled={blocked} showPassword={showPassword} setShowPassword={setShowPassword} labelChrome={labelChrome} fieldChrome={fieldChrome} placeholder="Password" autoComplete="current-password" />
+                      <AuthMessages message={activeMessage} successMessage={successMessage} />
+                      <AuthSubmitButton disabled={blocked} submitting={submitting} label="Sign In" loadingLabel="Signing in..." />
+                      <AuthDivider />
+                      <AppleButton disabled={blocked} onClick={handleApple} />
+                      <div className="text-center">
+                        <Link to="/forgot-password" className="text-sm text-slate-400 transition-colors hover:text-brand-signal">
+                          Forgot password?
+                        </Link>
                       </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-lastname">Last Name</Label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input id="signup-lastname" type="text" value={lastName} onChange={(event) => setLastName(event.target.value)} className="pl-10" required disabled={blocked} autoComplete="family-name" />
+                    </form>
+                  </TabsContent>
+
+                  <TabsContent value="signup">
+                    <form onSubmit={handleSignUp} className="space-y-4">
+                      <div className="grid grid-cols-2 gap-3">
+                        <AuthNameField id="signup-firstname" label="First Name" value={firstName} onChange={setFirstName} disabled={blocked} labelChrome={labelChrome} fieldChrome={fieldChrome} autoComplete="given-name" />
+                        <AuthNameField id="signup-lastname" label="Last Name" value={lastName} onChange={setLastName} disabled={blocked} labelChrome={labelChrome} fieldChrome={fieldChrome} autoComplete="family-name" />
                       </div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input id="signup-email" type="email" placeholder="you@example.com" value={email} onChange={(event) => setEmail(event.target.value)} className="pl-10" required disabled={blocked} autoComplete="email" />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input id="signup-password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={(event) => setPassword(event.target.value)} className="pl-10 pr-10" required minLength={6} disabled={blocked} autoComplete="new-password" />
-                      <button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" tabIndex={-1}>
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">Minimum 6 characters</p>
-                  </div>
+                      <AuthEmailField id="signup-email" value={email} onChange={setEmail} disabled={blocked} labelChrome={labelChrome} fieldChrome={fieldChrome} />
+                      <AuthPasswordField id="signup-password" value={password} onChange={setPassword} disabled={blocked} showPassword={showPassword} setShowPassword={setShowPassword} labelChrome={labelChrome} fieldChrome={fieldChrome} placeholder="Minimum 6 characters" autoComplete="new-password" />
+                      <AuthMessages message={activeMessage} successMessage={successMessage} />
+                      <AuthSubmitButton disabled={blocked} submitting={submitting} label="Create Account" loadingLabel="Creating account..." />
+                      <AuthDivider />
+                      <AppleButton disabled={blocked} onClick={handleApple} />
+                    </form>
+                  </TabsContent>
+                </Tabs>
+              )}
+            </CardContent>
+          </Card>
 
-                  {(authConfigError || error) && (
-                    <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                      <span>{authConfigError || error}</span>
-                    </div>
-                  )}
-
-                  {successMessage && <div className="text-sm text-success bg-success/10 p-3 rounded-md">{successMessage}</div>}
-
-                  <Button type="submit" className="w-full bg-gradient-ocean hover:opacity-90 transition-opacity" disabled={blocked}>
-                    {submitting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Creating account...
-                      </>
-                    ) : 'Create Account'}
-                  </Button>
-
-                  <div className="relative my-2">
-                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/60" /></div>
-                    <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">or</span></div>
-                  </div>
-
-                  <Button type="button" variant="outline" onClick={handleApple} disabled={blocked} className="w-full h-11 rounded-xl bg-black text-white hover:bg-black/90 border-black focus-ring-canonical">
-                    <AppleIcon className="w-4 h-4 mr-2" />
-                    Continue with Apple
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
-          )}
-        </CardContent>
-      </Card>
-
-      <p className="text-xs text-muted-foreground mt-8 text-center">
-        By continuing, you agree to our terms of service.
-      </p>
+          <p className="mt-5 text-center text-xs text-slate-500">
+            By continuing, you agree to our terms of service.
+          </p>
+        </section>
+      </main>
     </div>
+  );
+}
+
+function AuthEmailField({
+  id,
+  value,
+  onChange,
+  disabled,
+  labelChrome,
+  fieldChrome,
+}: {
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  disabled: boolean;
+  labelChrome: string;
+  fieldChrome: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id} className={labelChrome}>Email</Label>
+      <div className="relative">
+        <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+        <Input id={id} type="email" placeholder="you@example.com" value={value} onChange={(event) => onChange(event.target.value)} className={`pl-10 ${fieldChrome}`} required disabled={disabled} autoComplete="email" />
+      </div>
+    </div>
+  );
+}
+
+function AuthNameField({
+  id,
+  label,
+  value,
+  onChange,
+  disabled,
+  labelChrome,
+  fieldChrome,
+  autoComplete,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  disabled: boolean;
+  labelChrome: string;
+  fieldChrome: string;
+  autoComplete: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id} className={labelChrome}>{label}</Label>
+      <div className="relative">
+        <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+        <Input id={id} type="text" value={value} onChange={(event) => onChange(event.target.value)} className={`pl-10 ${fieldChrome}`} required disabled={disabled} autoComplete={autoComplete} />
+      </div>
+    </div>
+  );
+}
+
+function AuthPasswordField({
+  id,
+  value,
+  onChange,
+  disabled,
+  showPassword,
+  setShowPassword,
+  labelChrome,
+  fieldChrome,
+  placeholder,
+  autoComplete,
+}: {
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  disabled: boolean;
+  showPassword: boolean;
+  setShowPassword: (updater: (value: boolean) => boolean) => void;
+  labelChrome: string;
+  fieldChrome: string;
+  placeholder: string;
+  autoComplete: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id} className={labelChrome}>Password</Label>
+      <div className="relative">
+        <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+        <Input id={id} type={showPassword ? 'text' : 'password'} placeholder={placeholder} value={value} onChange={(event) => onChange(event.target.value)} className={`pl-10 pr-10 ${fieldChrome}`} required minLength={id.includes('signup') ? 6 : undefined} disabled={disabled} autoComplete={autoComplete} />
+        <button type="button" onClick={() => setShowPassword((current) => !current)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition-colors hover:text-white" tabIndex={-1}>
+          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AuthMessages({ message, successMessage }: { message: string; successMessage: string }) {
+  return (
+    <>
+      {message && (
+        <div className="flex items-center gap-2 rounded-xl border border-destructive/25 bg-destructive/10 p-3 text-sm text-red-200">
+          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+          <span>{message}</span>
+        </div>
+      )}
+      {successMessage && <div className="rounded-xl border border-success/20 bg-success/10 p-3 text-sm text-emerald-200">{successMessage}</div>}
+    </>
+  );
+}
+
+function AuthSubmitButton({
+  disabled,
+  submitting,
+  label,
+  loadingLabel,
+}: {
+  disabled: boolean;
+  submitting: boolean;
+  label: string;
+  loadingLabel: string;
+}) {
+  return (
+    <Button type="submit" className="h-12 w-full rounded-xl bg-brand-signal font-semibold text-slate-950 shadow-glow hover:bg-brand-signal/90" disabled={disabled}>
+      {submitting ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          {loadingLabel}
+        </>
+      ) : label}
+    </Button>
+  );
+}
+
+function AuthDivider() {
+  return (
+    <div className="relative my-2">
+      <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-white/10" /></div>
+      <div className="relative flex justify-center text-xs uppercase"><span className="bg-slate-950 px-2 text-slate-500">or</span></div>
+    </div>
+  );
+}
+
+function AppleButton({ disabled, onClick }: { disabled: boolean; onClick: () => void }) {
+  return (
+    <Button type="button" variant="outline" onClick={onClick} disabled={disabled} className="h-12 w-full rounded-xl border-white/10 bg-white text-slate-950 hover:bg-slate-100">
+      <AppleIcon className="mr-2 h-4 w-4" />
+      Continue with Apple
+    </Button>
   );
 }
