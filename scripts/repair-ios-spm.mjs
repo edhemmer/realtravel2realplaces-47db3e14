@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
@@ -40,6 +40,69 @@ const requiredLocalPackages = [
   ['@capacitor/status-bar', 'node_modules/@capacitor/status-bar/Package.swift'],
 ];
 
+const capAppSpm = {
+  buildFileId: '4D22ABE92AF431CB00220026',
+  productId: '4D22ABE82AF431CB00220026',
+  packageId: 'D4C12C0A2AAA248700AAC8A2',
+};
+
+function ensureLineInBlock(source, blockStartPattern, line, label) {
+  if (source.includes(line)) return source;
+
+  const startMatch = source.match(blockStartPattern);
+  if (!startMatch?.index && startMatch?.index !== 0) {
+    throw new Error(`Could not find ${label} block while restoring CapApp-SPM linkage.`);
+  }
+
+  const insertAt = startMatch.index + startMatch[0].length;
+  return `${source.slice(0, insertAt)}${line}\n${source.slice(insertAt)}`;
+}
+
+function ensureCapAppSpmLinkage() {
+  let pbxproj = readFileSync(pbxprojPath, 'utf8');
+  const before = pbxproj;
+
+  const buildFileLine = `\t\t${capAppSpm.buildFileId} /* CapApp-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = ${capAppSpm.productId} /* CapApp-SPM */; };`;
+  const frameworksLine = `\t\t\t\t${capAppSpm.buildFileId} /* CapApp-SPM in Frameworks */,`;
+  const targetDependencyLine = `\t\t\t\t${capAppSpm.productId} /* CapApp-SPM */,`;
+  const projectPackageLine = `\t\t\t\t${capAppSpm.packageId} /* XCLocalSwiftPackageReference "CapApp-SPM" */,`;
+  const packageReferenceBlock = `\n/* Begin XCLocalSwiftPackageReference section */\n\t\t${capAppSpm.packageId} /* XCLocalSwiftPackageReference "CapApp-SPM" */ = {\n\t\t\tisa = XCLocalSwiftPackageReference;\n\t\t\trelativePath = "CapApp-SPM";\n\t\t};\n/* End XCLocalSwiftPackageReference section */\n`;
+  const packageProductBlock = `\n/* Begin XCSwiftPackageProductDependency section */\n\t\t${capAppSpm.productId} /* CapApp-SPM */ = {\n\t\t\tisa = XCSwiftPackageProductDependency;\n\t\t\tpackage = ${capAppSpm.packageId} /* XCLocalSwiftPackageReference "CapApp-SPM" */;\n\t\t\tproductName = "CapApp-SPM";\n\t\t};\n/* End XCSwiftPackageProductDependency section */\n`;
+
+  pbxproj = ensureLineInBlock(pbxproj, /\/\* Begin PBXBuildFile section \*\/\r?\n/, `${buildFileLine}`, 'PBXBuildFile');
+  pbxproj = ensureLineInBlock(
+    pbxproj,
+    /504EC3011FED79650016851F \/\* Frameworks \*\/ = \{\r?\n\t\t\tisa = PBXFrameworksBuildPhase;\r?\n\t\t\tbuildActionMask = 2147483647;\r?\n\t\t\tfiles = \(\r?\n/,
+    frameworksLine,
+    'Frameworks build phase',
+  );
+  pbxproj = ensureLineInBlock(pbxproj, /packageProductDependencies = \(\r?\n/, targetDependencyLine, 'target packageProductDependencies');
+  pbxproj = ensureLineInBlock(pbxproj, /packageReferences = \(\r?\n/, projectPackageLine, 'project packageReferences');
+
+  if (!pbxproj.includes('/* Begin XCLocalSwiftPackageReference section */')) {
+    pbxproj = pbxproj.replace(/\n\/\* Begin XCSwiftPackageProductDependency section \*\//, `${packageReferenceBlock}\n/* Begin XCSwiftPackageProductDependency section */`);
+  } else if (!pbxproj.includes(`${capAppSpm.packageId} /* XCLocalSwiftPackageReference "CapApp-SPM" */ = {`)) {
+    pbxproj = pbxproj.replace(
+      /\/\* End XCLocalSwiftPackageReference section \*\//,
+      `\t\t${capAppSpm.packageId} /* XCLocalSwiftPackageReference "CapApp-SPM" */ = {\n\t\t\tisa = XCLocalSwiftPackageReference;\n\t\t\trelativePath = "CapApp-SPM";\n\t\t};\n/* End XCLocalSwiftPackageReference section */`,
+    );
+  }
+
+  if (!pbxproj.includes('/* Begin XCSwiftPackageProductDependency section */')) {
+    pbxproj = pbxproj.replace(/\n\t\};\r?\n\trootObject = /, `${packageProductBlock}\n\t};\n\trootObject = `);
+  } else if (!pbxproj.includes(`${capAppSpm.productId} /* CapApp-SPM */ = {`)) {
+    pbxproj = pbxproj.replace(
+      /\/\* End XCSwiftPackageProductDependency section \*\//,
+      `\t\t${capAppSpm.productId} /* CapApp-SPM */ = {\n\t\t\tisa = XCSwiftPackageProductDependency;\n\t\t\tpackage = ${capAppSpm.packageId} /* XCLocalSwiftPackageReference "CapApp-SPM" */;\n\t\t\tproductName = "CapApp-SPM";\n\t\t};\n/* End XCSwiftPackageProductDependency section */`,
+    );
+  }
+
+  if (pbxproj !== before) {
+    writeFileSync(pbxprojPath, pbxproj);
+    console.log('Restored CapApp-SPM linkage in App.xcodeproj.');
+  }
+}
+
 function removePath(path, label) {
   if (!existsSync(path)) return;
   rmSync(path, { recursive: true, force: true });
@@ -72,6 +135,8 @@ if (!existsSync(pbxprojPath)) {
 if (!existsSync(packagePath)) {
   throw new Error('Missing ios/App/CapApp-SPM/Package.swift; run npm run ios:sync first.');
 }
+
+ensureCapAppSpmLinkage();
 
 const pbxproj = readFileSync(pbxprojPath, 'utf8');
 const packageSwift = readFileSync(packagePath, 'utf8');
