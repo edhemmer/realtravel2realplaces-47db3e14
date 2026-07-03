@@ -5,6 +5,11 @@ import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
 import { useParking } from '@/hooks/useParking';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useDeviceLocation } from '@/hooks/useDeviceLocation';
+import {
+  useDriveRouteWeatherRisks,
+  useOfficialDriveHazards,
+  useResolvedDriveHazardCoords,
+} from '@/hooks/useOfficialDriveHazards';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +43,7 @@ import {
   getWeatherRisk,
   getParkingStatusFromRecords,
   getFuelProjection,
+  type DriveAlert,
   type DriveAlertType,
   type DriveAlertSeverity,
 } from '@/lib/driveIntelligenceHelper';
@@ -52,6 +58,12 @@ import {
   GAS_SEARCH_ZOOM_FOR_15_MILES,
   type DriveCockpitModel,
 } from '@/lib/driveNavigationWindow';
+import {
+  buildRoadClosureSearchUrl,
+  officialHazardDriverGuidance,
+  type OfficialDriveHazardAlert,
+  type RouteWeatherRisk,
+} from '@/lib/driveHazardAlerts';
 import { cn } from '@/lib/utils';
 
 const ALERT_ICON: Record<DriveAlertType, typeof Fuel> = {
@@ -110,6 +122,18 @@ function MiniStatus({ icon: Icon, label, value }: { icon: typeof LocateFixed; la
   );
 }
 
+function officialHazardClass(alert: OfficialDriveHazardAlert): string {
+  if (alert.severity === 'critical') return 'border-destructive/35 bg-destructive/10 text-destructive';
+  if (alert.severity === 'warning') return 'border-orange-500/35 bg-orange-500/10 text-orange-700 dark:text-orange-300';
+  return 'border-primary/25 bg-primary/10 text-primary';
+}
+
+function routeWeatherClass(risk: RouteWeatherRisk): string {
+  if (risk.severity === 'critical') return 'border-destructive/35 bg-destructive/10 text-destructive';
+  if (risk.severity === 'warning') return 'border-orange-500/35 bg-orange-500/10 text-orange-700 dark:text-orange-300';
+  return 'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300';
+}
+
 export default function DriveMode() {
   const { tripId } = useParams<{ tripId: string }>();
   const { data: trip, isLoading: tripLoading } = useTrip(tripId || '');
@@ -143,6 +167,32 @@ export default function DriveMode() {
     [canonicalState, activeSegment],
   );
 
+  const explicitDestinationCoords = useMemo(() => {
+    if (navTarget?.lat == null || navTarget.lng == null) return null;
+    return { lat: navTarget.lat, lng: navTarget.lng };
+  }, [navTarget?.lat, navTarget?.lng]);
+
+  const resolvedDestinationCoords = useResolvedDriveHazardCoords({
+    enabled: online,
+    explicitCoords: explicitDestinationCoords,
+    routeAddress: navTarget?.addressString,
+    city: trip?.destination_city,
+    state: trip?.destination_state,
+    country: trip?.destination_country,
+  });
+
+  const officialHazards = useOfficialDriveHazards({
+    enabled: online,
+    deviceCoords,
+    destinationCoords: resolvedDestinationCoords.data ?? explicitDestinationCoords,
+  });
+
+  const routeWeatherRisks = useDriveRouteWeatherRisks({
+    enabled: online,
+    originCoords: deviceCoords,
+    destinationCoords: resolvedDestinationCoords.data ?? explicitDestinationCoords,
+  });
+
   const alerts = useMemo(
     () =>
       getDriveAlerts(canonicalState, activeSegment, {
@@ -154,6 +204,36 @@ export default function DriveMode() {
         nowLocal,
       }),
     [canonicalState, activeSegment, weatherByKey, userProfile, parkingList, nowLocal],
+  );
+
+  const officialDriveAlerts = useMemo<DriveAlert[]>(
+    () => (officialHazards.data ?? [])
+      .filter((alert) => alert.roadRisk || alert.severity !== 'info')
+      .slice(0, 2)
+      .map((alert) => ({
+        type: 'WEATHER',
+        severity: alert.severity,
+        message: alert.roadRisk
+          ? `${alert.event}: ${officialHazardDriverGuidance(alert)}`
+          : `${alert.event}: ${alert.headline}`,
+      })),
+    [officialHazards.data],
+  );
+
+  const routeWeatherDriveAlerts = useMemo<DriveAlert[]>(
+    () => (routeWeatherRisks.data ?? [])
+      .slice(0, 2)
+      .map((risk) => ({
+        type: 'WEATHER',
+        severity: risk.severity,
+        message: `${risk.condition.toUpperCase()} route risk: ${risk.message}`,
+      })),
+    [routeWeatherRisks.data],
+  );
+
+  const cockpitAlerts = useMemo(
+    () => [...routeWeatherDriveAlerts, ...officialDriveAlerts, ...alerts].slice(0, 4),
+    [routeWeatherDriveAlerts, officialDriveAlerts, alerts],
   );
 
   const parkingStatus = useMemo(
@@ -195,12 +275,12 @@ export default function DriveMode() {
       deviceCoords,
       originAddress: trip?.origin_address,
       routePreview,
-      alerts,
+      alerts: cockpitAlerts,
       weatherRisk,
       fuelProjection,
       online,
     }),
-    [navTarget, deviceCoords, trip?.origin_address, routePreview, alerts, weatherRisk, fuelProjection, online],
+    [navTarget, deviceCoords, trip?.origin_address, routePreview, cockpitAlerts, weatherRisk, fuelProjection, online],
   );
 
   const gasSearchUrl = useMemo(() => {
@@ -236,6 +316,15 @@ export default function DriveMode() {
       lng: deviceCoords?.lng,
       zoom: GAS_SEARCH_ZOOM_FOR_15_MILES,
     });
+  };
+
+  const handleRoadClosureCheck = () => {
+    if (!trip) return;
+    openExternalUrl(buildRoadClosureSearchUrl({
+      state: trip.destination_state,
+      city: trip.destination_city,
+      destination: navTarget?.addressString,
+    }));
   };
 
   if (tripLoading || stateLoading) {
@@ -424,6 +513,58 @@ export default function DriveMode() {
 
               <div className="rounded-2xl border border-border/50 bg-card/85 p-4 shadow-elevation-raised backdrop-blur-glass">
                 <p className="mb-3 text-xs font-semibold uppercase text-muted-foreground">Road intelligence</p>
+                {officialHazards.data && officialHazards.data.length > 0 && (
+                  <div className="mb-3 space-y-2">
+                    {officialHazards.data.slice(0, 3).map((alert) => (
+                      <div key={alert.id} className={cn('rounded-xl border px-3 py-2 text-xs', officialHazardClass(alert))}>
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="font-bold leading-snug">{alert.event}</p>
+                            <p className="mt-0.5 leading-relaxed opacity-90">{alert.headline}</p>
+                            <p className="mt-1 text-[10px] font-semibold uppercase opacity-75">
+                              {alert.sourceLabel} - {alert.pointLabel} - {alert.areaDesc}
+                            </p>
+                            {alert.roadRisk && (
+                              <p className="mt-2 rounded-lg border border-current/20 px-2 py-1 font-semibold leading-relaxed">
+                                Driver action: {officialHazardDriverGuidance(alert)}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    <Button onClick={handleRoadClosureCheck} variant="outline" className="h-10 w-full justify-start rounded-xl text-xs font-semibold">
+                      <ExternalLink className="mr-2 h-3.5 w-3.5" />
+                      Open state DOT road conditions
+                    </Button>
+                  </div>
+                )}
+                {routeWeatherRisks.data && routeWeatherRisks.data.length > 0 && (
+                  <div className="mb-3 space-y-2">
+                    {routeWeatherRisks.data.slice(0, 3).map((risk) => (
+                      <div key={risk.id} className={cn('rounded-xl border px-3 py-2 text-xs', routeWeatherClass(risk))}>
+                        <div className="flex items-start gap-2">
+                          <CloudRain className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="font-bold leading-snug">Route weather: {risk.pointLabel}</p>
+                            <p className="mt-0.5 leading-relaxed opacity-90">{risk.message}</p>
+                            {risk.packingAction && (
+                              <p className="mt-2 rounded-lg border border-current/20 px-2 py-1 font-semibold leading-relaxed">
+                                Pack/prep: {risk.packingAction}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {officialHazards.isError && (
+                  <p className="mb-3 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-700 dark:text-amber-300">
+                    Official weather alerts are unavailable right now. Check road closures before taking low-lying detours.
+                  </p>
+                )}
                 {alerts.length > 0 ? (
                   <div className="space-y-2">
                     {alerts.map((alert, i) => {
