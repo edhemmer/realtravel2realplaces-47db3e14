@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -10,6 +10,7 @@ const iosStoryboardFile = path.join(root, "ios", "App", "App", "Base.lproj", "Ma
 const iosInfoPlistFile = path.join(root, "ios", "App", "App", "Info.plist");
 const iosCapConfigFile = path.join(root, "ios", "App", "App", "capacitor.config.json");
 const iosSpmPackageFile = path.join(root, "ios", "App", "CapApp-SPM", "Package.swift");
+const iosAppIconDir = path.join(root, "ios", "App", "App", "Assets.xcassets", "AppIcon.appiconset");
 const expectedPublicDir = path.normalize(path.join("ios", "App", "App", "public"));
 
 function run(command, args, options = {}) {
@@ -59,6 +60,99 @@ function rejectText(source, unexpected, label) {
   }
 }
 
+function getPngInfo(filePath) {
+  const buffer = readFileSync(filePath);
+  const pngSignature = "89504e470d0a1a0a";
+  if (buffer.subarray(0, 8).toString("hex") !== pngSignature) {
+    throw new Error(`Icon is not a PNG: ${path.relative(root, filePath)}`);
+  }
+
+  const chunkType = buffer.subarray(12, 16).toString("ascii");
+  if (chunkType !== "IHDR") {
+    throw new Error(`Icon PNG is missing IHDR: ${path.relative(root, filePath)}`);
+  }
+
+  return {
+    width: buffer.readUInt32BE(16),
+    height: buffer.readUInt32BE(20),
+    bitDepth: buffer[24],
+    colorType: buffer[25],
+    interlace: buffer[28],
+  };
+}
+
+function validateIconEntry(entry, requiredLabel) {
+  const iconPath = path.join(iosAppIconDir, entry.filename);
+  if (!existsSync(iconPath)) {
+    throw new Error(`Missing ${requiredLabel} icon file: ${entry.filename}`);
+  }
+
+  const size = Number.parseFloat(entry.size.split("x")[0]);
+  const scale = Number.parseInt(entry.scale.replace("x", ""), 10);
+  const expectedPixels = Math.round(size * scale);
+  const info = getPngInfo(iconPath);
+
+  if (info.width !== expectedPixels || info.height !== expectedPixels) {
+    throw new Error(
+      `${requiredLabel} icon ${entry.filename} is ${info.width}x${info.height}, expected ${expectedPixels}x${expectedPixels}`
+    );
+  }
+  if (info.bitDepth !== 8 || info.colorType !== 2 || info.interlace !== 0) {
+    throw new Error(
+      `${requiredLabel} icon ${entry.filename} must be 8-bit RGB, non-interlaced, no alpha. Got bitDepth=${info.bitDepth}, colorType=${info.colorType}, interlace=${info.interlace}`
+    );
+  }
+}
+
+function validateIosAppIcons(infoPlist) {
+  requireText(infoPlist, "<key>CFBundleIconName</key>", "CFBundleIconName in Info.plist");
+  requireText(infoPlist, "<string>AppIcon</string>", "AppIcon bundle icon name in Info.plist");
+  requireText(infoPlist, "<key>CFBundleIcons</key>", "iPhone CFBundleIcons dictionary in Info.plist");
+  requireText(infoPlist, "<key>CFBundleIcons~ipad</key>", "iPad CFBundleIcons dictionary in Info.plist");
+
+  const contents = JSON.parse(requireFile(path.join(iosAppIconDir, "Contents.json"), "AppIcon Contents.json"));
+  const entries = contents.images ?? [];
+  const pngFiles = new Set(readdirSync(iosAppIconDir).filter((name) => name.endsWith(".png")));
+  const listedFiles = new Set(entries.map((entry) => entry.filename));
+
+  for (const fileName of pngFiles) {
+    if (!listedFiles.has(fileName)) {
+      throw new Error(`Unlisted app icon file in AppIcon.appiconset: ${fileName}`);
+    }
+  }
+
+  const requiredSlots = [
+    ["iphone", "20x20", "2x"],
+    ["iphone", "20x20", "3x"],
+    ["iphone", "29x29", "2x"],
+    ["iphone", "29x29", "3x"],
+    ["iphone", "40x40", "2x"],
+    ["iphone", "40x40", "3x"],
+    ["iphone", "60x60", "2x"],
+    ["iphone", "60x60", "3x"],
+    ["ipad", "20x20", "1x"],
+    ["ipad", "20x20", "2x"],
+    ["ipad", "29x29", "1x"],
+    ["ipad", "29x29", "2x"],
+    ["ipad", "40x40", "1x"],
+    ["ipad", "40x40", "2x"],
+    ["ipad", "76x76", "1x"],
+    ["ipad", "76x76", "2x"],
+    ["ipad", "83.5x83.5", "2x"],
+    ["ios-marketing", "1024x1024", "1x"],
+  ];
+
+  for (const [idiom, size, scale] of requiredSlots) {
+    const entry = entries.find((candidate) => (
+      candidate.idiom === idiom && candidate.size === size && candidate.scale === scale
+    ));
+    if (!entry?.filename) {
+      throw new Error(`Missing required App Store icon slot: ${idiom} ${size} ${scale}`);
+    }
+    validateIconEntry(entry, `${idiom} ${size} ${scale}`);
+  }
+}
+
 function validateIosLaunchLinkage() {
   const indexHtml = requireFile(path.join(iosPublicDir, "index.html"), "bundled iOS index.html");
   const assetsDir = path.join(iosPublicDir, "assets");
@@ -83,6 +177,7 @@ function validateIosLaunchLinkage() {
   const infoPlist = requireFile(iosInfoPlistFile, "iOS Info.plist");
   requireText(infoPlist, "<key>UIMainStoryboardFile</key>", "main storyboard entry in Info.plist");
   rejectText(infoPlist, "UIApplicationSceneManifest", "scene manifest that bypasses storyboard launch");
+  validateIosAppIcons(infoPlist);
 
   const project = requireFile(iosProjectFile, "Xcode project file");
   requireText(project, "CapApp-SPM in Frameworks", "CapApp-SPM linked in app Frameworks phase");

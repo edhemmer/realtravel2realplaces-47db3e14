@@ -14,6 +14,37 @@
 	<string>com.inlighttai.rt2rp</string>
 	<key>CFBundleIconName</key>
 	<string>AppIcon</string>
+	<key>CFBundleIcons</key>
+	<dict>
+		<key>CFBundlePrimaryIcon</key>
+		<dict>
+			<key>CFBundleIconName</key>
+			<string>AppIcon</string>
+			<key>CFBundleIconFiles</key>
+			<array>
+				<string>AppIcon-20</string>
+				<string>AppIcon-29</string>
+				<string>AppIcon-40</string>
+				<string>AppIcon-60</string>
+			</array>
+		</dict>
+	</dict>
+	<key>CFBundleIcons~ipad</key>
+	<dict>
+		<key>CFBundlePrimaryIcon</key>
+		<dict>
+			<key>CFBundleIconName</key>
+			<string>AppIcon</string>
+			<key>CFBundleIconFiles</key>
+			<array>
+				<string>AppIcon-20</string>
+				<string>AppIcon-29</string>
+				<string>AppIcon-40</string>
+				<string>AppIcon-76</string>
+				<string>AppIcon-83.5</string>
+			</array>
+		</dict>
+	</dict>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
