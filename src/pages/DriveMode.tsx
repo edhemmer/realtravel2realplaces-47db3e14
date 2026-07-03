@@ -46,7 +46,6 @@ import { resolveCanonicalNavigation, openCanonicalNav } from '@/lib/canonicalNav
 import { BrandedPageLoader } from '@/components/ui/premium-loading';
 import { isOnline, subscribeToNetworkChanges } from '@/lib/networkStatus';
 import { openExternalUrl, openMapSearchResult } from '@/lib/native/nativeNavigation';
-import { buildCarPlayDriveState, publishCarPlayDriveState, type CarPlayWidgetPayload } from '@/lib/native/carPlayBridge';
 import {
   buildGasSearchUrl,
   resolveDriveCockpitModel,
@@ -76,13 +75,11 @@ function DriveWidget({
   label,
   value,
   tone = 'good',
-  carPlayWired = true,
 }: {
   icon: typeof Gauge;
   label: string;
   value: string;
   tone?: DriveCockpitModel['roadConditionTone'] | 'good' | 'watch';
-  carPlayWired?: boolean;
 }) {
   const toneClass =
     tone === 'danger' ? 'bg-destructive/10 text-destructive border-destructive/20'
@@ -97,9 +94,6 @@ function DriveWidget({
         <span className="text-[10px] font-semibold uppercase opacity-80">{label}</span>
       </div>
       <p className="mt-1 line-clamp-2 text-xs font-semibold leading-snug">{value}</p>
-      {carPlayWired && (
-        <p className="mt-2 text-[10px] font-semibold uppercase opacity-70">CarPlay</p>
-      )}
     </div>
   );
 }
@@ -208,23 +202,6 @@ export default function DriveMode() {
     }),
     [navTarget, deviceCoords, trip?.origin_address, routePreview, alerts, weatherRisk, fuelProjection, online],
   );
-
-  const carPlayWidgets = useMemo<CarPlayWidgetPayload[]>(
-    () => [
-      { id: 'route', label: 'Route', value: cockpit.routeLabel, tone: 'good' },
-      { id: 'roads', label: 'Roads', value: cockpit.roadConditionLabel, tone: cockpit.roadConditionTone },
-      { id: 'weather', label: 'Weather', value: weatherRisk.hasRisk ? weatherRisk.message : 'No drive hazard', tone: weatherRisk.hasRisk ? 'watch' : 'good' },
-      { id: 'fuel', label: 'Fuel', value: cockpit.fuelLabel, tone: fuelProjection.fuelStatus === 'REFUEL_RECOMMENDED' ? 'watch' : 'good' },
-      { id: 'sync', label: 'Sync', value: cockpit.offlineLabel, tone: online ? 'good' : 'offline' },
-    ],
-    [cockpit, weatherRisk, fuelProjection.fuelStatus, online],
-  );
-
-  useEffect(() => {
-    if (!trip || !tripId) return;
-    const payload = buildCarPlayDriveState(tripId, trip, canonicalState, carPlayWidgets);
-    void publishCarPlayDriveState(payload);
-  }, [tripId, trip, canonicalState, carPlayWidgets]);
 
   const gasSearchUrl = useMemo(() => {
     if (!trip) return cockpit.gasSearchUrl;
@@ -345,7 +322,7 @@ export default function DriveMode() {
                         <h1 className="text-2xl font-bold leading-tight">{activeSegment.label}</h1>
                         <Badge variant="outline" className="gap-1 border-primary/25 bg-primary/10 text-[10px] text-primary">
                           <Car className="h-3 w-3" />
-                          CarPlay wired
+                          Drive ready
                         </Badge>
                       </div>
                       {navTarget && (

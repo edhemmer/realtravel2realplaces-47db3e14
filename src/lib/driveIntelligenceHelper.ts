@@ -5,7 +5,7 @@
  * Consumes canonical trip state, weather, parking, and vehicle profile.
  * NO React, NO UI, NO external HTTP calls, NO Date() parsing of stored strings.
  *
- * Future "Drive Mode" views and CarPlay integrations will call this module.
+ * Future Drive Mode views and native integrations will call this module.
  */
 
 import type {

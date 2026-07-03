@@ -15,6 +15,14 @@ export async function bootstrapNativePlatform(): Promise<void> {
   const { Capacitor } = await import('@capacitor/core');
   if (!Capacitor.isNativePlatform()) return;
 
+  const platform = Capacitor.getPlatform();
+  document.documentElement.dataset.nativePlatform = platform;
+
+  try {
+    const { SplashScreen } = await import('@capacitor/splash-screen');
+    await SplashScreen.hide({ fadeOutDuration: 200 }).catch(() => {});
+  } catch { /* no-op */ }
+
   // Auto-haptic every success / error / warning toast app-wide.
   try {
     const { installHapticToast } = await import('./installHapticToast');
@@ -27,16 +35,9 @@ export async function bootstrapNativePlatform(): Promise<void> {
     void registerPushNotifications();
   } catch { /* no-op */ }
 
-
-
-
-  const platform = Capacitor.getPlatform();
-  document.documentElement.dataset.nativePlatform = platform;
-
   try {
-    const [{ StatusBar, Style }, { SplashScreen }, { Keyboard }, { App }] = await Promise.all([
+    const [{ StatusBar, Style }, { Keyboard }, { App }] = await Promise.all([
       import('@capacitor/status-bar'),
-      import('@capacitor/splash-screen'),
       import('@capacitor/keyboard'),
       import('@capacitor/app'),
     ]);
@@ -48,10 +49,6 @@ export async function bootstrapNativePlatform(): Promise<void> {
     // (src/contexts/ThemeContext.tsx) so they stay in sync with light/dark mode.
     // Avoid setting them here — would race with the theme effect.
     void Style; // keep import referenced
-
-
-    // Hide splash once React is up
-    await SplashScreen.hide({ fadeOutDuration: 200 }).catch(() => {});
 
     // Keyboard — push content up rather than overlay
     Keyboard.setResizeMode({ mode: 'native' as never }).catch(() => {});

@@ -5,6 +5,7 @@ import { bootstrapNativePlatform } from "./lib/native/nativeBootstrap";
 
 const rootElement = document.getElementById("root");
 let booting = true;
+let didRender = false;
 
 function escapeHtml(value: string) {
   return value
@@ -38,16 +39,22 @@ async function startApp() {
     throw new Error("Missing root element.");
   }
 
-  const [{ default: App }] = await Promise.all([
-    import("./App.tsx"),
-    bootstrapNativePlatform(),
-  ]);
+  const { default: App } = await import("./App.tsx");
 
   createRoot(rootElement).render(
     <StrictMode>
       <App />
     </StrictMode>
   );
+
+  didRender = true;
+  booting = false;
+
+  window.setTimeout(() => {
+    bootstrapNativePlatform().catch((error) => {
+      console.warn("[native] bootstrap failed after first paint:", error);
+    });
+  }, 0);
 }
 
 window.addEventListener("error", (event) => {
@@ -62,5 +69,5 @@ startApp().catch((error) => {
   console.error("[startup] RT2RP failed to start:", error);
   renderStartupFailure(error);
 }).finally(() => {
-  booting = false;
+  if (!didRender) booting = false;
 });
