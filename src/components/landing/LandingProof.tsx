@@ -12,7 +12,7 @@ export default function LandingProof() {
           <p className="landing-section-subtext">
             Real Travel 2 Real Places manages real trips from real confirmations.
             <br className="hidden sm:block" />
-            The app turns those moving parts into live operating windows, offline context, and next actions.
+            The app turns those moving parts into usable travel windows, offline context, and next actions.
           </p>
         </div>
 

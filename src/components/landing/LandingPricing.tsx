@@ -8,7 +8,7 @@ export default function LandingPricing() {
           Try it free. Pay when it becomes your operating system.
         </h2>
         <p className="landing-section-subtext mt-4">
-          The Free tier gives you 2 lifetime trips to prove the value. Pro and Business are for travelers who want unlimited trips, advanced operations, reporting, and fewer loose ends every month.
+          The Free tier gives you 2 trips to prove the value. Pro and Business are for travelers who want unlimited trips, advanced operations, reporting, and fewer loose ends every month.
         </p>
 
         <p className="mt-8 text-lg font-semibold text-[hsl(var(--landing-text))]">
@@ -22,7 +22,7 @@ export default function LandingPricing() {
         </div>
 
         <p className="landing-trust-line">
-          No credit card required - Free plan includes 2 lifetime trips
+          No credit card required - Free plan includes 2 trips
         </p>
       </div>
     </section>

@@ -15,7 +15,7 @@ import LandingFooter from '@/components/landing/LandingFooter';
 import '@/styles/landing.css';
 
 const seoTitle = 'Real Travel 2 Real Places | Chaos to Clarity Travel Management App';
-const seoDescription = 'Find clarity in the travel chaos. RealTravel2RealPlaces is a premium trip management app for travel booked anywhere, connecting itinerary, maps, lodging, drive mode, transit, weather, expenses, offline details, and reports into one live trip home.';
+const seoDescription = 'Find clarity in the travel chaos. RealTravel2RealPlaces is a premium trip management app for travel booked anywhere, connecting itinerary, maps, lodging, drive mode, transit, weather, expenses, offline details, and reports into one trip home.';
 
 export default function LandingPage() {
   return (
@@ -52,10 +52,10 @@ export default function LandingPage() {
             operatingSystem: 'Web, iOS',
             description: seoDescription,
             featureList: [
-                'Today view for any trip booked anywhere',
+              'Today view for any trip booked anywhere',
               'Today view for next actions and leave-by timing',
-              'Cross-vendor trip operating system beyond maps, airline apps, and booking apps',
-                'Drive mode for road trips and CarPlay-ready stops',
+              'Trip operating system for bookings, maps, movement, and expenses',
+              'Drive mode for road trips, route context, and next stops',
               'Airport map and parking links',
               'Local transit map and routing windows',
               'Offline trip details and expense capture',

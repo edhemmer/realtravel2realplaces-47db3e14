@@ -69,7 +69,7 @@ The paid value is the operating layer: live next actions, Drive Cockpit, airport
 
 | Tier | Trips | Key Features |
 |------|-------|-------------|
-| **Free** | 2 lifetime | Full booking/expense management, packing, sharing, calendar export |
+| **Free** | 2 trips | Full booking/expense management, packing, sharing, calendar export |
 | **Pro** | Unlimited | Timeline events, health checklist, parking alerts, explore engine, trip reports |
 | **Business** | Unlimited | Tour stops, business expense reporting, stop-level expense assignment |
 

@@ -72,7 +72,7 @@ Real Travel 2 Real Places provides:
 
 | Tier | Price | Limit | Core Value |
 |------|-------|-------|------------|
-| **Free** | $0 | 2 lifetime trips | Full trip management, EXPLORE, timeline, packing, calendar export |
+| **Free** | $0 | 2 trips | Full trip management, EXPLORE, timeline, packing, calendar export |
 | **Pro** | TBD | Unlimited | Drive Mode, reports, health checklist, sharing, alerts |
 | **Business** | TBD | Unlimited | All Pro + tour stops, business expense reporting |
 
@@ -130,7 +130,7 @@ Real Travel 2 Real Places provides:
 ## Pricing
 
 - **iOS App**: Free to download; SaaS membership (Free, Pro, or Business) required to use
-- **Web SaaS**: Free tier (2 lifetime trips) + Pro/Business subscriptions for unlimited usage — same account works on iOS
+- **Web SaaS**: Free tier (2 trips) + Pro/Business subscriptions for unlimited usage — same account works on iOS
 
 ---
 

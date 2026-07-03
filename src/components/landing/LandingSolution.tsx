@@ -1,9 +1,9 @@
 import { Building2, Car, LayoutDashboard, ListChecks, Route, WifiOff } from 'lucide-react';
 
 const capabilities = [
-  { icon: LayoutDashboard, title: 'Trip home', description: 'One place for the live trip: itinerary, maps, movement, airports, spend, weather, and readiness.' },
+  { icon: LayoutDashboard, title: 'Trip home', description: 'One place for the trip in motion: itinerary, maps, movement, airports, spend, weather, and readiness.' },
   { icon: ListChecks, title: 'Today', description: 'The next action, next deadline, and next place to be - one calm screen.' },
-  { icon: Car, title: 'Drive mode', description: 'Road-trip mode with navigation, gas, weather, road conditions, offline state, and CarPlay-ready stops.' },
+  { icon: Car, title: 'Drive mode', description: 'Road-trip mode with navigation handoff, gas search, weather, route context, offline state, and next stops.' },
   { icon: Building2, title: 'Airport windows', description: 'Terminal maps, parking links, airport context, and flight details without digging through tabs.' },
   { icon: Route, title: 'Itinerary and transit', description: 'Local transit windows, movement decisions, and the full trip timeline connected together.' },
   { icon: WifiOff, title: 'Offline ready', description: 'Key trip details and expense capture stay useful when signal gets weak or disappears.' },

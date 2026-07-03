@@ -4,7 +4,7 @@ const parts = [
   { icon: Plane, title: 'Flights', description: 'Departure times, airport codes, confirmations, and flight-day context in one travel timeline.' },
   { icon: Building2, title: 'Airport maps', description: 'Official terminal maps, parking pages, and airport links where travelers need them.' },
   { icon: Home, title: 'Lodging', description: 'Addresses, check-in details, saved links, and stay costs connected to the trip.' },
-  { icon: Car, title: 'Drive mode', description: 'Navigation, gas, weather, road conditions, next stops, and CarPlay-ready trip context.' },
+  { icon: Car, title: 'Drive mode', description: 'Navigation handoff, gas search, weather, route context, next stops, and iOS drive context.' },
   { icon: TrainFront, title: 'Local transit', description: 'Transit map windows and route handoffs for getting around without expensive API waste.' },
   { icon: Receipt, title: 'Expenses', description: 'Offline-first expense capture, categories, totals, and business or personal trip records.' },
 ];
