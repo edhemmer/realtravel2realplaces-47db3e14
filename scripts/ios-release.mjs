@@ -107,8 +107,7 @@ function validateIconEntry(entry, requiredLabel) {
 function validateIosAppIcons(infoPlist) {
   requireText(infoPlist, "<key>CFBundleIconName</key>", "CFBundleIconName in Info.plist");
   requireText(infoPlist, "<string>AppIcon</string>", "AppIcon bundle icon name in Info.plist");
-  requireText(infoPlist, "<key>CFBundleIcons</key>", "iPhone CFBundleIcons dictionary in Info.plist");
-  requireText(infoPlist, "<key>CFBundleIcons~ipad</key>", "iPad CFBundleIcons dictionary in Info.plist");
+  rejectText(infoPlist, "<key>CFBundleIconFiles</key>", "loose icon file references in Info.plist");
 
   const contents = JSON.parse(requireFile(path.join(iosAppIconDir, "Contents.json"), "AppIcon Contents.json"));
   const entries = contents.images ?? [];
