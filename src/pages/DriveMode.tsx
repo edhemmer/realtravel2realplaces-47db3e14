@@ -187,10 +187,25 @@ export default function DriveMode() {
     destinationCoords: resolvedDestinationCoords.data ?? explicitDestinationCoords,
   });
 
+  const routePreview = useMemo(
+    () => getRoutePreview(canonicalState, activeSegment),
+    [canonicalState, activeSegment],
+  );
+
+  const plannedDepartureAt = useMemo(() => {
+    if (!activeSegment) return now;
+    if (activeSegment.dateStr === nowLocal.substring(0, 10) && !activeSegment.timeStr) return now;
+    const time = activeSegment.timeStr ?? '05:00';
+    const parsed = new Date(`${activeSegment.dateStr}T${time}:00`);
+    return Number.isFinite(parsed.getTime()) ? parsed : now;
+  }, [activeSegment, now, nowLocal]);
+
   const routeWeatherRisks = useDriveRouteWeatherRisks({
     enabled: online,
     originCoords: deviceCoords,
     destinationCoords: resolvedDestinationCoords.data ?? explicitDestinationCoords,
+    departureAt: plannedDepartureAt,
+    durationMinutes: routePreview.durationMinutes,
   });
 
   const alerts = useMemo(
@@ -252,11 +267,6 @@ export default function DriveMode() {
         avgMilesPerTank: userProfile?.avg_miles_per_tank ?? undefined,
       }),
     [canonicalState, activeSegment, userProfile],
-  );
-
-  const routePreview = useMemo(
-    () => getRoutePreview(canonicalState, activeSegment),
-    [canonicalState, activeSegment],
   );
 
   const weatherRisk = useMemo(
@@ -549,6 +559,16 @@ export default function DriveMode() {
                           <div className="min-w-0 flex-1">
                             <p className="font-bold leading-snug">Route weather: {risk.pointLabel}</p>
                             <p className="mt-0.5 leading-relaxed opacity-90">{risk.message}</p>
+                            {risk.targetLocalTime && (
+                              <p className="mt-1 text-[10px] font-semibold uppercase opacity-75">
+                                Expected near {format(new Date(risk.targetLocalTime), 'MMM d, h:mm a')}
+                              </p>
+                            )}
+                            {risk.driverDecision && (
+                              <p className="mt-2 rounded-lg border border-current/20 px-2 py-1 font-semibold leading-relaxed">
+                                Decision: {risk.driverDecision}
+                              </p>
+                            )}
                             {risk.packingAction && (
                               <p className="mt-2 rounded-lg border border-current/20 px-2 py-1 font-semibold leading-relaxed">
                                 Pack/prep: {risk.packingAction}
@@ -559,6 +579,16 @@ export default function DriveMode() {
                       </div>
                     ))}
                   </div>
+                )}
+                {routeWeatherRisks.isError && (
+                  <p className="mb-3 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-700 dark:text-amber-300">
+                    Route weather could not be verified. Check conditions before loading the vehicle or accepting a detour.
+                  </p>
+                )}
+                {online && !routeWeatherRisks.isLoading && !routeWeatherRisks.isError && routeWeatherRisks.data?.length === 0 && (
+                  <p className="mb-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                    No sampled route-weather hazards detected for the expected drive window.
+                  </p>
                 )}
                 {officialHazards.isError && (
                   <p className="mb-3 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-700 dark:text-amber-300">

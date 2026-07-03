@@ -103,13 +103,17 @@ export function useDriveRouteWeatherRisks(params: {
   enabled?: boolean;
   originCoords?: DeviceCoords | null;
   destinationCoords?: DeviceCoords | null;
+  departureAt?: Date | null;
+  durationMinutes?: number | null;
 }) {
   const points = useMemo(
     () => buildRouteWeatherPoints({
       originCoords: params.originCoords,
       destinationCoords: params.destinationCoords,
+      departureAt: params.departureAt,
+      durationMinutes: params.durationMinutes,
     }),
-    [params.originCoords, params.destinationCoords],
+    [params.originCoords, params.destinationCoords, params.departureAt, params.durationMinutes],
   );
 
   return useQuery<RouteWeatherRisk[]>({
@@ -117,6 +121,8 @@ export function useDriveRouteWeatherRisks(params: {
       'drive-route-weather-risks',
       roundedCoordKey(params.originCoords),
       roundedCoordKey(params.destinationCoords),
+      params.departureAt?.toISOString() ?? 'now',
+      params.durationMinutes ?? 'unknown',
     ],
     queryFn: () => fetchRouteWeatherRisks(points),
     enabled: params.enabled !== false && points.length > 0,

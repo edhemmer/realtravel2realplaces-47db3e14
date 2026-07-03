@@ -29,6 +29,8 @@ export interface RouteWeatherPoint {
   id: string;
   label: string;
   coords: DeviceCoords;
+  routeRatio: number;
+  targetLocalTime?: string;
 }
 
 export interface RouteWeatherRisk {
@@ -37,9 +39,11 @@ export interface RouteWeatherRisk {
   severity: OfficialDriveHazardSeverity;
   condition: 'rain' | 'storm' | 'snow' | 'ice' | 'heat' | 'wind';
   message: string;
+  driverDecision?: string;
   packingAction?: string;
   precipitationProbability?: number;
   precipitationAmount?: number;
+  targetLocalTime?: string;
 }
 
 interface NwsAlertFeature {
@@ -221,6 +225,34 @@ function weatherCodeCondition(code: number): RouteWeatherRisk['condition'] | nul
   return null;
 }
 
+function addMinutes(date: Date, minutes: number): Date {
+  return new Date(date.getTime() + minutes * 60_000);
+}
+
+function toLocalIsoMinute(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hour = String(date.getHours()).padStart(2, '0');
+  const minute = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hour}:${minute}`;
+}
+
+function nearestHourlyIndexes(times: string[] | undefined, targetLocalTime?: string): number[] {
+  if (!times?.length) return [0, 1, 2, 3, 4, 5, 6, 7];
+  if (!targetLocalTime) return times.slice(0, 8).map((_, index) => index);
+
+  const targetMs = new Date(targetLocalTime).getTime();
+  if (!Number.isFinite(targetMs)) return times.slice(0, 8).map((_, index) => index);
+
+  return times
+    .map((time, index) => ({ index, delta: Math.abs(new Date(time).getTime() - targetMs) }))
+    .filter((item) => Number.isFinite(item.delta))
+    .sort((a, b) => a.delta - b.delta)
+    .slice(0, 4)
+    .map((item) => item.index);
+}
+
 function normalizeStateKey(state?: string | null): string | null {
   if (!state) return null;
   const trimmed = state.trim();
@@ -378,13 +410,23 @@ export function buildOfficialAlertPoints(params: {
 export function buildRouteWeatherPoints(params: {
   originCoords?: DeviceCoords | null;
   destinationCoords?: DeviceCoords | null;
+  departureAt?: Date | null;
+  durationMinutes?: number | null;
 }): RouteWeatherPoint[] {
   const origin = params.originCoords;
   const destination = params.destinationCoords;
-  if (!origin || !destination) return origin ? [{ id: 'current', label: 'Current area', coords: origin }] : [];
+  if (!origin || !destination) {
+    return origin ? [{ id: 'current', label: 'Current area', coords: origin, routeRatio: 0 }] : [];
+  }
+
+  const targetTimeForRatio = (ratio: number): string | undefined => {
+    if (!params.departureAt || !Number.isFinite(params.departureAt.getTime())) return undefined;
+    const duration = params.durationMinutes && params.durationMinutes > 0 ? params.durationMinutes : 360;
+    return toLocalIsoMinute(addMinutes(params.departureAt, Math.round(duration * ratio)));
+  };
 
   const points: RouteWeatherPoint[] = [
-    { id: 'origin', label: 'Current area', coords: origin },
+    { id: 'origin', label: 'Current area', coords: origin, routeRatio: 0, targetLocalTime: targetTimeForRatio(0) },
   ];
 
   const samples = [
@@ -397,6 +439,8 @@ export function buildRouteWeatherPoints(params: {
     points.push({
       id: sample.id,
       label: sample.label,
+      routeRatio: sample.ratio,
+      targetLocalTime: targetTimeForRatio(sample.ratio),
       coords: {
         lat: origin.lat + (destination.lat - origin.lat) * sample.ratio,
         lng: origin.lng + (destination.lng - origin.lng) * sample.ratio,
@@ -404,14 +448,14 @@ export function buildRouteWeatherPoints(params: {
     });
   }
 
-  points.push({ id: 'destination', label: 'Destination area', coords: destination });
+  points.push({ id: 'destination', label: 'Destination area', coords: destination, routeRatio: 1, targetLocalTime: targetTimeForRatio(1) });
   return points;
 }
 
 async function fetchRouteWeatherPointRisk(point: RouteWeatherPoint): Promise<RouteWeatherRisk | null> {
   const lat = Number(point.coords.lat.toFixed(4));
   const lon = Number(point.coords.lng.toFixed(4));
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=weather_code,precipitation,rain,showers,snowfall,wind_speed_10m,temperature_2m&hourly=weather_code,precipitation_probability,precipitation,wind_speed_10m,temperature_2m&forecast_days=1&timezone=auto&temperature_unit=fahrenheit`;
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=weather_code,precipitation,rain,showers,snowfall,wind_speed_10m,temperature_2m&hourly=weather_code,precipitation_probability,precipitation,wind_speed_10m,temperature_2m&forecast_days=2&timezone=auto&temperature_unit=fahrenheit`;
   const response = await fetchWithTimeout(url);
   if (!response.ok) return null;
 
@@ -426,6 +470,7 @@ async function fetchRouteWeatherPointRisk(point: RouteWeatherPoint): Promise<Rou
       temperature_2m?: number;
     };
     hourly?: {
+      time?: string[];
       weather_code?: number[];
       precipitation_probability?: number[];
       precipitation?: number[];
@@ -436,11 +481,12 @@ async function fetchRouteWeatherPointRisk(point: RouteWeatherPoint): Promise<Rou
 
   const currentCode = data.current?.weather_code ?? 0;
   const currentCondition = weatherCodeCondition(currentCode);
-  const nextCodes = data.hourly?.weather_code?.slice(0, 8) ?? [];
-  const nextProbabilities = data.hourly?.precipitation_probability?.slice(0, 8) ?? [];
-  const nextAmounts = data.hourly?.precipitation?.slice(0, 8) ?? [];
-  const nextWind = data.hourly?.wind_speed_10m?.slice(0, 8) ?? [];
-  const nextTemps = data.hourly?.temperature_2m?.slice(0, 8) ?? [];
+  const indexes = nearestHourlyIndexes(data.hourly?.time, point.targetLocalTime);
+  const nextCodes = indexes.map((index) => data.hourly?.weather_code?.[index]).filter((value): value is number => Number.isFinite(value));
+  const nextProbabilities = indexes.map((index) => data.hourly?.precipitation_probability?.[index]).filter((value): value is number => Number.isFinite(value));
+  const nextAmounts = indexes.map((index) => data.hourly?.precipitation?.[index]).filter((value): value is number => Number.isFinite(value));
+  const nextWind = indexes.map((index) => data.hourly?.wind_speed_10m?.[index]).filter((value): value is number => Number.isFinite(value));
+  const nextTemps = indexes.map((index) => data.hourly?.temperature_2m?.[index]).filter((value): value is number => Number.isFinite(value));
 
   const maxPrecipProbability = Math.max(0, ...nextProbabilities.filter(Number.isFinite));
   const maxPrecipAmount = Math.max(0, data.current?.precipitation ?? 0, data.current?.rain ?? 0, data.current?.showers ?? 0, ...nextAmounts.filter(Number.isFinite));
@@ -456,9 +502,11 @@ async function fetchRouteWeatherPointRisk(point: RouteWeatherPoint): Promise<Rou
       severity: 'critical',
       condition: 'storm',
       message: `Storm risk along ${point.label.toLowerCase()}.`,
+      driverDecision: 'Consider delaying departure until this route segment clears.',
       packingAction: 'Cover luggage and keep rain gear accessible before departure.',
       precipitationProbability: maxPrecipProbability,
       precipitationAmount: maxPrecipAmount,
+      targetLocalTime: point.targetLocalTime,
     };
   }
 
@@ -469,9 +517,13 @@ async function fetchRouteWeatherPointRisk(point: RouteWeatherPoint): Promise<Rou
       severity: maxPrecipProbability >= 70 || maxPrecipAmount > 0.2 ? 'warning' : 'info',
       condition: 'rain',
       message: `Rain likely along ${point.label.toLowerCase()}${maxPrecipProbability ? ` (${maxPrecipProbability}% chance)` : ''}.`,
+      driverDecision: maxPrecipProbability >= 70 || maxPrecipAmount > 0.2
+        ? 'Consider leaving later or checking an alternate route before departure.'
+        : 'Prep for rain before loading and recheck conditions before departure.',
       packingAction: 'Pack the car/truck for rain: cover soft bags, protect electronics, and keep jackets up front.',
       precipitationProbability: maxPrecipProbability,
       precipitationAmount: maxPrecipAmount,
+      targetLocalTime: point.targetLocalTime,
     };
   }
 
@@ -482,9 +534,11 @@ async function fetchRouteWeatherPointRisk(point: RouteWeatherPoint): Promise<Rou
       severity: 'critical',
       condition: 'snow',
       message: `Snow or wintry precipitation possible along ${point.label.toLowerCase()}.`,
+      driverDecision: 'Consider delaying departure or choosing a safer travel window.',
       packingAction: 'Keep cold-weather gear, scraper, blanket, and traction plan accessible.',
       precipitationProbability: maxPrecipProbability,
       precipitationAmount: maxPrecipAmount,
+      targetLocalTime: point.targetLocalTime,
     };
   }
 
@@ -495,7 +549,9 @@ async function fetchRouteWeatherPointRisk(point: RouteWeatherPoint): Promise<Rou
       severity: maxWind >= 45 ? 'critical' : 'warning',
       condition: 'wind',
       message: `High wind possible along ${point.label.toLowerCase()} (${Math.round(maxWind)} mph).`,
+      driverDecision: maxWind >= 45 ? 'Consider delaying departure, especially with a truck, trailer, or roof cargo.' : 'Check advisories before departure.',
       packingAction: 'Secure roof cargo and check advisories for high-profile vehicles.',
+      targetLocalTime: point.targetLocalTime,
     };
   }
 
@@ -506,7 +562,9 @@ async function fetchRouteWeatherPointRisk(point: RouteWeatherPoint): Promise<Rou
       severity: maxTemp >= 105 ? 'critical' : 'warning',
       condition: 'heat',
       message: `High heat expected along ${point.label.toLowerCase()} (${Math.round(maxTemp)}F).`,
+      driverDecision: 'Avoid being stranded without supplies; consider cooler travel hours.',
       packingAction: 'Carry water, protect medications/electronics, and plan fuel stops conservatively.',
+      targetLocalTime: point.targetLocalTime,
     };
   }
 
