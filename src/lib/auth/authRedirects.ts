@@ -20,3 +20,9 @@ export function authCallbackUrl(redirectTo?: string) {
 export function passwordResetUrl() {
   return new URL('/reset-password', authOrigin()).toString();
 }
+
+export function loginUrlWithEmail(email?: string) {
+  const url = new URL('/auth', authOrigin());
+  if (email) url.searchParams.set('email', email.trim().toLowerCase());
+  return url.toString();
+}

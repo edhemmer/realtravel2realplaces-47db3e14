@@ -80,6 +80,11 @@ export default function Auth() {
     const reason = searchParams.get('reason');
     const verified = searchParams.get('verified');
     const callbackError = searchParams.get('error');
+    const emailParam = searchParams.get('email');
+
+    if (emailParam) {
+      setEmail(emailParam.trim().toLowerCase());
+    }
 
     if (reason === 'sessionExpired') {
       setError('Your session has expired. Please sign in again.');
@@ -178,7 +183,7 @@ export default function Auth() {
       if (existingAccount) {
         setActiveTab('signin');
         setPassword('');
-        setError('An account already exists for this email. Use Sign In or Forgot password.');
+        setError('An account already exists for this email. Sign in or reset the password for this account.');
         return;
       }
 
@@ -256,6 +261,7 @@ export default function Auth() {
   const blocked = submitting || status !== 'anonymous' || Boolean(authConfigError);
   const formStatus = status === 'loading' || status === 'authenticated';
   const activeMessage = authConfigError || error;
+  const forgotPasswordHref = `/forgot-password${email.trim() ? `?email=${encodeURIComponent(email.trim().toLowerCase())}` : ''}`;
   const fieldChrome = 'h-12 rounded-xl border-white/10 bg-white/[0.04] text-slate-50 placeholder:text-slate-500 shadow-inner shadow-black/20 focus-visible:ring-brand-signal/70';
   const labelChrome = 'text-xs font-semibold uppercase tracking-[0.12em] text-slate-400';
 
@@ -374,7 +380,7 @@ export default function Auth() {
                       <AuthDivider />
                       <AppleButton disabled={blocked} onClick={handleApple} />
                       <div className="text-center">
-                        <Link to="/forgot-password" className="text-sm text-slate-400 transition-colors hover:text-brand-signal">
+                        <Link to={forgotPasswordHref} className="text-sm text-slate-400 transition-colors hover:text-brand-signal">
                           Forgot password?
                         </Link>
                       </div>

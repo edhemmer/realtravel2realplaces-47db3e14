@@ -31,6 +31,13 @@ export default function ResetPassword() {
 
     (async () => {
       // 1. PKCE flow: ?code=... in the query string
+      const queryError = searchParams.get('error');
+      if (queryError) {
+        setError(queryError);
+        setTokenValid(false);
+        return;
+      }
+
       const code = searchParams.get('code');
       if (code) {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -47,12 +54,29 @@ export default function ResetPassword() {
       // 2. Legacy implicit flow: tokens in the URL hash
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
       const type = hashParams.get('type');
       const errorDesc = hashParams.get('error_description');
 
       if (errorDesc) {
         setError(decodeURIComponent(errorDesc));
         setTokenValid(false);
+        return;
+      }
+
+      if (accessToken && refreshToken && type === 'recovery') {
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (cancelled) return;
+        if (error) {
+          setError(error.message);
+          setTokenValid(false);
+          return;
+        }
+        window.history.replaceState(null, document.title, window.location.pathname);
+        setTokenValid(true);
         return;
       }
 

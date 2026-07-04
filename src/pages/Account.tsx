@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Mail, Crown, User, Lock, CheckCircle, ChevronRight, ShieldCheck, BookOpen, Sparkles, Briefcase, Sun, Moon, Monitor } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/integrations/supabase/client';
+import { passwordResetUrl } from '@/lib/auth/authRedirects';
 import { toast } from 'sonner';
 import { TravelPreferencesCard } from '@/components/account/TravelPreferencesCard';
 import { UpgradePlanDialog } from '@/components/account/UpgradePlanDialog';
@@ -55,7 +56,7 @@ export default function Account() {
     setIsResetting(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: passwordResetUrl(),
       });
       
       if (error) {

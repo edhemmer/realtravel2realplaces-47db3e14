@@ -30,10 +30,31 @@ export default function AuthCallback() {
 
     async function finishAuth() {
       try {
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const recoveryType = hashParams.get('type');
+        const recoveryAccessToken = hashParams.get('access_token');
+        const recoveryError = hashParams.get('error_description');
+
+        if (recoveryError) {
+          navigate(`/reset-password?error=${encodeURIComponent(recoveryError)}`, { replace: true });
+          return;
+        }
+
+        if (recoveryType === 'recovery' && recoveryAccessToken) {
+          navigate(`/reset-password${window.location.hash}`, { replace: true });
+          return;
+        }
+
         const code = searchParams.get('code');
+        const type = searchParams.get('type');
         if (code) {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) throw error;
+
+          if (type === 'recovery') {
+            navigate('/reset-password', { replace: true });
+            return;
+          }
         }
 
         const session = await readSessionWithRetry();
