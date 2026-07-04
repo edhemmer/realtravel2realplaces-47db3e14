@@ -21,7 +21,8 @@ function base64url(input: ArrayBuffer | string): string {
 }
 
 async function importP8Key(pem: string): Promise<CryptoKey> {
-  const b64 = pem
+  const normalizedPem = pem.replace(/\\n/g, "\n").trim();
+  const b64 = normalizedPem
     .replace(/-----BEGIN PRIVATE KEY-----/, "")
     .replace(/-----END PRIVATE KEY-----/, "")
     .replace(/\s+/g, "");

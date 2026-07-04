@@ -17,7 +17,8 @@ function b64urlToUint8(b64url: string): Uint8Array {
 }
 
 function pemToPkcs8(pem: string): Uint8Array {
-  const body = pem
+  const normalizedPem = pem.replace(/\\n/g, '\n').trim();
+  const body = normalizedPem
     .replace(/-----BEGIN [^-]+-----/g, '')
     .replace(/-----END [^-]+-----/g, '')
     .replace(/\s+/g, '');
