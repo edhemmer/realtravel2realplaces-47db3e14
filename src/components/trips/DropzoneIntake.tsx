@@ -96,6 +96,36 @@ function classifyFile(file: File): IntakeItem['type'] {
   return 'text';
 }
 
+function formatDraftBookingsForImport(draftBookings: any[], sourceName: string): string {
+  const lines = [
+    `Parsed travel confirmation from ${sourceName}.`,
+    'Use the booking details below to create or update this trip.',
+    '',
+  ];
+
+  draftBookings.forEach((booking, index) => {
+    lines.push(`Booking ${index + 1}`);
+    lines.push(`Type: ${booking.booking_type || 'unknown'}`);
+    lines.push(`Vendor: ${booking.vendor_name || booking.airline || booking.property_name || booking.rental_company || 'unknown'}`);
+    if (booking.airline) lines.push(`Airline: ${booking.airline}`);
+    if (booking.passenger_name) lines.push(`Passenger: ${booking.passenger_name}`);
+    if (booking.confirmation_number) lines.push(`Confirmation number: ${booking.confirmation_number}`);
+    if (booking.start_datetime) lines.push(`Start: ${booking.start_datetime}`);
+    if (booking.end_datetime) lines.push(`End: ${booking.end_datetime}`);
+    if (booking.departure_airport_code) lines.push(`Departure airport: ${booking.departure_airport_code}`);
+    if (booking.arrival_airport_code) lines.push(`Arrival airport: ${booking.arrival_airport_code}`);
+    if (booking.address) lines.push(`Address: ${booking.address}`);
+    if (booking.location_summary) lines.push(`Location: ${booking.location_summary}`);
+    if (booking.pickup_location) lines.push(`Pickup location: ${booking.pickup_location}`);
+    if (booking.return_location) lines.push(`Return location: ${booking.return_location}`);
+    if (booking.total_cost) lines.push(`Total cost: ${booking.total_cost}`);
+    if (booking.notes) lines.push(`Notes: ${booking.notes}`);
+    lines.push('');
+  });
+
+  return lines.join('\n').trim();
+}
+
 let itemCounter = 0;
 function nextId() { return `intake-${++itemCounter}-${Date.now()}`; }
 
@@ -157,9 +187,10 @@ export function DropzoneIntake({ onTextExtracted, isParsing, onProcessingStart }
       const { data, error } = await supabase.functions.invoke('parse-booking-image', {
         body: { image: base64, filename: file.name },
       });
-      if (error) throw new Error('Image parsing failed');
-      if (data?.success && data?.data) {
-        return JSON.stringify(data.data);
+      if (error) throw new Error(error.message || 'Image parsing failed');
+      const draftBookings = data?.data?.draftBookings;
+      if (data?.success && Array.isArray(draftBookings) && draftBookings.length > 0) {
+        return formatDraftBookingsForImport(draftBookings, file.name);
       }
       throw new Error(data?.message || 'Could not extract booking from image');
     }
@@ -170,9 +201,10 @@ export function DropzoneIntake({ onTextExtracted, isParsing, onProcessingStart }
       const { data, error } = await supabase.functions.invoke('parse-booking-image', {
         body: { image: base64, filename: file.name, mimeType: 'application/pdf' },
       });
-      if (error) throw new Error('PDF parsing failed');
-      if (data?.success && data?.data) {
-        return JSON.stringify(data.data);
+      if (error) throw new Error(error.message || 'PDF parsing failed');
+      const draftBookings = data?.data?.draftBookings;
+      if (data?.success && Array.isArray(draftBookings) && draftBookings.length > 0) {
+        return formatDraftBookingsForImport(draftBookings, file.name);
       }
       throw new Error(data?.message || 'Could not extract booking from PDF');
     }

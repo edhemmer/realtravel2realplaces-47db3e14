@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -100,11 +100,27 @@ if (typeof window !== "undefined") {
 function ProtectedRoute({ children, skipOnboardingGate }: { children: React.ReactNode; skipOnboardingGate?: boolean }) {
   const { user, loading: authLoading } = useAuth();
   const location = useLocation();
-  const { data: profile, isLoading: profileLoading } = useUserProfile();
+  const { isLoading: profileLoading } = useUserProfile();
   const { shouldShowOnboarding, isLoading: onboardingLoading } = useOnboardingStatus();
+  const profileGateLoading = !!user && (profileLoading || onboardingLoading);
+  const [profileGateTimedOut, setProfileGateTimedOut] = useState(false);
+
+  useEffect(() => {
+    if (!profileGateLoading) {
+      setProfileGateTimedOut(false);
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      console.warn('[RT2RP] Profile/onboarding gate timed out. Opening app shell with recovery-capable screens.');
+      setProfileGateTimedOut(true);
+    }, 12000);
+
+    return () => window.clearTimeout(timeout);
+  }, [profileGateLoading]);
 
   // Show loading while checking auth OR profile status — prevents premature redirects
-  if (authLoading || (user && (profileLoading || onboardingLoading))) {
+  if (authLoading || (profileGateLoading && !profileGateTimedOut)) {
     return <BrandedPageLoader />;
   }
 

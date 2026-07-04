@@ -41,11 +41,15 @@ export default function Dashboard() {
   const location = useLocation();
   const {
     data: trips,
-    isLoading
+    isLoading,
+    isError: tripsError,
+    refetch: refetchTrips,
   } = useTrips();
   const {
     data: sharedTrips = [],
-    isLoading: sharedLoading
+    isLoading: sharedLoading,
+    isError: sharedTripsError,
+    refetch: refetchSharedTrips,
   } = useSharedTrips();
   const deleteTrip = useDeleteTrip();
   const removeMembership = useRemoveTripMembership();
@@ -54,6 +58,23 @@ export default function Dashboard() {
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [tripToDelete, setTripToDelete] = useState<string | null>(null);
   const [tripToRemove, setTripToRemove] = useState<string | null>(null);
+  const [tripLoadTimedOut, setTripLoadTimedOut] = useState(false);
+  const tripsLoading = isLoading || sharedLoading;
+  const hasTripLoadError = tripsError || sharedTripsError || tripLoadTimedOut;
+
+  useEffect(() => {
+    if (!tripsLoading) {
+      setTripLoadTimedOut(false);
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      console.warn('[RT2RP] Trip list load timed out. Showing recovery state.');
+      setTripLoadTimedOut(true);
+    }, 15000);
+
+    return () => window.clearTimeout(timeout);
+  }, [tripsLoading]);
 
   // v3.8.20: Auto-open create trip dialog; detect onboarding state
   const { shouldShowOnboarding } = useOnboardingStatus();
@@ -163,10 +184,40 @@ export default function Dashboard() {
     ];
   }, [sortedTrips, sharedTrips.length, todayStr]);
 
-  if (isLoading || sharedLoading) {
+  if (tripsLoading && !tripLoadTimedOut) {
     return (
       <Layout>
         <DashboardSkeleton />
+      </Layout>
+    );
+  }
+
+  if (hasTripLoadError) {
+    return (
+      <Layout>
+        <PageTransition className="w-full min-w-0">
+          <GlassSurface elevation="raised" className="mx-auto mt-10 max-w-xl rounded-2xl p-6 text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-destructive/10">
+              <WifiOff className="h-6 w-6 text-destructive" />
+            </div>
+            <h1 className="text-xl font-semibold">We cannot load your trips right now</h1>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              RT2RP reached your account, but the trip data request did not finish. This usually means the app is pointed at the wrong Supabase project, the network is blocked, or the database policy/query is failing.
+            </p>
+            <div className="mt-5 flex justify-center gap-2">
+              <Button
+                onClick={() => {
+                  setTripLoadTimedOut(false);
+                  refetchTrips();
+                  refetchSharedTrips();
+                }}
+                className="rounded-xl"
+              >
+                Retry Trip Sync
+              </Button>
+            </div>
+          </GlassSurface>
+        </PageTransition>
       </Layout>
     );
   }

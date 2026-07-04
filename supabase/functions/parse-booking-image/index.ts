@@ -52,14 +52,14 @@ serve(async (req) => {
       }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
-    let tripId: string;
+    let tripId: string | undefined;
     let imageBase64: string;
     let typeHint: string;
     
     try {
       const body = await req.json();
       tripId = body.tripId;
-      imageBase64 = body.imageBase64;
+      imageBase64 = body.imageBase64 || body.image;
       typeHint = body.typeHint || 'auto';
     } catch {
       return new Response(JSON.stringify({ 
@@ -67,19 +67,21 @@ serve(async (req) => {
       }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
-    if (!tripId || !imageBase64) {
+    if (!imageBase64) {
       return new Response(JSON.stringify({ 
-        success: false, data: null, message: "Missing required fields (tripId, imageBase64).", error: 'MISSING_FIELDS'
+        success: false, data: null, message: "Missing required image data.", error: 'MISSING_FIELDS'
       }), { status: 200, headers: corsJsonHeaders(req) });
     }
 
-    const { data: hasAccess } = await supabaseClient
-      .rpc('user_has_trip_access', { trip_id: tripId });
+    if (tripId) {
+      const { data: hasAccess } = await supabaseClient
+        .rpc('user_has_trip_access', { trip_id: tripId });
 
-    if (!hasAccess) {
-      return new Response(JSON.stringify({ 
-        success: false, data: null, message: "You don't have access to this trip.", error: 'PERMISSION_DENIED'
-      }), { status: 200, headers: corsJsonHeaders(req) });
+      if (!hasAccess) {
+        return new Response(JSON.stringify({ 
+          success: false, data: null, message: "You don't have access to this trip.", error: 'PERMISSION_DENIED'
+        }), { status: 200, headers: corsJsonHeaders(req) });
+      }
     }
 
     const typeHintInstruction = typeHint === 'flight' 
