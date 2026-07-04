@@ -16,7 +16,7 @@ BEGIN
       '00000000-0000-0000-0000-000000000000',
       v_user_id, 'authenticated', 'authenticated',
       'applereviewer@inlightai.com',
-      crypt('apple', gen_salt('bf')),
+      extensions.crypt('apple', extensions.gen_salt('bf')),
       now(),
       '{"provider":"email","providers":["email"]}'::jsonb,
       '{"display_name":"Apple Reviewer"}'::jsonb,
@@ -33,7 +33,7 @@ BEGIN
     );
   ELSE
     UPDATE auth.users
-      SET encrypted_password = crypt('apple', gen_salt('bf')),
+      SET encrypted_password = extensions.crypt('apple', extensions.gen_salt('bf')),
           email_confirmed_at = COALESCE(email_confirmed_at, now()),
           updated_at = now()
       WHERE id = v_user_id;
