@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, FileText, Loader2, X, Check, Plane, Car, Palmtree, Mountain, Building2, ClipboardPaste, Scan, TrainFront, ArrowLeft, Info, MapPin, ChevronDown } from 'lucide-react';
+import { CalendarIcon, FileText, Loader2, X, Check, Plane, Car, Palmtree, Mountain, Building2, ClipboardPaste, Scan, TrainFront, ArrowLeft, Info, MapPin, ChevronDown, Clock } from 'lucide-react';
 import { getDeviceLocation } from '@/lib/deviceLocation';
 import { reverseGeocodeToLocation } from '@/lib/location/reverseGeocode';
 import type { DateRange } from 'react-day-picker';
@@ -284,6 +284,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
   // v3.8.4: Structured location state for Drive flow
   const [driveOriginLocation, setDriveOriginLocation] = useState<LocationStructured | null>(null);
   const [driveDestLocation, setDriveDestLocation] = useState<LocationStructured | null>(null);
+  const [driveDepartureTime, setDriveDepartureTime] = useState('08:00');
   // Drive form — rebuild: geolocation + manual origin override + address disclosure
   const [driveOriginMode, setDriveOriginMode] = useState<'idle' | 'detecting' | 'detected' | 'manual'>('idle');
   const [driveShowAddresses, setDriveShowAddresses] = useState(false);
@@ -333,6 +334,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
     setDriveOrigin('');
     setDriveOriginLocation(null);
     setDriveDestLocation(null);
+    setDriveDepartureTime('08:00');
     setComplexityResult(null);
     setImportStaging(null);
     setBuildStatus('idle');
@@ -1043,7 +1045,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
   const handleDriveCreate = async () => {
     // v3.8.4: Require structured destination location
     const destName = driveDestLocation ? driveDestLocation.cityName : driveDestination.trim();
-    if (!destName || !startDate || !endDate) return;
+    if (!destName || !startDate || !endDate || !driveDepartureTime) return;
 
     if (driveDestLocation && !isLocationComplete(driveDestLocation)) {
       toast.error('Please select a destination city from the suggestions.');
@@ -1067,6 +1069,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
         || (driveOriginLocation ? driveOriginLocation.formatted : (driveOrigin || undefined));
       const destAddr = getValues('destination_address')?.trim()
         || (driveDestLocation?.formatted || undefined);
+      const departureDateTime = `${format(startDate, 'yyyy-MM-dd')}T${driveDepartureTime}:00`;
 
       const trip = await createTrip.mutateAsync({
         name: `Trip to ${destName}`,
@@ -1078,9 +1081,28 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
         destination_type: 'unspecified',
         origin_address: originAddr,
         destination_address: destAddr,
+        notes: `Driving departure: ${driveDepartureTime} local time`,
         start_date: frame.startDate,
         end_date: frame.endDate,
       } as any);
+
+      if (trip?.id) {
+        const { error: driveBookingError } = await supabase.from('bookings').insert({
+          trip_id: trip.id,
+          booking_type: 'transport',
+          vendor_name: 'Driving route',
+          start_datetime: departureDateTime,
+          transport_mode: 'other',
+          from_location: originAddr || driveOriginLocation?.formatted || 'Starting point',
+          to_location: destAddr || driveDestLocation?.formatted || destName,
+          notes: 'Created from Start Trip driving setup. Used by route planning, drive cockpit, weather, and road-alert timing.',
+        });
+
+        if (driveBookingError) {
+          console.error('Failed to create drive timeline seed:', driveBookingError);
+          toast.warning('Trip created, but the driving timeline item needs to be added manually.');
+        }
+      }
 
       resetAll();
       onOpenChange(false);
@@ -1149,6 +1171,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
     setDriveOrigin('');
     setDriveOriginLocation(null);
     setDriveDestLocation(null);
+    setDriveDepartureTime('08:00');
     setComplexityResult(null);
     setAutofillStatus('idle');
     setBuildStatus('idle');
@@ -1210,7 +1233,8 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
         setStep('drive-form');
         break;
       case 'train':
-        setStep('train-manual');
+        setValue('transportation_mode', 'unspecified');
+        setStep('fly-parse');
         break;
     }
   };
@@ -1219,11 +1243,28 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
   // RENDER
   // ============================================================================
 
-  const dialogMaxWidth = step === 'mode' ? 'sm:max-w-xl' : 'sm:max-w-lg';
+  const dialogMaxWidth = step === 'mode' ? 'sm:max-w-2xl' : 'sm:max-w-lg';
+  const intakeCopy = travelMode === 'train'
+    ? {
+        eyebrow: 'Rail trip setup',
+        title: 'Start with your rail confirmation.',
+        body: 'Paste or drop in train tickets, lodging, parking, or activity confirmations. We will build the trip frame first, then let you review the details.',
+        tip: 'Rail trips often have stations, local transit, lodging, and receipts. Start with the confirmation you already have.',
+        paste: 'Paste rail confirmation',
+        manual: 'Enter rail trip manually',
+      }
+    : {
+        eyebrow: 'Flight trip setup',
+        title: 'Start with your flight confirmation.',
+        body: 'Drop in your airline confirmation first. Add lodging, rental car, parking, or activity confirmations after that so the trip is built from real records.',
+        tip: 'The cleanest trip starts with the confirmation email, then RT2RP organizes the moving parts around it.',
+        paste: 'Paste confirmation text',
+        manual: 'Enter flight trip manually',
+      };
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className={`${dialogMaxWidth} max-h-[85vh] overflow-y-auto`}>
+      <DialogContent className={`${dialogMaxWidth} max-h-[calc(100dvh-var(--rt2rp-safe-top,0px)-var(--rt2rp-safe-bottom,0px)-1.5rem)] sm:max-h-[85vh] overflow-y-auto`}>
 
         {/* v3.9.49: Canonical build progress overlay with v3.9.26 recovery */}
         <ImportBuildProgressOverlay
@@ -1239,68 +1280,78 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
 
         {/* ── STEP: Mode Chooser ───────────────────────────────── */}
         {step === 'mode' && (
-          <div className="py-2 space-y-4">
-            <div className="text-center space-y-2">
-              <h2 className="text-2xl font-bold tracking-tight">
-                {isOnboarding ? 'How are you traveling?' : 'How are you traveling?'}
+          <div className="space-y-4 py-1 sm:py-2">
+            <div className="space-y-2">
+              <div className="mx-auto w-fit rounded-full border border-primary/20 bg-primary/8 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
+                Start Trip
+              </div>
+              <h2 className="text-center text-xl font-bold tracking-tight sm:text-2xl">
+                What do you want RT2RP to organize first?
               </h2>
-              <p className="text-muted-foreground text-sm max-w-md mx-auto">
-                {isOnboarding
-                  ? "Select your travel mode and we'll set everything up for you."
-                  : <>Choose how you'll get there so <span className="italic">Real Travel 2 Real Places</span> can set up the trip the right way.</>
-                }
+              <p className="mx-auto max-w-xl text-center text-sm leading-relaxed text-muted-foreground">
+                Start with the thing that controls the trip. RT2RP will build the operating view from there, then guide you to lodging, stops, weather, packing, spend, and next actions.
               </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
-              {/* Fly — Refined blue: trust, order, reliability */}
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-3">
               <button
                 onClick={() => handleModeSelect('fly')}
-                className="group flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-border hover:border-blue-500/50 hover:bg-blue-500/5 hover:shadow-md transition-all duration-200 cursor-pointer"
+                className="group flex min-w-0 items-start gap-3 rounded-2xl border border-border bg-card/55 p-3 text-left transition-all duration-200 hover:border-primary/45 hover:bg-primary/6 hover:shadow-md sm:flex-col sm:p-4"
               >
-                <div className="w-11 h-11 rounded-full bg-blue-500/8 flex items-center justify-center group-hover:bg-blue-500/15 transition-colors">
-                  <Plane className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 transition-colors group-hover:bg-primary/15">
+                  <Plane className="h-5 w-5 text-primary" />
                 </div>
-                <span className="text-base font-semibold text-foreground">Fly</span>
-                <span className="text-xs text-muted-foreground text-center leading-snug">
-                  Airline confirmations
-                </span>
+                <div className="min-w-0 space-y-1">
+                  <span className="block text-base font-semibold text-foreground">Flying</span>
+                  <span className="block text-xs font-medium text-primary">Best when you have confirmations</span>
+                  <span className="block text-xs leading-relaxed text-muted-foreground">
+                    Import flight, lodging, rental, and activity details so the timeline is built from real records.
+                  </span>
+                </div>
               </button>
 
-              {/* Drive — Deep natural green: freedom, calm confidence */}
               <button
                 onClick={() => handleModeSelect('drive')}
-                className="group flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-border hover:border-emerald-600/50 hover:bg-emerald-500/5 hover:shadow-md transition-all duration-200 cursor-pointer"
+                className="group flex min-w-0 items-start gap-3 rounded-2xl border border-border bg-card/55 p-3 text-left transition-all duration-200 hover:border-primary/45 hover:bg-primary/6 hover:shadow-md sm:flex-col sm:p-4"
               >
-                <div className="w-11 h-11 rounded-full bg-emerald-500/8 flex items-center justify-center group-hover:bg-emerald-500/15 transition-colors">
-                  <Car className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 transition-colors group-hover:bg-primary/15">
+                  <Car className="h-5 w-5 text-primary" />
                 </div>
-                <span className="text-base font-semibold text-foreground">Drive</span>
-                <span className="text-xs text-muted-foreground text-center leading-snug">
-                  Road trip by car
-                </span>
+                <div className="min-w-0 space-y-1">
+                  <span className="block text-base font-semibold text-foreground">Driving</span>
+                  <span className="block text-xs font-medium text-primary">Best when route safety matters</span>
+                  <span className="block text-xs leading-relaxed text-muted-foreground">
+                    Set origin, destination, and dates first so the app can prepare a route-aware trip cockpit.
+                  </span>
+                </div>
               </button>
 
-              {/* Train — Soft slate-indigo: flow, rhythm, smooth movement */}
               <button
                 onClick={() => handleModeSelect('train')}
-                className="group flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-border hover:border-slate-500/50 hover:bg-slate-500/5 hover:shadow-md transition-all duration-200 cursor-pointer"
+                className="group flex min-w-0 items-start gap-3 rounded-2xl border border-border bg-card/55 p-3 text-left transition-all duration-200 hover:border-primary/45 hover:bg-primary/6 hover:shadow-md sm:flex-col sm:p-4"
               >
-                <div className="w-11 h-11 rounded-full bg-slate-500/8 flex items-center justify-center group-hover:bg-slate-500/15 transition-colors">
-                  <TrainFront className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 transition-colors group-hover:bg-primary/15">
+                  <TrainFront className="h-5 w-5 text-primary" />
                 </div>
-                <span className="text-base font-semibold text-foreground">Train</span>
-                <span className="text-xs text-muted-foreground text-center leading-snug">
-                  Rail tickets &amp; passes
-                </span>
+                <div className="min-w-0 space-y-1">
+                  <span className="block text-base font-semibold text-foreground">Train</span>
+                  <span className="block text-xs font-medium text-primary">Best for rail plus local movement</span>
+                  <span className="block text-xs leading-relaxed text-muted-foreground">
+                    Import rail tickets or enter stations manually, then add lodging and transit details.
+                  </span>
+                </div>
               </button>
+            </div>
+
+            <div className="rounded-2xl border border-border/70 bg-muted/35 p-3 text-xs leading-relaxed text-muted-foreground">
+              Not sure yet? Pick the main way you leave home. You can add hotels, rental cars, parking, receipts, travelers, and stops after the trip is created.
             </div>
           </div>
         )}
 
         {/* ── STEP: Fly — Parse-first ──────────────────────────── */}
         {step === 'fly-parse' && (
-          <div className="space-y-4">
+          <div className="space-y-4 pb-1">
             <button
               onClick={() => setStep('mode')}
               className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -1310,15 +1361,16 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
             </button>
 
             <div className="space-y-1">
-              <h2 className="text-xl font-bold">Drop your confirmations. We'll build the trip.</h2>
-              <p className="text-sm text-muted-foreground">
-                Drag in your airline (and optional lodging/rental) confirmations. <span className="italic">Real Travel 2 Real Places</span> will read them and create the trip automatically.
+              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">{intakeCopy.eyebrow}</div>
+              <h2 className="text-xl font-bold">{intakeCopy.title}</h2>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                {intakeCopy.body}
               </p>
             </div>
 
             <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 text-xs text-muted-foreground">
               <Info className="w-4 h-4 mt-0.5 shrink-0" />
-              <span><span className="italic">Real Travel 2 Real Places</span> reads your confirmations so you don't have to retype details.</span>
+              <span>{intakeCopy.tip}</span>
             </div>
 
             {/* Drop Zone — powered by react-dropzone */}
@@ -1336,7 +1388,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
                 onClick={() => setShowPasteInput(true)}
               >
                 <ClipboardPaste className="w-5 h-5" />
-                <span>Paste Confirmation Text</span>
+                <span>{intakeCopy.paste}</span>
               </Button>
             )}
 
@@ -1393,12 +1445,12 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
             <div className="pt-2 text-center">
               <button
                 onClick={() => {
-                  setValue('transportation_mode', 'flight');
+                  setValue('transportation_mode', travelMode === 'train' ? 'unspecified' : 'flight');
                   setStep('manual-form');
                 }}
                 className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
               >
-                Or add trip details manually
+                {intakeCopy.manual}
               </button>
             </div>
           </div>
@@ -1418,7 +1470,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
             <div className="space-y-1">
               <h2 className="text-xl font-bold flex items-center gap-2">
                 <Car className="w-5 h-5 text-primary" />
-                Drive Trip
+                Build your driving route
               </h2>
               <p className="text-sm text-muted-foreground">
                 We'll use this to create your trip frame. You can still add lodging, stops, and expenses later — or drop in confirmations if you already booked a hotel.
@@ -1429,20 +1481,20 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
               {/* Destination — single, focused */}
               <div className="space-y-1.5">
                 <LocationInput
-                  label="Where are you headed?"
+                  label="1. Destination"
                   value={driveDestLocation}
                   onChange={(loc) => {
                     setDriveDestLocation(loc);
                     setDriveDestination(loc?.cityName || '');
                   }}
                   required
-                  placeholder="Search city..."
+                  placeholder="Search city or place..."
                 />
               </div>
 
               {/* Origin — geolocation-first */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Starting from</Label>
+                <Label className="text-sm font-medium">2. Starting point</Label>
 
                 {driveOriginMode !== 'manual' && !driveOriginLocation && (
                   <Button
@@ -1530,7 +1582,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
 
               {/* Dates — single range picker */}
               <div className="space-y-2">
-                <Label>Trip dates</Label>
+                <Label>3. Travel dates</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -1565,6 +1617,24 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
                 </Popover>
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="drive-departure-time">4. Leave time</Label>
+                <div className="relative">
+                  <Clock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="drive-departure-time"
+                    type="time"
+                    value={driveDepartureTime}
+                    onChange={(event) => setDriveDepartureTime(event.target.value)}
+                    className="h-11 rounded-xl pl-10 text-base"
+                    required
+                  />
+                </div>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Used for the driving timeline, route weather window, road alerts, and drive cockpit prep.
+                </p>
+              </div>
+
               {/* Optional: street addresses (disclosure) */}
               <div className="pt-1">
                 <button
@@ -1596,14 +1666,14 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
               </div>
             </div>
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:gap-3">
               <Button type="button" variant="outline" onClick={handleClose} className="flex-1">
                 Cancel
               </Button>
               <Button
                 onClick={handleDriveCreate}
                 className="flex-1 bg-gradient-ocean hover:opacity-90"
-                disabled={createTrip.isPending || (!driveDestLocation && !driveDestination.trim()) || !startDate || !endDate}
+                disabled={createTrip.isPending || (!driveDestLocation && !driveDestination.trim()) || !startDate || !endDate || !driveDepartureTime}
               >
                 {createTrip.isPending ? 'Creating...' : 'Create Trip'}
               </Button>
@@ -1653,7 +1723,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
           <div className="space-y-4">
             {/* Back button — always shown, routes to previous step */}
             <button
-              onClick={() => setStep(travelMode ? (travelMode === 'fly' ? 'fly-parse' : 'mode') : 'mode')}
+              onClick={() => setStep(travelMode === 'fly' || travelMode === 'train' ? 'fly-parse' : 'mode')}
               className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -1739,7 +1809,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
                 {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div className="space-y-2">
                   <Label htmlFor="city">City</Label>
                   <Input id="city" placeholder="City" {...register('destination_city')} />
@@ -1755,7 +1825,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Trip Type</Label>
                   <Select value={tripType} onValueChange={(value: 'business' | 'personal' | 'mixed') => setValue('trip_type', value)}>
@@ -1772,7 +1842,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
 
                 <div className="space-y-2">
                   <Label>Getting There</Label>
-                  <div className="flex gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     <Button
                       type="button"
                       variant={transportationMode === 'flight' ? 'default' : 'outline'}
@@ -1800,7 +1870,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
               {/* Destination Type Selector */}
               <div className="space-y-2">
                 <Label>Destination Type (for packing suggestions)</Label>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                   <Button
                     type="button"
                     variant={destinationType === 'beach' ? 'default' : 'outline'}
@@ -1851,7 +1921,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Start Date</Label>
                   <Popover>
@@ -1936,7 +2006,7 @@ export function CreateTripDialog({ open, onOpenChange, isOnboarding = false }: C
                         {isParsingActive ? 'Building from confirmations…' : 'Ready — tap Continue to create your trip.'}
                       </p>
                     )}
-                    <div className="flex gap-3">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
                       <Button type="button" variant="outline" onClick={handleClose} className="flex-1">
                         Cancel
                       </Button>

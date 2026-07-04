@@ -29,16 +29,16 @@ const SheetOverlay = React.forwardRef<
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
 const sheetVariants = cva(
-  "motion-cinema fixed z-50 gap-4 bg-card/85 backdrop-blur-glass-hero p-6 shadow-elevation-floating transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
+  "motion-cinema fixed z-50 gap-4 overflow-y-auto bg-card/95 p-4 shadow-elevation-floating backdrop-blur-glass-hero transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500 sm:bg-card/85 sm:p-6",
   {
     variants: {
       side: {
-        top: "inset-x-0 top-0 border-b border-border/40 data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
+        top: "inset-x-0 top-0 max-h-[calc(100dvh-var(--rt2rp-safe-bottom,0px))] border-b border-border/40 pt-[calc(var(--rt2rp-safe-top,0px)+1rem)] data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
         bottom:
-          "inset-x-0 bottom-0 border-t border-border/40 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
-        left: "inset-y-0 left-0 h-full w-3/4 border-r border-border/40 data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
+          "inset-x-0 bottom-0 max-h-[calc(100dvh-var(--rt2rp-safe-top,0px))] border-t border-border/40 pb-[calc(var(--rt2rp-safe-bottom,0px)+1rem)] data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
+        left: "inset-y-0 left-0 h-full w-[min(22rem,calc(100vw-env(safe-area-inset-right,0px)-1rem))] border-r border-border/40 pl-[calc(env(safe-area-inset-left,0px)+1rem)] data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
         right:
-          "inset-y-0 right-0 h-full w-3/4 border-l border-border/40 data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
+          "inset-y-0 right-0 h-full w-[min(22rem,calc(100vw-env(safe-area-inset-left,0px)-1rem))] border-l border-border/40 pr-[calc(env(safe-area-inset-right,0px)+1rem)] data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
       },
     },
     defaultVariants: {
