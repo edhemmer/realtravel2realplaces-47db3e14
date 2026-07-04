@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase, supabaseConfig } from '@/integrations/supabase/client';
+import { authCallbackUrl } from '@/lib/auth/authRedirects';
 import logoImg from '@/assets/rt2rp-logo.png';
 
 function AppleIcon({ className }: { className?: string }) {
@@ -238,7 +239,7 @@ export default function Auth() {
       const { error: appleError } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectTo)}`,
+          redirectTo: authCallbackUrl(redirectTo),
         },
       });
       if (appleError) setError(appleError.message || 'Could not sign in with Apple.');

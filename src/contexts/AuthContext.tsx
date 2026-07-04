@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AuthError, Session, User } from '@supabase/supabase-js';
 import { supabase, supabaseConfig } from '@/integrations/supabase/client';
+import { authCallbackUrl } from '@/lib/auth/authRedirects';
 
 interface SignUpData {
   email: string;
@@ -115,7 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email: normalizedEmail,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: authCallbackUrl(),
         data: nameData,
       },
     });
