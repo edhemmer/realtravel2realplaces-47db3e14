@@ -31,9 +31,9 @@ export default function ResetPassword() {
 
     (async () => {
       // 1. PKCE flow: ?code=... in the query string
-      const queryError = searchParams.get('error');
+      const queryError = searchParams.get('error') || searchParams.get('error_description');
       if (queryError) {
-        setError(queryError);
+        setError(decodeURIComponent(queryError));
         setTokenValid(false);
         return;
       }
@@ -51,16 +51,64 @@ export default function ResetPassword() {
         return;
       }
 
+      const queryTokenHash = searchParams.get('token_hash');
+      const queryType = searchParams.get('type');
+      if (queryTokenHash && queryType === 'recovery') {
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash: queryTokenHash,
+          type: 'recovery',
+        });
+        if (cancelled) return;
+        if (error) {
+          setError(error.message);
+          setTokenValid(false);
+        } else {
+          setTokenValid(true);
+        }
+        return;
+      }
+
       // 2. Legacy implicit flow: tokens in the URL hash
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const hashCode = hashParams.get('code');
       const accessToken = hashParams.get('access_token');
       const refreshToken = hashParams.get('refresh_token');
+      const hashTokenHash = hashParams.get('token_hash');
       const type = hashParams.get('type');
-      const errorDesc = hashParams.get('error_description');
+      const errorDesc = hashParams.get('error_description') || hashParams.get('error');
 
       if (errorDesc) {
         setError(decodeURIComponent(errorDesc));
         setTokenValid(false);
+        return;
+      }
+
+      if (hashCode) {
+        const { error } = await supabase.auth.exchangeCodeForSession(hashCode);
+        if (cancelled) return;
+        if (error) {
+          setError(error.message);
+          setTokenValid(false);
+        } else {
+          window.history.replaceState(null, document.title, window.location.pathname);
+          setTokenValid(true);
+        }
+        return;
+      }
+
+      if (hashTokenHash && type === 'recovery') {
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash: hashTokenHash,
+          type: 'recovery',
+        });
+        if (cancelled) return;
+        if (error) {
+          setError(error.message);
+          setTokenValid(false);
+        } else {
+          window.history.replaceState(null, document.title, window.location.pathname);
+          setTokenValid(true);
+        }
         return;
       }
 
