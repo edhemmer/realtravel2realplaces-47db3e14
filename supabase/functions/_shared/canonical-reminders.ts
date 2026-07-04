@@ -17,6 +17,8 @@
 
 // deno-lint-ignore-file no-explicit-any
 
+import { sendApnsToUser } from "./apns.ts";
+
 /** Canonical reminder type enum */
 export type ReminderType =
   | "departure"
@@ -64,6 +66,30 @@ interface ActiveTrip {
   end_date: string;
 }
 
+async function sendReminderPush(admin: any, reminder: PendingReminder): Promise<void> {
+  try {
+    const result = await sendApnsToUser({
+      admin,
+      userId: reminder.user_id,
+      title: reminder.title,
+      body: reminder.message,
+      data: {
+        type: "trip_notification",
+        trip_id: reminder.trip_id,
+        notification_type: reminder.type,
+        link_tab: reminder.link_tab,
+        link_record_id: reminder.link_record_id ?? null,
+      },
+    });
+
+    if (!result.configured) {
+      console.warn("APNs not configured for reminder push:", result.missing);
+    }
+  } catch (error) {
+    console.warn("Reminder push delivery failed:", error);
+  }
+}
+
 /**
  * Insert a reminder idempotently.
  * Uses upsert with ON CONFLICT on the unique partial index for record-linked reminders.
@@ -89,7 +115,9 @@ async function insertReminder(
       console.error("insertReminder error:", error);
       return false;
     }
-    return !!data && data.length > 0;
+    const created = !!data && data.length > 0;
+    if (created) await sendReminderPush(admin, reminder);
+    return created;
   } else {
     // Non-record (expense_nudge) – caller already did date-window dedup
     const { error } = await admin.from("notifications").insert(reminder);
@@ -98,6 +126,7 @@ async function insertReminder(
       console.error("insertReminder error:", error);
       return false;
     }
+    await sendReminderPush(admin, reminder);
     return true;
   }
 }
