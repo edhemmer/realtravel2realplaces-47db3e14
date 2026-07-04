@@ -47,7 +47,7 @@ RealTravel2RealPlaces should not compete as another trip planner. The stronger c
 - Transit: keep the governed transit provider as the canonical live route source because the repo already has governance, 3-minute cache, and deduplication. Add GTFS/GTFS-RT agency feeds later for major metros if cost becomes an issue.
 - Destination maps: use embedded map windows and native map deep links first. Use place/search APIs only for explicit search sessions or monetizable discovery.
 - Weather: use a low-cost/default weather source for current and forecast windows.
-- Driving: continue with native map-provider handoff plus internal drive cockpit. Use route APIs only when deterministic scoring or offline precomputation is needed.
+- Driving: continue with native map-provider handoff plus internal Driving Mode. Use route APIs only when deterministic scoring or offline precomputation is needed.
 - Offline: persist upcoming timeline, drive next stops, parking, airport links, and expense queue before the traveler loses service.
 
 ## Current Implementation Added

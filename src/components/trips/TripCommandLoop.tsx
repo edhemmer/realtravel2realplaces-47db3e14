@@ -123,7 +123,7 @@ export function TripCommandLoop({
               <Button asChild className="rt-primary-action h-10 px-4">
                 <Link to={`/trip/${tripId}/drive`}>
                   <Car className="mr-2 h-4 w-4" />
-                  Drive Mode
+                  Driving Mode
                 </Link>
               </Button>
             )}

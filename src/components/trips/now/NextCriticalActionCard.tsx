@@ -298,7 +298,7 @@ export function NextCriticalActionCard({ tripId, trip, resolvedNextAction, buffe
             onClick={() => navigate(`/trip/${tripId}/drive`)}
           >
             <Car className="w-4 h-4" />
-            Open Drive Mode
+            Open Driving Mode
           </Button>
         </CardContent>
       </Card>

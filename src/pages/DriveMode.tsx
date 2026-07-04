@@ -396,7 +396,7 @@ export default function DriveMode() {
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-muted">
               <Car className="h-7 w-7 text-muted-foreground" />
             </div>
-            <h2 className="text-lg font-semibold">Drive Mode is standing by</h2>
+            <h2 className="text-lg font-semibold">Driving Mode is standing by</h2>
             <p className="max-w-xs text-sm text-muted-foreground">
               Add or schedule a drive segment to open route options, weather, fuel, and offline road context.
             </p>
@@ -421,7 +421,7 @@ export default function DriveMode() {
                         <h1 className="text-2xl font-bold leading-tight">{activeSegment.label}</h1>
                         <Badge variant="outline" className="gap-1 border-primary/25 bg-primary/10 text-[10px] text-primary">
                           <Car className="h-3 w-3" />
-                          Drive ready
+                          Route ready
                         </Badge>
                       </div>
                       {navTarget && (

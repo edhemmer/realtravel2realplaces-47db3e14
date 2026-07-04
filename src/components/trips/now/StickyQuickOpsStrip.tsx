@@ -49,11 +49,11 @@ export function StickyQuickOpsStrip({
         <button
           className="nav-floating mx-auto flex h-12 w-full max-w-sm items-center gap-3 rounded-2xl px-4 transition-colors hover:border-primary/35 active:scale-[0.99]"
           onClick={onDriveMode}
-          aria-label="Open Drive Mode"
+          aria-label="Open Driving Mode"
         >
           <Car className="w-5 h-5 text-primary" />
           <div className="flex-1 text-left min-w-0">
-            <span className="text-sm font-medium text-foreground">Drive Mode</span>
+            <span className="text-sm font-medium text-foreground">Driving Mode</span>
             {driveModeLabel && (
               <span className="text-xs text-muted-foreground ml-1.5 truncate">
                 — {driveModeLabel}

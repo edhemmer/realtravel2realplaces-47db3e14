@@ -83,8 +83,8 @@ export function MoveTab({ tripId, trip }: MoveTabProps) {
     if (isDriveTrip && activeDrive) {
       const p: MoveOption = {
         kind: 'drive',
-        label: 'Drive Mode',
-        reason: driveTarget?.label ? `Your fastest option right now — head to ${driveTarget.label}` : 'Your most direct option for the current leg',
+        label: 'Driving Mode',
+        reason: driveTarget?.label ? `Your route window is ready — head to ${driveTarget.label}` : 'Route options, stops, fuel, and alerts for the current leg',
         isDrive: true,
       };
       const s: MoveOption | null = nextBooking ? {
@@ -106,7 +106,7 @@ export function MoveTab({ tripId, trip }: MoveTabProps) {
       };
       let s: MoveOption | null = null;
       if (isDriveTrip && activeDrive) {
-        s = { kind: 'drive', label: 'Drive Mode', reason: driveTarget?.label ? `Drive to ${driveTarget.label} instead — avoids the booking logistics` : 'Drive yourself if you prefer flexibility over the scheduled option', isDrive: true };
+        s = { kind: 'drive', label: 'Driving Mode', reason: driveTarget?.label ? `Review the route to ${driveTarget.label} instead` : 'Use driving tools when you want route flexibility', isDrive: true };
       } else if (altBooking) {
         s = {
           kind: 'booking',
@@ -121,7 +121,7 @@ export function MoveTab({ tripId, trip }: MoveTabProps) {
     // Drive-only fallback
     if (isDriveTrip && activeDrive) {
       return {
-        primary: { kind: 'drive', label: 'Drive Mode', reason: driveTarget?.label ? `Head to ${driveTarget.label} — your only transport option right now` : 'Your only transport option for this leg', isDrive: true },
+        primary: { kind: 'drive', label: 'Driving Mode', reason: driveTarget?.label ? `Head to ${driveTarget.label} with route support ready` : 'Route options, stops, fuel, and alerts for this leg', isDrive: true },
         secondary: null,
       };
     }

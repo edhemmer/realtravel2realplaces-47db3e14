@@ -121,7 +121,7 @@ const MOBILE_SECTION_LABELS: Partial<Record<TripTab, string>> = {
   report: 'Report',
   notes: 'Safety Notes',
   move: 'Local Map',
-  drive: 'Drive Mode',
+  drive: 'Driving Mode',
   guide: 'Trip Guide',
 };
 
@@ -190,7 +190,7 @@ export default function TripDetail() {
     {
       label: 'Movement mode',
       value: hasFlights ? 'Air' : trip?.transportation_mode === 'drive' ? 'Drive' : 'Mixed',
-      helper: hasFlights ? 'airport-aware' : trip?.transportation_mode === 'drive' ? 'drive cockpit ready' : 'timeline governed',
+      helper: hasFlights ? 'airport-aware' : trip?.transportation_mode === 'drive' ? 'driving tools ready' : 'timeline governed',
       icon: hasFlights ? Plane : Route,
     },
     {
@@ -240,8 +240,8 @@ export default function TripDetail() {
       },
       {
         key: isDriveTrip ? 'drive' as TripTab : 'ops' as TripTab,
-        label: isDriveTrip ? 'Drive' : 'Move',
-        detail: isDriveTrip ? 'Route, stops, fuel, location' : hasFlights ? 'Airports, timing, transit' : 'Routes, transit, and maps',
+        label: isDriveTrip ? 'Driving' : 'Move',
+        detail: isDriveTrip ? 'Route options, stops, fuel, alerts' : hasFlights ? 'Airports, timing, transit' : 'Routes, transit, and maps',
         icon: isDriveTrip ? Car : hasFlights ? Plane : Route,
         href: isDriveTrip ? `/trip/${trip.id}/drive` : undefined,
         action: isDriveTrip ? undefined : () => handleTabChange('ops'),
@@ -566,7 +566,7 @@ export default function TripDetail() {
                       <Button asChild size="sm" className="rt-primary-action h-9 px-4">
                         <Link to={`/trip/${trip.id}/drive`}>
                           <Car className="mr-2 h-4 w-4" />
-                          Drive Mode
+                          Driving Mode
                         </Link>
                       </Button>
                     )}

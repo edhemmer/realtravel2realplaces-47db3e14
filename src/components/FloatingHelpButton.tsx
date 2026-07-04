@@ -66,7 +66,7 @@ const PAGE_HELP: Record<string, PageHelp> = {
 function getTripPageHelp(pathname: string): PageHelp | null {
   if (pathname.match(/\/trip\/[^/]+\/drive/)) {
     return {
-      title: 'Drive Mode',
+      title: 'Driving Mode',
       tips: [
         'See your current route and next destination.',
         'Tap Navigate to open turn-by-turn directions.',
@@ -83,7 +83,7 @@ function getTripPageHelp(pathname: string): PageHelp | null {
         'EXPLORE discovers real places nearby — tap "Add to Timeline" to schedule visits.',
         'Track expenses in EXPENSES. Upload receipt photos for automatic entry.',
         'Access Bookings, Parking, Packing, Companions, and more from the MORE menu.',
-        'For Drive Trips: tap Drive Mode in NOW to access focused navigation.',
+        'For drive trips: tap Driving Mode in Today to open route, stop, and navigation tools.',
       ],
     };
   }

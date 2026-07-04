@@ -56,7 +56,7 @@ RT2RP is a **trip command center** that centralizes everything a traveler needs 
 | **AI Ingestion** | Paste a confirmation email or photograph a receipt. AI extracts flights, lodging, rentals, activities, and expenses automatically. |
 | **Unified Trip View** | One screen for bookings, expenses, parking, packing, companions, notes — per trip. |
 | **Execution-First Design** | A NOW tab shows what matters right now: next flight, checkout time, parking expiration, drive destination. |
-| **Drive Mode** | Focused navigation screen for road trips with route intelligence and one-tap directions. |
+| **Driving Mode** | Focused navigation screen for road trips with route intelligence and one-tap directions. |
 | **EXPLORE** | Discover real places near your destination with photos, ratings, and reviews from the place-data provider. |
 | **Cost Clarity** | Real-time expense tracking with per-person splitting, receipt OCR, and business/personal separation. |
 | **Smart Logistics** | Parking expiration alerts, weather awareness, calendar export, packing lists with climate intelligence. |
@@ -100,7 +100,7 @@ Within that:
 | Tier | Price Target | Trip Limit | Core Value |
 |------|-------------|------------|------------|
 | **Free** | $0 | 2 trips | Full trip management — enough to prove value |
-| **Pro** | $9.99/mo | Unlimited | Timeline events, health checklist, reports, sharing, alerts, Drive Mode |
+| **Pro** | $9.99/mo | Unlimited | Timeline events, health checklist, reports, sharing, alerts, Driving Mode |
 | **Business** | $19.99/mo | Unlimited | All Pro + tour stops, business expense reporting, multi-trip reports |
 
 ### Revenue Projections (Conservative)

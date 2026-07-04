@@ -20,18 +20,18 @@ export default function LandingHero() {
             </h1>
 
             <p className="landing-hero-subtext">
-              RealTravel2RealPlaces turns any trip you booked anywhere into one organized travel home: itinerary, lodging, drive mode, airport maps, local transit, weather, expenses, offline details, and the next clear step.
+              RealTravel2RealPlaces turns any trip you booked anywhere into one organized travel home: itinerary, lodging, Driving Mode, airport maps, local transit, weather, expenses, offline details, and the next clear step.
             </p>
 
             <div className="landing-hero-proof-row" aria-label="Product capabilities">
               <span>Any booking source</span>
-              <span>Drive mode</span>
+              <span>Driving Mode</span>
               <span>Airport + transit windows</span>
             </div>
 
             <div className="flex items-center gap-3 sm:gap-4 mt-6 sm:mt-8">
               <Link to="/auth?tab=signup" className="landing-btn-primary-hero">
-                Start in Clarity
+                Create Your Trip Hub
               </Link>
               <Link to="/auth" className="landing-btn-secondary-hero">
                 Log In

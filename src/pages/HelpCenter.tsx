@@ -202,7 +202,7 @@ const HELP_SECTIONS: HelpSection[] = [
               <li>Choose the <strong>trip type</strong> and tap <strong>Create Trip</strong>.</li>
             </ol>
             <p className="text-xs text-muted-foreground">
-              Street addresses are optional but enable precise turn-by-turn navigation from the Drive Mode screen and timeline Navigate buttons.
+              Street addresses are optional but enable precise turn-by-turn navigation from the Driving Mode screen and timeline Navigate buttons.
             </p>
           </div>
         ),
@@ -429,7 +429,7 @@ const HELP_SECTIONS: HelpSection[] = [
               <li><strong>Next Action</strong> — the single most urgent upcoming event (flight, check-in, drive, stop, scheduled place).</li>
               <li><strong>Leave By</strong> — recommended departure time with a Comfortable / Tight / High Risk indicator.</li>
               <li><strong>Navigate</strong> — one-tap directions to the next destination.</li>
-              <li><strong>Quick Actions</strong> — Add Expense, Drive Mode (when relevant), and other context-aware shortcuts.</li>
+              <li><strong>Quick Actions</strong> — Add Expense, Driving Mode (when relevant), and other context-aware shortcuts.</li>
               <li><strong>Remaining Today</strong> — a compact list of what is still ahead today.</li>
             </ul>
             <p className="text-xs text-muted-foreground mt-2">
@@ -446,7 +446,7 @@ const HELP_SECTIONS: HelpSection[] = [
             <li>Read the <strong>Next Action</strong> card at the top.</li>
             <li>Check <strong>Leave By</strong> for departure timing when it is shown.</li>
             <li>Tap <strong>Navigate</strong> to open turn-by-turn directions in your maps app.</li>
-            <li>Use the <strong>Quick Actions</strong> strip to add an expense or open Drive Mode.</li>
+            <li>Use the <strong>Quick Actions</strong> strip to add an expense or open Driving Mode.</li>
             <li>Scroll down to see the rest of <strong>Remaining Today</strong>.</li>
           </ol>
         ),
@@ -543,7 +543,7 @@ const HELP_SECTIONS: HelpSection[] = [
           <ul className="list-disc list-inside space-y-1.5">
             <li><strong>Drive</strong> options use live traffic with a built-in safety buffer.</li>
             <li><strong>Transit</strong> options use real schedules and score on total door-to-door time.</li>
-            <li><strong>Drive Mode</strong> opens automatically for Drive trips with an active or imminent driving leg.</li>
+            <li><strong>Driving Mode</strong> opens automatically for drive trips with an active or imminent driving leg.</li>
           </ul>
         ),
       },
@@ -554,7 +554,7 @@ const HELP_SECTIONS: HelpSection[] = [
             <li>Open your Trip and tap <strong>Move</strong>.</li>
             <li>Review the recommended option and the alternative.</li>
             <li>Tap <strong>Navigate</strong> on the option you want — directions open in your maps app.</li>
-            <li>For Drive trips, tap <strong>Drive Mode</strong> for a focused, full-screen driving view.</li>
+            <li>For drive trips, tap <strong>Driving Mode</strong> for a focused, full-screen driving view.</li>
           </ol>
         ),
       },
@@ -677,28 +677,28 @@ const HELP_SECTIONS: HelpSection[] = [
    * ================================================================ */
   {
     id: 'drive-trips',
-    title: 'Drive Trips & Drive Mode',
+    title: 'Drive Trips & Driving Mode',
     icon: <Car className="w-5 h-5 text-primary" />,
-    description: 'Road trip features, Drive Mode screen, and navigation.',
+    description: 'Road trip features, Driving Mode screen, and navigation.',
     items: [
       {
         question: 'How do Drive Trips differ from Flight Trips?',
         answer: (
           <ul className="list-disc list-inside space-y-1.5">
             <li>Drive Trips include a <strong>Drive Summary Card</strong> with estimated miles and gas expense tracking.</li>
-            <li>A <strong>Drive Mode</strong> screen provides focused navigation during the drive.</li>
-            <li>The Today tab shows <strong>Drive Mode</strong> as a quick action when a drive segment is active, and Move surfaces it as the recommended option.</li>
+            <li>A <strong>Driving Mode</strong> screen provides focused navigation during the drive.</li>
+            <li>The Today tab shows <strong>Driving Mode</strong> as a quick action when a drive segment is active, and Move surfaces it as the recommended option.</li>
             <li>Street addresses for origin and destination enable door-to-door navigation.</li>
           </ul>
         ),
       },
       {
-        question: 'How do I use Drive Mode?',
+        question: 'How do I use Driving Mode?',
         answer: (
           <ol className="list-decimal list-inside space-y-1.5">
             <li>Open your Drive Trip.</li>
-            <li>Go to <strong>Today</strong> (or <strong>Move</strong>) and tap <strong>Drive Mode</strong>, or tap the <strong>Drive Mode</strong> entry card on the Summary screen.</li>
-            <li>The Drive Mode screen shows your current route segment and next destination.</li>
+            <li>Go to <strong>Today</strong> (or <strong>Move</strong>) and tap <strong>Driving Mode</strong>, or tap the <strong>Driving Mode</strong> entry card on the Summary screen.</li>
+            <li>The Driving Mode screen shows your current route segment and next destination.</li>
             <li>Tap <strong>Navigate</strong> to open turn-by-turn directions in your maps app.</li>
           </ol>
         ),
@@ -1267,7 +1267,7 @@ const HELP_SECTIONS: HelpSection[] = [
           <ul className="list-disc list-inside space-y-1">
             <li><strong>Sign in with Apple</strong> — one-tap account creation and sign-in.</li>
             <li><strong>Native share sheet</strong> — share trips, itineraries, and reports straight to Messages, Mail, or AirDrop.</li>
-            <li><strong>Haptic feedback</strong> on key actions in Today, Move, and Drive Mode.</li>
+            <li><strong>Haptic feedback</strong> on key actions in Today, Move, and Driving Mode.</li>
             <li><strong>Background location</strong> for live arrival, departure, and "time to leave" awareness during a trip (you control this in Settings &gt; Privacy).</li>
             <li><strong>Deep links</strong> — tapping a Real Travel 2 Real Places link from Mail or Messages opens directly in the app.</li>
             <li><strong>Edge-to-edge layout</strong> with proper safe-area handling around the Dynamic Island and home indicator.</li>
@@ -1316,7 +1316,7 @@ const HELP_SECTIONS: HelpSection[] = [
           <div className="space-y-2">
             <p>iOS will ask you to allow specific capabilities the first time they\'re used. You can change any of these later in <strong>Settings &gt; Real Travel 2 Real Places</strong>:</p>
             <ul className="list-disc list-inside space-y-1">
-              <li><strong>Location</strong> — powers Today, Move, Drive Mode timing, and Discover. "While Using" is enough; "Always" enables background trip awareness.</li>
+              <li><strong>Location</strong> — powers Today, Move, Driving Mode timing, and Discover. "While Using" is enough; "Always" enables background trip awareness.</li>
               <li><strong>Notifications</strong> — boarding, departure, and "time to leave" alerts during active trips.</li>
               <li><strong>Camera / Photos</strong> — only used when you attach a receipt or import a booking screenshot.</li>
             </ul>
@@ -1401,7 +1401,7 @@ const HELP_SECTIONS: HelpSection[] = [
                 <li>Trip summary reports with PDF export</li>
                 <li>Trip health checklist</li>
                 <li>Airport intelligence and travel awareness</li>
-                <li>Drive Mode for road trips</li>
+                <li>Driving Mode for road trips</li>
                 <li>Priority support</li>
               </ul>
             </div>
@@ -1477,7 +1477,7 @@ const HELP_SECTIONS: HelpSection[] = [
           'The contextual alerts tab. Surfaces the top heads-up items worth your attention right now, prioritized Timing → Weather → Sequence and external signals.',
       },
       {
-        question: 'Drive Mode',
+        question: 'Driving Mode',
         answer:
           'A focused, full-screen navigation view for Drive Trips. Shows your current route, next destination, and one-tap navigation. Accessible from Today, Move, or the Trip Summary.',
       },
@@ -1572,9 +1572,9 @@ const HELP_SECTIONS: HelpSection[] = [
           'This means the booking or event does not have an address or airport code stored. Edit the booking and add an address to enable navigation.',
       },
       {
-        question: 'Drive Mode is not showing on my Today tab.',
+        question: 'Driving Mode is not showing on my Today tab.',
         answer:
-          'Drive Mode only appears for trips with the Drive transportation mode and when you have an active or upcoming drive segment. Make sure your trip is within its active date window (trip dates including 1 day before departure).',
+          'Driving Mode only appears for trips with the Drive transportation mode and when you have an active or upcoming drive segment. Make sure your trip is within its active date window (trip dates including 1 day before departure).',
       },
       {
         question: 'The app looks different on my phone.',
@@ -1632,7 +1632,7 @@ export default function HelpCenter() {
         <title>Help Center — Real Travel 2 Real Places | User Manual</title>
         <meta
           name="description"
-          content="Complete user manual for Real Travel 2 Real Places. Step-by-step guides for Today, Itinerary, Move, Trip Guide, Explore, Work Stops, Drive Mode, expenses, packing, sharing, and more."
+          content="Complete user manual for Real Travel 2 Real Places. Step-by-step guides for Today, Itinerary, Move, Trip Guide, Explore, Work Stops, Driving Mode, expenses, packing, sharing, and more."
         />
         <link rel="canonical" href="https://realtravel2realplaces.app/help" />
       </Helmet>

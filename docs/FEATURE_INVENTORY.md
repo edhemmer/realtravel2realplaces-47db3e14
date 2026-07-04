@@ -159,17 +159,17 @@ Complete list of implemented features organized by tier and domain.
 - Execution-first "what's happening right now" view
 - Next Critical Action card (flight, check-in, drive, stop — priority-ordered)
 - Today's compact timeline
-- Sticky quick-ops strip (Explore, Add Expense, Drive Mode)
+- Sticky quick-ops strip (Explore, Add Expense, Driving Mode)
 - Leave By / Buffer Intelligence (Comfortable, Tight, High Risk)
 - Active lodging tracking
 - Departure mode detection
-- Drive Mode integration: quick entry pill and Next Action variant for drive segments
+- Driving Mode integration: quick entry pill and Next Action variant for drive segments
 
-### Drive Mode (v4.0.x)
-- Dedicated Drive Mode screen for road trips
+### Driving Mode (v4.0.x)
+- Dedicated Driving Mode screen for road trips
 - Active drive segment detection via driveIntelligence helpers
 - Navigation target resolution with full street addresses
-- NOW tab integration: Drive Mode appears when drive segment is active/imminent
+- NOW tab integration: Driving Mode appears when drive segment is active/imminent
 - Drive Summary Card with estimated miles and gas expense shortcut
 - Drive trip creation with origin/destination street addresses for door-to-door navigation
 

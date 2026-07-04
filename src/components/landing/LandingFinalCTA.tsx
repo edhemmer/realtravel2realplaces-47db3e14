@@ -16,7 +16,7 @@ export default function LandingFinalCTA() {
             to="/auth?tab=signup"
             className="landing-btn-primary-hero"
           >
-            Start in Clarity
+            Create Your Trip Hub
           </Link>
           <Link
             to="/auth"

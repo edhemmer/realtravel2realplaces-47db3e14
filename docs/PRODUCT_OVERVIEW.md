@@ -44,7 +44,7 @@ Real Travel 2 Real Places provides:
 2. **Multi-Mode Trip Creation** — Create trips by air, car, or train. Drive trips support door-to-door navigation with full street addresses.
 3. **Unified Trip View** — All bookings, expenses, parking, packing, companions, and notes in one canonical dashboard.
 4. **Execution-First Design** — The NOW tab shows what matters *right now*: next flight, checkout time, parking expiration, drive destination.
-5. **Drive Mode** — Focused navigation screen for road trips with route intelligence and one-tap directions.
+5. **Driving Mode** — Focused navigation screen for road trips with route intelligence and one-tap directions.
 6. **EXPLORE** — Discover real places near your destination with photos, ratings, and reviews from the place-data provider. Add them directly to your timeline.
 7. **Cost Clarity** — Real-time expense tracking with per-person splitting, category breakdowns, receipt OCR, and business/personal separation.
 8. **Smart Logistics** — Parking expiration alerts, weather awareness, calendar export, and configurable reminders.
@@ -58,7 +58,7 @@ Real Travel 2 Real Places provides:
 |---------|-----------|----------------|
 | **Families** | Coordinating logistics for 4+ people across flights, hotels, activities | Companion management, cost splitting, trip sharing |
 | **Frequent Travelers** | Managing 10+ trips/year across business and personal | Unlimited trips, timeline events, trip reports |
-| **Road Warriors** | Drive trips with multi-stop routes and gas tracking | Drive Mode, street addresses, gas expense shortcuts |
+| **Road Warriors** | Drive trips with multi-stop routes and gas tracking | Driving Mode, street addresses, gas expense shortcuts |
 | **Field Professionals** | Daily multi-stop routes with scheduled appointments | Tour stops, smart auto-ordering, stop-level expenses |
 | **Touring Professionals** | Bands/crews managing 30+ cities with changing schedules | Bulk import, date-grouped stops, parking tracker |
 
@@ -73,7 +73,7 @@ Real Travel 2 Real Places provides:
 | Tier | Price | Limit | Core Value |
 |------|-------|-------|------------|
 | **Free** | $0 | 2 trips | Full trip management, EXPLORE, timeline, packing, calendar export |
-| **Pro** | TBD | Unlimited | Drive Mode, reports, health checklist, sharing, alerts |
+| **Pro** | TBD | Unlimited | Driving Mode, reports, health checklist, sharing, alerts |
 | **Business** | TBD | Unlimited | All Pro + tour stops, business expense reporting |
 
 > The iOS app is a free download, but a SaaS account (Free, Pro, or Business tier) is required to sign in and use it. Tier limits apply across web and iOS.
