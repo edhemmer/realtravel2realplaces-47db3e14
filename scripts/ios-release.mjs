@@ -12,6 +12,11 @@ const iosCapConfigFile = path.join(root, "ios", "App", "App", "capacitor.config.
 const iosSpmPackageFile = path.join(root, "ios", "App", "CapApp-SPM", "Package.swift");
 const iosAppIconDir = path.join(root, "ios", "App", "App", "Assets.xcassets", "AppIcon.appiconset");
 const expectedPublicDir = path.normalize(path.join("ios", "App", "App", "public"));
+const requiredViteEnv = [
+  "VITE_SUPABASE_PROJECT_ID",
+  "VITE_SUPABASE_URL",
+  "VITE_SUPABASE_PUBLISHABLE_KEY",
+];
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -57,6 +62,58 @@ function requireText(source, expected, label) {
 function rejectText(source, unexpected, label) {
   if (source.includes(unexpected)) {
     throw new Error(`iOS launch linkage is unsafe: found ${label}`);
+  }
+}
+
+function parseEnvFile(filePath) {
+  if (!existsSync(filePath)) return {};
+
+  return readFileSync(filePath, "utf8")
+    .split(/\r?\n/)
+    .reduce((values, line) => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) return values;
+
+      const separator = trimmed.indexOf("=");
+      if (separator === -1) return values;
+
+      const key = trimmed.slice(0, separator).trim();
+      let value = trimmed.slice(separator + 1).trim();
+      if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+      ) {
+        value = value.slice(1, -1);
+      }
+      values[key] = value;
+      return values;
+    }, {});
+}
+
+function validateNativeSupabaseEnv() {
+  const envValues = {
+    ...parseEnvFile(path.join(root, ".env")),
+    ...parseEnvFile(path.join(root, ".env.local")),
+    ...process.env,
+  };
+
+  const missing = requiredViteEnv.filter((key) => !envValues[key]);
+  if (missing.length > 0) {
+    throw new Error(
+      [
+        `Missing native iOS Supabase env: ${missing.join(", ")}.`,
+        "Create .env.local on this Mac before building iOS.",
+        "Fast path: cp .env.example .env.local",
+      ].join("\n")
+    );
+  }
+
+  if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(envValues.VITE_SUPABASE_URL)) {
+    throw new Error("VITE_SUPABASE_URL must be a Supabase project URL, for example https://project-ref.supabase.co.");
+  }
+
+  if (!/^sb_publishable_/i.test(envValues.VITE_SUPABASE_PUBLISHABLE_KEY)) {
+    throw new Error("VITE_SUPABASE_PUBLISHABLE_KEY must be the Supabase publishable key, not the service role key.");
   }
 }
 
@@ -189,6 +246,7 @@ function validateIosLaunchLinkage() {
 }
 
 console.log("Building RT2RP as a bundled Capacitor iOS release...");
+validateNativeSupabaseEnv();
 cleanIosPublic();
 run(process.execPath, ["node_modules/vite/bin/vite.js", "build"]);
 run(process.execPath, ["node_modules/@capacitor/cli/bin/capacitor", "sync", "ios"]);
