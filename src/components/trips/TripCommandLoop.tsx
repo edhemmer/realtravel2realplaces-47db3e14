@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   CloudSun,
   Compass,
-  Gauge,
   GripVertical,
   MapPin,
   ParkingCircle,
@@ -17,6 +16,7 @@ import {
   ReceiptText,
   Route,
   ShieldCheck,
+  Sparkles,
   WalletCards,
   Wifi,
   WifiOff,
@@ -146,10 +146,10 @@ function operatingScore({
   const score = Math.round((checks.filter(Boolean).length / checks.length) * 100);
   const label = score >= 85 ? 'Ready' : score >= 65 ? 'Needs review' : 'Setup needed';
   const detail = score >= 85
-    ? 'The trip has enough structure to operate from Today.'
+    ? 'RT2RP has enough trip context to guide the next move.'
     : score >= 65
-      ? 'A few records or context items would make this trip more reliable.'
-      : 'Add the missing trip records so RT2RP can become the source of truth.';
+      ? 'A few more details will make guidance sharper and more automatic.'
+      : 'Add the missing trip records so RT2RP can watch the trip properly.';
   return { score, label, detail };
 }
 
@@ -310,10 +310,10 @@ export function TripCommandLoop({
               {online ? 'Live' : 'Offline ready'}
             </div>
             <h2 className="mt-4 max-w-2xl text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-              You are in command. RT2RP keeps the trip moving.
+              Travel with a smarter trip command center beside you.
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              Records, route context, weather, places, spend, and alerts roll into one operating dashboard before and during travel.
+              RT2RP watches the moving parts, surfaces what matters, and keeps the next decision clear before and during travel.
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               {isDriveTrip && (
@@ -340,11 +340,11 @@ export function TripCommandLoop({
           <div className="relative z-10 rounded-2xl border border-border/50 bg-card/72 p-4 shadow-sm backdrop-blur">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="rt-muted-label">Operating readiness</p>
+                <p className="rt-muted-label">Confidence</p>
                 <p className="mt-1 text-3xl font-bold leading-none text-foreground">{score.score}%</p>
               </div>
               <span className={cn('rt-icon-tile', score.score >= 85 ? 'text-emerald-500' : score.score >= 65 ? 'text-amber-500' : 'text-destructive')}>
-                <Gauge className="h-4 w-4" />
+                <Sparkles className="h-4 w-4" />
               </span>
             </div>
             <p className="mt-2 text-sm font-semibold text-foreground">{score.label}</p>
@@ -367,7 +367,7 @@ export function TripCommandLoop({
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/70 via-amber-400/60 to-transparent" />
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="rt-muted-label">Weather window</p>
+                <p className="rt-muted-label">Weather watch</p>
                 <h3 className="mt-1 text-lg font-bold text-foreground">
                   {currentWeather ? `${conditionLabel(currentWeather.condition)} at ${routeDestinationLabel(trip)}` : 'Forecast not loaded'}
                 </h3>
@@ -377,7 +377,7 @@ export function TripCommandLoop({
             <p className="mt-2 text-sm text-muted-foreground">
               {currentWeather
                 ? `${Math.round(currentWeather.high)}° / ${Math.round(currentWeather.low)}°${currentWeather.unit}${currentWeather.precipChance ? ` · ${currentWeather.precipChance}% precip` : ''}`
-                : 'Open Weather to refresh current conditions and destination forecast.'}
+                : 'Open Weather to refresh the conditions RT2RP should watch for this trip.'}
             </p>
             <div className="mt-4 grid grid-cols-5 gap-1.5">
               {weatherForecast.length > 0 ? weatherForecast.map((day) => (
@@ -407,7 +407,7 @@ export function TripCommandLoop({
             <span className="rt-dashboard-grip" aria-hidden="true"><GripVertical className="h-3.5 w-3.5" /></span>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="rt-muted-label">Flight line</p>
+                <p className="rt-muted-label">Flight command</p>
                 <h3 className="mt-1 text-lg font-bold text-foreground">
                   {nextFlight ? `${nextFlight.departure_airport_code || 'Origin'} to ${nextFlight.arrival_airport_code || 'Destination'}` : 'No flight record'}
                 </h3>
@@ -425,7 +425,7 @@ export function TripCommandLoop({
               {nextFlight ? `${nextFlight.airline || nextFlight.vendor_name || 'Flight'}${nextFlight.confirmation_number ? ` · ${nextFlight.confirmation_number}` : ''}` : 'Add flight details once booked.'}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              {nextFlight ? shortDateTime(nextFlight.start_datetime) : 'Status, airport, confirmation, and traveler details live in Records.'}
+              {nextFlight ? shortDateTime(nextFlight.start_datetime) : 'Status, airport, confirmation, and traveler details will live in Records.'}
             </p>
             <span className="mt-4 inline-flex items-center text-xs font-semibold text-primary">Open flight details <ArrowRight className="ml-1 h-3 w-3" /></span>
           </button>
@@ -448,11 +448,11 @@ export function TripCommandLoop({
             <p className="mt-3 text-sm text-muted-foreground">
               {latestExpense
                 ? `Last item: ${latestExpense.description || latestExpense.category} · ${formatMoney(Number(latestExpense.my_share || latestExpense.amount || 0))}`
-                : 'No receipts captured yet. Add them while details are fresh.'}
+                : 'No receipts captured yet. RT2RP is ready when the first charge happens.'}
             </p>
             <div className="mt-4 rounded-xl border border-border/35 bg-background/45 px-3 py-3">
               <p className="text-xs text-muted-foreground">{expenses.length} receipt{expenses.length === 1 ? '' : 's'} saved</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">{missingExpenses ? 'Capture first receipt' : 'Spend record is active'}</p>
+              <p className="mt-1 text-sm font-semibold text-foreground">{missingExpenses ? 'Ready to capture' : 'Spend record is active'}</p>
             </div>
             <span className="mt-4 inline-flex items-center text-xs font-semibold text-primary">Open Spend <ArrowRight className="ml-1 h-3 w-3" /></span>
           </Link>
@@ -476,7 +476,7 @@ export function TripCommandLoop({
             <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
               <span className="rounded-xl border border-border/35 bg-background/45 px-2 py-2 text-center">Route</span>
               <span className="rounded-xl border border-border/35 bg-background/45 px-2 py-2 text-center">Stops</span>
-              <span className="rounded-xl border border-border/35 bg-background/45 px-2 py-2 text-center">Alerts</span>
+              <span className="rounded-xl border border-border/35 bg-background/45 px-2 py-2 text-center">Watch</span>
             </div>
             <span className="mt-4 inline-flex items-center text-xs font-semibold text-primary">{isDriveTrip ? 'Open Driving Mode' : 'Open Travel'} <ArrowRight className="ml-1 h-3 w-3" /></span>
           </Link>
@@ -491,7 +491,7 @@ export function TripCommandLoop({
             <span className="rt-dashboard-grip" aria-hidden="true"><GripVertical className="h-3.5 w-3.5" /></span>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="rt-muted-label">Timeline</p>
+                <p className="rt-muted-label">Next up</p>
                 <h3 className="mt-1 text-lg font-bold text-foreground">{canonicalState.timelineEvents.length} operating events</h3>
               </div>
               <span className="rt-icon-tile text-primary"><CalendarClock className="h-4 w-4" /></span>
@@ -534,7 +534,7 @@ export function TripCommandLoop({
               <span className="rt-icon-tile text-primary"><Building2 className="h-4 w-4" /></span>
             </div>
             <p className="mt-2 text-sm text-muted-foreground">
-              Food, services, nearby context, lodging addresses, and useful arrival details stay close to the trip.
+              Food, services, nearby context, lodging addresses, and useful arrival details stay close when the trip changes.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               {['Food', 'Services', 'Arrival', 'Maps'].map((label) => (
