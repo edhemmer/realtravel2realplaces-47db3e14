@@ -22,7 +22,7 @@ export function BrandHeader({ variant = 'app', children }: BrandHeaderProps) {
         aria-label="InLight AI — RealTravel 2 RealPlaces"
       >
         <img
-          src="/rt2rp-logo.png"
+          src="/rt2rp-logo-web.png"
           alt=""
           aria-hidden="true"
           className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0 object-contain"

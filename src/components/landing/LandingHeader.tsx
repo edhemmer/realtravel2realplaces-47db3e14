@@ -15,7 +15,7 @@ export default function LandingHeader() {
             aria-label="InLight AI — RealTravel 2 RealPlaces"
           >
             <img
-              src="/rt2rp-logo.png"
+              src="/rt2rp-logo-web.png"
               alt=""
               aria-hidden="true"
               className="h-12 w-12 sm:h-14 sm:w-14 lg:h-16 lg:w-16 flex-shrink-0 object-contain"

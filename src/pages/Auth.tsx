@@ -24,7 +24,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase, supabaseConfig } from '@/integrations/supabase/client';
 import { authCallbackUrl } from '@/lib/auth/authRedirects';
-import logoImg from '@/assets/rt2rp-logo.png';
+import logoImg from '@/assets/rt2rp-logo-web.png';
 
 function AppleIcon({ className }: { className?: string }) {
   return (

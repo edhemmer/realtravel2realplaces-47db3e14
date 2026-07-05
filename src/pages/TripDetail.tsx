@@ -37,29 +37,9 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 // Patch 2.2.2: Import containers for canonical data flow
-import {
-  TripSummaryContainer,
-  TripBookingsContainer,
-  TripTourContainer,
-  TripExpensesContainer,
-} from '@/containers';
-// v2.3.9: Alerts container
-import { TripAlertsContainer } from '@/containers/TripAlertsContainer';
-// v2.3.x: Canonical mobile navigation router
-import { MobileNavigationRouter } from '@/containers/MobileNavigationRouter';
+import { TripSummaryContainer } from '@/containers/TripSummaryContainer';
 // v2.6.12: Desktop canonical shell
 import { DesktopTripShell } from '@/containers/DesktopTripShell';
-import { ParkingTab } from '@/components/trips/tabs/ParkingTab';
-import { PackingTab } from '@/components/trips/tabs/PackingTab';
-import { CompanionsTab } from '@/components/trips/tabs/CompanionsTab';
-import { MembersTab } from '@/components/trips/tabs/MembersTab';
-import { NotesTab } from '@/components/trips/tabs/NotesTab';
-import { ExploreTab } from '@/components/trips/tabs/ExploreTab';
-import { WeatherTab } from '@/components/trips/tabs/WeatherTab';
-import { TripSummaryReportTab } from '@/components/trips/tabs/TripSummaryReportTab';
-import { TravelOpsTab } from '@/components/trips/tabs/TravelOpsTab';
-import { TimelineTab } from '@/components/trips/tabs/TimelineTab';
-import { AirportTab } from '@/components/trips/tabs/AirportTab';
 import { TripHeaderWidgets } from '@/components/trips/TripHeaderWidgets';
 import { DriveModeEntryCard } from '@/components/trips/DriveModeEntryCard';
 import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
@@ -73,8 +53,57 @@ import { MobileAddExpenseCard } from '@/components/trips/MobileAddExpenseCard';
 // Patch 2.2.3: Mobile-first layout components
 import { TripDetailLayout } from '@/components/layout/TripDetailLayout';
 import { type TripTab } from '@/components/layout/MobileBottomNav';
-import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
+import { createContext, lazy, Suspense, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+
+const MobileNavigationRouter = lazy(() =>
+  import('@/containers/MobileNavigationRouter').then((m) => ({ default: m.MobileNavigationRouter }))
+);
+const TripBookingsContainer = lazy(() =>
+  import('@/containers/TripBookingsContainer').then((m) => ({ default: m.TripBookingsContainer }))
+);
+const TripTourContainer = lazy(() =>
+  import('@/containers/TripTourContainer').then((m) => ({ default: m.TripTourContainer }))
+);
+const TripExpensesContainer = lazy(() =>
+  import('@/containers/TripExpensesContainer').then((m) => ({ default: m.TripExpensesContainer }))
+);
+const TripAlertsContainer = lazy(() =>
+  import('@/containers/TripAlertsContainer').then((m) => ({ default: m.TripAlertsContainer }))
+);
+const ParkingTab = lazy(() =>
+  import('@/components/trips/tabs/ParkingTab').then((m) => ({ default: m.ParkingTab }))
+);
+const PackingTab = lazy(() =>
+  import('@/components/trips/tabs/PackingTab').then((m) => ({ default: m.PackingTab }))
+);
+const CompanionsTab = lazy(() =>
+  import('@/components/trips/tabs/CompanionsTab').then((m) => ({ default: m.CompanionsTab }))
+);
+const MembersTab = lazy(() =>
+  import('@/components/trips/tabs/MembersTab').then((m) => ({ default: m.MembersTab }))
+);
+const NotesTab = lazy(() =>
+  import('@/components/trips/tabs/NotesTab').then((m) => ({ default: m.NotesTab }))
+);
+const ExploreTab = lazy(() =>
+  import('@/components/trips/tabs/ExploreTab').then((m) => ({ default: m.ExploreTab }))
+);
+const WeatherTab = lazy(() =>
+  import('@/components/trips/tabs/WeatherTab').then((m) => ({ default: m.WeatherTab }))
+);
+const TripSummaryReportTab = lazy(() =>
+  import('@/components/trips/tabs/TripSummaryReportTab').then((m) => ({ default: m.TripSummaryReportTab }))
+);
+const TravelOpsTab = lazy(() =>
+  import('@/components/trips/tabs/TravelOpsTab').then((m) => ({ default: m.TravelOpsTab }))
+);
+const TimelineTab = lazy(() =>
+  import('@/components/trips/tabs/TimelineTab').then((m) => ({ default: m.TimelineTab }))
+);
+const AirportTab = lazy(() =>
+  import('@/components/trips/tabs/AirportTab').then((m) => ({ default: m.AirportTab }))
+);
 
 // v3.9.5: Context to share capability-scoped permissions with child components
 interface TripPermissionContextType {
@@ -553,6 +582,11 @@ export default function TripDetail() {
     <TripPermissionContext.Provider value={{ isOwner, canEdit, canAddExpenses, canAddLodging, canEditTripMeta, isReadOnlyOverall }}>
       <Layout>
         <ErrorBoundary context="TripDetail">
+        <Suspense fallback={
+          <div className="rt-command-panel p-6 text-sm text-muted-foreground">
+            Loading trip module...
+          </div>
+        }>
         {/* v2.3.x: Mobile uses MobileNavigationRouter, desktop uses existing Tabs */}
         {isMobile ? (
           <>
@@ -753,6 +787,7 @@ export default function TripDetail() {
             </DesktopTripShell>
           </TripDetailLayout>
         )}
+        </Suspense>
         </ErrorBoundary>
       </Layout>
     </TripPermissionContext.Provider>

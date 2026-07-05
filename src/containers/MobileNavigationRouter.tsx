@@ -21,12 +21,10 @@ import { TripDetailLayout } from '@/components/layout/TripDetailLayout';
 import { type TripTab } from '@/components/layout/MobileBottomNav';
 import { MobileSectionHeader } from '@/components/trips/MobileSectionHeader';
 import { TripTimeline } from '@/components/trips/TripTimeline';
-import {
-  TripBookingsContainer,
-  TripTourContainer,
-  TripExpensesContainer,
-  TripAlertsContainer,
-} from '@/containers';
+import { TripBookingsContainer } from '@/containers/TripBookingsContainer';
+import { TripTourContainer } from '@/containers/TripTourContainer';
+import { TripExpensesContainer } from '@/containers/TripExpensesContainer';
+import { TripAlertsContainer } from '@/containers/TripAlertsContainer';
 import { NowCommandCenter } from '@/containers/NowCommandCenter';
 import { MoveTab } from '@/components/trips/tabs/MoveTab';
 import { GuideTab } from '@/components/trips/tabs/GuideTab';

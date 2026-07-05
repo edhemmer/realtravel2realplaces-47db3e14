@@ -18,7 +18,6 @@ import {
   ShieldCheck,
   Sparkles,
   WalletCards,
-  Wifi,
   WifiOff,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -29,7 +28,6 @@ import { getLocalNowString, getNextStopFromCanonicalTimeline } from '@/lib/canon
 import { conditionLabel, type WeatherSnapshot } from '@/lib/canonicalWeather';
 import { isOnline } from '@/lib/networkStatus';
 import type { TravelAlert } from '@/hooks/useTravelAlerts';
-import rt2rpLogo from '@/assets/rt2rp-logo.png';
 
 type DashboardPanelId = 'weather' | 'flight' | 'spend' | 'movement' | 'timeline' | 'places';
 
@@ -47,11 +45,11 @@ interface TripCommandLoopProps {
   onDrillThrough?: (target: { tab: 'bookings' | 'parking' | 'expenses'; recordId?: string } | null) => void;
 }
 
-function tripPhase(trip: Trip): { label: string; tone: 'setup' | 'live' | 'complete'; detail: string } {
+function tripPhase(trip: Trip): { label: string; tone: 'setup' | 'active' | 'complete'; detail: string } {
   const today = getLocalNowString().substring(0, 10);
   if (today < trip.start_date) return { label: 'Get ready', tone: 'setup', detail: 'Review plans before travel starts' };
   if (today > trip.end_date) return { label: 'Wrap up', tone: 'complete', detail: 'Finish receipts and trip notes' };
-  return { label: 'Travel day', tone: 'live', detail: 'Trip is active now' };
+  return { label: 'Travel day', tone: 'active', detail: 'Trip is active now' };
 }
 
 function formatDateTime(date?: string, time?: string): string {
@@ -93,6 +91,51 @@ function dayLabel(dateISO: string): string {
   const date = new Date(year, (month || 1) - 1, day || 1);
   if (Number.isNaN(date.getTime())) return dateISO;
   return new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(date);
+}
+
+function FlightRouteGraphic({ booking }: { booking?: Booking }) {
+  const origin = booking?.departure_airport_code || 'ORD';
+  const destination = booking?.arrival_airport_code || 'DEST';
+
+  return (
+    <div className="relative my-5 overflow-hidden rounded-2xl border border-border/40 bg-background/45 px-4 py-4">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,hsl(var(--primary)/0.14),transparent_34%),radial-gradient(circle_at_86%_40%,hsl(var(--brand-champagne)/0.12),transparent_35%)]" />
+      <div className="relative flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Depart</p>
+          <p className="mt-1 text-xl font-black tracking-tight text-foreground">{origin}</p>
+        </div>
+        <div className="relative h-16 flex-1">
+          <svg className="absolute inset-0 h-full w-full overflow-visible" viewBox="0 0 320 80" preserveAspectRatio="none" aria-hidden="true">
+            <path
+              d="M12 58 C 92 5, 218 5, 308 58"
+              fill="none"
+              stroke="hsl(var(--primary) / 0.72)"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeDasharray="6 8"
+            />
+            <path
+              d="M12 58 C 92 5, 218 5, 308 58"
+              fill="none"
+              stroke="hsl(var(--brand-champagne) / 0.28)"
+              strokeWidth="8"
+              strokeLinecap="round"
+            />
+          </svg>
+          <span className="absolute left-0 top-[3.15rem] h-2.5 w-2.5 rounded-full bg-primary shadow-[0_0_0_5px_hsl(var(--primary)/0.12)]" />
+          <span className="absolute right-0 top-[3.15rem] h-2.5 w-2.5 rounded-full border border-primary bg-background shadow-[0_0_0_5px_hsl(var(--primary)/0.10)]" />
+          <span className="absolute left-1/2 top-2 flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-full border border-primary/30 bg-card/90 text-primary shadow-sm">
+            <Plane className="h-4 w-4 -rotate-3" />
+          </span>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Arrive</p>
+          <p className="mt-1 text-xl font-black tracking-tight text-foreground">{destination}</p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function summarizeWeather(weatherByKey: Record<string, WeatherSnapshot>, trip: Trip): WeatherSnapshot[] {
@@ -198,7 +241,7 @@ export function TripCommandLoop({
       label: 'Right now',
       title: phase.label,
       detail: phase.detail,
-      icon: phase.tone === 'live' ? Route : phase.tone === 'complete' ? CheckCircle2 : CalendarClock,
+      icon: phase.tone === 'active' ? Route : phase.tone === 'complete' ? CheckCircle2 : CalendarClock,
       tone: phase.tone,
     },
     {
@@ -212,7 +255,7 @@ export function TripCommandLoop({
             ? 'Flights, lodging, drive, train, activity, or work stop'
             : 'No timed action is currently due',
       icon: MapPin,
-      tone: nextStop.nextStop || isDriveTrip ? 'live' : 'setup',
+      tone: nextStop.nextStop || isDriveTrip ? 'active' : 'setup',
       action: nextStop.nextStop
         ? () => onDrillThrough?.({ tab: nextStop.nextStop!.sourceType === 'parking' ? 'parking' : 'bookings', recordId: nextStop.nextStop!.sourceId })
         : undefined,
@@ -234,12 +277,18 @@ export function TripCommandLoop({
   ] as const;
 
   const toneClasses = {
-    live: 'border-emerald-500/25 bg-emerald-500/8',
+    active: 'border-primary/25 bg-primary/8',
     setup: 'border-amber-500/25 bg-amber-500/8',
     complete: 'border-border/55 bg-card/68',
   };
 
-  const panelBase = 'group relative overflow-hidden rounded-2xl border border-border/45 bg-card/74 p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-elevation-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45';
+  const panelBase = 'rt-command-tile group relative overflow-hidden rounded-2xl border border-border/45 bg-card/74 p-4 text-left shadow-sm transition-all duration-200 ease-out hover:-translate-y-1 hover:border-primary/35 hover:shadow-elevation-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45';
+  const drillCue = (
+    <span className="mt-4 inline-flex items-center text-xs font-semibold text-primary">
+      Open details
+      <ArrowRight className="ml-1 h-3 w-3 transition-transform duration-200 group-hover:translate-x-0.5" />
+    </span>
+  );
 
   useEffect(() => {
     const saved = window.localStorage.getItem(storageKey);
@@ -296,24 +345,44 @@ export function TripCommandLoop({
   return (
     <section className="rt-command-panel">
       <div className="rt-panel-body space-y-4">
+        {primaryAlert && (
+          <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-3 shadow-sm">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-start gap-3">
+                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-destructive/15 text-destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-destructive">Needs attention</p>
+                  <p className="mt-1 text-sm font-bold text-foreground">{primaryAlert.title}</p>
+                  <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{primaryAlert.message}</p>
+                </div>
+              </div>
+              {primaryAlert.actionUrl && (
+                <Button asChild size="sm" className="rt-primary-action shrink-0">
+                  <Link to={primaryAlert.actionUrl}>{primaryAlert.actionLabel || 'Review'}</Link>
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="rt-command-hero">
-          <img
-            src={rt2rpLogo}
-            alt=""
-            aria-hidden="true"
-            className="rt-command-hero-mark"
-          />
           <div className="relative z-10 min-w-0">
             <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/25 bg-amber-400/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-amber-500 dark:text-brand-champagne">
               Chaos to Clarity
-              <span className={cn('h-1.5 w-1.5 rounded-full', online ? 'bg-emerald-400' : 'bg-amber-400')} />
-              {online ? 'Live' : 'Offline ready'}
+              {!online && (
+                <>
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                  Offline mode
+                </>
+              )}
             </div>
             <h2 className="mt-4 max-w-2xl text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-              Travel with a smarter trip command center beside you.
+              You are in command. RT2RP watches the moving parts.
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              RT2RP watches the moving parts, surfaces what matters, and keeps the next decision clear before and during travel.
+              The dashboard keeps the trip organized around the next decision: alerts, movement, weather, airport context, lodging, spend, and timeline.
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               {isDriveTrip && (
@@ -349,10 +418,12 @@ export function TripCommandLoop({
             </div>
             <p className="mt-2 text-sm font-semibold text-foreground">{score.label}</p>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{score.detail}</p>
-            <div className="mt-3 flex items-center gap-2 rounded-xl border border-border/45 bg-background/55 px-3 py-2 text-xs text-muted-foreground">
-              {online ? <Wifi className="h-3.5 w-3.5 text-emerald-500" /> : <WifiOff className="h-3.5 w-3.5 text-amber-500" />}
-              <span>{online ? 'Live sync available' : 'Offline mode: cached trip context only'}</span>
-            </div>
+            {!online && (
+              <div className="mt-3 flex items-center gap-2 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-muted-foreground">
+                <WifiOff className="h-3.5 w-3.5 text-amber-500" />
+                <span>Showing cached trip context until connection returns.</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -362,12 +433,16 @@ export function TripCommandLoop({
             style={{ order: panelPosition('weather') }}
             {...dragHandlers('weather')}
           >
-          <Link to={`/trip/${tripId}?tab=weather`} className={cn(panelBase, 'block h-full min-h-[178px]')}>
+          <Link
+            to={`/trip/${tripId}?tab=weather`}
+            className={cn(panelBase, 'block h-full min-h-[178px]')}
+            aria-label="Open weather details"
+          >
             <span className="rt-dashboard-grip" aria-hidden="true"><GripVertical className="h-3.5 w-3.5" /></span>
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/70 via-amber-400/60 to-transparent" />
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="rt-muted-label">Weather watch</p>
+                <p className="rt-muted-label">Weather</p>
                 <h3 className="mt-1 text-lg font-bold text-foreground">
                   {currentWeather ? `${conditionLabel(currentWeather.condition)} at ${routeDestinationLabel(trip)}` : 'Forecast not loaded'}
                 </h3>
@@ -390,7 +465,7 @@ export function TripCommandLoop({
                 <div key={index} className="rounded-xl border border-dashed border-border/35 bg-background/35 px-2 py-5" />
               ))}
             </div>
-            <span className="mt-4 inline-flex items-center text-xs font-semibold text-primary">Open Weather <ArrowRight className="ml-1 h-3 w-3" /></span>
+            {drillCue}
           </Link>
           </div>
 
@@ -402,32 +477,27 @@ export function TripCommandLoop({
           <button
             type="button"
             onClick={() => nextFlight ? onDrillThrough?.({ tab: 'bookings', recordId: nextFlight.id }) : onDrillThrough?.({ tab: 'bookings' })}
-            className={cn(panelBase, 'h-full min-h-[300px]')}
+            className={cn(panelBase, 'h-full min-h-[300px] w-full cursor-pointer')}
+            aria-label="Open flight details"
           >
             <span className="rt-dashboard-grip" aria-hidden="true"><GripVertical className="h-3.5 w-3.5" /></span>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="rt-muted-label">Flight command</p>
+                <p className="rt-muted-label">Flight</p>
                 <h3 className="mt-1 text-lg font-bold text-foreground">
                   {nextFlight ? `${nextFlight.departure_airport_code || 'Origin'} to ${nextFlight.arrival_airport_code || 'Destination'}` : 'No flight record'}
                 </h3>
               </div>
               <span className="rt-icon-tile text-primary"><Plane className="h-4 w-4" /></span>
             </div>
-            <div className="my-5 flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-primary" />
-              <span className="h-px flex-1 bg-gradient-to-r from-primary via-primary/45 to-border" />
-              <Plane className="h-5 w-5 -rotate-3 text-primary" />
-              <span className="h-px flex-1 bg-gradient-to-r from-primary/45 to-border" />
-              <span className="h-2.5 w-2.5 rounded-full border border-primary bg-background" />
-            </div>
+            <FlightRouteGraphic booking={nextFlight} />
             <p className="text-sm font-semibold text-foreground">
               {nextFlight ? `${nextFlight.airline || nextFlight.vendor_name || 'Flight'}${nextFlight.confirmation_number ? ` · ${nextFlight.confirmation_number}` : ''}` : 'Add flight details once booked.'}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              {nextFlight ? shortDateTime(nextFlight.start_datetime) : 'Status, airport, confirmation, and traveler details will live in Records.'}
+              {nextFlight ? shortDateTime(nextFlight.start_datetime) : 'Add the flight once booked. RT2RP will attach airport, confirmation, and traveler details here.'}
             </p>
-            <span className="mt-4 inline-flex items-center text-xs font-semibold text-primary">Open flight details <ArrowRight className="ml-1 h-3 w-3" /></span>
+            {drillCue}
           </button>
           </div>
 
@@ -436,7 +506,11 @@ export function TripCommandLoop({
             style={{ order: panelPosition('spend') }}
             {...dragHandlers('spend')}
           >
-          <Link to={`/trip/${tripId}?tab=expenses`} className={cn(panelBase, 'block h-full min-h-[178px]')}>
+          <Link
+            to={`/trip/${tripId}?tab=expenses`}
+            className={cn(panelBase, 'block h-full min-h-[178px]')}
+            aria-label="Open spend details"
+          >
             <span className="rt-dashboard-grip" aria-hidden="true"><GripVertical className="h-3.5 w-3.5" /></span>
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -452,9 +526,9 @@ export function TripCommandLoop({
             </p>
             <div className="mt-4 rounded-xl border border-border/35 bg-background/45 px-3 py-3">
               <p className="text-xs text-muted-foreground">{expenses.length} receipt{expenses.length === 1 ? '' : 's'} saved</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">{missingExpenses ? 'Ready to capture' : 'Spend record is active'}</p>
+              <p className="mt-1 text-sm font-semibold text-foreground">{missingExpenses ? 'Ready to capture' : 'Spend is organized'}</p>
             </div>
-            <span className="mt-4 inline-flex items-center text-xs font-semibold text-primary">Open Spend <ArrowRight className="ml-1 h-3 w-3" /></span>
+            {drillCue}
           </Link>
           </div>
 
@@ -463,11 +537,15 @@ export function TripCommandLoop({
             style={{ order: panelPosition('movement') }}
             {...dragHandlers('movement')}
           >
-          <Link to={isDriveTrip ? `/trip/${tripId}/drive` : `/trip/${tripId}?tab=ops`} className={cn(panelBase, 'block h-full min-h-[200px]')}>
+          <Link
+            to={isDriveTrip ? `/trip/${tripId}/drive` : `/trip/${tripId}?tab=ops`}
+            className={cn(panelBase, 'block h-full min-h-[200px]')}
+            aria-label={isDriveTrip ? 'Open Driving Mode' : 'Open movement details'}
+          >
             <span className="rt-dashboard-grip" aria-hidden="true"><GripVertical className="h-3.5 w-3.5" /></span>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="rt-muted-label">{isDriveTrip ? 'Driving Mode' : 'Travel movement'}</p>
+                <p className="rt-muted-label">{isDriveTrip ? 'Driving' : 'Movement'}</p>
                 <h3 className="mt-1 text-lg font-bold text-foreground">{operatingCards[1].title}</h3>
               </div>
               <span className="rt-icon-tile text-primary">{isDriveTrip ? <Car className="h-4 w-4" /> : <Route className="h-4 w-4" />}</span>
@@ -478,7 +556,7 @@ export function TripCommandLoop({
               <span className="rounded-xl border border-border/35 bg-background/45 px-2 py-2 text-center">Stops</span>
               <span className="rounded-xl border border-border/35 bg-background/45 px-2 py-2 text-center">Watch</span>
             </div>
-            <span className="mt-4 inline-flex items-center text-xs font-semibold text-primary">{isDriveTrip ? 'Open Driving Mode' : 'Open Travel'} <ArrowRight className="ml-1 h-3 w-3" /></span>
+            {drillCue}
           </Link>
           </div>
 
@@ -487,11 +565,15 @@ export function TripCommandLoop({
             style={{ order: panelPosition('timeline') }}
             {...dragHandlers('timeline')}
           >
-          <Link to={`/trip/${tripId}?tab=flow`} className={cn(panelBase, 'block h-full min-h-[200px]')}>
+          <Link
+            to={`/trip/${tripId}?tab=flow`}
+            className={cn(panelBase, 'block h-full min-h-[200px]')}
+            aria-label="Open full timeline"
+          >
             <span className="rt-dashboard-grip" aria-hidden="true"><GripVertical className="h-3.5 w-3.5" /></span>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="rt-muted-label">Next up</p>
+                <p className="rt-muted-label">Timeline</p>
                 <h3 className="mt-1 text-lg font-bold text-foreground">{canonicalState.timelineEvents.length} operating events</h3>
               </div>
               <span className="rt-icon-tile text-primary"><CalendarClock className="h-4 w-4" /></span>
@@ -510,7 +592,7 @@ export function TripCommandLoop({
                 );
               })}
             </div>
-            <span className="mt-4 inline-flex items-center text-xs font-semibold text-primary">Open Timeline <ArrowRight className="ml-1 h-3 w-3" /></span>
+            {drillCue}
           </Link>
           </div>
 
@@ -523,13 +605,14 @@ export function TripCommandLoop({
             type="button"
             onClick={onExplore}
             disabled={!onExplore}
-            className={cn(panelBase, 'h-full min-h-[200px] disabled:pointer-events-none disabled:opacity-70')}
+            className={cn(panelBase, 'h-full min-h-[200px] w-full cursor-pointer disabled:pointer-events-none disabled:opacity-70')}
+            aria-label="Open nearby arrival details"
           >
             <span className="rt-dashboard-grip" aria-hidden="true"><GripVertical className="h-3.5 w-3.5" /></span>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="rt-muted-label">Places + arrival</p>
-                <h3 className="mt-1 text-lg font-bold text-foreground">{stays.length > 0 ? `${stays.length} stay record${stays.length === 1 ? '' : 's'} connected` : 'Local context ready'}</h3>
+                <p className="rt-muted-label">Arrival</p>
+                <h3 className="mt-1 text-lg font-bold text-foreground">{stays.length > 0 ? `${stays.length} stay${stays.length === 1 ? '' : 's'} organized` : 'Local context'}</h3>
               </div>
               <span className="rt-icon-tile text-primary"><Building2 className="h-4 w-4" /></span>
             </div>
@@ -541,14 +624,14 @@ export function TripCommandLoop({
                 <span key={label} className="rounded-full border border-border/40 bg-background/45 px-2.5 py-1 text-xs text-muted-foreground">{label}</span>
               ))}
             </div>
-            <span className="mt-4 inline-flex items-center text-xs font-semibold text-primary">Open Places <ArrowRight className="ml-1 h-3 w-3" /></span>
+            {drillCue}
           </button>
           </div>
         </div>
 
         <div className="grid gap-2 md:grid-cols-3">
           <div className="rt-kpi-panel p-3">
-            <p className="rt-muted-label">Records</p>
+            <p className="rt-muted-label">Reservations</p>
             <p className="mt-1 text-lg font-bold">{bookings.length}</p>
           </div>
           <div className="rt-kpi-panel p-3">

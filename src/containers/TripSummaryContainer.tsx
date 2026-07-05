@@ -27,6 +27,7 @@ import { useCanonicalTripStateFromData } from '@/hooks/useCanonicalTripState';
 import { useDesktopTripShell } from './DesktopTripShell';
 import { TripSectionLoading, TripSectionError } from '@/components/trips/TripSectionStates';
 import { SummaryTab } from '@/components/trips/tabs/SummaryTab';
+import { TripCommandLoop } from '@/components/trips/TripCommandLoop';
 import { AppModuleHeader } from '@/components/trips/AppModuleHeader';
 import { LayoutDashboard } from 'lucide-react';
 import type { DrillThroughTarget } from '@/pages/TripDetail';
@@ -73,6 +74,22 @@ export function TripSummaryContainer({ tripId, trip, onDrillThrough, maxVisibleA
     return (
       <TripSectionError 
         message="We couldn't load your trip summary. Please try again."
+      />
+    );
+  }
+
+  if (shell?.canonicalState) {
+    return (
+      <TripCommandLoop
+        tripId={tripId}
+        trip={trip}
+        canonicalState={shell.canonicalState}
+        bookings={shell.bookings}
+        expenses={shell.expenses}
+        parkingList={shell.parkingList}
+        alerts={shell.alerts}
+        onExplore={onExploreTab}
+        onDrillThrough={onDrillThrough}
       />
     );
   }

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import brandLogo from '@/assets/rt2rp-logo.png';
+import brandLogo from '@/assets/rt2rp-logo-web.png';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { tapHaptic } from '@/lib/native/haptics';
