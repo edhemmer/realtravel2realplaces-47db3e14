@@ -1,11 +1,20 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { Capacitor } from "@capacitor/core";
 import "./index.css";
 import { bootstrapNativePlatform } from "./lib/native/nativeBootstrap";
 
 const rootElement = document.getElementById("root");
 let booting = true;
 let didRender = false;
+
+try {
+  if (Capacitor.isNativePlatform()) {
+    document.documentElement.dataset.nativePlatform = Capacitor.getPlatform();
+  }
+} catch {
+  // Web/PWA path: no native platform marker needed.
+}
 
 function escapeHtml(value: string) {
   return value

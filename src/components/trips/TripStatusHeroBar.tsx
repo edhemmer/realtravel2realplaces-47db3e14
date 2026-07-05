@@ -98,7 +98,7 @@ export function TripStatusHeroBar({ trip }: TripStatusHeroBarProps) {
 
     return (
       <>
-      <div className="sticky top-16 z-40 -mx-4 px-4 sm:-mx-0 sm:px-0">
+      <div className="rt-trip-status-hero sticky top-16 z-40 -mx-4 px-4 sm:-mx-0 sm:px-0">
         <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-card/90 shadow-elevation-raised backdrop-blur-md">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-primary/8 to-transparent" />
           <div className="pointer-events-none absolute -right-10 -top-12 h-28 w-28 rounded-full bg-amber-400/10 blur-2xl" />

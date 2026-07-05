@@ -3,13 +3,10 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { VitePWA } from "vite-plugin-pwa";
 
-// https://vitejs.dev/config/
-// CAP_BUNDLED=1 → building bundled assets for native iOS (TestFlight/App Store).
-// In that mode we MUST:
-//   • use relative asset paths (base: './') so WKWebView can resolve them
-//     under capacitor://localhost without falling back to the dev origin
-//   • SKIP the PWA service worker — registering a SW inside the Capacitor
-//     origin intercepts asset requests and produces a black screen on iOS
+// CAP_BUNDLED=1 builds bundled assets for native iOS (TestFlight/App Store).
+// In that mode we must use relative asset paths so WKWebView can resolve them
+// under capacitor://localhost, and we must skip the PWA service worker because
+// it can intercept Capacitor asset requests and produce a black screen on iOS.
 const isCapBundled = process.env.CAP_BUNDLED === "1";
 
 export default defineConfig(({ mode }) => ({

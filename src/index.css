@@ -729,6 +729,125 @@
     color: hsl(215 22% 78%);
   }
 
+  /* Native iOS app shell: make Capacitor feel like an app, not a narrow web page. */
+  html[data-native-platform='ios'] {
+    font-size: 15px;
+    color-scheme: dark light;
+  }
+
+  html[data-native-platform='ios'],
+  html[data-native-platform='ios'] body {
+    overscroll-behavior-y: none;
+    background: hsl(var(--background));
+  }
+
+  html[data-native-platform='ios'] .native-ios-shell {
+    min-height: 100dvh;
+    background:
+      linear-gradient(180deg, hsl(222 48% 7%), hsl(var(--background)) 46%),
+      radial-gradient(820px 460px at 50% -12%, hsl(var(--brand-signal) / 0.13), transparent 66%);
+  }
+
+  html[data-native-platform='ios'] .rt-app-header {
+    position: sticky;
+    border-bottom-color: hsl(var(--border) / 0.38);
+    box-shadow: 0 10px 30px -26px hsl(0 0% 0% / 0.78);
+  }
+
+  html[data-native-platform='ios'] .rt-app-header-inner {
+    height: 3.5rem;
+    padding-left: max(0.875rem, env(safe-area-inset-left));
+    padding-right: max(0.875rem, env(safe-area-inset-right));
+  }
+
+  html[data-native-platform='ios'] .rt-brand-link {
+    gap: 0.625rem;
+  }
+
+  html[data-native-platform='ios'] .rt-brand-link img {
+    width: 2.125rem;
+    height: 2.125rem;
+  }
+
+  html[data-native-platform='ios'] .rt-brand-company,
+  html[data-native-platform='ios'] .rt-brand-plan {
+    display: none;
+  }
+
+  html[data-native-platform='ios'] .rt-brand-product {
+    max-width: 12.5rem;
+    font-size: 0.9375rem;
+    line-height: 1.05;
+  }
+
+  html[data-native-platform='ios'] .rt-app-header [role='button'],
+  html[data-native-platform='ios'] .rt-app-header button {
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+  }
+
+  html[data-native-platform='ios'] .rt-app-main {
+    max-width: none;
+    padding-top: 0.875rem;
+    padding-left: max(0.875rem, env(safe-area-inset-left));
+    padding-right: max(0.875rem, env(safe-area-inset-right));
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 5.75rem);
+  }
+
+  html[data-native-platform='ios'] .rt-page-stack {
+    gap: 0.75rem;
+  }
+
+  html[data-native-platform='ios'] .rt-trip-status-hero {
+    top: calc(var(--rt2rp-safe-top, env(safe-area-inset-top, 0px)) + 3.5rem);
+    margin-left: -0.875rem;
+    margin-right: -0.875rem;
+    padding-left: 0.875rem;
+    padding-right: 0.875rem;
+  }
+
+  html[data-native-platform='ios'] .rt-trip-status-hero > div {
+    border-radius: 1.125rem;
+    background: hsl(var(--card) / 0.92);
+  }
+
+  html[data-native-platform='ios'] .rt-trip-status-hero h2 {
+    font-size: 1rem;
+  }
+
+  html[data-native-platform='ios'] .rt-command-panel,
+  html[data-native-platform='ios'] .premium-panel,
+  html[data-native-platform='ios'] .rt-ops-lane {
+    border-radius: 1rem;
+  }
+
+  html[data-native-platform='ios'] .nav-floating {
+    margin-left: 0.75rem;
+    margin-right: 0.75rem;
+    border-radius: 1.625rem;
+    background:
+      linear-gradient(180deg, hsl(var(--card) / 0.96), hsl(var(--card) / 0.90));
+    box-shadow:
+      inset 0 1px 0 hsl(210 40% 96% / 0.07),
+      0 18px 46px -22px hsl(0 0% 0% / 0.72);
+  }
+
+  html[data-native-platform='ios'] .nav-floating > div {
+    height: 3.875rem;
+  }
+
+  html[data-native-platform='ios'] .nav-pill-active {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    box-shadow:
+      0 0 0 1px hsl(var(--primary) / 0.28),
+      0 10px 24px -14px hsl(var(--primary) / 0.65);
+  }
+
+  html[data-native-platform='ios'] .bg-ambient-wash {
+    background-image: none;
+  }
+
   /* Hairline gradient divider — primary tint, fades at edges */
   .hairline-primary::before {
     content: '';

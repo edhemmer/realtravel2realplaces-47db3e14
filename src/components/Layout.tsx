@@ -18,6 +18,8 @@ import { BrandHeader } from '@/components/BrandHeader';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { FloatingHelpButton } from '@/components/FloatingHelpButton';
 import { NetworkStatusIndicator } from '@/components/NetworkStatusIndicator';
+import { isNativeIOS } from '@/lib/native/platform';
+import { cn } from '@/lib/utils';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -29,6 +31,7 @@ export function Layout({ children }: LayoutProps) {
   const { canAccessBusinessFeatures } = useAccess();
   const navigate = useNavigate();
   const [supportDialogOpen, setSupportDialogOpen] = useState(false);
+  const onIOS = isNativeIOS();
 
   // v2.1.39: Auto-logout after 2 hours of inactivity
   useIdleLogout();
@@ -39,11 +42,11 @@ export function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="app-canvas">
+    <div className={cn("app-canvas", onIOS && "native-ios-shell")}>
 
       {/* Header */}
-      <header className="sticky top-0 z-50 ops-topbar hairline-primary relative pt-[var(--rt2rp-safe-top,env(safe-area-inset-top,0px))]">
-        <div className="mx-auto flex h-16 w-full max-w-[1480px] items-center justify-between px-4 sm:h-[72px] sm:px-6 lg:px-8">
+      <header className="rt-app-header sticky top-0 z-50 ops-topbar hairline-primary relative pt-[var(--rt2rp-safe-top,env(safe-area-inset-top,0px))]">
+        <div className="rt-app-header-inner mx-auto flex h-16 w-full max-w-[1480px] items-center justify-between px-4 sm:h-[72px] sm:px-6 lg:px-8">
           <BrandHeader variant="app">
 
           {user && (
@@ -115,7 +118,7 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Main Content */}
       <main
-        className="relative mx-auto w-full max-w-[1480px] overflow-x-clip pt-4 sm:pt-6 lg:pt-8"
+        className="rt-app-main relative mx-auto w-full max-w-[1480px] overflow-x-clip pt-4 sm:pt-6 lg:pt-8"
         style={{
           paddingLeft: 'max(1rem, env(safe-area-inset-left))',
           paddingRight: 'max(1rem, env(safe-area-inset-right))',
@@ -130,7 +133,7 @@ export function Layout({ children }: LayoutProps) {
       <ContactSupportDialog open={supportDialogOpen} onOpenChange={setSupportDialogOpen} />
 
       {/* Floating help button */}
-      {user && <FloatingHelpButton />}
+      {user && !onIOS && <FloatingHelpButton />}
     </div>
   );
 }
