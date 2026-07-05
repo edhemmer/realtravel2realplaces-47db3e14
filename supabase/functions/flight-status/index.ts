@@ -1,8 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsJsonHeaders, handleCors } from "../_shared/cors.ts";
 
-const CACHE_HOURS = 6;
-const DAILY_PROVIDER_CALL_LIMIT = 3;
+const CACHE_MINUTES = 10;
+const DAILY_PROVIDER_CALL_LIMIT = 12;
 
 function cleanNoSignal(meta: Record<string, unknown> = {}) {
   return { signal: null, ...meta };
@@ -226,6 +226,6 @@ async function cacheFlightStatus(
     response,
     provider: "aviationstack",
     fetched_at: new Date(now).toISOString(),
-    expires_at: new Date(now + CACHE_HOURS * 60 * 60 * 1000).toISOString(),
+    expires_at: new Date(now + CACHE_MINUTES * 60 * 1000).toISOString(),
   });
 }

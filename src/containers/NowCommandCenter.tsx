@@ -284,7 +284,7 @@ export function NowCommandCenter({
       title: s.title,
       message: s.message,
       actionLabel: s.actionLabel,
-      actionUrl: undefined,
+      actionUrl: s.type === 'WEATHER_ROUTE_RISK' ? `/trip/${tripId}/drive` : undefined,
       relatedId: s.related?.parkingId || s.related?.bookingId,
       timestamp: new Date(),
     }));

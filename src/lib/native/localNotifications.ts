@@ -120,6 +120,40 @@ export async function reconcileLocalReminders(
   }
 }
 
+/**
+ * Fire an immediate high-attention local notification.
+ *
+ * Used for real-time disruption signals while the app is running/resuming.
+ * This intentionally bypasses reconciliation because these are event alerts,
+ * not scheduled reminders.
+ */
+export async function sendImmediateLocalNotification(params: {
+  id: number;
+  title: string;
+  body: string;
+  extra?: Record<string, string | undefined>;
+}): Promise<void> {
+  if (!isNativePlatform()) return;
+  const granted = await ensureLocalNotificationPermission();
+  if (!granted) return;
+
+  try {
+    const { LocalNotifications } = await import('@capacitor/local-notifications');
+    await LocalNotifications.schedule({
+      notifications: [{
+        id: params.id,
+        title: params.title,
+        body: params.body,
+        schedule: { at: new Date(Date.now() + 750), allowWhileIdle: true },
+        sound: 'default',
+        extra: params.extra ?? {},
+      }],
+    });
+  } catch (err) {
+    console.warn('[localNotifications] immediate notification failed:', err);
+  }
+}
+
 /** Cancel every reminder this app has scheduled (e.g. on sign-out). */
 export async function cancelAllLocalReminders(): Promise<void> {
   if (!isNativePlatform()) return;

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
   AlertTriangle, Bell, Cloud, MapPin, ExternalLink, 
-  Car, Clock, Package
+  Car, Clock, Package, Plane
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -25,6 +25,7 @@ const alertIcons: Record<TravelAlert['type'], React.ReactNode> = {
   parking_expiry: <Car className="w-3.5 h-3.5" />,
   severe_weather: <AlertTriangle className="w-3.5 h-3.5" />,
   packing_update: <Package className="w-3.5 h-3.5" />,
+  flight_disruption: <Plane className="w-3.5 h-3.5" />,
 };
 
 const severityStyles: Record<TravelAlert['severity'], string> = {
@@ -60,8 +61,12 @@ export function TravelAlertsCard({ alerts, className, maxVisible, onViewAllAlert
               variant="ghost"
               className="h-6 px-2 text-[10px] gap-1 shrink-0"
               onClick={() => {
-                const url = alert.actionUrl!.startsWith('http') 
-                  ? alert.actionUrl! 
+                if (alert.actionUrl!.startsWith('/')) {
+                  window.location.assign(alert.actionUrl!);
+                  return;
+                }
+                const url = alert.actionUrl!.startsWith('http')
+                  ? alert.actionUrl!
                   : `https://${alert.actionUrl}`;
                 window.open(url, '_blank', 'noopener,noreferrer');
               }}

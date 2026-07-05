@@ -62,6 +62,8 @@ export interface DriveEngineWeatherContext {
   todayCondition?: WeatherCondition;
   /** Precipitation chance for today (0-100), if available */
   todayPrecipChance?: number;
+  /** Optional route label when the caller knows the drive purpose */
+  routeLabel?: string;
 }
 
 export interface DriveEngineInput {
@@ -186,9 +188,9 @@ function resolveParkingExpiringSignals(
 }
 
 /**
- * WEATHER_ROUTE_RISK: Emitted when today's weather at destination indicates
- * driving hazards (rain, snow, ice, sleet). Only fires if weather context
- * is already available (no new fetching).
+ * WEATHER_ROUTE_RISK: Emitted when today's weather indicates route hazards
+ * for a drive segment. Only fires if weather context is already available
+ * (no new fetching).
  */
 function resolveWeatherRouteRiskSignals(
   weatherContext: DriveEngineWeatherContext | undefined,
@@ -197,7 +199,7 @@ function resolveWeatherRouteRiskSignals(
 ): DriveSignal[] {
   if (!weatherContext || !hasDriveSegmentToday) return [];
 
-  const hazardConditions: WeatherCondition[] = ['rain', 'snow', 'ice', 'sleet'];
+  const hazardConditions: WeatherCondition[] = ['rain', 'snow', 'ice', 'sleet', 'wind'];
   const condition = weatherContext.todayCondition;
   const precip = weatherContext.todayPrecipChance;
 
@@ -211,15 +213,24 @@ function resolveWeatherRouteRiskSignals(
   const conditionLabel = condition === 'ice' ? 'icy conditions'
     : condition === 'sleet' ? 'sleet'
     : condition === 'snow' ? 'snow'
+    : condition === 'wind' ? 'high wind'
     : 'rain';
+  const isCritical =
+    condition === 'ice' ||
+    condition === 'snow' ||
+    condition === 'sleet' ||
+    condition === 'wind' ||
+    (condition === 'rain' && precip != null && precip >= 70);
+  const routeLabel = weatherContext.routeLabel?.trim() || 'your route';
 
   return [{
     id: `drive-weather-risk-${todayDate}`,
     type: 'WEATHER_ROUTE_RISK',
-    severity: (condition === 'ice' || condition === 'snow') ? 'critical' : 'warning',
-    title: 'Weather Route Risk',
-    message: `${conditionLabel.charAt(0).toUpperCase() + conditionLabel.slice(1)} expected today${precip != null ? ` (${precip}% chance)` : ''}. Drive with caution.`,
-    actionTarget: { tab: 'alerts' },
+    severity: isCritical ? 'critical' : 'warning',
+    title: isCritical ? 'Weather on Your Route' : 'Route Weather Watch',
+    message: `${conditionLabel.charAt(0).toUpperCase() + conditionLabel.slice(1)} expected on ${routeLabel}${precip != null ? ` (${precip}% chance)` : ''}. Check timing and alternatives before you drive.`,
+    actionLabel: 'Open Driving Mode',
+    actionTarget: { tab: 'now' },
     effectiveDate: todayDate,
     effectiveTime: null,
   }];
@@ -422,14 +433,31 @@ export function computeDriveSignals(input: DriveEngineInput): DriveSignal[] {
   const nowNorm = getLocalNowNorm(input.nowLocal ?? (todayDate + ' 00:00'));
 
   // Detect if there's a drive-relevant segment today (rental, transport, flight)
-  const hasDriveSegmentToday = input.bookings.some(b => {
+  const hasBookingDriveSegmentToday = input.bookings.some(b => {
     const bookingDate = b.start_datetime.substring(0, 10);
     const endDate = b.end_datetime?.substring(0, 10);
     return (
-      (b.booking_type === 'car_rental' || b.booking_type === 'transport') &&
+      (b.booking_type === 'car_rental' || b.booking_type === 'transport' || b.booking_type === 'flight') &&
       (bookingDate <= todayDate && (endDate ? endDate >= todayDate : bookingDate === todayDate))
     );
   });
+  const hasTimelineDriveSegmentToday = input.canonicalTimelineEvents.some((event) => {
+    const eventDate = event.eventLocalDateTime?.substring(0, 10);
+    return eventDate === todayDate && [
+      'flight',
+      'flight_departure',
+      'hotel_checkin',
+      'rental_pickup',
+      'activity_start',
+      'transport_departure',
+      'engagement_start',
+    ].includes(event.eventType);
+  });
+  const tripActiveToday = todayDate >= input.trip.start_date && todayDate <= input.trip.end_date;
+  const hasDriveSegmentToday =
+    hasBookingDriveSegmentToday ||
+    hasTimelineDriveSegmentToday ||
+    (tripActiveToday && input.trip.transportation_mode === 'drive');
 
   // Collect signals from all resolvers
   const signals: DriveSignal[] = [

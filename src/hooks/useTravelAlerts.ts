@@ -1,12 +1,13 @@
 import { useMemo, useEffect, useState } from 'react';
 import { useTripWeather } from './useWeather';
 import { useParkingReminders } from './useParkingReminders';
+import { useFlightDisruptionAlerts } from './useFlightDisruptionAlerts';
 import { Booking, Parking, Trip } from '@/types/database';
 import { parseISO, addMinutes, isBefore, isAfter, differenceInMinutes, format, differenceInDays } from 'date-fns';
 
 export interface TravelAlert {
   id: string;
-  type: 'weather_change' | 'departure_reminder' | 'parking_expiry' | 'severe_weather' | 'packing_update';
+  type: 'weather_change' | 'departure_reminder' | 'parking_expiry' | 'severe_weather' | 'packing_update' | 'flight_disruption';
   severity: 'info' | 'warning' | 'critical';
   title: string;
   message: string;
@@ -72,6 +73,7 @@ export function useTravelAlerts(
 
   const now = new Date();
   const tripId = trip?.id;
+  const { alerts: flightDisruptionAlerts, isLoading: flightDisruptionLoading } = useFlightDisruptionAlerts(trip, bookings);
 
   // Create stable dependency keys for weather data
   const weatherAnalysisKey = JSON.stringify({
@@ -310,6 +312,7 @@ export function useTravelAlerts(
   const allAlerts = useMemo(() => {
     const combined = [
       ...weatherAlerts,
+      ...flightDisruptionAlerts,
       ...departureAlerts,
       ...parkingAlerts,
       ...tripPreparationAlerts,
@@ -318,13 +321,13 @@ export function useTravelAlerts(
     // Sort by severity (critical first, then warning, then info)
     const severityOrder = { critical: 0, warning: 1, info: 2 };
     return combined.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity]);
-  }, [weatherAlerts, departureAlerts, parkingAlerts, tripPreparationAlerts]);
+  }, [weatherAlerts, flightDisruptionAlerts, departureAlerts, parkingAlerts, tripPreparationAlerts]);
 
   return {
     alerts: allAlerts,
     hasAlerts: allAlerts.length > 0,
     criticalCount: allAlerts.filter(a => a.severity === 'critical').length,
     warningCount: allAlerts.filter(a => a.severity === 'warning').length,
-    weatherLoading,
+    weatherLoading: weatherLoading || flightDisruptionLoading,
   };
 }
