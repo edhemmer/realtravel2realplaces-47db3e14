@@ -166,7 +166,7 @@ Compact banner-style alerts (v5.0.0). Replaced full-sized cards with single-line
 
 ### ExecutionZone (`src/components/trips/ExecutionZone.tsx`)
 
-Mobile-only Command Center at the top of the NOW tab.
+Mobile-only Command Center at the top of the Today tab.
 
 **Sections:**
 - A) Primary Action Row: Explore (primary) + Add Expense (success)
@@ -226,7 +226,7 @@ Comprehensive trip report with PDF generation (Pro).
 | Container | Purpose |
 |-----------|---------|
 | `DesktopTripShell` | Canonical desktop trip context provider |
-| `NowCommandCenter` | NOW tab execution engine |
+| `NowCommandCenter` | Today tab execution engine |
 | `TripSummaryContainer` | Summary data wiring |
 | `TripBookingsContainer` | Bookings data wiring |
 | `TripTourContainer` | Tour data wiring |
@@ -279,3 +279,4 @@ Located in `src/components/ui/`. shadcn/ui components.
 - [ARCHITECTURE.md](./ARCHITECTURE.md) - System architecture
 - [DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md) - Coding standards
 - [AI_PROMPTS.md](./AI_PROMPTS.md) - AI system prompts
+

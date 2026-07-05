@@ -55,7 +55,7 @@ RT2RP is a **trip command center** that centralizes everything a traveler needs 
 |-----------|-------------|
 | **AI Ingestion** | Paste a confirmation email or photograph a receipt. AI extracts flights, lodging, rentals, activities, and expenses automatically. |
 | **Unified Trip View** | One screen for bookings, expenses, parking, packing, companions, notes — per trip. |
-| **Execution-First Design** | A NOW tab shows what matters right now: next flight, checkout time, parking expiration, drive destination. |
+| **Execution-First Design** | A Today tab shows what matters right now: next flight, checkout time, parking expiration, drive destination. |
 | **Driving Mode** | Focused navigation screen for road trips with route intelligence and one-tap directions. |
 | **EXPLORE** | Discover real places near your destination with photos, ratings, and reviews from the place-data provider. |
 | **Cost Clarity** | Real-time expense tracking with per-person splitting, receipt OCR, and business/personal separation. |
@@ -287,3 +287,4 @@ Product: [realtravel2realplaces.app](https://realtravel2realplaces.app)
 ---
 
 *This document is confidential and intended for potential investors. Do not distribute without permission from InLight AI, LLC.*
+

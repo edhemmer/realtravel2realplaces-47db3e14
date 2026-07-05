@@ -162,6 +162,13 @@ function resolveButtonStyle(eventType: string, hasLocation: boolean): { classNam
   };
 }
 
+function routeDestinationLabel(trip: import('@/types/database').Trip): string {
+  return trip.destination_address?.trim()
+    || [trip.destination_city, trip.destination_state, trip.destination_country].filter(Boolean).join(', ')
+    || trip.name
+    || 'your destination';
+}
+
 export function NextCriticalActionCard({ tripId, trip, resolvedNextAction, bufferStatus, activeDriveSegment, driveNavTarget }: NextCriticalActionCardProps) {
   const navigate = useNavigate();
   const { state } = useCanonicalTripState(tripId, trip);
@@ -269,27 +276,32 @@ export function NextCriticalActionCard({ tripId, trip, resolvedNextAction, buffe
 
   // ── Legacy fallback: use nextStop from canonical engine ──
 
-  // v4.0.3: If no nextStop and no resolvedNextAction, but active drive segment exists,
-  // show a Drive Mode variant as the primary card.
-  if (!nextStop && activeDriveSegment && driveNavTarget) {
+  // If no nextStop exists yet, a drive trip still has a useful operating surface:
+  // route review, stop planning, weather, hazards, and handoff navigation.
+  if (!nextStop && trip.transportation_mode === 'drive' && lifecycle.phase !== 'COMPLETED') {
+    const destinationLabel = driveNavTarget?.label || routeDestinationLabel(trip);
     return (
       <Card className="border-primary/30 bg-gradient-to-br from-primary/8 to-background shadow-md">
         <CardContent className="py-5 px-4">
           <p className="text-[10px] font-bold uppercase tracking-widest text-primary/70 mb-1">
-            DRIVE MODE
+            DRIVING MODE
           </p>
           <div className="flex items-center gap-1.5 mb-1">
             <Car className="w-3.5 h-3.5 text-primary" />
             <span className="text-xs font-semibold text-primary uppercase tracking-wider">
-              Next Drive
+              Route planning
             </span>
           </div>
           <p className="text-base font-bold text-foreground truncate leading-snug">
-            Drive to {driveNavTarget.label}
+            Review route to {destinationLabel}
           </p>
-          {activeDriveSegment.timeStr && (
+          {activeDriveSegment?.timeStr ? (
             <p className="text-xs font-medium text-muted-foreground mt-0.5">
               at {activeDriveSegment.timeStr}
+            </p>
+          ) : (
+            <p className="mt-0.5 text-xs font-medium text-muted-foreground">
+              Compare route timing, add stops, check weather, and prepare before departure.
             </p>
           )}
           <Button

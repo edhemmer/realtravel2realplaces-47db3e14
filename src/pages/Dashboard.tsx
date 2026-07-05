@@ -428,7 +428,7 @@ export default function Dashboard() {
                     <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
                       <Route className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                       <div>
-                        <div className="text-xs font-semibold">Itinerary</div>
+                        <div className="text-xs font-semibold">Timeline</div>
                         <div className="text-[11px] text-muted-foreground leading-snug">Your trip on one timeline.</div>
                       </div>
                     </div>

@@ -49,12 +49,12 @@ import type { DrillThroughTarget } from '@/pages/TripDetail';
 const MORE_TAB_LABELS: Partial<Record<TripTab, string>> = {
   now: 'Now',
   today: 'Today',
-  flow: 'Itinerary',
+  flow: 'Timeline',
   ops: 'Travel',
-  move: 'Local Map',
+  move: 'Map View',
   drive: 'Driving Mode',
   airport: 'Airport Window',
-  guide: 'Trip Guide',
+  guide: 'Guide',
   weather: 'Weather',
   parking: 'Parking',
   tour: 'Work Stops',
@@ -234,7 +234,7 @@ export function MobileNavigationRouter({
               <div className="flex items-center gap-2 px-3 py-2 mb-2 rounded-lg bg-muted/40 border border-border/30">
                 <WifiOff className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Offline Mode</p>
+            <p className="text-xs font-medium text-muted-foreground">Offline mode</p>
                   <p className="text-[11px] text-muted-foreground/70">Showing upcoming trip timeline from cached data.</p>
                 </div>
               </div>

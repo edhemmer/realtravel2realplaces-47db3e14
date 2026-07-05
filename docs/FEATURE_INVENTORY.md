@@ -121,7 +121,7 @@ Complete list of implemented features organized by tier and domain.
 - 8 category sections: Signature Attractions, Dining, Cafes & Coffee, Bars & Nightlife, Parks & Gardens, Hiking Trails, Museums & Culture, Grocery & Markets
 - "Right Now" diverse mix: top-scored items from each category with time-of-day and weather biasing
 - Per-section pagination: 3 items initially, "See all N" to expand
-- Add-to-Timeline modal: schedule an Explore place with date, time, and duration
+- Add-to-Timeline modal: schedule a Places result with date, time, and duration
 - Pre-arrival Area Picker for browsing destinations before travel
 - Available on all plans
 
@@ -155,15 +155,15 @@ Complete list of implemented features organized by tier and domain.
 - Database trigger-based event sync (trip_engagements → trip_events)
 - Drill-through from Timeline to source records
 
-### NOW Tab / Command Center
+### Today / Command Center
 - Execution-first "what's happening right now" view
 - Next Critical Action card (flight, check-in, drive, stop — priority-ordered)
 - Today's compact timeline
-- Sticky quick-ops strip (Explore, Add Expense, Driving Mode)
+- Sticky quick-ops strip (Places, Spend, Driving Mode)
 - Leave By / Buffer Intelligence (Comfortable, Tight, High Risk)
 - Active lodging tracking
 - Departure mode detection
-- Driving Mode integration: quick entry pill and Next Action variant for drive segments
+- Driving Mode integration: quick entry pill and Next Action variant before and during drive trips
 
 ### Driving Mode (v4.0.x)
 - Dedicated Driving Mode screen for road trips
@@ -173,7 +173,7 @@ Complete list of implemented features organized by tier and domain.
 - Deterministic offline route estimate fallback when live provider data is unavailable
 - Travel tab displays route truth states: Live route, Estimated route, Needs origin, Needs destination, or Route unavailable
 - Navigation target resolution with full street addresses
-- NOW tab integration: Driving Mode appears when drive segment is active/imminent
+- Today tab integration: Driving Mode appears before departure and during drive trips so users can review the route even without a timed drive segment
 - Drive Summary Card with estimated miles and gas expense shortcut
 - Drive trip creation with origin/destination street addresses for door-to-door navigation
 

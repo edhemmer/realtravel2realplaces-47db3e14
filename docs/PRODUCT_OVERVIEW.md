@@ -43,7 +43,7 @@ Real Travel 2 Real Places provides:
 1. **AI-Powered Ingestion** — Paste or photograph confirmations. AI extracts flights, lodging, car rentals, transport, and activities automatically.
 2. **Multi-Mode Trip Creation** — Create trips by air, car, or train. Drive trips support door-to-door navigation with full street addresses.
 3. **Unified Trip View** — All bookings, expenses, parking, packing, companions, and notes in one canonical dashboard.
-4. **Execution-First Design** — The NOW tab shows what matters *right now*: next flight, checkout time, parking expiration, drive destination.
+4. **Execution-First Design** — The Today tab shows what matters *right now*: next flight, checkout time, parking expiration, drive destination.
 5. **Driving Mode** — Focused navigation screen for road trips with route intelligence and one-tap directions.
 6. **EXPLORE** — Discover real places near your destination with photos, ratings, and reviews from the place-data provider. Add them directly to your timeline.
 7. **Cost Clarity** — Real-time expense tracking with per-person splitting, category breakdowns, receipt OCR, and business/personal separation.
@@ -146,3 +146,4 @@ Real Travel 2 Real Places provides:
 - **Published URL**: [realtravel2realplaces.app](https://realtravel2realplaces.app)
 - **Architecture**: [docs/ARCHITECTURE.md](./ARCHITECTURE.md)
 - **Feature Inventory**: [docs/FEATURE_INVENTORY.md](./FEATURE_INVENTORY.md)
+

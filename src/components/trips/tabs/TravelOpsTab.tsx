@@ -350,7 +350,7 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
     <div className="rt-page-stack pb-20">
       <AppModuleHeader
         icon={LayoutDashboard}
-        eyebrow="Move"
+        eyebrow="Travel OS"
         title="Travel command"
         description="Use this before and during travel to see movement, route confidence, airport windows, local transit, weather, spend, and the next operational step."
         status={online ? 'Live windows' : 'Offline cache'}

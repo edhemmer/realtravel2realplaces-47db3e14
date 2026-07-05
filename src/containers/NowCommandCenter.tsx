@@ -123,12 +123,19 @@ export function NowCommandCenter({
     [canonicalState, activeDriveSegment],
   );
 
-  // v5.7.0: Drive Mode is useful before departure for route and stop planning.
+  // Drive Mode is useful before departure for route and stop planning.
   const showDriveMode = useMemo(() => {
-    if (!activeDriveSegment) return false;
     const today = getLocalNowString().substring(0, 10);
-    return today <= trip.end_date;
-  }, [activeDriveSegment, trip]);
+    return trip.transportation_mode === 'drive' && today <= trip.end_date;
+  }, [trip]);
+
+  const driveModeLabel = useMemo(() => {
+    if (driveNavTarget?.label) return driveNavTarget.label;
+    return trip.destination_address?.trim()
+      || [trip.destination_city, trip.destination_state, trip.destination_country].filter(Boolean).join(', ')
+      || trip.name
+      || 'Review route';
+  }, [driveNavTarget?.label, trip]);
 
   const handleDriveMode = useCallback(() => {
     navigate(`/trip/${tripId}/drive`);
@@ -310,9 +317,11 @@ export function NowCommandCenter({
           onAddExpense={handleAddExpense}
           onExplore={onExplore}
           onDriveMode={showDriveMode ? handleDriveMode : null}
-          driveModeLabel={driveNavTarget?.label || null}
+          driveModeLabel={showDriveMode ? driveModeLabel : null}
         />
       </div>
+
+      <TripBriefSection brief={tripBrief} onAction={handleBriefAction} />
 
       {/* v3.10.9: Departure Mode label bar */}
       {todayExecution.isExecutionMode && (

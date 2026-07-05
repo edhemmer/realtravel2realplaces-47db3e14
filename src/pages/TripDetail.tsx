@@ -109,8 +109,8 @@ export type DrillThroughTarget = {
 const MOBILE_SECTION_LABELS: Partial<Record<TripTab, string>> = {
   now: 'Today',
   today: 'Today',
-  plan: 'Itinerary',
-  flow: 'Itinerary',
+  plan: 'Timeline',
+  flow: 'Timeline',
   ops: 'Travel',
   airport: 'Airport',
   explore: 'Places',
@@ -125,9 +125,9 @@ const MOBILE_SECTION_LABELS: Partial<Record<TripTab, string>> = {
   alerts: 'Alerts',
   report: 'Report',
   notes: 'Safety Notes',
-  move: 'Local Map',
+  move: 'Map View',
   drive: 'Driving Mode',
-  guide: 'Trip Guide',
+  guide: 'Guide',
 };
 
 export default function TripDetail() {

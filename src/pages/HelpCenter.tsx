@@ -245,7 +245,7 @@ const HELP_SECTIONS: HelpSection[] = [
             <li><strong>Parking</strong> — log parking location, level, space, and expiration time.</li>
             <li><strong>Packing</strong> — AI-generated packing lists with climate analysis and color/style tips.</li>
             <li><strong>Notes</strong> — general notes, emergency numbers, and important links.</li>
-            <li><strong>Explore</strong> — discover real places nearby and add them to your timeline.</li>
+            <li><strong>Places</strong> — discover real places nearby and add them to your timeline.</li>
             <li><strong>Stops</strong> — scheduled work locations and daily movement tracking. <PlanBadge tier="business" /></li>
           </ul>
         ),
@@ -367,7 +367,7 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         question: 'What is the Trip Timeline?',
         answer:
-          'The Timeline shows all your Trip events — flights, lodging check-ins and check-outs, rental pickups and returns, parking, transport, activities, and scheduled Explore places — in chronological order. Events are grouped by date. Today\'s events are highlighted with active events first, then upcoming, then completed.',
+          'The Timeline shows all your Trip events — flights, lodging check-ins and check-outs, rental pickups and returns, parking, transport, activities, and scheduled places — in chronological order. Events are grouped by date. Today\'s events are highlighted with active events first, then upcoming, then completed.',
       },
       {
         question: 'How are events added to the Timeline?',
@@ -377,7 +377,7 @@ const HELP_SECTIONS: HelpSection[] = [
             <ul className="list-disc list-inside space-y-1">
               <li><strong>Bookings</strong> — each booking generates start and (where applicable) end events.</li>
               <li><strong>Parking</strong> — parking entries appear with start and expiration events.</li>
-              <li><strong>Discover → Add to Timeline</strong> — places you schedule from the Discover surface appear as engagement events.</li>
+              <li><strong>Places → Add to Timeline</strong> — places you schedule from the Places surface appear as engagement events.</li>
               <li><strong>Tours</strong> — manual stops you add in the Tours workspace.</li>
             </ul>
             <p className="text-xs text-muted-foreground mt-2">
@@ -397,9 +397,9 @@ const HELP_SECTIONS: HelpSection[] = [
         ),
       },
       {
-        question: 'What does "Explore nearby" do on the Timeline?',
+        question: 'What does "Places nearby" do on the Timeline?',
         answer:
-          'Tapping "Explore nearby" on a timeline event opens the Discover surface and centers it on that event\'s location, so you can find restaurants, cafes, or attractions near your next stop.',
+          'Tapping "Places nearby" on a timeline event opens the Places surface and centers it on that event\'s location, so you can find restaurants, cafes, or attractions near your next stop.',
       },
       {
         question: 'How do I tap through from the Timeline to a booking?',
@@ -429,7 +429,7 @@ const HELP_SECTIONS: HelpSection[] = [
               <li><strong>Next Action</strong> — the single most urgent upcoming event (flight, check-in, drive, stop, scheduled place).</li>
               <li><strong>Leave By</strong> — recommended departure time with a Comfortable / Tight / High Risk indicator.</li>
               <li><strong>Navigate</strong> — one-tap directions to the next destination.</li>
-              <li><strong>Quick Actions</strong> — Add Expense, Driving Mode (when relevant), and other context-aware shortcuts.</li>
+              <li><strong>Quick Actions</strong> — Spend, Driving Mode when relevant, and other context-aware shortcuts.</li>
               <li><strong>Remaining Today</strong> — a compact list of what is still ahead today.</li>
             </ul>
             <p className="text-xs text-muted-foreground mt-2">
@@ -454,7 +454,7 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         question: 'When is Today available?',
         answer:
-          'Today is available from 14 days before departure through the end of the trip. Before that window, your Trip opens to Itinerary (the full timeline) by default.',
+          'Today is available from 14 days before departure through the end of the trip. Before that window, your Trip opens to Timeline (the full timeline) by default.',
       },
       {
         question: 'What does "Leave By" mean?',
@@ -469,17 +469,17 @@ const HELP_SECTIONS: HelpSection[] = [
    * ================================================================ */
   {
     id: 'flow-tab',
-    title: 'Itinerary - Full Timeline',
+    title: 'Timeline - Full Timeline',
     icon: <Calendar className="w-5 h-5 text-primary" />,
     description: 'The chronological view of every event in your trip.',
     items: [
       {
-        question: 'What is the Itinerary tab?',
+        question: 'What is the Timeline tab?',
         answer:
-          'Itinerary is the full chronological timeline of your trip — flights, lodging check-ins and check-outs, rental pickups and returns, parking, transport, tour stops, and scheduled places. It is the answer to "what is the whole picture?" while Today answers "what now?".',
+          'Timeline is the full chronological timeline of your trip — flights, lodging check-ins and check-outs, rental pickups and returns, parking, transport, tour stops, and scheduled places. It is the answer to "what is the whole picture?" while Today answers "what now?".',
       },
       {
-        question: 'How is Itinerary sorted?',
+        question: 'How is Timeline sorted?',
         answer: (
           <ul className="list-disc list-inside space-y-1.5">
             <li><strong>Today</strong> events are pinned to the top.</li>
@@ -489,10 +489,10 @@ const HELP_SECTIONS: HelpSection[] = [
         ),
       },
       {
-        question: 'How do events get on Itinerary?',
+        question: 'How do events get on Timeline?',
         answer: (
           <div className="space-y-2">
-            <p>Itinerary is generated automatically from your data — you do not create timeline events directly. Sources include:</p>
+            <p>Timeline is generated automatically from your data — you do not create timeline events directly. Sources include:</p>
             <ul className="list-disc list-inside space-y-1">
               <li><strong>Bookings</strong> — flights, lodging, car rentals, transport, activities.</li>
               <li><strong>Parking</strong> — start and expiration events.</li>
@@ -503,12 +503,12 @@ const HELP_SECTIONS: HelpSection[] = [
         ),
       },
       {
-        question: 'How do I navigate or explore from Itinerary?',
+        question: 'How do I navigate or explore from Timeline?',
         answer: (
           <ol className="list-decimal list-inside space-y-1.5">
-            <li>Find the event in Itinerary.</li>
+            <li>Find the event in Timeline.</li>
             <li>Tap <strong>Navigate</strong> to open directions in your maps app.</li>
-            <li>Tap <strong>Explore nearby</strong> to discover places around that event's location.</li>
+            <li>Tap <strong>Places nearby</strong> to discover places around that event's location.</li>
           </ol>
         ),
       },
@@ -525,7 +525,7 @@ const HELP_SECTIONS: HelpSection[] = [
     description: 'Directive transport guidance for the next leg of your trip.',
     items: [
       {
-        question: 'What is the Move tab?',
+        question: 'What is the Travel tab?',
         answer: (
           <div className="space-y-2">
             <p>
@@ -571,12 +571,12 @@ const HELP_SECTIONS: HelpSection[] = [
     description: 'The short list of things worth your attention right now.',
     items: [
       {
-        question: 'What is the Trip Guide?',
+        question: 'What is the Guide?',
         answer:
-          'Trip Guide surfaces the top contextual alerts for your trip — timing risks, weather changes, sequence problems between bookings, and notable external signals. It is capped at the most important items so you can scan it in seconds.',
+          'Guide surfaces the top contextual alerts for your trip — timing risks, weather changes, sequence problems between bookings, and notable external signals. It is capped at the most important items so you can scan it in seconds.',
       },
       {
-        question: 'How are Trip Guide alerts prioritized?',
+        question: 'How are Guide alerts prioritized?',
         answer: (
           <ul className="list-disc list-inside space-y-1.5">
             <li><strong>Timing</strong> first — anything that affects whether you make a flight, check-in, or scheduled stop.</li>
@@ -586,7 +586,7 @@ const HELP_SECTIONS: HelpSection[] = [
         ),
       },
       {
-        question: 'What kinds of alerts can Trip Guide show?',
+        question: 'What kinds of alerts can Guide show?',
         answer: (
           <ul className="list-disc list-inside space-y-1.5">
             <li>Leave-by warnings when traffic or transit tightens.</li>
@@ -612,7 +612,7 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         question: 'What is the Tours workspace?',
         answer:
-          'Tours is where you plan stops that do not come from a booking — sightseeing routes, multi-stop work days, a day of errands. Each stop you add becomes an event on your Itinerary timeline automatically.',
+          'Tours is where you plan stops that do not come from a booking — sightseeing routes, multi-stop work days, a day of errands. Each stop you add becomes an event on your Timeline automatically.',
       },
       {
         question: 'How do I add a stop?',
@@ -622,7 +622,7 @@ const HELP_SECTIONS: HelpSection[] = [
             <li>Tap <strong>Add Stop</strong>.</li>
             <li>Enter the place name and address, and pick a date.</li>
             <li>Set a time, or leave it as <strong>TBD</strong> and we will slot it in a sensible order.</li>
-            <li>Tap <strong>Save</strong>. The stop appears in Tours and on Itinerary.</li>
+            <li>Tap <strong>Save</strong>. The stop appears in Tours and on Timeline.</li>
           </ol>
         ),
       },
@@ -634,7 +634,7 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         question: 'Are Tours the same as Bookings?',
         answer:
-          'No. Bookings are monetary records (flights, lodging, rentals, paid activities) — they carry costs. Tours are manual stops with no money attached. Both feed Itinerary, but they live in separate workspaces so financial reporting stays clean.',
+          'No. Bookings are monetary records (flights, lodging, rentals, paid activities) — they carry costs. Tours are manual stops with no money attached. Both feed Timeline, but they live in separate workspaces so financial reporting stays clean.',
       },
     ],
   },
@@ -736,7 +736,7 @@ const HELP_SECTIONS: HelpSection[] = [
         answer: (
           <div className="space-y-2">
             <p>
-              Discover surfaces real places near your Trip destination — restaurants, attractions, cafes, parks, museums, and more. Each result includes a real photo, star rating, and review count, and you can add any place straight to your Itinerary timeline.
+              Places surfaces real restaurants, attractions, cafes, parks, museums, and services near your trip destination. Each result includes a real photo, star rating, and review count, and you can add any place straight to your Timeline.
             </p>
             <p className="font-medium text-foreground mt-3">Categories:</p>
             <ul className="list-disc list-inside space-y-1">
@@ -756,7 +756,7 @@ const HELP_SECTIONS: HelpSection[] = [
         question: 'How do I use Discover?',
         answer: (
           <ol className="list-decimal list-inside space-y-1.5">
-            <li>Open your Trip and open the Discover surface from the navigation (or tap <strong>Explore nearby</strong> on an Itinerary event).</li>
+            <li>Open your Trip and open the Places surface from the navigation (or tap <strong>Places nearby</strong> on a Timeline event).</li>
             <li>The <strong>Right Now</strong> section shows a curated mix of top-rated places, adjusted for time of day and weather.</li>
             <li>Below that, each category shows 3 places. Tap <strong>See all</strong> to expand.</li>
             <li>Each place card shows a real photo, star rating, review count, and category.</li>
@@ -771,7 +771,7 @@ const HELP_SECTIONS: HelpSection[] = [
             <li>Tap <strong>Add to Timeline</strong> on a place card.</li>
             <li>Pick a <strong>date</strong> (within your trip dates) and a <strong>time</strong>.</li>
             <li>Choose a <strong>duration</strong> (30 min, 1 hour, 2 hours, 3 hours, or None).</li>
-            <li>Tap <strong>Add to Timeline</strong>. The place appears on Itinerary at the scheduled date and time.</li>
+            <li>Tap <strong>Add to Timeline</strong>. The place appears on Timeline at the scheduled date and time.</li>
           </ol>
         ),
       },
@@ -817,7 +817,7 @@ const HELP_SECTIONS: HelpSection[] = [
         answer: (
           <ol className="list-decimal list-inside space-y-1.5">
             <li>Open your Trip → <strong>EXPENSES</strong>.</li>
-            <li>Tap <strong>Add Expense</strong>.</li>
+            <li>Tap <strong>Spend</strong> or open the Spend tab, then add an expense.</li>
             <li>Enter the <strong>amount</strong>, <strong>date</strong>, and <strong>category</strong>.</li>
             <li>Optionally add a sub-category, description, notes, or upload a receipt photo.</li>
             <li>Tap <strong>Save</strong>.</li>
@@ -829,7 +829,7 @@ const HELP_SECTIONS: HelpSection[] = [
         answer: (
           <ol className="list-decimal list-inside space-y-1.5">
             <li>Open your Trip → <strong>EXPENSES</strong>.</li>
-            <li>Tap <strong>Add Expense</strong> → <strong>Upload Receipt</strong>.</li>
+            <li>Open <strong>Spend</strong>, then choose the receipt upload option.</li>
             <li>Take a photo or select an image of your receipt.</li>
             <li>The AI reads the receipt and fills in the amount, vendor, date, and category.</li>
             <li>Review the extracted details, adjust if needed, and tap <strong>Save</strong>.</li>
@@ -1292,7 +1292,7 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         question: 'How do I quickly add an expense on mobile?',
         answer:
-          'On mobile, tap the "Add Expense" quick action on the Today tab, or open Expenses from More and tap Add Expense.',
+          'On mobile, tap the Spend quick action on the Today tab, or open Spend from More and add an expense.',
       },
       {
         question: 'Does the app work offline?',
@@ -1454,7 +1454,7 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         question: 'Timeline',
         answer:
-          'A chronological view of every event in your Trip — flights, lodging, rentals, parking, transport, activities, and scheduled Explore places — organized by date and time.',
+          'A chronological view of every event in your Trip — flights, lodging, rentals, parking, transport, activities, and scheduled places — organized by date and time.',
       },
       {
         question: 'Today',
@@ -1462,7 +1462,7 @@ const HELP_SECTIONS: HelpSection[] = [
           'The command-center tab for an active trip. Shows your next action, leave-by timing, navigation, and quick actions. Available from 14 days before departure through the end of the trip.',
       },
       {
-        question: 'Itinerary',
+        question: 'Timeline',
         answer:
           'The full chronological timeline of your trip. Today events pinned to the top, future events in ascending order, past events in descending order at the bottom.',
       },
@@ -1472,7 +1472,7 @@ const HELP_SECTIONS: HelpSection[] = [
           'The movement command tab. Shows route, airport, transit, driving, and provider truth states so you know what is live, cached, estimated, or missing.',
       },
       {
-        question: 'Trip Guide',
+        question: 'Guide',
         answer:
           'The contextual alerts tab. Surfaces the top heads-up items worth your attention right now, prioritized Timing → Weather → Sequence and external signals.',
       },
@@ -1489,7 +1489,7 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         question: 'Tours',
         answer:
-          'The workspace for manual stops that are not tied to a booking. Stops can be timed or marked TBD (sorted by nearest-neighbor geography). Tour stops flow into Itinerary automatically.',
+          'The workspace for manual stops that are not tied to a booking. Stops can be timed or marked TBD (sorted by nearest-neighbor geography). Tour stops flow into Timeline automatically.',
       },
       {
         question: 'Ask AI',
@@ -1522,7 +1522,7 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         question: 'Engagement',
         answer:
-          'An activity scheduled from Discover or added as a Tour stop. Engagements appear on Itinerary alongside bookings and parking.',
+          'An activity scheduled from Discover or added as a Tour stop. Engagements appear on Timeline alongside bookings and parking.',
       },
       {
         question: 'Expense',
@@ -1552,9 +1552,9 @@ const HELP_SECTIONS: HelpSection[] = [
           'Not all confirmation formats are supported. If automatic parsing misses details, tap Edit on the booking to correct fields manually. You can also add bookings entirely by hand.',
       },
       {
-        question: 'I added a place from Discover but it does not appear on Itinerary.',
+        question: 'I added a place from Discover but it does not appear on Timeline.',
         answer:
-          'Places added from Discover appear as engagement events on Itinerary. Make sure the date you selected is within your trip date range. Refresh the page if the event does not appear immediately.',
+          'Places added from Discover appear as engagement events on Timeline. Make sure the date you selected is within your trip date range. Refresh the page if the event does not appear immediately.',
       },
       {
         question: 'My invitation link is not working.',
@@ -1704,3 +1704,4 @@ export default function HelpCenter() {
     </>
   );
 }
+

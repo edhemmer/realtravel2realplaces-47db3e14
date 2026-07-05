@@ -1,5 +1,5 @@
 /**
- * v4.10.0: Explore tab with Pre-Explore area picker.
+ * Places tab with pre-arrival area picker.
  * v4.0.4: Offline essentials fallback when device is offline.
  */
 
@@ -253,9 +253,9 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
               <MapPinned className="w-8 h-8 text-muted-foreground" />
             </div>
           </div>
-          <h3 className="text-lg font-semibold mb-2">Add a destination to use Explore</h3>
+          <h3 className="text-lg font-semibold mb-2">Add a destination to use Places</h3>
           <p className="text-muted-foreground max-w-md mx-auto">
-            Set your trip destination to discover attractions and things to do nearby.
+            Set your trip destination to discover nearby food, services, attractions, and arrival context.
           </p>
         </CardContent>
       </Card>
@@ -297,7 +297,7 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
         <AppModuleHeader
           icon={Compass}
           eyebrow="Local operating window"
-          title="Explore"
+          title="Places"
           description="Find useful places near the right trip context: current location, airport, lodging, or destination area."
           status={exploreStatus}
           statusTone={exploreStatusTone}
@@ -317,7 +317,7 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
         <div className="flex items-center gap-1.5">
           <OriginIcon className="w-3.5 h-3.5 text-primary shrink-0" />
           <span className="text-sm text-muted-foreground truncate">
-            {selectedArea ? `Exploring near ${selectedArea.label}` : getExploreOriginSubtitle(origin.source)}
+            {selectedArea ? `Showing places near ${selectedArea.label}` : getExploreOriginSubtitle(origin.source)}
           </span>
         </div>
 
@@ -341,7 +341,7 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
             onClick={() => { setSelectedArea(null); clearExploreContext(tripId); setRefreshCounter(c => c + 1); }}
             className="text-xs text-primary hover:underline"
           >
-            ← Back to trip-level explore
+            Back to trip-level Places
           </button>
         )}
       </div>
@@ -359,7 +359,7 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
         <Input
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          placeholder="Search attractions, restaurants, trails..."
+          placeholder="Search restaurants, services, attractions, trails..."
           className="pl-9 pr-9 h-10"
         />
         {searchInput && (
@@ -442,9 +442,9 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
                   <WifiOff className="w-8 h-8 text-muted-foreground" />
                 </div>
               </div>
-              <h3 className="text-base font-medium mb-2">Explore unavailable offline</h3>
+              <h3 className="text-base font-medium mb-2">Places unavailable offline</h3>
               <p className="text-sm text-muted-foreground">
-                No cached places available. Connect to browse nearby attractions.
+                No cached places available. Connect to browse nearby food, services, and attractions.
               </p>
             </CardContent>
           </Card>
@@ -458,7 +458,7 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           <span className="ml-2 text-muted-foreground">
-            {debouncedQuery ? `Searching for "${debouncedQuery}"…` : 'Finding attractions…'}
+            {debouncedQuery ? `Searching for "${debouncedQuery}"...` : 'Finding places...'}
           </span>
         </div>
       ) : error ? (
@@ -470,7 +470,7 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
               </div>
             </div>
             <h3 className="text-base font-medium mb-2">
-              We couldn&apos;t load nearby attractions right now
+              We couldn&apos;t load nearby places right now
             </h3>
             <p className="text-sm text-muted-foreground mb-4">
               Try again or check back later.
@@ -493,7 +493,7 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
               {debouncedQuery ? `No results for "${debouncedQuery}"` : 'No places found in this area'}
             </h3>
             <p className="text-sm text-muted-foreground mb-4">
-              {debouncedQuery ? 'Try a different search or clear to see all attractions.' : 'Try a larger search radius.'}
+              {debouncedQuery ? 'Try a different search or clear to see all places.' : 'Try a larger search radius.'}
             </p>
             {debouncedQuery ? (
               <Button variant="outline" size="sm" onClick={handleClearSearch}>

@@ -364,7 +364,7 @@ export function TripTimeline({ events, datetimeFormat, onEventClick, onExploreNe
                               onClick={(e) => { e.stopPropagation(); onExploreNearby(event.id); }}
                             >
                               <Compass className="w-3 h-3 mr-1" />
-                              Explore nearby
+                              Places nearby
                             </Button>
                           )}
                         </div>

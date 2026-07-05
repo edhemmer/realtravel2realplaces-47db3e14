@@ -57,7 +57,7 @@ src/
 │   └── support/         # Support ticket dialog
 ├── containers/          # Container components (data wiring)
 │   ├── DesktopTripShell.tsx  # Canonical desktop trip context provider
-│   ├── NowCommandCenter.tsx  # NOW tab execution engine
+│   ├── NowCommandCenter.tsx  # Today tab execution engine
 │   ├── TripSummaryContainer.tsx
 │   ├── TripBookingsContainer.tsx
 │   ├── TripTourContainer.tsx
@@ -145,7 +145,7 @@ Key mobile features:
 - "More" dropdown for secondary tabs
 - Surface styling aligned with card system: `bg-card`, `border-border/60`, `shadow-lg`
 - Section mode title in primary color
-- ExecutionZone: execution-first Command Center at top of NOW tab
+- ExecutionZone: execution-first Command Center at top of Today tab
 
 ### Navigation Compression (v5.0.0)
 
@@ -231,7 +231,7 @@ ACTIVE → CLOSED (Pro users, manual) → DELETED (45 days after end_date)
 ```
 
 ### TODAY Execution Stack
-Deterministic sequence for the NOW tab:
+Deterministic sequence for the Today tab:
 ```
 CHECKOUT → GET_GAS → RETURN_RENTAL → DRIVE_SMART → DRIVE_SMART_AIRPORT → FLIGHT → [remaining timeline events]
 ```
@@ -472,3 +472,4 @@ Lovable edits → GitHub export → npm install → npm run build → npx cap sy
 | **Web (Vercel)** | [realtravel2realplaces.app](https://realtravel2realplaces.app) |
 | **iOS** | App Store Connect — submitted for App Store review |
 | **Build Guide** | [IOS_BUILD.md](../../IOS_BUILD.md) |
+
