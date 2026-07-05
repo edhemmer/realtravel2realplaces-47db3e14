@@ -6,7 +6,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { queryPlaces, PlacesCategory, PlaceResult } from '@/lib/places/placesEngine';
+import { queryPlaces, PlacesCategory, PlaceResult, type PlacesEngineResult } from '@/lib/places/placesEngine';
 import { AttractionSuggestion } from '@/types/attraction';
 
 interface UseRealPlacesExploreOptions {
@@ -30,6 +30,28 @@ const EXPLORE_CATEGORIES: { category: PlacesCategory; displayCategory: string; l
   { category: 'culture', displayCategory: 'Museum', limit: 25 },
   { category: 'grocery', displayCategory: 'Grocery', limit: 20 },
 ];
+
+export interface RealPlacesExploreResult {
+  items: AttractionSuggestion[];
+  diagnostics: {
+    requestedCategories: number;
+    liveCategories: number;
+    cachedCategories: number;
+    unavailableCategories: number;
+    reasons: string[];
+  };
+}
+
+const emptyExploreResult = (reason: string): RealPlacesExploreResult => ({
+  items: [],
+  diagnostics: {
+    requestedCategories: 0,
+    liveCategories: 0,
+    cachedCategories: 0,
+    unavailableCategories: 0,
+    reasons: [reason],
+  },
+});
 
 /** Haversine distance in miles */
 function haversineMi(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -90,8 +112,8 @@ export function useRealPlacesExplore({
 
   return useQuery({
     queryKey: ['real-places-explore', latKey, lngKey, radiusMiles, query || '', contextKey || 'default'],
-    queryFn: async (): Promise<AttractionSuggestion[]> => {
-      if (!hasCoords || lat === undefined || lng === undefined) return [];
+    queryFn: async (): Promise<RealPlacesExploreResult> => {
+      if (!hasCoords || lat === undefined || lng === undefined) return emptyExploreResult('NO_COORDINATES');
 
       // Query all categories in parallel
       const results = await Promise.all(
@@ -105,19 +127,23 @@ export function useRealPlacesExplore({
             sourceContext: 'explore',
           });
 
-          if (result.status !== 'OK') return [];
+          if (result.status !== 'OK') return { result, items: [] };
 
-          return result.results.map((place) =>
-            placeToAttraction(place, displayCategory, lat, lng)
-          );
+          return {
+            result,
+            items: result.results.map((place) =>
+              placeToAttraction(place, displayCategory, lat, lng)
+            ),
+          };
         })
       );
 
       // Flatten — dedupe within each category
       const allItems: AttractionSuggestion[] = [];
       const seenPerCategory = new Map<string, Set<string>>();
+      const providerResults = results.map((entry) => entry.result) as PlacesEngineResult[];
       
-      for (const categoryResults of results) {
+      for (const categoryResults of results.map((entry) => entry.items)) {
         for (const item of categoryResults) {
           // Client-side radius enforcement: drop items beyond selected radius
           if (item.distanceMiles !== undefined && item.distanceMiles > radiusMiles) continue;
@@ -134,7 +160,16 @@ export function useRealPlacesExplore({
       const filtered = query ? filterByQuery(allItems, query) : allItems;
 
       // Sort by rating desc
-      return filtered.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+      return {
+        items: filtered.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0)),
+        diagnostics: {
+          requestedCategories: EXPLORE_CATEGORIES.length,
+          liveCategories: providerResults.filter((result) => result.status === 'OK' && !result.fromCache).length,
+          cachedCategories: providerResults.filter((result) => result.status === 'OK' && result.fromCache).length,
+          unavailableCategories: providerResults.filter((result) => result.status !== 'OK').length,
+          reasons: Array.from(new Set(providerResults.map((result) => result.reason).filter(Boolean))) as string[],
+        },
+      };
     },
     enabled: enabled && hasCoords,
     staleTime: 5 * 60 * 1000, // 5 min

@@ -33,6 +33,7 @@ import { canCreateTrips } from '@/lib/native/platform';
 import { NowCard } from '@/components/now/NowCard';
 import { GlassSurface } from '@/components/ui/glass-surface';
 import { sectionRise, staggerParent, staggerChild } from '@/lib/motion/choreography';
+import { useConnectionHealth, type ConnectionHealth } from '@/hooks/useConnectionHealth';
 
 const CAN_CREATE_TRIPS = canCreateTrips();
 
@@ -54,6 +55,7 @@ export default function Dashboard() {
   const deleteTrip = useDeleteTrip();
   const removeMembership = useRemoveTripMembership();
   const { isPro } = useAccess();
+  const connectionHealth = useConnectionHealth(!tripsLoading);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [tripToDelete, setTripToDelete] = useState<string | null>(null);
@@ -284,6 +286,8 @@ export default function Dashboard() {
 
         {/* Canonical "Now Card" — single source of "what should I do right now?" */}
         {nowCardTrip && <NowCard trip={nowCardTrip} />}
+
+        <ConnectionHealthStrip health={connectionHealth.data} isLoading={connectionHealth.isLoading} />
 
         {nowCardTrip && (
           <TravelCommandBand
@@ -672,6 +676,48 @@ const TripCard = React.memo(function TripCard({
     </GlassSurface>
   );
 });
+
+function ConnectionHealthStrip({ health, isLoading }: { health?: ConnectionHealth; isLoading: boolean }) {
+  if (isLoading) return null;
+
+  const connected =
+    health?.supabaseConfig === 'connected' &&
+    health?.authSession === 'connected' &&
+    health?.database === 'connected';
+
+  if (connected) {
+    return (
+      <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/8 px-4 py-3 text-xs text-emerald-700 dark:text-emerald-300">
+        <div className="flex flex-wrap items-center gap-2">
+          <ShieldCheck className="h-4 w-4 shrink-0" />
+          <span className="font-bold">Core connections live</span>
+          <span className="text-emerald-700/75 dark:text-emerald-300/75">Auth, Supabase config, and trip database access are responding.</span>
+        </div>
+      </div>
+    );
+  }
+
+  const message =
+    health?.supabaseConfig === 'missing'
+      ? `Missing app config: ${health.missingKeys.join(', ')}`
+      : health?.authSession === 'anonymous'
+        ? 'Session is not active. Sign in again before relying on trip sync.'
+        : health?.database === 'error'
+          ? `Trip database check failed: ${health.errorMessage || 'unknown error'}`
+          : health?.errorMessage || 'Core connection check did not complete.';
+
+  return (
+    <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-800 dark:text-amber-200">
+      <div className="flex items-start gap-2">
+        <WifiOff className="mt-0.5 h-4 w-4 shrink-0" />
+        <div>
+          <p className="font-bold">Core connection needs attention</p>
+          <p className="mt-0.5 leading-relaxed">{message}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function TravelCommandBand({
   trip,

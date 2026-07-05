@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
 import { format } from 'date-fns';
-import { Building2, Clock, ExternalLink, Map, ParkingCircle, Plane, RadioTower, TrainFront } from 'lucide-react';
+import { AlertTriangle, Building2, CheckCircle2, Clock, ExternalLink, Loader2, Map, ParkingCircle, Plane, RadioTower, TrainFront } from 'lucide-react';
 import { AppModuleHeader } from '@/components/trips/AppModuleHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useBookings } from '@/hooks/useBookings';
+import { describeFlightStatus, useFlightStatus } from '@/hooks/useFlightStatus';
 import { getAirportByCode, type Airport } from '@/lib/airportData';
 import { cn } from '@/lib/utils';
 import type { Booking, Trip } from '@/types/database';
@@ -106,6 +107,14 @@ export function AirportTab({ tripId, trip }: AirportTabProps) {
     [flightBookings, now],
   );
   const primaryAirportCode = normalizeIata(nextFlight?.departure_airport_code) || normalizeIata(nextFlight?.arrival_airport_code) || airports[0]?.code || null;
+  const nextFlightNumber = nextFlight ? flightNumber(nextFlight) : null;
+  const liveFlightStatus = useFlightStatus({
+    flightNumber: nextFlightNumber,
+    departureDateTime: nextFlight?.start_datetime,
+    enabled: Boolean(nextFlight),
+  });
+  const flightStatusSummary = describeFlightStatus(liveFlightStatus.data);
+  const flightStatusLoading = liveFlightStatus.isLoading || liveFlightStatus.isFetching;
 
   return (
     <div className="rt-page-stack pb-20">
@@ -114,8 +123,8 @@ export function AirportTab({ tripId, trip }: AirportTabProps) {
         eyebrow="Airport"
         title="Airport and flight window"
         description="Terminal maps, official airport links, parking, transit, and flight-status checks in one place for the travel day."
-        status={primaryAirportCode ? `${primaryAirportCode} context` : 'Add flight'}
-        statusTone={primaryAirportCode ? 'neutral' : 'setup'}
+        status={nextFlight ? flightStatusSummary.label : primaryAirportCode ? `${primaryAirportCode} context` : 'Add flight'}
+        statusTone={nextFlight ? flightStatusSummary.tone : primaryAirportCode ? 'neutral' : 'setup'}
       />
 
       {isLoading && (
@@ -170,6 +179,37 @@ export function AirportTab({ tripId, trip }: AirportTabProps) {
               <p className="text-muted-foreground">
                 {nextFlight.confirmation_number ? `Confirmation ${nextFlight.confirmation_number}` : 'Confirmation not stored'}
               </p>
+              <div className={cn(
+                'mt-3 rounded-xl border px-3 py-2 text-xs',
+                flightStatusSummary.tone === 'live' && 'border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+                flightStatusSummary.tone === 'cached' && 'border-sky-500/25 bg-sky-500/10 text-sky-700 dark:text-sky-300',
+                flightStatusSummary.tone === 'setup' && 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+                flightStatusSummary.tone === 'neutral' && 'border-border/60 bg-muted/30 text-muted-foreground',
+              )}>
+                <div className="flex items-start gap-2">
+                  {flightStatusLoading ? (
+                    <Loader2 className="mt-0.5 h-3.5 w-3.5 shrink-0 animate-spin" />
+                  ) : flightStatusSummary.tone === 'setup' ? (
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  ) : (
+                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  )}
+                  <div>
+                    <p className="font-bold">{flightStatusLoading ? 'Checking live flight status' : flightStatusSummary.label}</p>
+                    <p className="mt-0.5 leading-relaxed opacity-90">
+                      {flightStatusLoading ? 'Contacting the flight-status provider through RT2RP.' : flightStatusSummary.detail}
+                    </p>
+                    {liveFlightStatus.data?.fetchedAt && (
+                      <p className="mt-1 text-[10px] font-semibold uppercase opacity-75">
+                        Updated {formatTime(liveFlightStatus.data.fetchedAt)}
+                      </p>
+                    )}
+                    {liveFlightStatus.isError && (
+                      <p className="mt-1 font-semibold">RT2RP could not reach the flight-status function. Use the official airport link below.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button asChild className="rounded-full">

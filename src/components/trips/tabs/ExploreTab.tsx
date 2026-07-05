@@ -143,7 +143,7 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
   const canFetch = origin !== null && isOnline();
 
   // v4.5.0: Real Places API via placesEngine
-  const { data: attractions = [], isLoading, error, refetch } = useRealPlacesExplore({
+  const { data: exploreResult, isLoading, error, refetch } = useRealPlacesExplore({
     lat: origin?.lat,
     lng: origin?.lng,
     radiusMiles: parseInt(radius),
@@ -151,6 +151,8 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
     enabled: canFetch,
     contextKey: selectedArea?.key,
   });
+  const attractions = exploreResult?.items ?? [];
+  const exploreDiagnostics = exploreResult?.diagnostics;
 
   // v4.0.4: Save essentials when online results load
   const originLat = origin?.lat;
@@ -277,8 +279,15 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
   const exploreStatus = !isOnline()
     ? 'Cached/offline'
     : attractions.length > 0
-      ? `${attractions.length} live places`
-      : 'Live source';
+      ? `${attractions.length} places`
+      : exploreDiagnostics?.unavailableCategories
+        ? 'Provider issue'
+        : 'Live source';
+  const exploreStatusTone = !isOnline()
+    ? 'cached'
+    : exploreDiagnostics?.unavailableCategories && !attractions.length
+      ? 'setup'
+      : 'live';
 
   // === MAIN EXPLORE SCREEN ===
   return (
@@ -291,7 +300,7 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
           title="Explore"
           description="Find useful places near the right trip context: current location, airport, lodging, or destination area."
           status={exploreStatus}
-          statusTone={!isOnline() ? 'cached' : 'live'}
+          statusTone={exploreStatusTone}
         >
           <Button
             variant="ghost"
@@ -312,8 +321,21 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
           </span>
         </div>
 
-        {/* Context hint */}
-        {(exploreContext.kind !== 'TRIP' || selectedArea) && (
+      {/* Context hint */}
+        {isOnline() && exploreDiagnostics && (
+          <div className="rounded-xl border border-border/60 bg-muted/25 px-3 py-2 text-xs text-muted-foreground">
+            <span className="font-semibold text-foreground">Places source:</span>{' '}
+            {exploreDiagnostics.liveCategories > 0 && `${exploreDiagnostics.liveCategories} live categories`}
+            {exploreDiagnostics.cachedCategories > 0 && `${exploreDiagnostics.liveCategories > 0 ? ', ' : ''}${exploreDiagnostics.cachedCategories} cached`}
+            {exploreDiagnostics.unavailableCategories > 0 && `${exploreDiagnostics.liveCategories + exploreDiagnostics.cachedCategories > 0 ? ', ' : ''}${exploreDiagnostics.unavailableCategories} unavailable`}
+            {exploreDiagnostics.reasons.length > 0 && (
+              <span> ({exploreDiagnostics.reasons.join(', ')})</span>
+            )}
+          </div>
+        )}
+
+      {/* Context hint */}
+      {(exploreContext.kind !== 'TRIP' || selectedArea) && (
           <button
             type="button"
             onClick={() => { setSelectedArea(null); clearExploreContext(tripId); setRefreshCounter(c => c + 1); }}
