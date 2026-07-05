@@ -41,6 +41,16 @@ function getTransportLabel(type: string) {
   }
 }
 
+function bookingStartDateToken(booking: Booking): string {
+  return (booking.start_datetime || booking.end_datetime || '').substring(0, 10);
+}
+
+function compareBookingStart(a: Booking, b: Booking): number {
+  const aDate = a.start_datetime || a.end_datetime || '';
+  const bDate = b.start_datetime || b.end_datetime || '';
+  return aDate.localeCompare(bDate);
+}
+
 interface MoveOption {
   kind: 'drive' | 'booking';
   label: string;
@@ -72,9 +82,9 @@ export function MoveTab({ tripId, trip }: MoveTabProps) {
     const upcoming = bookings
       .filter(b =>
         (b.booking_type === 'flight' || b.booking_type === 'car_rental' || b.booking_type === 'transport') &&
-        b.start_datetime.substring(0, 10) >= todayStr
+        bookingStartDateToken(b) >= todayStr
       )
-      .sort((a, b) => a.start_datetime.localeCompare(b.start_datetime));
+      .sort(compareBookingStart);
 
     const nextBooking = upcoming[0] || null;
     const altBooking = upcoming[1] || null;

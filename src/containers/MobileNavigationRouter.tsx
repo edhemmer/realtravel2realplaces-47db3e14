@@ -31,6 +31,7 @@ import { NowCommandCenter } from '@/containers/NowCommandCenter';
 import { MoveTab } from '@/components/trips/tabs/MoveTab';
 import { GuideTab } from '@/components/trips/tabs/GuideTab';
 import { TravelOpsTab } from '@/components/trips/tabs/TravelOpsTab';
+import { AirportTab } from '@/components/trips/tabs/AirportTab';
 import { ParkingTab } from '@/components/trips/tabs/ParkingTab';
 import { PackingTab } from '@/components/trips/tabs/PackingTab';
 import { CompanionsTab } from '@/components/trips/tabs/CompanionsTab';
@@ -52,6 +53,7 @@ const MORE_TAB_LABELS: Partial<Record<TripTab, string>> = {
   ops: 'Move',
   move: 'Local Map',
   drive: 'Driving Mode',
+  airport: 'Airport',
   guide: 'Trip Guide',
   weather: 'Weather',
   parking: 'Parking',
@@ -252,6 +254,8 @@ export function MobileNavigationRouter({
         return null;
       case 'ops':
         return <TravelOpsTab tripId={tripId} trip={trip} />;
+      case 'airport':
+        return <AirportTab tripId={tripId} trip={trip} />;
       case 'guide':
         return <GuideTab tripId={tripId} trip={trip} />;
       case 'bookings':

@@ -14,7 +14,7 @@ import { useRemoveTripMembership } from '@/hooks/useTripMembers';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, MapPin, Calendar, Plane, Car, TrainFront, Route, Trash2, Users, ChevronRight, Radio, UserMinus, Sparkles, Compass, ListChecks, WifiOff, Coins, ShieldCheck, BriefcaseBusiness, Activity } from 'lucide-react';
+import { Plus, MapPin, Calendar, Plane, Car, TrainFront, Route, Trash2, Users, ChevronRight, Radio, UserMinus, Sparkles, Compass, ListChecks, WifiOff, Coins, ShieldCheck, BriefcaseBusiness, Activity, Building2, ReceiptText, LayoutDashboard } from 'lucide-react';
 import { getTripMode, getModeTheme, type TripMode } from '@/lib/modeTheme';
 import { useNavigate } from 'react-router-dom';
 import { formatTripDateRange } from '@/lib/displayFormats';
@@ -284,6 +284,15 @@ export default function Dashboard() {
 
         {/* Canonical "Now Card" — single source of "what should I do right now?" */}
         {nowCardTrip && <NowCard trip={nowCardTrip} />}
+
+        {nowCardTrip && (
+          <TravelCommandBand
+            trip={nowCardTrip}
+            isActive={activeTrip?.id === nowCardTrip.id}
+            onOpen={(tab) => navigate(`/trip/${nowCardTrip.id}?tab=${tab}`)}
+            onDrive={() => navigate(`/trip/${nowCardTrip.id}/drive`)}
+          />
+        )}
 
         {/* Pending Email Imports — hidden via feature flag */}
         {EMAIL_FORWARDING_ENABLED && (
@@ -663,3 +672,106 @@ const TripCard = React.memo(function TripCard({
     </GlassSurface>
   );
 });
+
+function TravelCommandBand({
+  trip,
+  isActive,
+  onOpen,
+  onDrive,
+}: {
+  trip: Trip;
+  isActive: boolean;
+  onOpen: (tab: 'summary' | 'flow' | 'ops' | 'airport' | 'expenses') => void;
+  onDrive: () => void;
+}) {
+  const isDriveTrip = trip.transportation_mode === 'drive';
+  const actions = [
+    {
+      label: 'Today',
+      detail: isActive ? 'What needs attention now' : 'Trip readiness and next step',
+      icon: LayoutDashboard,
+      onClick: () => onOpen('summary'),
+      primary: true,
+    },
+    {
+      label: 'Timeline',
+      detail: 'Everything in order',
+      icon: Route,
+      onClick: () => onOpen('flow'),
+    },
+    {
+      label: 'Airport',
+      detail: 'Maps, status, parking',
+      icon: Building2,
+      onClick: () => onOpen('airport'),
+    },
+    {
+      label: isDriveTrip ? 'Driving' : 'Move',
+      detail: isDriveTrip ? 'Cockpit and route' : 'Routes and transit',
+      icon: isDriveTrip ? Car : Compass,
+      onClick: isDriveTrip ? onDrive : () => onOpen('ops'),
+    },
+    {
+      label: 'Spend',
+      detail: 'Receipts and costs',
+      icon: ReceiptText,
+      onClick: () => onOpen('expenses'),
+    },
+  ];
+
+  return (
+    <motion.div
+      variants={sectionRise}
+      initial="hidden"
+      animate="visible"
+      transition={{ delay: 0.08 }}
+      className="motion-cinema"
+    >
+      <GlassSurface elevation="raised" className="overflow-hidden rounded-2xl">
+        <div className="grid gap-0 lg:grid-cols-[minmax(260px,0.75fr)_1fr]">
+          <div className="border-b border-border/45 bg-card/70 p-4 lg:border-b-0 lg:border-r lg:p-5">
+            <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/8 px-2.5 py-1 text-[11px] font-semibold uppercase text-primary">
+              {isActive ? 'Live trip' : 'Next trip'}
+            </div>
+            <h2 className="text-xl font-bold leading-tight">{trip.name}</h2>
+            <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+              <MapPin className="h-3.5 w-3.5" />
+              {trip.destination_city}, {trip.destination_country}
+            </p>
+            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              Start here. These are the surfaces a traveler needs while moving, not buried inside the trip.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-5 sm:p-4">
+            {actions.map((action) => {
+              const Icon = action.icon;
+              return (
+                <button
+                  key={action.label}
+                  type="button"
+                  onClick={action.onClick}
+                  className={cn(
+                    'group min-h-[92px] rounded-xl border p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-elevation-raised',
+                    action.primary
+                      ? 'border-primary/25 bg-primary/10'
+                      : 'border-border/55 bg-background/55 hover:bg-card'
+                  )}
+                >
+                  <span className={cn(
+                    'mb-3 flex h-9 w-9 items-center justify-center rounded-xl',
+                    action.primary ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'
+                  )}>
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <span className="block text-sm font-bold text-foreground">{action.label}</span>
+                  <span className="mt-1 block text-[11px] leading-snug text-muted-foreground">{action.detail}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </GlassSurface>
+    </motion.div>
+  );
+}

@@ -19,6 +19,7 @@ import {
   Eye,
   Users,
   Activity,
+  Building2,
   BriefcaseBusiness,
   Car,
   CircleParking,
@@ -56,6 +57,8 @@ import { ExploreTab } from '@/components/trips/tabs/ExploreTab';
 import { WeatherTab } from '@/components/trips/tabs/WeatherTab';
 import { TripSummaryReportTab } from '@/components/trips/tabs/TripSummaryReportTab';
 import { TravelOpsTab } from '@/components/trips/tabs/TravelOpsTab';
+import { TimelineTab } from '@/components/trips/tabs/TimelineTab';
+import { AirportTab } from '@/components/trips/tabs/AirportTab';
 import { TripHeaderWidgets } from '@/components/trips/TripHeaderWidgets';
 import { DriveModeEntryCard } from '@/components/trips/DriveModeEntryCard';
 import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
@@ -108,6 +111,7 @@ const MOBILE_SECTION_LABELS: Partial<Record<TripTab, string>> = {
   plan: 'Itinerary',
   flow: 'Itinerary',
   ops: 'Move',
+  airport: 'Airport',
   explore: 'Explore',
   weather: 'Weather',
   expenses: 'Spend',
@@ -165,6 +169,15 @@ export default function TripDetail() {
   // v2.6.21: Track mobile active tab for header section title
   const [mobileActiveTab, setMobileActiveTab] = useState<TripTab>(initialTab === 'summary' ? 'today' : initialTab);
 
+  useEffect(() => {
+    if (isMobile) return;
+    if (activeTab === 'timeline' || activeTab === 'plan') {
+      setActiveTab('flow');
+    } else if (activeTab === 'today' || activeTab === 'now') {
+      setActiveTab('summary');
+    }
+  }, [activeTab, isMobile]);
+
   // v2.5.0: Determine if trip has flights or is international for Travel Guide context
   const hasFlights = useMemo(() => {
     return bookings.some(b => b.booking_type === 'flight');
@@ -221,7 +234,12 @@ export default function TripDetail() {
 
   // v2.1.29: Desktop tab change handler
   const handleTabChange = useCallback((value: string | TripTab) => {
-    setActiveTab(value as TripTab);
+    const nextTab = value === 'timeline' || value === 'plan'
+      ? 'flow'
+      : value === 'today' || value === 'now'
+        ? 'summary'
+        : value;
+    setActiveTab(nextTab as TripTab);
     if (value === 'explore' && !hasDiscoveredExplore) {
       markExploreDiscovered();
     }
@@ -239,10 +257,17 @@ export default function TripDetail() {
         action: () => handleTabChange('summary'),
       },
       {
+        key: 'airport' as TripTab,
+        label: 'Airport',
+        detail: 'Terminal maps, flight status, parking',
+        icon: Building2,
+        action: () => handleTabChange('airport'),
+      },
+      {
         key: isDriveTrip ? 'drive' as TripTab : 'ops' as TripTab,
         label: isDriveTrip ? 'Driving' : 'Move',
-        detail: isDriveTrip ? 'Route options, stops, fuel, alerts' : hasFlights ? 'Airports, timing, transit' : 'Routes, transit, and maps',
-        icon: isDriveTrip ? Car : hasFlights ? Plane : Route,
+        detail: isDriveTrip ? 'Route options, stops, fuel, alerts' : hasFlights ? 'Routes, airport timing, transit' : 'Routes, transit, and maps',
+        icon: isDriveTrip ? Car : Route,
         href: isDriveTrip ? `/trip/${trip.id}/drive` : undefined,
         action: isDriveTrip ? undefined : () => handleTabChange('ops'),
       },
@@ -580,9 +605,17 @@ export default function TripDetail() {
                       <LayoutDashboard className="h-3.5 w-3.5" />
                       Move
                     </TabsTrigger>
+                    <TabsTrigger value="flow" className="rt-tab-trigger">
+                      <Calendar className="h-3.5 w-3.5" />
+                      Timeline
+                    </TabsTrigger>
+                    <TabsTrigger value="airport" className="rt-tab-trigger">
+                      <Building2 className="h-3.5 w-3.5" />
+                      Airport
+                    </TabsTrigger>
                     <TabsTrigger value="bookings" className="rt-tab-trigger">
                       <Plane className="h-3.5 w-3.5" />
-                      Itinerary
+                      Plans
                     </TabsTrigger>
                     <TabsTrigger value="explore" className="rt-tab-trigger relative">
                       <Compass className="h-3.5 w-3.5" />
@@ -650,11 +683,27 @@ export default function TripDetail() {
                         onHighlightConsumed={clearDrillTarget}
                       />
                     </TabsContent>
+                    <TabsContent value="flow">
+                      <TimelineTab
+                        tripId={trip.id}
+                        trip={trip}
+                        onDrillThrough={handleDrillThrough}
+                        onExploreTab={() => handleTabChange('explore')}
+                      />
+                    </TabsContent>
                     <TabsContent value="ops">
                       <TravelOpsTab tripId={trip.id} trip={trip} />
                     </TabsContent>
+                    <TabsContent value="airport">
+                      <AirportTab tripId={trip.id} trip={trip} />
+                    </TabsContent>
                     <TabsContent value="timeline">
-                      <TripBookingsContainer tripId={trip.id} trip={trip} />
+                      <TimelineTab
+                        tripId={trip.id}
+                        trip={trip}
+                        onDrillThrough={handleDrillThrough}
+                        onExploreTab={() => handleTabChange('explore')}
+                      />
                     </TabsContent>
                     {canAccessBusinessFeatures && (
                       <TabsContent value="tour">

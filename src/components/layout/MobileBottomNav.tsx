@@ -28,6 +28,7 @@ import {
   CloudSun,
   Car,
   LayoutDashboard,
+  Building2,
 } from 'lucide-react';
 import { useAccess } from '@/hooks/useAccess';
 import {
@@ -46,6 +47,7 @@ export type TripTab =
   | 'move'
   | 'drive'
   | 'guide'
+  | 'airport'
   | 'summary' 
   | 'bookings' 
   | 'tour' 
@@ -78,16 +80,17 @@ interface NavItem {
 
 const PRIMARY_NAV_ITEMS: NavItem[] = [
   { id: 'today', label: 'Today', icon: <CalendarDays className="w-5 h-5" /> },
-  { id: 'flow', label: 'Itinerary', icon: <Route className="w-5 h-5" /> },
+  { id: 'flow', label: 'Timeline', icon: <Route className="w-5 h-5" /> },
   { id: 'ops', label: 'Move', icon: <LayoutDashboard className="w-5 h-5" /> },
+  { id: 'airport', label: 'Airport', icon: <Building2 className="w-5 h-5" /> },
   { id: 'explore', label: 'Explore', icon: <Compass className="w-5 h-5" /> },
-  { id: 'expenses', label: 'Spend', icon: <DollarSign className="w-5 h-5" /> },
 ];
 
 const MORE_NAV_ITEMS: NavItem[] = [
   { id: 'drive', label: 'Drive mode', icon: <Car className="w-4 h-4" /> },
   { id: 'move', label: 'Local map', icon: <Compass className="w-4 h-4" /> },
-  { id: 'bookings', label: 'Reservations', icon: <Plane className="w-4 h-4" /> },
+  { id: 'bookings', label: 'Plans', icon: <Plane className="w-4 h-4" /> },
+  { id: 'expenses', label: 'Spend', icon: <DollarSign className="w-4 h-4" /> },
   { id: 'packing', label: 'Pack', icon: <Package className="w-4 h-4" /> },
   { id: 'weather', label: 'Weather', icon: <CloudSun className="w-4 h-4" /> },
   { id: 'guide', label: 'Trip guide', icon: <Bell className="w-4 h-4" /> },
