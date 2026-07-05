@@ -41,7 +41,7 @@ export function FirstTripHint({ bookingsCount, onDismiss, className = '' }: Firs
     <div className={`flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10 ${className}`}>
       <Lightbulb className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
       <p className="text-sm text-muted-foreground flex-1">
-        <span className="font-medium text-foreground">Next:</span> add your lodging, expenses, or explore things to do nearby.
+        <span className="font-medium text-foreground">Next:</span> add your lodging, receipts, or useful places near the trip.
       </p>
       <button
         onClick={handleDismiss}
@@ -61,8 +61,8 @@ interface ExploreHintProps {
 }
 
 /**
- * Inline hint shown in Explore tab for Pro users who haven't used it
- * Auto-dismisses on any interaction with Explore
+ * Inline hint shown in Places for Pro users who haven't used it
+ * Auto-dismisses on any interaction with Places
  */
 export function ExploreHint({ hasVisitedExplore, onDismiss, className = '' }: ExploreHintProps) {
   const [dismissed, setDismissed] = useState(false);
@@ -81,7 +81,7 @@ export function ExploreHint({ hasVisitedExplore, onDismiss, className = '' }: Ex
     <div className={`flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10 ${className}`}>
       <Lightbulb className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
       <p className="text-sm text-muted-foreground flex-1">
-        Explore nearby attractions and activities when you're ready.
+        Open Places when you need food, services, or useful context near this trip.
       </p>
       <button
         onClick={handleDismiss}

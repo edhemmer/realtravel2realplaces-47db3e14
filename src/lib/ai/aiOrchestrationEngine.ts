@@ -216,7 +216,7 @@ function describeAction(action: ProactiveInsightAction): string {
   switch (action.actionType) {
     case 'navigate': return `Navigate to ${action.destinationLabel}`;
     case 'open_event': return 'View event details';
-    case 'open_explore': return 'Explore nearby';
+    case 'open_explore': return 'Places nearby';
     case 'open_weather': return 'Check weather';
   }
 }
@@ -397,7 +397,7 @@ function recommendActions(
       case 'open_explore':
         actions.push({
           id: `action-explore-${insight.id}`,
-          label: 'Explore nearby',
+          label: 'Places nearby',
           actionType: 'open_explore',
         });
         break;
@@ -422,11 +422,11 @@ function recommendActions(
       return mins !== null && mins >= 0;
     }).length;
 
-    // Suggest explore if low density
+    // Suggest nearby places when the trip has open space.
     if (upcomingCount === 0 && !actions.some((a) => a.actionType === 'open_explore')) {
       actions.push({
         id: 'action-explore-idle',
-        label: 'Explore nearby',
+        label: 'Places nearby',
         actionType: 'open_explore',
       });
     }

@@ -161,7 +161,7 @@ export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onV
             <CardHeader className="border-b border-border/35 px-4 py-4 md:px-5">
               <CardTitle className="flex items-center gap-2 text-base font-bold">
                 <Calendar className="h-4 w-4 text-primary" />
-                Itinerary timeline
+                Timeline
               </CardTitle>
               <CardDescription className="text-xs">
                 {tripDays} day{tripDays !== 1 ? 's' : ''} · {timeline.length} event{timeline.length !== 1 ? 's' : ''}

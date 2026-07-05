@@ -39,10 +39,10 @@ interface UpgradePlanDialogProps {
 
 const proFeatures = [
   'Unlimited trips',
-  'Explore tab & local discovery',
-  'Full timeline with events',
+  'Places and local operating context',
+  'Full Timeline with trip events',
   'Advanced cost summaries',
-  'Trip health & gap analysis',
+  'Readiness review and gap analysis',
   'Parking expiration alerts',
   'Priority support',
 ];
@@ -50,7 +50,7 @@ const proFeatures = [
 const businessFeatures = [
   'Everything in Pro',
   'Business expense reporting',
-  'Multi-stop itineraries (Tour tab)',
+  'Multi-stop work routes',
   'Stop-level expense assignment',
   'PDF & CSV report exports',
   'Dedicated support',

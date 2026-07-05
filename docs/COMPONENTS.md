@@ -59,8 +59,8 @@ Main trip view with mobile-first tabbed interface.
 
 **Mobile Navigation (v5.0.0):**
 On viewports < 768px, navigation uses a fixed bottom bar with:
-- Primary tabs: Timeline, Bookings, Explore, Expenses, Packing
-- "More" dropdown: NOW, Weather, Parking, Report, Members, Companions, Notes & Safety, Tour, Alerts
+- Primary tabs: Today, Timeline, Travel, Places
+- "More" dropdown: Driving Mode, Airport Window, Records, Spend, Pack, Weather, Parking, Report, Access, Travelers, Notes & Safety, Work Stops, Alerts
 
 **Drill-Through Target Type:**
 ```typescript
@@ -169,7 +169,7 @@ Compact banner-style alerts (v5.0.0). Replaced full-sized cards with single-line
 Mobile-only Command Center at the top of the Today tab.
 
 **Sections:**
-- A) Primary Action Row: Explore (primary) + Add Expense (success)
+- A) Primary Action Row: Places + Spend + Driving Mode when relevant
 - B) Conditional Timeline Action Row: today-relevant actionable items
 - C) Empty State: "No scheduled actions today."
 

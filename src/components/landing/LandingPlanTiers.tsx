@@ -18,7 +18,7 @@ const tiers = [
     features: [
       'Everything in Free, plus...',
       'Unlimited trips with advanced reminders',
-      'Explore tab, cost summaries, and trip health insights',
+      'Places, cost summaries, and readiness insights',
       'Priority support and early access to features',
     ],
     variant: 'pro' as const,

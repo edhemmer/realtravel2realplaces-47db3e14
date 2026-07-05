@@ -1,8 +1,8 @@
 /**
- * TripHealthChecklist - Pro-only trip data quality analysis
- * v2.1.0: Scans trip data for missing/incomplete fields and provides fix links
- * 
- * This is READ-ONLY analysis - no data is modified or guessed.
+ * TripHealthChecklist - traveler-facing readiness review.
+ *
+ * This is read-only analysis. It points the user to missing records instead of
+ * guessing or modifying trip data.
  */
 
 import { useMemo } from 'react';
@@ -48,6 +48,40 @@ function analyzeTrip(
   preferredCurrency?: string | null
 ): HealthIssue[] {
   const issues: HealthIssue[] = [];
+
+  // ===== TRIP MODE CHECKS =====
+  if (trip.transportation_mode === 'drive') {
+    if (!trip.origin_address && !trip.destination_address) {
+      issues.push({
+        id: 'drive-addresses-missing',
+        severity: 'warning',
+        icon: <Car className="w-4 h-4" />,
+        message: 'Driving Mode needs at least one full route address for reliable route timing.',
+        fixLabel: 'Edit trip',
+        target: null,
+      });
+    } else if (!trip.origin_address || !trip.destination_address) {
+      issues.push({
+        id: 'drive-address-partial',
+        severity: 'info',
+        icon: <Car className="w-4 h-4" />,
+        message: 'Add both starting and destination addresses to improve route timing, fuel planning, and alerts.',
+        fixLabel: 'Edit trip',
+        target: null,
+      });
+    }
+  }
+
+  if (bookings.length === 0 && trip.transportation_mode !== 'drive') {
+    issues.push({
+      id: 'no-records',
+      severity: 'warning',
+      icon: <Info className="w-4 h-4" />,
+      message: 'No reservations or timed records are attached yet, so RT2RP cannot build a useful Timeline.',
+      fixLabel: 'Add record',
+      target: { tab: 'bookings' },
+    });
+  }
 
   // ===== FLIGHT CHECKS =====
   const flights = bookings.filter(b => b.booking_type === 'flight');
@@ -173,11 +207,6 @@ function analyzeTrip(
     }
   }
 
-  // ===== CURRENCY CHECK =====
-  // Note: Currency field is not currently stored per-expense/booking in the data model.
-  // This check is a placeholder for when multi-currency support is added.
-  // For now, we skip this check since all amounts are assumed USD.
-
   return issues;
 }
 
@@ -204,16 +233,16 @@ export function TripHealthChecklist({
   };
 
   return (
-    <Card className="border-dashed">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center justify-between">
+    <Card className="overflow-hidden border-border/45 bg-card/70 shadow-elevation-raised">
+      <CardHeader className="border-b border-border/35 pb-3">
+        <CardTitle className="flex items-center justify-between gap-3 text-base">
           <span className="flex items-center gap-2">
             {issues.length === 0 ? (
               <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400" />
             ) : (
               <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
             )}
-            Trip Health & Gaps
+            Readiness review
           </span>
           {issues.length === 0 ? (
             <Badge variant="outline" className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20">
@@ -237,15 +266,15 @@ export function TripHealthChecklist({
       </CardHeader>
       <CardContent className="pt-0">
         {issues.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            All bookings, parking, and expenses have complete information.
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Core trip records look complete enough for RT2RP to operate from Today and Timeline.
           </p>
         ) : (
           <div className="space-y-2">
             {issues.map(issue => (
               <div
                 key={issue.id}
-                className="flex items-start gap-3 p-2 rounded-md bg-muted/50 text-sm"
+                className="flex items-start gap-3 rounded-xl border border-border/45 bg-background/55 p-3 text-sm"
               >
                 <div className="mt-0.5 shrink-0">
                   {getSeverityIcon(issue.severity)}
@@ -253,18 +282,20 @@ export function TripHealthChecklist({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="shrink-0 text-muted-foreground">{issue.icon}</span>
-                    <p className="text-foreground truncate">{issue.message}</p>
+                    <p className="leading-relaxed text-foreground">{issue.message}</p>
                   </div>
                 </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 px-2 text-xs shrink-0"
-                  onClick={() => onNavigate(issue.target)}
-                >
-                  {issue.fixLabel}
-                  <ArrowRight className="w-3 h-3 ml-1" />
-                </Button>
+                {issue.target && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 shrink-0 rounded-lg px-2 text-xs"
+                    onClick={() => onNavigate(issue.target)}
+                  >
+                    {issue.fixLabel}
+                    <ArrowRight className="ml-1 h-3 w-3" />
+                  </Button>
+                )}
               </div>
             ))}
           </div>

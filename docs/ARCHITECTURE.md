@@ -151,9 +151,9 @@ Key mobile features:
 
 Mobile bottom nav uses a compressed 5+More structure:
 
-**Primary tabs:** Timeline, Bookings, Explore, Expenses, Packing
+**Primary tabs:** Today, Timeline, Travel, Places
 
-**More menu:** NOW, Weather, Parking, Report, Members, Companions, Notes & Safety, Tour, Alerts
+**More menu:** Driving Mode, Airport Window, Records, Spend, Pack, Weather, Parking, Report, Access, Travelers, Notes & Safety, Work Stops, Alerts
 
 Desktop tabs follow the same priority order with all tabs visible.
 

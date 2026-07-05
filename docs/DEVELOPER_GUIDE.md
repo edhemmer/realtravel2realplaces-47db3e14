@@ -140,7 +140,7 @@ import { hasExplicitTime } from '@/lib/datetimeIntegrity';
 - All colors must be HSL-based
 - Prefer existing component variants over custom styles
 - Exception: Category-specific accent colors in packing list use intentional hardcoded Tailwind colors for visual differentiation (blue, amber, rose, violet, orange, etc.)
-- Use standardized action button colors: Explore = `bg-primary`, Add Expense = `bg-success` (v2.6.30)
+- Use standardized action button colors: Places = `bg-primary`, Spend/receipt capture = `bg-success` (v2.6.30)
 - All mobile primary action buttons: `h-12 rounded-xl font-semibold shadow-sm` (v2.6.30)
 
 ```tsx
@@ -148,7 +148,7 @@ import { hasExplicitTime } from '@/lib/datetimeIntegrity';
 <div className="bg-card text-card-foreground border-primary/20">
 
 // ✅ Good - standardized action buttons (v2.6.30)
-<Button className="h-12 rounded-xl font-semibold shadow-sm bg-success text-success-foreground">Add Expense</Button>
+<Button className="h-12 rounded-xl font-semibold shadow-sm bg-success text-success-foreground">Add Receipt</Button>
 
 // ❌ Bad - raw colors
 <div className="bg-white text-black border-blue-500">
