@@ -43,6 +43,7 @@ The product should behave like one app:
 - Movement and live context connected.
 - Provider status visible when data is live, cached, missing, or unavailable.
 - No silent mock data. If data is unavailable, show why.
+- Route, weather, flight, places, AI, and report surfaces must expose production truth states: Live, Cached, Needs Info, Offline, or Unavailable.
 
 ## Research Signals
 
@@ -60,3 +61,16 @@ A change is good enough when the user can open the app under pressure and quickl
 - The map/place/airport context.
 - The record or receipt location.
 - Whether the app is using live data, cached data, or needs setup.
+
+## Live Data Contract
+
+RT2RP should prefer provider-backed data when it is available and worth the cost. When provider-backed data is unavailable, the app should fall back to deterministic local intelligence and say so clearly.
+
+Examples:
+
+- Driving route: live provider route, cached provider route, deterministic estimate, or needs origin/destination.
+- Flight status: live provider status, cached status, gated for cost, provider unavailable, or missing flight number/date.
+- Places: live provider results, cached results, needs location, or unavailable.
+- Weather: live forecast, seasonal normals, route risk sample, or unavailable.
+
+The user should never have to guess whether a surface is real.

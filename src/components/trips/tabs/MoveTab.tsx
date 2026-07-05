@@ -1,8 +1,9 @@
 /**
- * v5.0.1: MOVE Tab — Decision-Driven
+ * MOVE Tab - Decision-driven movement surface.
  *
- * Shows exactly 2 options: primary (dominant) + secondary (alternative).
- * Uses existing bookings + drive intelligence only. No new logic layers.
+ * Shows the dominant movement option plus one useful alternative.
+ * Driving trips stay accessible before departure so users can review routes,
+ * stops, fuel, weather, and alerts before the trip starts.
  */
 
 import { useMemo } from 'react';
@@ -22,6 +23,14 @@ interface MoveTabProps {
   trip: Trip;
 }
 
+interface MoveOption {
+  kind: 'drive' | 'booking';
+  label: string;
+  reason: string;
+  booking?: Booking;
+  isDrive?: boolean;
+}
+
 function getTransportIcon(type: string, size: 'lg' | 'sm' = 'lg') {
   const cls = size === 'lg' ? 'w-5 h-5' : 'w-4 h-4';
   switch (type) {
@@ -35,7 +44,7 @@ function getTransportIcon(type: string, size: 'lg' | 'sm' = 'lg') {
 function getTransportLabel(type: string) {
   switch (type) {
     case 'flight': return 'Flight';
-    case 'car_rental': return 'Car Rental';
+    case 'car_rental': return 'Car rental';
     case 'transport': return 'Transport';
     default: return 'Transport';
   }
@@ -51,100 +60,87 @@ function compareBookingStart(a: Booking, b: Booking): number {
   return aDate.localeCompare(bDate);
 }
 
-interface MoveOption {
-  kind: 'drive' | 'booking';
-  label: string;
-  reason: string;
-  booking?: Booking;
-  isDrive?: boolean;
+function routeDestinationLabel(trip: Trip): string {
+  return trip.destination_address?.trim()
+    || [trip.destination_city, trip.destination_state, trip.destination_country].filter(Boolean).join(', ')
+    || trip.name
+    || 'your destination';
+}
+
+function bookingOption(booking: Booking, role: 'primary' | 'alternative'): MoveOption {
+  const confirmation = booking.confirmation_number
+    ? `Confirmation ${booking.confirmation_number}`
+    : null;
+
+  return {
+    kind: 'booking',
+    label: `${getTransportLabel(booking.booking_type)}: ${booking.vendor_name}`,
+    reason: confirmation
+      ? `${confirmation} - ${role === 'primary' ? 'your scheduled transport' : 'available if timing shifts'}`
+      : role === 'primary' ? 'Your next scheduled transport option' : 'Available as a backup if plans change',
+    booking,
+  };
 }
 
 export function MoveTab({ tripId, trip }: MoveTabProps) {
   const { data: bookings = [] } = useBookings(tripId);
   const { state: canonicalState } = useCanonicalTripState(tripId, trip);
-
   const todayStr = getLocalNowString().substring(0, 10);
 
   const activeDrive = useMemo(
     () => getActiveDriveSegment(canonicalState, new Date()),
     [canonicalState],
   );
+
   const driveTarget = useMemo(
     () => activeDrive ? getNavigationTarget(canonicalState, activeDrive) : null,
     [canonicalState, activeDrive],
   );
 
-  // Derive exactly primary + secondary option
   const { primary, secondary } = useMemo((): { primary: MoveOption | null; secondary: MoveOption | null } => {
     const isDriveTrip = trip.transportation_mode === 'drive';
-
-    // Upcoming transport bookings (sorted chronologically)
     const upcoming = bookings
-      .filter(b =>
-        (b.booking_type === 'flight' || b.booking_type === 'car_rental' || b.booking_type === 'transport') &&
-        bookingStartDateToken(b) >= todayStr
+      .filter((booking) =>
+        (booking.booking_type === 'flight' || booking.booking_type === 'car_rental' || booking.booking_type === 'transport') &&
+        bookingStartDateToken(booking) >= todayStr
       )
       .sort(compareBookingStart);
 
     const nextBooking = upcoming[0] || null;
     const altBooking = upcoming[1] || null;
 
-    // If drive trip with active segment → drive is primary
-    if (isDriveTrip && activeDrive) {
-      const p: MoveOption = {
+    if (isDriveTrip) {
+      const driveOption: MoveOption = {
         kind: 'drive',
         label: 'Driving Mode',
-        reason: driveTarget?.label ? `Your route window is ready — head to ${driveTarget.label}` : 'Route options, stops, fuel, and alerts for the current leg',
+        reason: driveTarget?.label
+          ? `Your route window is ready - head to ${driveTarget.label}`
+          : `Review route options, stops, fuel, weather, and alerts for ${routeDestinationLabel(trip)}`,
         isDrive: true,
       };
-      const s: MoveOption | null = nextBooking ? {
-        kind: 'booking',
-        label: `${getTransportLabel(nextBooking.booking_type)}: ${nextBooking.vendor_name}`,
-        reason: nextBooking.confirmation_number ? `Confirmation ${nextBooking.confirmation_number} — a scheduled alternative` : 'A scheduled alternative if plans change',
-        booking: nextBooking,
-      } : null;
-      return { primary: p, secondary: s };
-    }
 
-    // Otherwise next booking is primary
-    if (nextBooking) {
-      const p: MoveOption = {
-        kind: 'booking',
-        label: `${getTransportLabel(nextBooking.booking_type)}: ${nextBooking.vendor_name}`,
-        reason: nextBooking.confirmation_number ? `Confirmation ${nextBooking.confirmation_number} — your scheduled transport` : 'Your next scheduled transport option',
-        booking: nextBooking,
-      };
-      let s: MoveOption | null = null;
-      if (isDriveTrip && activeDrive) {
-        s = { kind: 'drive', label: 'Driving Mode', reason: driveTarget?.label ? `Review the route to ${driveTarget.label} instead` : 'Use driving tools when you want route flexibility', isDrive: true };
-      } else if (altBooking) {
-        s = {
-          kind: 'booking',
-          label: `${getTransportLabel(altBooking.booking_type)}: ${altBooking.vendor_name}`,
-          reason: altBooking.confirmation_number ? `Confirmation ${altBooking.confirmation_number} — a backup if timing shifts` : 'Available as a backup if your plans change',
-          booking: altBooking,
-        };
-      }
-      return { primary: p, secondary: s };
-    }
-
-    // Drive-only fallback
-    if (isDriveTrip && activeDrive) {
       return {
-        primary: { kind: 'drive', label: 'Driving Mode', reason: driveTarget?.label ? `Head to ${driveTarget.label} with route support ready` : 'Route options, stops, fuel, and alerts for this leg', isDrive: true },
-        secondary: null,
+        primary: driveOption,
+        secondary: nextBooking ? bookingOption(nextBooking, 'alternative') : null,
+      };
+    }
+
+    if (nextBooking) {
+      return {
+        primary: bookingOption(nextBooking, 'primary'),
+        secondary: altBooking ? bookingOption(altBooking, 'alternative') : null,
       };
     }
 
     return { primary: null, secondary: null };
-  }, [trip, bookings, todayStr, activeDrive, driveTarget]);
+  }, [activeDrive, bookings, driveTarget, todayStr, trip]);
 
   if (!primary) {
     return (
-      <div className="text-center py-12 pb-20">
-        <Car className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
-        <p className="text-sm text-muted-foreground">No transport options to show yet.</p>
-        <p className="text-xs text-muted-foreground/60 mt-1">Add a flight, rental, rail, or drive plan to turn this into your movement command surface.</p>
+      <div className="pb-20 py-12 text-center">
+        <Car className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
+        <p className="text-sm text-muted-foreground">No movement plan yet.</p>
+        <p className="mt-1 text-xs text-muted-foreground/60">Add a flight, rental, rail, or drive plan to turn this into your movement command surface.</p>
       </div>
     );
   }
@@ -153,17 +149,17 @@ export function MoveTab({ tripId, trip }: MoveTabProps) {
     if (opt.isDrive) {
       return (
         <Link to={`/trip/${tripId}/drive`} className="block">
-          <Card className={isPrimary ? 'border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors' : 'opacity-70'}>
+          <Card className={isPrimary ? 'border-primary/20 bg-primary/5 transition-colors hover:bg-primary/10' : 'opacity-70'}>
             <CardContent className={isPrimary ? 'p-5' : 'p-3.5'}>
               <div className="flex items-center gap-3">
-                <div className={`rounded-full bg-primary/10 flex items-center justify-center shrink-0 ${isPrimary ? 'w-11 h-11' : 'w-8 h-8'}`}>
-                  <Car className={`text-primary ${isPrimary ? 'w-5 h-5' : 'w-4 h-4'}`} />
+                <div className={`flex shrink-0 items-center justify-center rounded-full bg-primary/10 ${isPrimary ? 'h-11 w-11' : 'h-8 w-8'}`}>
+                  <Car className={`text-primary ${isPrimary ? 'h-5 w-5' : 'h-4 w-4'}`} />
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className={`font-semibold text-foreground ${isPrimary ? 'text-base' : 'text-sm'}`}>{opt.label}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{opt.reason}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{opt.reason}</p>
                 </div>
-                <ChevronRight className={`text-primary/60 shrink-0 ${isPrimary ? 'w-5 h-5' : 'w-4 h-4'}`} />
+                <ChevronRight className={`shrink-0 text-primary/60 ${isPrimary ? 'h-5 w-5' : 'h-4 w-4'}`} />
               </div>
             </CardContent>
           </Card>
@@ -176,18 +172,18 @@ export function MoveTab({ tripId, trip }: MoveTabProps) {
       <Card className={isPrimary ? '' : 'opacity-70'}>
         <CardContent className={isPrimary ? 'p-5' : 'p-3.5'}>
           <div className="flex items-center gap-3">
-            <div className={`rounded-full bg-muted/60 flex items-center justify-center shrink-0 ${isPrimary ? 'w-11 h-11' : 'w-8 h-8'}`}>
+            <div className={`flex shrink-0 items-center justify-center rounded-full bg-muted/60 ${isPrimary ? 'h-11 w-11' : 'h-8 w-8'}`}>
               {getTransportIcon(booking.booking_type, isPrimary ? 'lg' : 'sm')}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className={`font-semibold truncate ${isPrimary ? 'text-base' : 'text-sm'}`}>{opt.label}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{opt.reason}</p>
+            <div className="min-w-0 flex-1">
+              <p className={`truncate font-semibold ${isPrimary ? 'text-base' : 'text-sm'}`}>{opt.label}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{opt.reason}</p>
             </div>
             {isPrimary && (booking.address || booking.departure_airport_code) && (
               <Button
                 size="sm"
                 variant="outline"
-                className="h-8 rounded-lg text-xs shrink-0"
+                className="h-8 shrink-0 rounded-lg text-xs"
                 onClick={() => {
                   const result = resolveCanonicalNavigation({
                     address: booking.address,
@@ -199,7 +195,7 @@ export function MoveTab({ tripId, trip }: MoveTabProps) {
                   if (result) openCanonicalNav(result);
                 }}
               >
-                <Navigation className="w-3 h-3 mr-1" />
+                <Navigation className="mr-1 h-3 w-3" />
                 Go
               </Button>
             )}
@@ -211,14 +207,14 @@ export function MoveTab({ tripId, trip }: MoveTabProps) {
 
   return (
     <div className="space-y-3 pb-20">
-      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">
+      <h3 className="px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         Primary
       </h3>
       {renderOption(primary, true)}
 
       {secondary && (
         <>
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1 mt-4">
+          <h3 className="mt-4 px-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Alternative
           </h3>
           {renderOption(secondary, false)}

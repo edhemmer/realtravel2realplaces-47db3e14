@@ -2,7 +2,7 @@
  * Help Center — v4.11.0
  *
  * Complete user manual for Real Travel 2 Real Places.
- * Reflects the Today / Itinerary / Move / Trip Guide model,
+ * Reflects the Today / Timeline / Travel / Places model,
  * Tours workspace, grounded Ask AI, capability-scoped sharing, and
  * the offline execution window. Step-by-step guides only — no fluff.
  * Full product name: Real Travel 2 Real Places (never abbreviated).
@@ -543,7 +543,7 @@ const HELP_SECTIONS: HelpSection[] = [
           <ul className="list-disc list-inside space-y-1.5">
             <li><strong>Drive</strong> options use live traffic with a built-in safety buffer.</li>
             <li><strong>Transit</strong> options use real schedules and score on total door-to-door time.</li>
-            <li><strong>Driving Mode</strong> opens automatically for drive trips with an active or imminent driving leg.</li>
+              <li><strong>Driving Mode</strong> is available for drive trips before departure and during travel so you can review route options, stops, fuel, and alerts.</li>
           </ul>
         ),
       },
@@ -687,7 +687,7 @@ const HELP_SECTIONS: HelpSection[] = [
           <ul className="list-disc list-inside space-y-1.5">
             <li>Drive Trips include a <strong>Drive Summary Card</strong> with estimated miles and gas expense tracking.</li>
             <li>A <strong>Driving Mode</strong> screen provides focused navigation during the drive.</li>
-            <li>The Today tab shows <strong>Driving Mode</strong> as a quick action when a drive segment is active, and Move surfaces it as the recommended option.</li>
+            <li>The Travel and Today surfaces show <strong>Driving Mode</strong> for drive trips before departure and during the trip.</li>
             <li>Street addresses for origin and destination enable door-to-door navigation.</li>
           </ul>
         ),
@@ -697,8 +697,8 @@ const HELP_SECTIONS: HelpSection[] = [
         answer: (
           <ol className="list-decimal list-inside space-y-1.5">
             <li>Open your Drive Trip.</li>
-            <li>Go to <strong>Today</strong> (or <strong>Move</strong>) and tap <strong>Driving Mode</strong>, or tap the <strong>Driving Mode</strong> entry card on the Summary screen.</li>
-            <li>The Driving Mode screen shows your current route segment and next destination.</li>
+            <li>Open your trip and tap <strong>Driving Mode</strong> from Today, Travel, or the trip header.</li>
+            <li>The Driving Mode screen shows route context, next destination, weather/road readiness, and driving actions.</li>
             <li>Tap <strong>Navigate</strong> to open turn-by-turn directions in your maps app.</li>
           </ol>
         ),
@@ -1281,10 +1281,10 @@ const HELP_SECTIONS: HelpSection[] = [
             <p>On phones, your Trip uses a bottom navigation bar with these tabs:</p>
             <ul className="list-disc list-inside space-y-1">
               <li><strong>Today</strong> — the command center for an active trip (next action, leave-by, quick actions)</li>
-              <li><strong>Itinerary</strong> — the full chronological timeline</li>
-              <li><strong>Move</strong> — directive transport guidance for the next leg</li>
-              <li><strong>Trip Guide</strong> — the short list of heads-up alerts worth your attention</li>
-              <li><strong>More</strong> — bookings, expenses, tours, companions, parking, packing, notes, members, reports, and Ask AI</li>
+              <li><strong>Timeline</strong> — the full chronological trip timeline</li>
+              <li><strong>Travel</strong> — route, airport, transit, and driving command tools</li>
+              <li><strong>Places</strong> — location-aware food, services, and local context</li>
+              <li><strong>More</strong> — reservations, spend, pack, weather, parking, travelers, notes, access, reports, and alerts</li>
             </ul>
           </div>
         ),
@@ -1383,7 +1383,7 @@ const HELP_SECTIONS: HelpSection[] = [
               <ul className="list-disc list-inside space-y-1 text-sm">
                 <li>Up to 2 lifetime trips</li>
                 <li>Full trip management: bookings, expenses, packing, parking, notes</li>
-                <li>Today, Itinerary, Move, and Trip Guide tabs — the full command-center experience</li>
+                <li>Today, Timeline, Travel, Places, and More — the full command-center experience</li>
                 <li>Discover — find places near your destination</li>
                 <li>Tours — manual stops workspace</li>
                 <li>Ask AI — grounded in-trip assistant</li>
@@ -1467,9 +1467,9 @@ const HELP_SECTIONS: HelpSection[] = [
           'The full chronological timeline of your trip. Today events pinned to the top, future events in ascending order, past events in descending order at the bottom.',
       },
       {
-        question: 'Move',
+        question: 'Travel',
         answer:
-          'The transport guidance tab. Shows exactly two options — recommended and alternative — for getting to your next destination, with live ETAs and Navigate.',
+          'The movement command tab. Shows route, airport, transit, driving, and provider truth states so you know what is live, cached, estimated, or missing.',
       },
       {
         question: 'Trip Guide',
@@ -1479,7 +1479,7 @@ const HELP_SECTIONS: HelpSection[] = [
       {
         question: 'Driving Mode',
         answer:
-          'A focused, full-screen navigation view for Drive Trips. Shows your current route, next destination, and one-tap navigation. Accessible from Today, Move, or the Trip Summary.',
+          'A focused navigation view for Drive Trips. Shows route context, next destination, weather/road readiness, and one-tap navigation. Accessible before departure from Today, Travel, or the trip header.',
       },
       {
         question: 'Discover',
@@ -1572,9 +1572,9 @@ const HELP_SECTIONS: HelpSection[] = [
           'This means the booking or event does not have an address or airport code stored. Edit the booking and add an address to enable navigation.',
       },
       {
-        question: 'Driving Mode is not showing on my Today tab.',
+        question: 'Driving Mode is not showing.',
         answer:
-          'Driving Mode only appears for trips with the Drive transportation mode and when you have an active or upcoming drive segment. Make sure your trip is within its active date window (trip dates including 1 day before departure).',
+          'Driving Mode appears for trips created with the Drive transportation mode. If it is missing, confirm the trip mode is Drive and add a destination. Adding a starting address unlocks better live route timing before departure.',
       },
       {
         question: 'The app looks different on my phone.',
@@ -1632,7 +1632,7 @@ export default function HelpCenter() {
         <title>Help Center — Real Travel 2 Real Places | User Manual</title>
         <meta
           name="description"
-          content="Complete user manual for Real Travel 2 Real Places. Step-by-step guides for Today, Itinerary, Move, Trip Guide, Explore, Work Stops, Driving Mode, expenses, packing, sharing, and more."
+          content="Complete user manual for Real Travel 2 Real Places. Step-by-step guides for Today, Timeline, Travel, Places, Driving Mode, expenses, packing, sharing, and more."
         />
         <link rel="canonical" href="https://realtravel2realplaces.app/help" />
       </Helmet>

@@ -168,6 +168,10 @@ Complete list of implemented features organized by tier and domain.
 ### Driving Mode (v4.0.x)
 - Dedicated Driving Mode screen for road trips
 - Active drive segment detection via driveIntelligence helpers
+- Future drive trips can open Driving Mode before departure for route planning, stop review, fuel planning, and weather/road readiness
+- Provider-backed route timing through the Supabase HERE route proxy when origin/destination coordinates are available
+- Deterministic offline route estimate fallback when live provider data is unavailable
+- Travel tab displays route truth states: Live route, Estimated route, Needs origin, Needs destination, or Route unavailable
 - Navigation target resolution with full street addresses
 - NOW tab integration: Driving Mode appears when drive segment is active/imminent
 - Drive Summary Card with estimated miles and gas expense shortcut

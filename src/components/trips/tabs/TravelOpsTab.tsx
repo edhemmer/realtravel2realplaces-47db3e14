@@ -5,6 +5,7 @@ import {
   Building2,
   Car,
   CheckCircle2,
+  Clock3,
   CloudSun,
   Gauge,
   LayoutDashboard,
@@ -29,6 +30,7 @@ import { useExpenses } from '@/hooks/useExpenses';
 import { useParking } from '@/hooks/useParking';
 import { useTripWeather } from '@/hooks/useWeather';
 import { useAccess } from '@/hooks/useAccess';
+import { useLiveDriveRoute } from '@/hooks/useLiveDriveRoute';
 import { isOnline } from '@/lib/networkStatus';
 import { cn } from '@/lib/utils';
 import { getAirportByCode, type Airport } from '@/lib/airportData';
@@ -239,6 +241,43 @@ function OpsWindow({
   );
 }
 
+function statusToneClass(tone: 'live' | 'cached' | 'setup' | 'neutral' | 'warning') {
+  switch (tone) {
+    case 'live':
+      return 'border-emerald-500/25 bg-emerald-500/8 text-emerald-700 dark:text-emerald-300';
+    case 'cached':
+      return 'border-sky-500/25 bg-sky-500/8 text-sky-700 dark:text-sky-300';
+    case 'setup':
+      return 'border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-200';
+    case 'warning':
+      return 'border-red-500/25 bg-red-500/8 text-red-700 dark:text-red-300';
+    default:
+      return 'border-border/70 bg-card/70 text-muted-foreground';
+  }
+}
+
+function TrustSignal({
+  label,
+  value,
+  detail,
+  tone = 'neutral',
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  tone?: 'live' | 'cached' | 'setup' | 'neutral' | 'warning';
+}) {
+  return (
+    <div className={cn('rounded-xl border px-3 py-2.5', statusToneClass(tone))}>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[11px] font-bold uppercase tracking-wide opacity-80">{label}</p>
+        <p className="shrink-0 text-xs font-bold">{value}</p>
+      </div>
+      <p className="mt-1 text-xs leading-relaxed opacity-85">{detail}</p>
+    </div>
+  );
+}
+
 export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
   const { data: bookings = [] } = useBookings(tripId);
   const { data: expenses = [] } = useExpenses(tripId);
@@ -251,6 +290,7 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
     trip.end_date,
     trip.destination_state,
   );
+  const liveDriveRoute = useLiveDriveRoute(trip);
 
   const online = isOnline();
   const isDriveTrip = trip.transportation_mode === 'drive';
@@ -273,12 +313,29 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
 
   const expenseTotal = expenses.reduce((sum, expense) => sum + Number(expense.converted_amount ?? expense.my_share ?? expense.amount ?? 0), 0);
   const parkingTotal = parking.reduce((sum, item) => sum + Number(item.my_share ?? item.total_cost ?? 0), 0);
+  const routeSummary = liveDriveRoute.route?.summary || null;
+  const routeStatusLabel =
+    liveDriveRoute.status === 'live' ? 'Live route'
+    : liveDriveRoute.status === 'estimate' ? 'Estimated route'
+    : liveDriveRoute.status === 'needs_origin' ? 'Needs origin'
+    : liveDriveRoute.status === 'needs_destination' ? 'Needs destination'
+    : 'Route unavailable';
+  const routeStatusTone =
+    liveDriveRoute.status === 'live' ? 'live'
+    : liveDriveRoute.status === 'estimate' ? 'cached'
+    : liveDriveRoute.status === 'needs_origin' || liveDriveRoute.status === 'needs_destination' ? 'setup'
+    : 'warning';
+  const routeDistanceLabel = routeSummary
+    ? `${routeSummary.distanceMiles} mi / ${Math.round(routeSummary.durationMinutes / 60 * 10) / 10} hr`
+    : trip.estimated_miles
+      ? `${trip.estimated_miles} mi estimate`
+      : 'Add route details';
   const readinessItems = [
     bookings.length > 0,
     hasFlights ? airports.length > 0 : true,
     weather.data !== undefined || weather.isLoading,
     online,
-    isDriveTrip || hasFlights || hasRentals,
+    isDriveTrip ? liveDriveRoute.status === 'live' || liveDriveRoute.status === 'estimate' : hasFlights || hasRentals,
     expenses.length > 0 || canAccessBusinessFeatures || isPro,
   ];
   const readiness = Math.round((readinessItems.filter(Boolean).length / readinessItems.length) * 100);
@@ -294,8 +351,8 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
       <AppModuleHeader
         icon={LayoutDashboard}
         eyebrow="Move"
-        title="Routes, airports, and local transit"
-        description="Use this before and during travel to review how you get there, what happens next, nearby map context, weather, spend, and offline readiness."
+        title="Travel command"
+        description="Use this before and during travel to see movement, route confidence, airport windows, local transit, weather, spend, and the next operational step."
         status={online ? 'Live windows' : 'Offline cache'}
         statusTone={online ? 'live' : 'cached'}
       >
@@ -315,11 +372,32 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
         <GuidanceStep icon={<ShieldCheck className="h-5 w-5" />} label="3. Keep proof and notes" detail={isDriveTrip ? 'Add stops along the route, then keep receipts and notes tied to the trip.' : 'Capture receipts, parking, notes, and business context while details are fresh.'} />
       </section>
 
+      <section className="grid gap-3 lg:grid-cols-3">
+        <TrustSignal
+          label="Route truth"
+          value={isDriveTrip ? routeStatusLabel : hasFlights ? 'Air-aware' : 'Timeline'}
+          detail={isDriveTrip ? liveDriveRoute.detail : hasFlights ? 'Flight records unlock airport windows and status checks.' : 'Add flight, rail, car, or drive details to improve movement intelligence.'}
+          tone={isDriveTrip ? routeStatusTone : hasFlights ? 'live' : 'neutral'}
+        />
+        <TrustSignal
+          label="Weather truth"
+          value={weather.current ? 'Weather ready' : weather.isLoading ? 'Checking' : 'Needs refresh'}
+          detail={weather.current ? `${weather.current.condition}, ${weather.current.temperature}F at the trip area.` : 'RT2RP will show live or seasonal weather depending on the trip window.'}
+          tone={weather.current ? (weather.weatherAnalysis?.hasRain || weather.weatherAnalysis?.hasSnow ? 'setup' : 'live') : weather.isLoading ? 'cached' : 'neutral'}
+        />
+        <TrustSignal
+          label="Cost control"
+          value="Gated"
+          detail="Provider-backed calls are cached and only made when route or place context is specific enough to be useful."
+          tone="cached"
+        />
+      </section>
+
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <OpsMetric icon={<Route className="h-5 w-5" />} label="Next step" value={nextMoveLabel} tone={nextBooking || upcoming.length ? 'good' : 'watch'} />
+        <OpsMetric icon={<Route className="h-5 w-5" />} label="Next step" value={nextMoveLabel} tone={nextBooking || upcoming.length || isDriveTrip ? 'good' : 'watch'} />
         <OpsMetric icon={<Plane className="h-5 w-5" />} label="Airports" value={airports.length ? airports.map((a) => a.code).join(' / ') : 'None linked'} tone={airports.length ? 'good' : 'neutral'} />
         <OpsMetric icon={<CloudSun className="h-5 w-5" />} label="Weather" value={weather.current ? `${weather.current.temperature}F ${weather.current.condition}` : 'Checking'} tone={weather.weatherAnalysis?.hasRain || weather.weatherAnalysis?.hasSnow ? 'watch' : 'good'} />
-        <OpsMetric icon={<BadgeDollarSign className="h-5 w-5" />} label="Managed spend" value={currency(managedSpend)} tone="neutral" />
+        <OpsMetric icon={<Clock3 className="h-5 w-5" />} label="Route timing" value={isDriveTrip ? routeDistanceLabel : 'By timeline'} tone={liveDriveRoute.status === 'live' ? 'good' : liveDriveRoute.status === 'estimate' ? 'neutral' : 'watch'} />
       </section>
 
       {isDriveTrip && (
@@ -327,8 +405,8 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
           <OpsWindow
             icon={<Route className="h-5 w-5" />}
             title="Drive route"
-            detail="Open before the trip starts to compare proposed directions, route options, fuel stops, and stop planning."
-            badge="Planning"
+            detail={liveDriveRoute.status === 'live' ? 'Provider-backed distance and traffic timing are ready. Compare options before departure.' : liveDriveRoute.detail}
+            badge={routeStatusLabel}
           >
             <div className="overflow-hidden rounded-xl border border-border/50 bg-muted/30">
               <iframe
@@ -383,10 +461,19 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
                 <p className="mt-1 text-sm font-semibold text-foreground">{routeDestination}</p>
               </div>
               <div className="rounded-xl border border-border/50 bg-background/70 p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Estimated distance</p>
-                <p className="mt-1 text-sm font-semibold text-foreground">
-                  {trip.estimated_miles ? `${trip.estimated_miles} miles` : 'Open route options for live distance'}
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  {liveDriveRoute.status === 'live' ? 'Live distance and timing' : 'Route distance and timing'}
                 </p>
+                <p className="mt-1 text-sm font-semibold text-foreground">
+                  {routeSummary
+                    ? `${routeSummary.distanceMiles} miles / ${routeSummary.durationMinutes} minutes${liveDriveRoute.route?.trafficDelayMinutes ? ` / ${liveDriveRoute.route.trafficDelayMinutes} min traffic delay` : ''}`
+                    : trip.estimated_miles ? `${trip.estimated_miles} miles from trip setup` : 'Add origin and destination details'}
+                </p>
+              </div>
+              <div className={cn('rounded-xl border p-3', statusToneClass(routeStatusTone))}>
+                <p className="text-xs font-semibold uppercase tracking-wide opacity-80">Provider state</p>
+                <p className="mt-1 text-sm font-semibold">{routeStatusLabel}</p>
+                <p className="mt-1 text-xs leading-relaxed opacity-85">{liveDriveRoute.detail}</p>
               </div>
             </div>
           </OpsWindow>
@@ -398,7 +485,7 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
           icon={<Map className="h-5 w-5" />}
           title={isDriveTrip ? 'Destination area map' : 'Interactive destination map'}
           detail={isDriveTrip ? 'Use this after route planning to inspect the arrival area, nearby transit, parking, and destination context.' : "A low-cost destination window for checking the area. Native iOS can hand off to the user's preferred map app."}
-          badge="No API key"
+          badge="Map handoff"
         >
           <div className="overflow-hidden rounded-xl border border-border/50 bg-muted/30">
             <iframe
@@ -435,7 +522,7 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
 
         <OpsWindow
           icon={<Gauge className="h-5 w-5" />}
-          title="Coming up"
+          title="Next timed items"
           detail="The next timed items from the trip itinerary."
           badge="Timeline"
         >
