@@ -69,7 +69,7 @@ export function TripBookingsContainer({
       <AppModuleHeader
         icon={Plane}
         eyebrow="Trip records"
-        title="Plans"
+        title="Reservations"
         description="Flights, lodging, rentals, transport, and activities become one operating record for the trip."
         status={bookings.length > 0 ? `${bookings.length} records` : 'Setup needed'}
         statusTone={bookings.length > 0 ? 'neutral' : 'setup'}

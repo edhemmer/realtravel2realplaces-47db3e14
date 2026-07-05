@@ -89,10 +89,10 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
             </span>
           </div>
           <div className="flex gap-1 flex-wrap">
-            {summary.hasCold && <Badge variant="outline" className="text-xs">❄️ Cold</Badge>}
-            {summary.hasHot && <Badge variant="outline" className="text-xs">☀️ Hot</Badge>}
-            {summary.hasRain && <Badge variant="outline" className="text-xs">🌧️ Rain likely</Badge>}
-            {summary.hasSnow && <Badge variant="outline" className="text-xs">🌨️ Snow possible</Badge>}
+            {summary.hasCold && <Badge variant="outline" className="text-xs">Cold</Badge>}
+            {summary.hasHot && <Badge variant="outline" className="text-xs">Hot</Badge>}
+            {summary.hasRain && <Badge variant="outline" className="text-xs">Rain likely</Badge>}
+            {summary.hasSnow && <Badge variant="outline" className="text-xs">Snow possible</Badge>}
           </div>
         </div>
       );
@@ -122,9 +122,9 @@ export function TripHeaderWidgets({ trip }: TripHeaderWidgetsProps) {
         <div className="flex items-center gap-3">
           <span className="text-lg font-bold">{formatTemp(summary.avgHigh)}</span>
           <div className="flex gap-1">
-            {summary.hasHot && <Badge variant="outline" className="text-xs">☀️ Hot</Badge>}
-            {summary.hasCold && <Badge variant="outline" className="text-xs">❄️ Cold</Badge>}
-            {summary.hasRain && <Badge variant="outline" className="text-xs">🌧️ Rain</Badge>}
+            {summary.hasHot && <Badge variant="outline" className="text-xs">Hot</Badge>}
+            {summary.hasCold && <Badge variant="outline" className="text-xs">Cold</Badge>}
+            {summary.hasRain && <Badge variant="outline" className="text-xs">Rain</Badge>}
           </div>
         </div>
         <div className="flex gap-1 overflow-x-auto">

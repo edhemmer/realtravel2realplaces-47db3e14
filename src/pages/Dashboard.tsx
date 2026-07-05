@@ -34,6 +34,7 @@ import { NowCard } from '@/components/now/NowCard';
 import { GlassSurface } from '@/components/ui/glass-surface';
 import { sectionRise, staggerParent, staggerChild } from '@/lib/motion/choreography';
 import { useConnectionHealth, type ConnectionHealth } from '@/hooks/useConnectionHealth';
+import { cn } from '@/lib/utils';
 
 const CAN_CREATE_TRIPS = canCreateTrips();
 
@@ -55,13 +56,13 @@ export default function Dashboard() {
   const deleteTrip = useDeleteTrip();
   const removeMembership = useRemoveTripMembership();
   const { isPro } = useAccess();
-  const connectionHealth = useConnectionHealth(!tripsLoading);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [isOnboarding, setIsOnboarding] = useState(false);
   const [tripToDelete, setTripToDelete] = useState<string | null>(null);
   const [tripToRemove, setTripToRemove] = useState<string | null>(null);
   const [tripLoadTimedOut, setTripLoadTimedOut] = useState(false);
   const tripsLoading = isLoading || sharedLoading;
+  const connectionHealth = useConnectionHealth(!tripsLoading);
   const hasTripLoadError = tripsError || sharedTripsError || tripLoadTimedOut;
 
   useEffect(() => {
@@ -166,22 +167,22 @@ export default function Dashboard() {
         label: 'Upcoming',
         value: upcomingCount,
         icon: Calendar,
-        tone: 'text-amber-600 dark:text-amber-400',
-        bg: 'bg-amber-500/12',
+        tone: 'text-brand-champagne',
+        bg: 'bg-brand-champagne/12',
       },
       {
         label: 'Shared',
         value: sharedCount,
         icon: Users,
-        tone: 'text-emerald-600 dark:text-emerald-400',
-        bg: 'bg-emerald-500/12',
+        tone: 'text-primary',
+        bg: 'bg-primary/10',
       },
       {
         label: 'Business',
         value: businessCount,
         icon: BriefcaseBusiness,
-        tone: 'text-sky-600 dark:text-sky-400',
-        bg: 'bg-sky-500/12',
+        tone: 'text-muted-foreground',
+        bg: 'bg-muted/45',
       },
     ];
   }, [sortedTrips, sharedTrips.length, todayStr]);
@@ -238,18 +239,16 @@ export default function Dashboard() {
           className="motion-cinema"
         >
           <GlassSurface elevation="floating" className="overflow-hidden rounded-2xl">
-            <div className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,hsl(var(--primary)),hsl(38_92%_55%),hsl(160_60%_42%))]" />
-            <div className="pointer-events-none absolute -right-10 -top-16 h-44 w-44 rounded-full bg-primary/10 blur-3xl" />
-            <div className="pointer-events-none absolute -left-12 bottom-0 h-32 w-32 rounded-full bg-amber-400/10 blur-3xl" />
+            <div className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,hsl(var(--brand-champagne)/0.58),hsl(var(--primary)/0.34),transparent)]" />
             <div className="relative grid gap-4 p-4 sm:p-5 lg:grid-cols-[1fr_auto] lg:items-center">
               <div className="min-w-0">
                 <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-primary/15 bg-primary/8 px-2.5 py-1 text-[11px] font-semibold uppercase text-primary">
                   <ShieldCheck className="h-3.5 w-3.5" />
-                  Real-time travel operations
+                  Chaos to Clarity
                 </div>
-                <h1 className="text-[30px] font-bold leading-[1.08] tracking-tight sm:text-4xl">Your Trip Home</h1>
+                <h1 className="text-[30px] font-bold leading-[1.08] tracking-tight sm:text-4xl">Trip Command Center</h1>
                 <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-                  Book anywhere. Bring the trip here. RT2RP keeps timing, movement, spend, reports, offline context, and the next step in one calm place.
+                  Book anywhere. RT2RP turns reservations, movement, weather, spend, maps, and the next decision into one operating view.
                 </p>
               </div>
 
@@ -260,7 +259,7 @@ export default function Dashboard() {
                     className="h-11 shrink-0 rounded-xl bg-gradient-ocean px-4 font-semibold shadow-glow transition-opacity hover:opacity-90 sm:h-12"
                   >
                     <Plus className="mr-1.5 h-4 w-4" />
-                    <span>Build Trip</span>
+                    <span>Add Trip</span>
                   </Button>
                 )}
               </div>
@@ -399,7 +398,7 @@ export default function Dashboard() {
                 <h3 className="text-xl font-semibold mb-2">Your first trip is waiting</h3>
                 <p className="text-muted-foreground text-center mb-6 max-w-md text-sm leading-relaxed">
                   {CAN_CREATE_TRIPS
-                    ? 'Add a trip to bring Today, Itinerary, Move, Explore, and Spend to life - reservations, timing, and the next step in one calm place.'
+                    ? 'Add a trip to bring Today, Timeline, Travel, Places, and Spend to life - reservations, timing, and the next step in one calm place.'
                     : 'Create or import trips from the secure web app. They sync here automatically for mobile use.'}
                 </p>
 
@@ -415,15 +414,15 @@ export default function Dashboard() {
                     <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
                       <Compass className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                       <div>
-                        <div className="text-xs font-semibold">Move</div>
-                        <div className="text-[11px] text-muted-foreground leading-snug">Directive transport guidance.</div>
+                        <div className="text-xs font-semibold">Travel</div>
+                        <div className="text-[11px] text-muted-foreground leading-snug">Routes, airport timing, and transit context.</div>
                       </div>
                     </div>
                     <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
                       <ListChecks className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                       <div>
-                        <div className="text-xs font-semibold">Explore</div>
-                          <div className="text-[11px] text-muted-foreground leading-snug">Nearby places and local context.</div>
+                        <div className="text-xs font-semibold">Places</div>
+                          <div className="text-[11px] text-muted-foreground leading-snug">Nearby food, services, and local context.</div>
                       </div>
                     </div>
                     <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
@@ -752,7 +751,7 @@ function TravelCommandBand({
       onClick: () => onOpen('airport'),
     },
     {
-      label: isDriveTrip ? 'Driving' : 'Move',
+      label: isDriveTrip ? 'Driving' : 'Travel',
       detail: isDriveTrip ? 'Cockpit and route' : 'Routes and transit',
       icon: isDriveTrip ? Car : Compass,
       onClick: isDriveTrip ? onDrive : () => onOpen('ops'),
@@ -785,7 +784,7 @@ function TravelCommandBand({
               {trip.destination_city}, {trip.destination_country}
             </p>
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              Start here. These are the surfaces a traveler needs while moving, not buried inside the trip.
+              Start here. RT2RP keeps the next step, movement, maps, spend, and records connected.
             </p>
           </div>
 

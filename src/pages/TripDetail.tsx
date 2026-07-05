@@ -33,6 +33,7 @@ import {
   ReceiptText,
   Route,
   ShieldCheck,
+  Navigation,
 } from 'lucide-react';
 import { format } from 'date-fns';
 // Patch 2.2.2: Import containers for canonical data flow
@@ -110,9 +111,9 @@ const MOBILE_SECTION_LABELS: Partial<Record<TripTab, string>> = {
   today: 'Today',
   plan: 'Itinerary',
   flow: 'Itinerary',
-  ops: 'Move',
+  ops: 'Travel',
   airport: 'Airport',
-  explore: 'Explore',
+  explore: 'Places',
   weather: 'Weather',
   expenses: 'Spend',
   bookings: 'Reservations',
@@ -258,22 +259,22 @@ export default function TripDetail() {
       },
       {
         key: 'airport' as TripTab,
-        label: 'Airport',
-        detail: 'Terminal maps, flight status, parking',
+        label: 'Airport window',
+        detail: 'Maps, status, parking, timing',
         icon: Building2,
         action: () => handleTabChange('airport'),
       },
       {
         key: isDriveTrip ? 'drive' as TripTab : 'ops' as TripTab,
-        label: isDriveTrip ? 'Driving' : 'Move',
+        label: isDriveTrip ? 'Driving' : 'Travel',
         detail: isDriveTrip ? 'Route options, stops, fuel, alerts' : hasFlights ? 'Routes, airport timing, transit' : 'Routes, transit, and maps',
-        icon: isDriveTrip ? Car : Route,
+        icon: isDriveTrip ? Car : Navigation,
         href: isDriveTrip ? `/trip/${trip.id}/drive` : undefined,
         action: isDriveTrip ? undefined : () => handleTabChange('ops'),
       },
       {
         key: 'explore' as TripTab,
-        label: 'Explore',
+        label: 'Places',
         detail: 'Nearby food, places, context',
         icon: Compass,
         action: () => handleTabChange('explore'),
@@ -393,7 +394,7 @@ export default function TripDetail() {
                 <div className="mb-3 flex flex-wrap items-center gap-2">
                   <Badge className="rounded-full bg-white/12 text-white hover:bg-white/12">Chaos to Clarity</Badge>
                   <Badge variant="outline" className="rounded-full border-white/20 bg-white/8 text-white">
-                    Travel Operating System
+                    Trip Command
                   </Badge>
                   {!isOwner && (
                     <Badge variant="outline" className="flex items-center gap-1 rounded-full border-white/20 bg-white/8 text-white">
@@ -584,8 +585,8 @@ export default function TripDetail() {
                 <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <div>
-                      <p className="rt-muted-label">Trip workspace</p>
-                      <p className="text-xs text-muted-foreground">Book anywhere. Keep the whole trip organized here.</p>
+                      <p className="rt-muted-label">Trip operating view</p>
+                      <p className="text-xs text-muted-foreground">Today, timeline, travel movement, places, spend, and records stay in one flow.</p>
                     </div>
                     {isDriveTrip && (
                       <Button asChild size="sm" className="rt-primary-action h-9 px-4">
@@ -602,8 +603,8 @@ export default function TripDetail() {
                       Today
                     </TabsTrigger>
                     <TabsTrigger value="ops" className="rt-tab-trigger">
-                      <LayoutDashboard className="h-3.5 w-3.5" />
-                      Move
+                      <Navigation className="h-3.5 w-3.5" />
+                      Travel
                     </TabsTrigger>
                     <TabsTrigger value="flow" className="rt-tab-trigger">
                       <Calendar className="h-3.5 w-3.5" />
@@ -615,11 +616,11 @@ export default function TripDetail() {
                     </TabsTrigger>
                     <TabsTrigger value="bookings" className="rt-tab-trigger">
                       <Plane className="h-3.5 w-3.5" />
-                      Plans
+                      Records
                     </TabsTrigger>
                     <TabsTrigger value="explore" className="rt-tab-trigger relative">
                       <Compass className="h-3.5 w-3.5" />
-                      Explore
+                      Places
                       {!hasDiscoveredExplore && (
                         <Badge 
                           variant="secondary" 

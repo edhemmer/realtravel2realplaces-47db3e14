@@ -1,7 +1,7 @@
 /**
  * MobileBottomNav - Bottom navigation bar for mobile viewports
  * 
- * v5.0.0: Simplified navigation — Timeline, Bookings, Explore, Expenses, Packing, More
+ * v5.0.0: Simplified navigation — Today, Timeline, Travel, Places, More
  * 
  * Surface: bg-card, border-border/60, shadow-lg (no blur/opacity)
  * Active: text-primary font-semibold bg-primary/10
@@ -11,7 +11,7 @@
  */
 
 import { cn } from '@/lib/utils';
-import { 
+import {
   CalendarDays,
   Compass,
   DollarSign,
@@ -27,7 +27,7 @@ import {
   Bell,
   CloudSun,
   Car,
-  LayoutDashboard,
+  Navigation,
   Building2,
 } from 'lucide-react';
 import { useAccess } from '@/hooks/useAccess';
@@ -81,15 +81,15 @@ interface NavItem {
 const PRIMARY_NAV_ITEMS: NavItem[] = [
   { id: 'today', label: 'Today', icon: <CalendarDays className="w-5 h-5" /> },
   { id: 'flow', label: 'Timeline', icon: <Route className="w-5 h-5" /> },
-  { id: 'ops', label: 'Move', icon: <LayoutDashboard className="w-5 h-5" /> },
-  { id: 'airport', label: 'Airport', icon: <Building2 className="w-5 h-5" /> },
-  { id: 'explore', label: 'Explore', icon: <Compass className="w-5 h-5" /> },
+  { id: 'ops', label: 'Travel', icon: <Navigation className="w-5 h-5" /> },
+  { id: 'explore', label: 'Places', icon: <Compass className="w-5 h-5" /> },
 ];
 
 const MORE_NAV_ITEMS: NavItem[] = [
-  { id: 'drive', label: 'Drive mode', icon: <Car className="w-4 h-4" /> },
+  { id: 'drive', label: 'Driving mode', icon: <Car className="w-4 h-4" /> },
+  { id: 'airport', label: 'Airport window', icon: <Building2 className="w-4 h-4" /> },
   { id: 'move', label: 'Local map', icon: <Compass className="w-4 h-4" /> },
-  { id: 'bookings', label: 'Plans', icon: <Plane className="w-4 h-4" /> },
+  { id: 'bookings', label: 'Reservations', icon: <Plane className="w-4 h-4" /> },
   { id: 'expenses', label: 'Spend', icon: <DollarSign className="w-4 h-4" /> },
   { id: 'packing', label: 'Pack', icon: <Package className="w-4 h-4" /> },
   { id: 'weather', label: 'Weather', icon: <CloudSun className="w-4 h-4" /> },
@@ -135,7 +135,7 @@ export function MobileBottomNav({ activeTab, onTabChange, className, showDrive =
         className="pointer-events-auto mx-3 overflow-hidden rounded-[24px] nav-floating"
       >
         <div
-          className="grid h-[66px] gap-0.5 px-1.5 pb-1.5 pt-1.5"
+          className="grid h-[64px] gap-1 px-1.5 pb-1.5 pt-1.5"
           style={{ gridTemplateColumns: `repeat(${cellCount}, minmax(0, 1fr))` }}
         >
           {visiblePrimaryItems.map((item) => {

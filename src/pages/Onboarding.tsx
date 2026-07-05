@@ -1,7 +1,7 @@
 /**
  * Onboarding Page — v3.11.0: Command-center intro
  *
- * Premium intro card that frames the four pillars (Today / Itinerary / Move / Explore)
+ * Premium intro card that frames the four pillars (Today / Timeline / Travel / Places)
  * and the core promises (offline, multi-currency, shareable) before routing
  * into the Create Trip Wizard. No upload/import/paste prompts in onboarding.
  */
@@ -108,21 +108,21 @@ export default function Onboarding() {
             <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
               <Compass className="w-4 h-4 text-primary mt-0.5 shrink-0" />
               <div>
-                <div className="text-xs font-semibold">Move</div>
-                <div className="text-[11px] text-muted-foreground leading-snug">Directive transport guidance.</div>
+                <div className="text-xs font-semibold">Travel</div>
+                <div className="text-[11px] text-muted-foreground leading-snug">Routes, airport timing, and transit context.</div>
               </div>
             </div>
             <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
               <ListChecks className="w-4 h-4 text-primary mt-0.5 shrink-0" />
               <div>
-                <div className="text-xs font-semibold">Explore</div>
-                <div className="text-[11px] text-muted-foreground leading-snug">Nearby places and local context.</div>
+                <div className="text-xs font-semibold">Places</div>
+                <div className="text-[11px] text-muted-foreground leading-snug">Nearby food, services, and local context.</div>
               </div>
             </div>
             <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
               <Plane className="w-4 h-4 text-primary mt-0.5 shrink-0" />
               <div>
-                <div className="text-xs font-semibold">Itinerary</div>
+                <div className="text-xs font-semibold">Timeline</div>
                 <div className="text-[11px] text-muted-foreground leading-snug">Your trip on one timeline.</div>
               </div>
             </div>

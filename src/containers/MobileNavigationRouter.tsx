@@ -50,10 +50,10 @@ const MORE_TAB_LABELS: Partial<Record<TripTab, string>> = {
   now: 'Now',
   today: 'Today',
   flow: 'Itinerary',
-  ops: 'Move',
+  ops: 'Travel',
   move: 'Local Map',
   drive: 'Driving Mode',
-  airport: 'Airport',
+  airport: 'Airport Window',
   guide: 'Trip Guide',
   weather: 'Weather',
   parking: 'Parking',
@@ -64,7 +64,7 @@ const MORE_TAB_LABELS: Partial<Record<TripTab, string>> = {
   report: 'Report',
   notes: 'Safety Notes',
   bookings: 'Reservations',
-  explore: 'Explore',
+  explore: 'Places',
   packing: 'Pack',
 };
 

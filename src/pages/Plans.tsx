@@ -110,7 +110,7 @@ export default function Plans() {
     { text: 'Trip-level expense tracking', included: true },
     { text: 'Packing lists', included: true },
     { text: 'Companion management', included: true },
-    { text: 'Explore tab & discovery', included: false },
+    { text: 'Places and local discovery', included: false },
     { text: 'Advanced cost summaries', included: false },
     { text: 'Trip health & gap analysis', included: false },
   ];
@@ -118,8 +118,8 @@ export default function Plans() {
   const proPlanFeatures: PlanFeature[] = [
     { text: 'Unlimited trips', included: true },
     { text: 'Everything in Free', included: true },
-    { text: 'Trip home with Today, Itinerary, Move, Explore, and Spend', included: true },
-    { text: 'Drive mode with route, stops, fuel, and road-trip context', included: true },
+    { text: 'Trip command center with Today, Timeline, Travel, Places, and Spend', included: true },
+    { text: 'Driving mode with route, stops, fuel, and road-trip context', included: true },
     { text: 'Airport, transit, weather, and offline travel windows', included: true },
     { text: 'Full timeline with events', included: true },
     { text: 'Advanced cost summaries', included: true },
