@@ -78,35 +78,35 @@ interface NavItem {
   requiresPro?: boolean;
 }
 
-const PRIMARY_NAV_ITEMS: NavItem[] = [
-  { id: 'today', label: 'Today', icon: <CalendarDays className="w-5 h-5" /> },
-  { id: 'flow', label: 'Timeline', icon: <Route className="w-5 h-5" /> },
-  { id: 'ops', label: 'Travel', icon: <Navigation className="w-5 h-5" /> },
-  { id: 'explore', label: 'Places', icon: <Compass className="w-5 h-5" /> },
-];
-
 const MORE_NAV_ITEMS: NavItem[] = [
-  { id: 'drive', label: 'Driving mode', icon: <Car className="w-4 h-4" /> },
   { id: 'airport', label: 'Airport window', icon: <Building2 className="w-4 h-4" /> },
-  { id: 'move', label: 'Map view', icon: <Compass className="w-4 h-4" /> },
   { id: 'bookings', label: 'Reservations', icon: <Plane className="w-4 h-4" /> },
   { id: 'expenses', label: 'Spend', icon: <DollarSign className="w-4 h-4" /> },
-  { id: 'packing', label: 'Pack', icon: <Package className="w-4 h-4" /> },
   { id: 'weather', label: 'Weather', icon: <CloudSun className="w-4 h-4" /> },
-  { id: 'guide', label: 'Guide', icon: <Bell className="w-4 h-4" /> },
+  { id: 'packing', label: 'Pack', icon: <Package className="w-4 h-4" /> },
   { id: 'parking', label: 'Parking', icon: <CircleParking className="w-4 h-4" /> },
+  { id: 'alerts', label: 'Alerts', icon: <Bell className="w-4 h-4" /> },
+  { id: 'guide', label: 'Guide', icon: <Bell className="w-4 h-4" /> },
   { id: 'report', label: 'Report', icon: <FileText className="w-4 h-4" />, requiresPro: true },
   { id: 'members', label: 'Team access', icon: <Users className="w-4 h-4" /> },
   { id: 'companions', label: 'Travelers', icon: <Users className="w-4 h-4" /> },
   { id: 'notes', label: 'Safety notes', icon: <StickyNote className="w-4 h-4" /> },
   { id: 'tour', label: 'Work stops', icon: <MapPin className="w-4 h-4" />, requiresBusiness: true },
-  { id: 'alerts', label: 'Alerts', icon: <Bell className="w-4 h-4" /> },
 ];
 
 export function MobileBottomNav({ activeTab, onTabChange, className, showDrive = false }: MobileBottomNavProps) {
   const { canAccessBusinessFeatures, isPro } = useAccess();
+
+  const primaryNavItems: NavItem[] = [
+    { id: 'today', label: 'Today', icon: <CalendarDays className="w-5 h-5" /> },
+    { id: 'flow', label: 'Timeline', icon: <Route className="w-5 h-5" /> },
+    showDrive
+      ? { id: 'drive', label: 'Drive', icon: <Car className="w-5 h-5" /> }
+      : { id: 'move', label: 'Move', icon: <Navigation className="w-5 h-5" /> },
+    { id: 'explore', label: 'Places', icon: <Compass className="w-5 h-5" /> },
+  ];
   
-  const visiblePrimaryItems = PRIMARY_NAV_ITEMS.filter(item => {
+  const visiblePrimaryItems = primaryNavItems.filter(item => {
     if (item.requiresBusiness) return canAccessBusinessFeatures;
     return true;
   });
@@ -205,9 +205,12 @@ export function MobileBottomNav({ activeTab, onTabChange, className, showDrive =
             <DropdownMenuContent
               side="top"
               align="end"
-              className="w-56 mb-3 mr-2 rounded-2xl nav-floating border-0 p-1.5 max-w-[calc(100vw-1rem)]"
+              className="w-60 mb-3 mr-2 rounded-2xl nav-floating border-0 p-1.5 max-w-[calc(100vw-1rem)]"
               sideOffset={8}
             >
+              <div className="px-3 pb-1.5 pt-2">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Trip tools</p>
+              </div>
               {visibleMoreItems.map((item) => (
                 <DropdownMenuItem
                   key={item.id}

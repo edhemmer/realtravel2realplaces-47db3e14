@@ -397,6 +397,72 @@ export default function TripDetail() {
 
   // v2.3.x: Shared header content for both mobile and desktop
   const renderTripHeader = () => (
+    isMobile ? (
+      <div className="rt-mobile-trip-shell pt-safe">
+        <Button asChild variant="ghost" className="rt-ios-back-button">
+          <Link to="/dashboard">
+            <ArrowLeft className="h-4 w-4" />
+            Trips
+          </Link>
+        </Button>
+
+        <section className="rt-ios-command-card">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-brand-champagne">Chaos to Clarity</p>
+              <h1 className="mt-2 line-clamp-2 text-[1.65rem] font-black leading-[1.02] tracking-tight text-white">
+                {trip.name}
+              </h1>
+              <p className="mt-2 flex flex-wrap items-center gap-2 text-[0.78rem] leading-relaxed text-white/68">
+                <span className="inline-flex min-w-0 items-center gap-1">
+                  <MapPin className="h-3.5 w-3.5 shrink-0 text-brand-signal" />
+                  <span className="truncate">{trip.destination_city}, {trip.destination_country}</span>
+                </span>
+                <span className="text-white/25">/</span>
+                <span className="inline-flex items-center gap-1">
+                  <Calendar className="h-3.5 w-3.5 shrink-0 text-brand-champagne" />
+                  {format(new Date(trip.start_date + 'T00:00:00'), 'MMM d')} - {format(new Date(trip.end_date + 'T00:00:00'), 'MMM d')}
+                </span>
+              </p>
+            </div>
+            <span className="rt-ios-mode-orb">
+              {isDriveTrip ? <Car className="h-5 w-5" /> : hasFlights ? <Plane className="h-5 w-5" /> : <Route className="h-5 w-5" />}
+            </span>
+          </div>
+
+          <div className="rt-ios-route-strip" aria-hidden="true">
+            <span className="h-2 w-2 rounded-full bg-brand-signal" />
+            <span className="h-px flex-1 bg-gradient-to-r from-brand-signal/80 via-brand-champagne/55 to-white/10" />
+            <span className="flex h-8 w-8 items-center justify-center rounded-full border border-white/12 bg-white/8 text-brand-champagne">
+              {isDriveTrip ? <Car className="h-4 w-4" /> : <Plane className="h-4 w-4 -rotate-3" />}
+            </span>
+            <span className="h-px flex-1 bg-gradient-to-r from-white/10 via-brand-champagne/55 to-brand-signal/80" />
+            <span className="h-2 w-2 rounded-full border border-brand-signal bg-transparent" />
+          </div>
+
+          <p className="mt-4 text-sm leading-relaxed text-white/76">
+            {bookings.length
+              ? 'Your trip board is organized around the next move, live changes, reservations, weather, places, and spend.'
+              : 'Start by adding one reservation, stop, or drive plan. RT2RP will organize the trip from there.'}
+          </p>
+
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            <button type="button" onClick={() => handleTabChange('flow')} className="rt-ios-command-chip">
+              <Route className="h-4 w-4" />
+              Timeline
+            </button>
+            <button type="button" onClick={() => handleTabChange(isDriveTrip ? 'drive' : 'move')} className="rt-ios-command-chip">
+              {isDriveTrip ? <Car className="h-4 w-4" /> : <Navigation className="h-4 w-4" />}
+              {isDriveTrip ? 'Drive' : 'Move'}
+            </button>
+            <button type="button" onClick={() => handleTabChange('expenses')} className="rt-ios-command-chip">
+              <ReceiptText className="h-4 w-4" />
+              Spend
+            </button>
+          </div>
+        </section>
+      </div>
+    ) : (
     <div className="rt-page-stack animate-fade-in pt-safe">
       {/* Back row */}
       <div className="flex flex-col gap-1.5 md:gap-4">
@@ -576,6 +642,7 @@ export default function TripDetail() {
       </div>
 
     </div>
+    )
   );
 
   return (

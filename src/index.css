@@ -973,10 +973,109 @@
 
   html[data-native-platform='ios'] .rt-app-main {
     max-width: none;
+    width: 100%;
+    box-sizing: border-box;
     padding-top: 0.875rem;
     padding-left: max(0.875rem, env(safe-area-inset-left));
     padding-right: max(0.875rem, env(safe-area-inset-right));
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 5.75rem);
+  }
+
+  html[data-native-platform='ios'] .rt-mobile-trip-shell {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  html[data-native-platform='ios'] .rt-ios-back-button {
+    margin-left: -0.625rem;
+    height: 2.375rem;
+    gap: 0.375rem;
+    border-radius: 999px;
+    padding-left: 0.625rem;
+    padding-right: 0.875rem;
+    color: hsl(var(--muted-foreground));
+  }
+
+  html[data-native-platform='ios'] .rt-ios-command-card {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 1.375rem;
+    border: 1px solid hsl(39 42% 48% / 0.28);
+    background:
+      radial-gradient(360px 220px at 84% 8%, hsl(var(--brand-champagne) / 0.20), transparent 64%),
+      radial-gradient(300px 220px at 6% 0%, hsl(var(--brand-signal) / 0.17), transparent 68%),
+      linear-gradient(155deg, hsl(222 43% 12%), hsl(224 42% 8%) 66%, hsl(223 38% 10%));
+    padding: 1rem;
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.08),
+      0 22px 52px -34px hsl(0 0% 0% / 0.82);
+  }
+
+  html[data-native-platform='ios'] .rt-ios-command-card::after {
+    content: '';
+    position: absolute;
+    inset: auto 1rem 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, hsl(var(--brand-champagne) / 0.42), transparent);
+    pointer-events: none;
+  }
+
+  html[data-native-platform='ios'] .rt-ios-mode-orb {
+    display: inline-flex;
+    width: 2.625rem;
+    height: 2.625rem;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border-radius: 1rem;
+    border: 1px solid hsl(0 0% 100% / 0.12);
+    background: hsl(0 0% 100% / 0.08);
+    color: hsl(var(--brand-champagne));
+    box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.08);
+  }
+
+  html[data-native-platform='ios'] .rt-ios-route-strip {
+    margin-top: 1rem;
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  html[data-native-platform='ios'] .rt-ios-command-chip {
+    display: inline-flex;
+    min-width: 0;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    border-radius: 1rem;
+    border: 1px solid hsl(0 0% 100% / 0.12);
+    background: hsl(0 0% 100% / 0.08);
+    color: hsl(0 0% 100% / 0.86);
+    font-size: 0.78rem;
+    font-weight: 800;
+    line-height: 1;
+    box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.08);
+    transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+    touch-action: manipulation;
+  }
+
+  html[data-native-platform='ios'] .rt-ios-command-chip:active {
+    transform: scale(0.985);
+    background: hsl(0 0% 100% / 0.12);
+    border-color: hsl(var(--brand-champagne) / 0.32);
+  }
+
+  html[data-native-platform='ios'] .rt-command-panel,
+  html[data-native-platform='ios'] .premium-panel,
+  html[data-native-platform='ios'] .rt-ops-lane,
+  html[data-native-platform='ios'] .rt-kpi-panel {
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   html[data-native-platform='ios'] .rt-page-stack {
@@ -1007,8 +1106,8 @@
   }
 
   html[data-native-platform='ios'] .nav-floating {
-    margin-left: 0.75rem;
-    margin-right: 0.75rem;
+    margin-left: max(0.75rem, env(safe-area-inset-left));
+    margin-right: max(0.75rem, env(safe-area-inset-right));
     border-radius: 1.625rem;
     background:
       linear-gradient(180deg, hsl(var(--card) / 0.96), hsl(var(--card) / 0.90));
