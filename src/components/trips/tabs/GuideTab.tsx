@@ -8,7 +8,9 @@
 
 import { useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Clock, CloudSun, AlertTriangle, Thermometer } from 'lucide-react';
+import { Clock, CloudSun, AlertTriangle, Thermometer, ListChecks, ShieldCheck } from 'lucide-react';
+import { AppModuleHeader } from '@/components/trips/AppModuleHeader';
+import { ModuleOperatingBrief } from '@/components/trips/ModuleOperatingBrief';
 import { Trip } from '@/types/database';
 import { useCanonicalTripState, deriveWeatherPills, type WeatherPill } from '@/hooks/useCanonicalTripState';
 import { useBookings } from '@/hooks/useBookings';
@@ -168,16 +170,84 @@ export function GuideTab({ tripId, trip }: GuideTabProps) {
 
   if (guideItems.length === 0) {
     return (
-      <div className="text-center py-12 pb-20">
+      <div className="space-y-4 pb-20">
+        <AppModuleHeader
+          icon={CloudSun}
+          eyebrow="Trip guidance"
+          title="Guide"
+          description="RT2RP watches timing, weather, alerts, and transitions, then tells you what deserves attention."
+          status="All clear"
+          statusTone="live"
+        />
+        <ModuleOperatingBrief
+          items={[
+            {
+              icon: ShieldCheck,
+              label: 'Current read',
+              value: 'No active concerns',
+              detail: 'Nothing needs action from the current trip data.',
+              tone: 'ready',
+            },
+            {
+              icon: Clock,
+              label: 'Timing watch',
+              value: `${timelineEvents.length} events`,
+              detail: timelineEvents.length > 0 ? 'Upcoming events are watched for tight timing.' : 'Add bookings or stops to create timing guidance.',
+              tone: timelineEvents.length > 0 ? 'neutral' : 'setup',
+            },
+            {
+              icon: CloudSun,
+              label: 'Weather watch',
+              value: Object.keys(weatherByKey).length > 0 ? 'Available' : 'Pending',
+              detail: 'Weather appears here when conditions change the plan.',
+              tone: Object.keys(weatherByKey).length > 0 ? 'neutral' : 'setup',
+            },
+          ]}
+        />
+        <div className="text-center py-8">
         <CloudSun className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
         <p className="text-sm text-muted-foreground">Everything looks good — nothing to flag right now.</p>
         <p className="text-xs text-muted-foreground/60 mt-1">All clear. RT2RP surfaces guidance automatically when timing, weather, route, or booking details need attention.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-2 pb-20">
+    <div className="space-y-4 pb-20">
+      <AppModuleHeader
+        icon={CloudSun}
+        eyebrow="Trip guidance"
+        title="Guide"
+        description="RT2RP prioritizes the few things that matter next, so the trip feels directed instead of noisy."
+        status={`${guideItems.length} active`}
+        statusTone={guideItems.some(item => item.icon === 'alert') ? 'cached' : 'neutral'}
+      />
+      <ModuleOperatingBrief
+        items={[
+          {
+            icon: ListChecks,
+            label: 'Top guidance',
+            value: guideItems[0]?.icon === 'alert' ? 'Alert' : guideItems[0]?.icon === 'timing' ? 'Timing' : 'Weather',
+            detail: guideItems[0]?.text || 'No active recommendation.',
+            tone: guideItems[0]?.icon === 'alert' ? 'watch' : 'neutral',
+          },
+          {
+            icon: Clock,
+            label: 'Timeline watch',
+            value: `${timelineEvents.length} events`,
+            detail: 'Upcoming events drive timing recommendations.',
+            tone: timelineEvents.length > 0 ? 'neutral' : 'setup',
+          },
+          {
+            icon: AlertTriangle,
+            label: 'Alert load',
+            value: `${alerts.length}`,
+            detail: alerts.length > 0 ? 'Alerts are included in the priority stack.' : 'No active alerts from the current trip context.',
+            tone: alerts.length > 0 ? 'watch' : 'ready',
+          },
+        ]}
+      />
       {guideItems.map(item => (
         <Card key={item.id}>
           <CardContent className="p-3.5">

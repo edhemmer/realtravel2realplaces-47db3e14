@@ -684,17 +684,7 @@ function ConnectionHealthStrip({ health, isLoading }: { health?: ConnectionHealt
     health?.authSession === 'connected' &&
     health?.database === 'connected';
 
-  if (connected) {
-    return (
-      <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/8 px-4 py-3 text-xs text-emerald-700 dark:text-emerald-300">
-        <div className="flex flex-wrap items-center gap-2">
-          <ShieldCheck className="h-4 w-4 shrink-0" />
-          <span className="font-bold">Core connections live</span>
-          <span className="text-emerald-700/75 dark:text-emerald-300/75">Auth, Supabase config, and trip database access are responding.</span>
-        </div>
-      </div>
-    );
-  }
+  if (connected) return null;
 
   const message =
     health?.supabaseConfig === 'missing'

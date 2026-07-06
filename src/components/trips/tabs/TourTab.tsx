@@ -28,6 +28,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { AppModuleHeader } from '@/components/trips/AppModuleHeader';
+import { ModuleOperatingBrief } from '@/components/trips/ModuleOperatingBrief';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,7 +40,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, MapPin, Clock, Trash2, Pencil, Navigation, Store, Import, RotateCcw, Lock, Sparkles } from 'lucide-react';
+import { Plus, MapPin, Clock, Trash2, Pencil, Navigation, Store, Import, RotateCcw, Lock, Sparkles, Route, Calendar } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 import { useTripPermission } from '@/pages/TripDetail';
@@ -352,8 +354,63 @@ export function TourTab({ tripId, trip, canBulkImport = false }: TourTabProps) {
 
   return (
     <div className="space-y-3">
+      <AppModuleHeader
+        icon={Store}
+        eyebrow="Business movement"
+        title="Stops"
+        description="Organize work locations, meetings, and field stops by day with clear timing and navigation."
+        status={stops.length > 0 ? `${stops.length} stops` : 'No stops'}
+        statusTone={stops.length > 0 ? 'neutral' : 'setup'}
+      >
+        <div className="flex items-center gap-2 flex-wrap">
+          {canEdit && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setImportDialogOpen(true)}
+              className="h-9"
+            >
+              <Import className="w-4 h-4 mr-2" />
+              Import
+            </Button>
+          )}
+          {canEdit && (
+            <Button onClick={openAddDialog} className="rt-primary-action h-9">
+              <Plus className="w-4 h-4 mr-2" />
+              Add stop
+            </Button>
+          )}
+        </div>
+      </AppModuleHeader>
+
+      <ModuleOperatingBrief
+        items={[
+          {
+            icon: Calendar,
+            label: 'Schedule',
+            value: `${dateGroups.length} day${dateGroups.length === 1 ? '' : 's'}`,
+            detail: dateGroups.length > 0 ? 'Stops are grouped into operating days.' : 'Add dated stops to create the work route.',
+            tone: dateGroups.length > 0 ? 'neutral' : 'setup',
+          },
+          {
+            icon: Clock,
+            label: 'Timed stops',
+            value: `${stops.filter(hasConfirmedTime).length}`,
+            detail: 'Confirmed times stay ordered before TBD stops.',
+            tone: stops.some(hasConfirmedTime) ? 'ready' : 'setup',
+          },
+          {
+            icon: Route,
+            label: 'Route logic',
+            value: dateGroups.some(group => group.mode === 'MANUAL_LOCKED') ? 'Locked day' : 'Optimized',
+            detail: 'TBD stops can be auto-ordered or kept in a locked manual sequence.',
+            tone: dateGroups.some(group => group.mode === 'MANUAL_LOCKED') ? 'watch' : 'neutral',
+          },
+        ]}
+      />
+
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+      <div className="hidden flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
         <h3 className="text-lg font-semibold">Tour Stops</h3>
         <div className="flex items-center gap-2 flex-wrap">
           {canEdit && (

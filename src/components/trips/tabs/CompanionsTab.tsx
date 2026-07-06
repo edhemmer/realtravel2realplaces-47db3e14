@@ -12,9 +12,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AppModuleHeader } from '@/components/trips/AppModuleHeader';
+import { ModuleOperatingBrief } from '@/components/trips/ModuleOperatingBrief';
 import { 
   Plus, Trash2, Users, Mail, Phone, Share2, Link2, Copy, Check, 
-  Send, UserPlus, Clock, CheckCircle2
+  Send, UserPlus, Clock, CheckCircle2, ShieldCheck
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -168,8 +170,58 @@ export function CompanionsTab({ tripId }: CompanionsTabProps) {
 
   return (
     <div className="space-y-6">
+      <AppModuleHeader
+        icon={Users}
+        eyebrow="People traveling"
+        title="Companions"
+        description="Keep traveler details, contact information, and shared-trip access in one place before the trip gets busy."
+        status={companions.length > 0 ? `${companions.length} companions` : 'No companions'}
+        statusTone={companions.length > 0 ? 'neutral' : 'setup'}
+      >
+        {canEdit && (
+          <div className="flex gap-2">
+            {isOwner && (
+              <Button onClick={() => setShareDialogOpen(true)} variant="outline" className="h-9">
+                <Share2 className="w-4 h-4 mr-2" />
+                Share
+              </Button>
+            )}
+            <Button onClick={() => setDialogOpen(true)} className="rt-primary-action h-9">
+              <Plus className="w-4 h-4 mr-2" />
+              Add
+            </Button>
+          </div>
+        )}
+      </AppModuleHeader>
+
+      <ModuleOperatingBrief
+        items={[
+          {
+            icon: Users,
+            label: 'Roster',
+            value: companions.length > 0 ? `${companions.length}` : 'Solo',
+            detail: companions.length > 0 ? 'Companion details are ready for coordination.' : 'Add companions only when the trip needs shared context.',
+            tone: companions.length > 0 ? 'ready' : 'neutral',
+          },
+          {
+            icon: Share2,
+            label: 'Shared access',
+            value: `${shares.length}`,
+            detail: shares.length > 0 ? 'Shared links and invitations are tracked here.' : 'Share the trip when someone else needs the operating view.',
+            tone: shares.length > 0 ? 'neutral' : 'setup',
+          },
+          {
+            icon: ShieldCheck,
+            label: 'Control',
+            value: isOwner ? 'Owner' : 'Limited',
+            detail: isOwner ? 'You can manage links, companions, and access.' : 'Your access follows the owner permissions.',
+            tone: isOwner ? 'ready' : 'neutral',
+          },
+        ]}
+      />
+
       {/* Header v1.3.2 */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="hidden flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h3 className="text-lg font-semibold">Travel Companions</h3>
           <p className="text-sm text-muted-foreground">

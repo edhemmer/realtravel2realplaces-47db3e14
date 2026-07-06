@@ -34,6 +34,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { AppModuleHeader } from '@/components/trips/AppModuleHeader';
+import { ModuleOperatingBrief } from '@/components/trips/ModuleOperatingBrief';
 import { 
   Select, 
   SelectContent, 
@@ -58,6 +60,7 @@ import {
   Users,
   Calendar,
   MapPin,
+  FileCheck2,
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import jsPDF from 'jspdf';
@@ -361,8 +364,43 @@ export function TripSummaryReportTab({ tripId }: TripSummaryReportTabProps) {
 
   return (
     <div className="space-y-6">
+      <AppModuleHeader
+        icon={FileDown}
+        eyebrow="Trip records"
+        title="Report"
+        description="Create a clean trip record with bookings, shared costs, categories, companions, and exportable summaries."
+        status={isOwner ? 'Owner export' : 'View report'}
+        statusTone="neutral"
+      />
+
+      <ModuleOperatingBrief
+        items={[
+          {
+            icon: Receipt,
+            label: 'Trip total',
+            value: costSummary.isMultiCurrency ? `${costSummary.multiCurrency.currencies.length} currencies` : formatCurrency(costSummary.totalCost),
+            detail: costSummary.isMultiCurrency ? 'Report preserves currency separation.' : 'Bookings, expenses, and parking are included.',
+            tone: costSummary.totalCost > 0 || costSummary.isMultiCurrency ? 'ready' : 'setup',
+          },
+          {
+            icon: FileCheck2,
+            label: 'Report inputs',
+            value: `${bookings.length + expenses.length + parking.length}`,
+            detail: 'Bookings, expenses, and parking records feed the export.',
+            tone: bookings.length + expenses.length + parking.length > 0 ? 'neutral' : 'setup',
+          },
+          {
+            icon: Users,
+            label: 'Traveler view',
+            value: companions.length === 0 ? 'Owner only' : `${companions.length + 1} travelers`,
+            detail: 'Exports can be prepared for owner or companion share views.',
+            tone: companions.length > 0 ? 'ready' : 'neutral',
+          },
+        ]}
+      />
+
       {/* Header Card */}
-      <Card>
+      <Card className="hidden">
         <CardHeader>
           <div className="flex items-start justify-between">
             <div>

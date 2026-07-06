@@ -16,9 +16,11 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { AppModuleHeader } from '@/components/trips/AppModuleHeader';
+import { ModuleOperatingBrief } from '@/components/trips/ModuleOperatingBrief';
 import { 
   Users, UserPlus, Copy, Check, Shield, User, 
-  Clock, CheckCircle2, XCircle, Ban
+  Clock, CheckCircle2, XCircle, Ban, LockKeyhole
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -146,8 +148,50 @@ export function MembersTab({ tripId }: MembersTabProps) {
 
   return (
     <div className="space-y-6">
+      <AppModuleHeader
+        icon={Users}
+        eyebrow="Shared operations"
+        title="Members"
+        description="Control who can see or help manage the trip without losing ownership of the itinerary."
+        status={isOwner ? 'Owner controls' : 'Guest access'}
+        statusTone="neutral"
+      >
+        {isOwner && (
+          <Button onClick={() => setInviteDialogOpen(true)} className="rt-primary-action min-h-[44px]">
+             <UserPlus className="w-4 h-4 mr-2" />
+            Invite
+          </Button>
+        )}
+      </AppModuleHeader>
+
+      <ModuleOperatingBrief
+        items={[
+          {
+            icon: Shield,
+            label: 'Owner',
+            value: owner?.display_name || 'Trip Owner',
+            detail: 'Full access remains anchored to the trip owner.',
+            tone: 'ready',
+          },
+          {
+            icon: Users,
+            label: 'Guests',
+            value: `${guests.length}`,
+            detail: guests.length > 0 ? 'Guests can access the trip based on granted permissions.' : 'Invite only the people who need the operating view.',
+            tone: guests.length > 0 ? 'neutral' : 'setup',
+          },
+          {
+            icon: LockKeyhole,
+            label: 'Invites',
+            value: `${invites.filter(invite => invite.status === 'pending').length} pending`,
+            detail: isOwner ? 'Pending links can be revoked from this screen.' : 'Invite control is limited to the owner.',
+            tone: invites.some(invite => invite.status === 'pending') ? 'watch' : 'ready',
+          },
+        ]}
+      />
+
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="hidden flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h3 className="text-lg font-semibold">Trip Members</h3>
           <p className="text-sm text-muted-foreground">

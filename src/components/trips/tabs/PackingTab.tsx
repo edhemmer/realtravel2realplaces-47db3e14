@@ -15,12 +15,14 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { AppModuleHeader } from '@/components/trips/AppModuleHeader';
+import { ModuleOperatingBrief } from '@/components/trips/ModuleOperatingBrief';
 
 import { 
   Plus, Trash2, Sparkles, Copy, Check, Cloud, Sun, 
   Briefcase, ShoppingBag, Luggage, Waves, RefreshCw, AlertCircle, Mountain, Building2,
   Minus, MapPin, Shirt, Footprints, Watch, Umbrella, Snowflake, 
-  Globe, Battery, ShowerHead, BookOpen, Smartphone, Cable
+  Globe, Battery, ShowerHead, BookOpen, Smartphone, Cable, ListChecks
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { differenceInDays, parseISO } from 'date-fns';
@@ -519,8 +521,73 @@ export function PackingTab({ tripId }: PackingTabProps) {
 
   return (
     <div className="space-y-4">
+      <AppModuleHeader
+        icon={Luggage}
+        eyebrow="Trip readiness"
+        title="Packing"
+        description="Turn weather, trip length, destination type, and stops into a focused list you can act on before departure."
+        status={packingItems.length > 0 ? `${Math.round(progress)}% packed` : 'Setup needed'}
+        statusTone={packingItems.length > 0 ? (progress === 100 ? 'live' : 'neutral') : 'setup'}
+      >
+        {canEdit && (
+          <div className="flex items-center gap-1.5">
+            {packingItems.length === 0 ? (
+              <Button onClick={() => generatePackingList(false)} size="sm" disabled={isGenerating} className="rt-primary-action h-9 px-3 text-xs">
+                <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                {isGenerating ? 'Generating...' : 'Generate list'}
+              </Button>
+            ) : (
+              <>
+                <Button onClick={() => setShowRegenerateConfirm(true)} variant="outline" size="sm" disabled={isGenerating} className="h-9 text-xs px-3">
+                  <RefreshCw className={`w-3 h-3 mr-1 ${isGenerating ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+                <Button onClick={copyToClipboard} variant="outline" size="icon" className="h-9 w-9">
+                  {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                </Button>
+              </>
+            )}
+            <Button onClick={() => setDialogOpen(true)} size="icon" className="h-9 w-9" variant="outline">
+              <Plus className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        )}
+        {!canEdit && packingItems.length > 0 && (
+          <Button onClick={copyToClipboard} variant="outline" size="sm" className="h-9 text-xs px-3">
+            {copied ? <Check className="w-3 h-3 mr-1.5" /> : <Copy className="w-3 h-3 mr-1.5" />}
+            Copy
+          </Button>
+        )}
+      </AppModuleHeader>
+
+      <ModuleOperatingBrief
+        items={[
+          {
+            icon: ListChecks,
+            label: 'Pack status',
+            value: totalItems > 0 ? `${packedItems}/${totalItems}` : 'No list yet',
+            detail: totalItems > 0 ? 'Track progress without re-reading every category.' : 'Generate a weather-aware list, then add personal items.',
+            tone: totalItems > 0 ? (progress === 100 ? 'ready' : 'neutral') : 'setup',
+          },
+          {
+            icon: MapPin,
+            label: 'Trip span',
+            value: `${tripNights} night${tripNights !== 1 ? 's' : ''}`,
+            detail: trip?.destination_city ? `${trip.destination_city}${locationCount > 1 ? ` plus ${locationCount - 1} more stop${locationCount > 2 ? 's' : ''}` : ''}` : 'Dates and destination drive recommendations.',
+            tone: 'neutral',
+          },
+          {
+            icon: Cloud,
+            label: 'Weather logic',
+            value: allClimateTags.length > 0 ? allClimateTags.slice(0, 2).map(tag => CLIMATE_TAG_LABELS[tag] || tag).join(', ') : 'Pending',
+            detail: weatherLoading ? 'Checking weather context.' : 'Rain, cold, heat, and multi-stop changes are reflected when available.',
+            tone: allClimateTags.length > 0 ? 'ready' : 'setup',
+          },
+        ]}
+      />
+
       {/* Compact Header */}
-      <div className="flex items-center justify-between gap-3">
+      <div className="hidden items-center justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-base font-semibold tracking-tight">Packing List</h3>
           <p className="text-xs text-muted-foreground truncate">
