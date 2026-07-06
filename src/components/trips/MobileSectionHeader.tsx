@@ -6,8 +6,6 @@
  * Scrolls with content, mobile-only, no routing or state changes.
  */
 
-import { Separator } from '@/components/ui/separator';
-
 interface MobileSectionHeaderProps {
   sectionTitle: string;
   tripName: string;
@@ -15,12 +13,9 @@ interface MobileSectionHeaderProps {
 
 export function MobileSectionHeader({ sectionTitle, tripName }: MobileSectionHeaderProps) {
   return (
-    <div className="md:hidden">
-      <div className="py-3 px-0.5">
-        <h2 className="text-lg font-bold leading-tight text-foreground">{sectionTitle}</h2>
-        <p className="text-xs text-muted-foreground mt-0.5 truncate">{tripName}</p>
-      </div>
-      <Separator className="mb-3" />
+    <div className="rt-ios-section-heading md:hidden">
+      <p>{tripName}</p>
+      <h2>{sectionTitle}</h2>
     </div>
   );
 }

@@ -196,7 +196,7 @@ export function MobileNavigationRouter({
   const renderTabContent = () => {
     const sectionLabel = MORE_TAB_LABELS[activeTab];
     return (
-      <div className="mt-2">
+      <div className="rt-ios-module-flow mt-2">
         {sectionLabel && (
           <MobileSectionHeader
             sectionTitle={sectionLabel}

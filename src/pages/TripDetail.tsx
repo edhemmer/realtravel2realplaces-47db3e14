@@ -55,6 +55,7 @@ import { TripDetailLayout } from '@/components/layout/TripDetailLayout';
 import { type TripTab } from '@/components/layout/MobileBottomNav';
 import { createContext, lazy, Suspense, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { tapHaptic } from '@/lib/native/haptics';
 
 const MobileNavigationRouter = lazy(() =>
   import('@/containers/MobileNavigationRouter').then((m) => ({ default: m.MobileNavigationRouter }))
@@ -447,15 +448,15 @@ export default function TripDetail() {
           </p>
 
           <div className="mt-4 grid grid-cols-3 gap-2">
-            <button type="button" onClick={() => handleTabChange('flow')} className="rt-ios-command-chip">
+            <button type="button" onClick={() => { void tapHaptic(); handleTabChange('flow'); }} className="rt-ios-command-chip">
               <Route className="h-4 w-4" />
               Timeline
             </button>
-            <button type="button" onClick={() => handleTabChange(isDriveTrip ? 'drive' : 'move')} className="rt-ios-command-chip">
+            <button type="button" onClick={() => { void tapHaptic(); handleTabChange(isDriveTrip ? 'drive' : 'move'); }} className="rt-ios-command-chip">
               {isDriveTrip ? <Car className="h-4 w-4" /> : <Navigation className="h-4 w-4" />}
               {isDriveTrip ? 'Drive' : 'Move'}
             </button>
-            <button type="button" onClick={() => handleTabChange('expenses')} className="rt-ios-command-chip">
+            <button type="button" onClick={() => { void tapHaptic(); handleTabChange('expenses'); }} className="rt-ios-command-chip">
               <ReceiptText className="h-4 w-4" />
               Spend
             </button>

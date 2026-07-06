@@ -43,7 +43,7 @@ export function TodayCompactTimeline({ todayTimelineRows }: TodayCompactTimeline
   if (todayTimelineRows.length === 0) return null;
 
   return (
-    <Card className="border-border/30 bg-muted/30 shadow-none">
+    <Card className="rt-ios-list-group border-border/30 bg-muted/30 shadow-none">
       <CardHeader className="pb-1.5 pt-2.5 px-3">
         <CardTitle className="text-[10px] font-semibold flex items-center gap-1.5 text-muted-foreground uppercase tracking-wider">
           <Calendar className="w-3 h-3" />
@@ -55,11 +55,11 @@ export function TodayCompactTimeline({ todayTimelineRows }: TodayCompactTimeline
           <div
             key={row.event.id}
             className={cn(
-              'flex items-center gap-2.5 py-1.5 rounded-lg transition-opacity',
+              'rt-ios-list-row transition-opacity',
               row.isPast ? 'opacity-50' : 'opacity-100'
             )}
           >
-            <div className="shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+            <div className="rt-ios-row-icon">
               {getEventIcon(row.event.eventType)}
             </div>
             <div className="flex-1 min-w-0">

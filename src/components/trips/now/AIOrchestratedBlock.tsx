@@ -46,7 +46,7 @@ export function AIOrchestratedBlock({ context, onAction }: AIOrchestratedBlockPr
   );
 
   return (
-    <div className="space-y-3">
+    <div className="rt-ios-list-group space-y-3">
       {/* Primary Focus — largest text on screen */}
       <div>
         <p className="text-lg font-bold text-foreground leading-tight tracking-tight">
@@ -67,10 +67,12 @@ export function AIOrchestratedBlock({ context, onAction }: AIOrchestratedBlockPr
             return (
               <div
                 key={item.id}
-                className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-muted/50 border border-border/50"
+                className="rt-ios-list-row"
               >
-                <Icon className={`w-3.5 h-3.5 shrink-0 ${colorClass}`} />
-                <span className="text-xs font-medium text-foreground leading-snug truncate">
+                <span className="rt-ios-row-icon">
+                  <Icon className={`w-3.5 h-3.5 ${colorClass}`} />
+                </span>
+                <span className="min-w-0 flex-1 truncate text-xs font-medium leading-snug text-foreground">
                   {item.message}
                 </span>
               </div>
@@ -87,7 +89,7 @@ export function AIOrchestratedBlock({ context, onAction }: AIOrchestratedBlockPr
               key={action.id}
               variant="outline"
               size="sm"
-              className="text-xs font-semibold"
+              className="rt-ios-pill-action text-xs font-semibold"
               onClick={() => handleAction(action)}
             >
               {action.label}

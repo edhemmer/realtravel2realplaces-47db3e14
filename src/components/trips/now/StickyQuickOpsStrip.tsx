@@ -1,4 +1,5 @@
 import { Car, Compass, DollarSign } from 'lucide-react';
+import { tapHaptic } from '@/lib/native/haptics';
 
 interface StickyQuickOpsStripProps {
   onAddExpense: () => void;
@@ -17,18 +18,24 @@ export function StickyQuickOpsStrip({
 }: StickyQuickOpsStripProps) {
   return (
     <div className="space-y-2 md:hidden">
-      <div className="nav-floating mx-auto grid max-w-sm grid-cols-2 gap-2 rounded-2xl p-2">
+      <div className="rt-ios-action-strip nav-floating mx-auto grid max-w-sm grid-cols-2 gap-2 rounded-2xl p-2">
         <button
-          className="flex h-[50px] items-center justify-center gap-2 rounded-xl bg-card text-foreground shadow-sm ring-1 ring-border/50 transition-all hover:bg-muted/50 active:scale-[0.98]"
-          onClick={onAddExpense}
+          className="rt-ios-quick-action"
+          onClick={() => {
+            void tapHaptic();
+            onAddExpense();
+          }}
           aria-label="Add spend"
         >
           <DollarSign className="h-5 w-5" />
           <span className="text-sm font-semibold">Spend</span>
         </button>
         <button
-          className="flex h-[50px] items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98]"
-          onClick={onExplore}
+          className="rt-ios-quick-action rt-ios-quick-action-primary"
+          onClick={() => {
+            void tapHaptic();
+            onExplore();
+          }}
           aria-label="Open places"
         >
           <Compass className="h-5 w-5" />
@@ -38,8 +45,11 @@ export function StickyQuickOpsStrip({
 
       {onDriveMode && (
         <button
-          className="nav-floating mx-auto flex h-12 w-full max-w-sm items-center gap-3 rounded-2xl px-4 transition-colors hover:border-primary/35 active:scale-[0.99]"
-          onClick={onDriveMode}
+          className="rt-ios-drive-ribbon nav-floating mx-auto flex h-12 w-full max-w-sm items-center gap-3 rounded-2xl px-4 transition-colors hover:border-primary/35 active:scale-[0.99]"
+          onClick={() => {
+            void tapHaptic();
+            onDriveMode();
+          }}
           aria-label="Open Driving Mode"
         >
           <Car className="h-5 w-5 text-primary" />

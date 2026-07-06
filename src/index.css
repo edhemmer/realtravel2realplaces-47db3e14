@@ -987,6 +987,20 @@
     overflow: hidden;
   }
 
+  html[data-native-platform='ios'] .rt-ios-module-flow {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  html[data-native-platform='ios'] .rt-ios-module-flow > * + * {
+    margin-top: 0.875rem;
+  }
+
+  html[data-native-platform='ios'] .rt-ios-module-flow .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0.875rem;
+  }
+
   html[data-native-platform='ios'] .rt-ios-back-button {
     margin-left: -0.625rem;
     height: 2.375rem;
@@ -1070,12 +1084,179 @@
     border-color: hsl(var(--brand-champagne) / 0.32);
   }
 
+  html[data-native-platform='ios'] .rt-ios-action-strip {
+    border-radius: 1.375rem;
+    padding: 0.5rem;
+  }
+
+  html[data-native-platform='ios'] .rt-ios-quick-action {
+    display: inline-flex;
+    height: 3.125rem;
+    min-width: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 1rem;
+    border: 1px solid hsl(var(--border) / 0.55);
+    background: hsl(var(--card) / 0.92);
+    color: hsl(var(--foreground));
+    box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.06);
+    transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+    touch-action: manipulation;
+  }
+
+  html[data-native-platform='ios'] .rt-ios-quick-action-primary {
+    border-color: hsl(var(--primary) / 0.35);
+    background: linear-gradient(180deg, hsl(var(--primary)), hsl(var(--primary) / 0.82));
+    color: hsl(var(--primary-foreground));
+  }
+
+  html[data-native-platform='ios'] .rt-ios-quick-action:active,
+  html[data-native-platform='ios'] .rt-ios-drive-ribbon:active {
+    transform: scale(0.985);
+  }
+
+  html[data-native-platform='ios'] .rt-ios-drive-ribbon {
+    border-radius: 1.125rem;
+    border: 1px solid hsl(var(--primary) / 0.22);
+    background:
+      linear-gradient(180deg, hsl(var(--card) / 0.94), hsl(var(--card) / 0.84)),
+      radial-gradient(240px 110px at 0% 0%, hsl(var(--primary) / 0.12), transparent 70%);
+  }
+
+  html[data-native-platform='ios'] .rt-ios-section-heading {
+    padding: 0.875rem 0.125rem 0.625rem;
+  }
+
+  html[data-native-platform='ios'] .rt-ios-section-heading p {
+    margin: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: hsl(var(--muted-foreground));
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  html[data-native-platform='ios'] .rt-ios-section-heading h2 {
+    margin: 0.15rem 0 0;
+    color: hsl(var(--foreground));
+    font-size: 1.55rem;
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+  }
+
+  html[data-native-platform='ios'] .rt-ios-list-group {
+    border-radius: 1.25rem;
+    border: 1px solid hsl(var(--border) / 0.45);
+    background:
+      linear-gradient(180deg, hsl(var(--card) / 0.94), hsl(var(--card) / 0.86));
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.06),
+      0 14px 38px -28px hsl(0 0% 0% / 0.62);
+    padding: 0.75rem;
+  }
+
+  html[data-native-platform='ios'] .rt-ios-list-row {
+    display: flex;
+    min-height: 2.875rem;
+    min-width: 0;
+    align-items: center;
+    gap: 0.75rem;
+    border-radius: 1rem;
+    padding: 0.55rem 0.7rem;
+    background: hsl(var(--background) / 0.42);
+    border: 1px solid hsl(var(--border) / 0.22);
+  }
+
+  html[data-native-platform='ios'] .rt-ios-row-icon {
+    display: inline-flex;
+    width: 1.75rem;
+    height: 1.75rem;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.75rem;
+    background: hsl(var(--primary) / 0.10);
+    color: hsl(var(--primary));
+  }
+
+  html[data-native-platform='ios'] .rt-ios-pill-action {
+    min-height: 2.35rem;
+    border-radius: 999px;
+    border-color: hsl(var(--border) / 0.52);
+    background: hsl(var(--background) / 0.42);
+    padding-left: 0.875rem;
+    padding-right: 0.875rem;
+  }
+
+  html[data-native-platform='ios'] .rt-ios-list-group .text-lg {
+    font-size: 1.08rem;
+    line-height: 1.16;
+  }
+
+  html[data-native-platform='ios'] .rt-ios-list-group .text-sm {
+    line-height: 1.35;
+  }
+
+  html[data-native-platform='ios'] .rt-ios-list-group .card,
+  html[data-native-platform='ios'] .rt-ios-list-group [data-radix-collection-item] {
+    max-width: 100%;
+  }
+
   html[data-native-platform='ios'] .rt-command-panel,
   html[data-native-platform='ios'] .premium-panel,
   html[data-native-platform='ios'] .rt-ops-lane,
-  html[data-native-platform='ios'] .rt-kpi-panel {
+  html[data-native-platform='ios'] .rt-kpi-panel,
+  html[data-native-platform='ios'] [class*="min-w-[240px]"],
+  html[data-native-platform='ios'] [class*="min-w-[280px]"] {
     max-width: 100%;
     box-sizing: border-box;
+  }
+
+  html[data-native-platform='ios'] .rt-ios-module-flow [class*="min-w-[240px]"],
+  html[data-native-platform='ios'] .rt-ios-module-flow [class*="min-w-[280px]"] {
+    min-width: 0 !important;
+  }
+
+  html[data-native-platform='ios'] .rt-ios-module-flow .rounded-lg {
+    border-radius: 0.95rem;
+  }
+
+  html[data-native-platform='ios'] .rt-ios-module-flow .rounded-xl {
+    border-radius: 1rem;
+  }
+
+  html[data-native-platform='ios'] .rt-ios-module-flow .rounded-2xl {
+    border-radius: 1.25rem;
+  }
+
+  html[data-native-platform='ios'] .rt-ios-module-flow input,
+  html[data-native-platform='ios'] .rt-ios-module-flow textarea,
+  html[data-native-platform='ios'] .rt-ios-module-flow select {
+    min-height: 2.875rem;
+    border-radius: 0.95rem;
+    background: hsl(var(--card) / 0.86);
+    border-color: hsl(var(--border) / 0.55);
+  }
+
+  html[data-native-platform='ios'] .rt-ios-module-flow button,
+  html[data-native-platform='ios'] .rt-ios-module-flow a {
+    touch-action: manipulation;
+  }
+
+  html[data-native-platform='ios'] .rt-ios-module-flow button:not(.rt-ios-command-chip):not(.rt-ios-quick-action) {
+    min-height: 2.5rem;
+  }
+
+  html[data-native-platform='ios'] .rt-ios-module-flow .shadow-sm,
+  html[data-native-platform='ios'] .rt-ios-module-flow .shadow,
+  html[data-native-platform='ios'] .rt-ios-module-flow .shadow-md {
+    box-shadow: 0 14px 34px -28px hsl(0 0% 0% / 0.62);
   }
 
   html[data-native-platform='ios'] .rt-page-stack {
@@ -1118,6 +1299,15 @@
 
   html[data-native-platform='ios'] .nav-floating > div {
     height: 3.875rem;
+  }
+
+  html[data-native-platform='ios'] [data-radix-dropdown-menu-content] {
+    border-radius: 1.25rem;
+    background:
+      linear-gradient(180deg, hsl(var(--card) / 0.98), hsl(var(--card) / 0.94));
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.06),
+      0 24px 60px -28px hsl(0 0% 0% / 0.74);
   }
 
   html[data-native-platform='ios'] .nav-pill-active {

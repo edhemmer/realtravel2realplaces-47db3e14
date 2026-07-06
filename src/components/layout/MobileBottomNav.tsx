@@ -35,8 +35,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { tapHaptic } from '@/lib/native/haptics';
 
 export type TripTab = 
   | 'now'
@@ -78,20 +81,35 @@ interface NavItem {
   requiresPro?: boolean;
 }
 
-const MORE_NAV_ITEMS: NavItem[] = [
-  { id: 'airport', label: 'Airport window', icon: <Building2 className="w-4 h-4" /> },
-  { id: 'bookings', label: 'Reservations', icon: <Plane className="w-4 h-4" /> },
-  { id: 'expenses', label: 'Spend', icon: <DollarSign className="w-4 h-4" /> },
-  { id: 'weather', label: 'Weather', icon: <CloudSun className="w-4 h-4" /> },
-  { id: 'packing', label: 'Pack', icon: <Package className="w-4 h-4" /> },
-  { id: 'parking', label: 'Parking', icon: <CircleParking className="w-4 h-4" /> },
-  { id: 'alerts', label: 'Alerts', icon: <Bell className="w-4 h-4" /> },
-  { id: 'guide', label: 'Guide', icon: <Bell className="w-4 h-4" /> },
-  { id: 'report', label: 'Report', icon: <FileText className="w-4 h-4" />, requiresPro: true },
-  { id: 'members', label: 'Team access', icon: <Users className="w-4 h-4" /> },
-  { id: 'companions', label: 'Travelers', icon: <Users className="w-4 h-4" /> },
-  { id: 'notes', label: 'Safety notes', icon: <StickyNote className="w-4 h-4" /> },
-  { id: 'tour', label: 'Work stops', icon: <MapPin className="w-4 h-4" />, requiresBusiness: true },
+const MORE_NAV_GROUPS: { label: string; items: NavItem[] }[] = [
+  {
+    label: 'Travel',
+    items: [
+      { id: 'airport', label: 'Airport window', icon: <Building2 className="w-4 h-4" /> },
+      { id: 'bookings', label: 'Reservations', icon: <Plane className="w-4 h-4" /> },
+      { id: 'weather', label: 'Weather', icon: <CloudSun className="w-4 h-4" /> },
+      { id: 'parking', label: 'Parking', icon: <CircleParking className="w-4 h-4" /> },
+      { id: 'alerts', label: 'Alerts', icon: <Bell className="w-4 h-4" /> },
+    ],
+  },
+  {
+    label: 'Prepare',
+    items: [
+      { id: 'expenses', label: 'Spend', icon: <DollarSign className="w-4 h-4" /> },
+      { id: 'packing', label: 'Pack', icon: <Package className="w-4 h-4" /> },
+      { id: 'companions', label: 'Travelers', icon: <Users className="w-4 h-4" /> },
+      { id: 'notes', label: 'Safety notes', icon: <StickyNote className="w-4 h-4" /> },
+      { id: 'guide', label: 'Guide', icon: <Bell className="w-4 h-4" /> },
+    ],
+  },
+  {
+    label: 'Business',
+    items: [
+      { id: 'report', label: 'Report', icon: <FileText className="w-4 h-4" />, requiresPro: true },
+      { id: 'members', label: 'Team access', icon: <Users className="w-4 h-4" /> },
+      { id: 'tour', label: 'Work stops', icon: <MapPin className="w-4 h-4" />, requiresBusiness: true },
+    ],
+  },
 ];
 
 export function MobileBottomNav({ activeTab, onTabChange, className, showDrive = false }: MobileBottomNavProps) {
@@ -111,12 +129,18 @@ export function MobileBottomNav({ activeTab, onTabChange, className, showDrive =
     return true;
   });
 
-  const visibleMoreItems = MORE_NAV_ITEMS.filter(item => {
+  const itemIsVisible = (item: NavItem) => {
     if (item.id === 'drive') return showDrive;
     if (item.requiresBusiness) return canAccessBusinessFeatures;
     if (item.requiresPro) return isPro;
     return true;
-  });
+  };
+
+  const visibleMoreGroups = MORE_NAV_GROUPS
+    .map((group) => ({ ...group, items: group.items.filter(itemIsVisible) }))
+    .filter((group) => group.items.length > 0);
+
+  const visibleMoreItems = visibleMoreGroups.flatMap((group) => group.items);
 
   const isMoreActive = visibleMoreItems.some(item => item.id === activeTab);
 
@@ -143,7 +167,10 @@ export function MobileBottomNav({ activeTab, onTabChange, className, showDrive =
             return (
               <button
                 key={item.id}
-                onClick={() => onTabChange(item.id)}
+                onClick={() => {
+                  void tapHaptic();
+                  onTabChange(item.id);
+                }}
                 className={cn(
                   "relative flex flex-col items-center justify-center gap-0.5 rounded-[18px]",
                   "transition-all duration-300 ease-cinema touch-manipulation press-scale",
@@ -177,6 +204,7 @@ export function MobileBottomNav({ activeTab, onTabChange, className, showDrive =
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
+                onClick={() => void tapHaptic()}
                 className={cn(
                   "relative flex flex-col items-center justify-center gap-0.5 rounded-[18px]",
                   "transition-all duration-300 ease-cinema touch-manipulation press-scale",
@@ -208,24 +236,32 @@ export function MobileBottomNav({ activeTab, onTabChange, className, showDrive =
               className="w-60 mb-3 mr-2 rounded-2xl nav-floating border-0 p-1.5 max-w-[calc(100vw-1rem)]"
               sideOffset={8}
             >
-              <div className="px-3 pb-1.5 pt-2">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Trip tools</p>
-              </div>
-              {visibleMoreItems.map((item) => (
-                <DropdownMenuItem
-                  key={item.id}
-                  onClick={() => onTabChange(item.id)}
-                  className={cn(
-                    "cursor-pointer h-11 gap-3 px-3 rounded-xl text-sm font-medium",
-                    "transition-colors duration-200",
-                    activeTab === item.id
-                      ? "nav-pill-active focus:nav-pill-active"
-                      : "hover:bg-muted/70 focus:bg-muted/70"
-                  )}
-                >
-                  <span className="w-4 h-4 shrink-0 flex items-center justify-center">{item.icon}</span>
-                  <span>{item.label}</span>
-                </DropdownMenuItem>
+              {visibleMoreGroups.map((group, groupIndex) => (
+                <div key={group.label}>
+                  {groupIndex > 0 && <DropdownMenuSeparator className="my-1 bg-border/45" />}
+                  <DropdownMenuLabel className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                    {group.label}
+                  </DropdownMenuLabel>
+                  {group.items.map((item) => (
+                    <DropdownMenuItem
+                      key={item.id}
+                      onClick={() => {
+                        void tapHaptic();
+                        onTabChange(item.id);
+                      }}
+                      className={cn(
+                        "cursor-pointer h-11 gap-3 px-3 rounded-xl text-sm font-medium",
+                        "transition-colors duration-200",
+                        activeTab === item.id
+                          ? "nav-pill-active focus:nav-pill-active"
+                          : "hover:bg-muted/70 focus:bg-muted/70"
+                      )}
+                    >
+                      <span className="w-4 h-4 shrink-0 flex items-center justify-center">{item.icon}</span>
+                      <span>{item.label}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </div>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
