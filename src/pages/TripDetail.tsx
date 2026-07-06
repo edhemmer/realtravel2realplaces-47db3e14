@@ -9,9 +9,17 @@ import { useIsMobile } from '@/hooks/use-mobile';
 // v2.3.4: Foreground resume refresh for Next Up freshness
 import { useForegroundResume } from '@/hooks/useForegroundResume';
 import { Layout } from '@/components/Layout';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   ArrowLeft,
   MapPin,
@@ -34,6 +42,9 @@ import {
   Route,
   ShieldCheck,
   Navigation,
+  MoreHorizontal,
+  Bell,
+  DollarSign,
 } from 'lucide-react';
 import { format } from 'date-fns';
 // Patch 2.2.2: Import containers for canonical data flow
@@ -56,6 +67,7 @@ import { type TripTab } from '@/components/layout/MobileBottomNav';
 import { createContext, lazy, Suspense, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { tapHaptic } from '@/lib/native/haptics';
+import { cn } from '@/lib/utils';
 
 const MobileNavigationRouter = lazy(() =>
   import('@/containers/MobileNavigationRouter').then((m) => ({ default: m.MobileNavigationRouter }))
@@ -318,6 +330,48 @@ export default function TripDetail() {
       },
     ];
   }, [bookings.length, canAccessBusinessFeatures, handleTabChange, hasFlights, isDriveTrip, trip]);
+
+  const desktopPrimaryNav = useMemo(() => {
+    if (!trip) return [];
+    return [
+      { id: 'summary' as TripTab, label: 'Today', detail: 'Command view', icon: LayoutDashboard },
+      { id: 'flow' as TripTab, label: 'Timeline', detail: 'Trip order', icon: Route },
+      { id: isDriveTrip ? 'drive' as TripTab : 'ops' as TripTab, label: isDriveTrip ? 'Driving' : 'Move', detail: isDriveTrip ? 'Cockpit' : 'Travel context', icon: isDriveTrip ? Car : Navigation, href: isDriveTrip ? `/trip/${trip.id}/drive` : undefined },
+      { id: 'explore' as TripTab, label: 'Places', detail: 'Nearby context', icon: Compass },
+      { id: 'expenses' as TripTab, label: 'Spend', detail: 'Receipts', icon: DollarSign },
+    ];
+  }, [isDriveTrip, trip]);
+
+  const desktopMoreGroups = useMemo(() => ([
+    {
+      label: 'Travel',
+      items: [
+        { id: 'airport' as TripTab, label: 'Airport window', icon: Building2 },
+        { id: 'bookings' as TripTab, label: 'Reservations', icon: Plane },
+        { id: 'weather' as TripTab, label: 'Weather', icon: CloudSun },
+        { id: 'parking' as TripTab, label: 'Parking', icon: CircleParking },
+        { id: 'alerts' as TripTab, label: 'Alerts', icon: Bell },
+      ],
+    },
+    {
+      label: 'Prepare',
+      items: [
+        { id: 'packing' as TripTab, label: 'Pack', icon: Package },
+        { id: 'companions' as TripTab, label: 'Travelers', icon: Users },
+        { id: 'notes' as TripTab, label: 'Safety notes', icon: NotebookTabs },
+      ],
+    },
+    {
+      label: 'Business',
+      items: [
+        ...(isPro ? [{ id: 'report' as TripTab, label: 'Report', icon: FileText }] : []),
+        { id: 'members' as TripTab, label: 'Team access', icon: Users },
+        ...(canAccessBusinessFeatures ? [{ id: 'tour' as TripTab, label: 'Work stops', icon: BriefcaseBusiness }] : []),
+      ],
+    },
+  ]), [canAccessBusinessFeatures, isPro]);
+
+  const desktopMoreActive = desktopMoreGroups.some((group) => group.items.some((item) => item.id === activeTab));
 
   // v2.3.x: Mobile "Add Expense" handler — sets external tab for mobile router
   const handleMobileAddExpense = useCallback(() => {
@@ -699,80 +753,87 @@ export default function TripDetail() {
                       </Button>
                     )}
                   </div>
-                  <TabsList className="rt-module-tabs w-full justify-start gap-1 overflow-x-auto flex-nowrap hidden md:flex p-1.5">
-                    <TabsTrigger value="summary" className="rt-tab-trigger">
-                      <Route className="h-3.5 w-3.5" />
-                      Today
-                    </TabsTrigger>
-                    <TabsTrigger value="ops" className="rt-tab-trigger">
-                      <Navigation className="h-3.5 w-3.5" />
-                      Travel
-                    </TabsTrigger>
-                    <TabsTrigger value="flow" className="rt-tab-trigger">
-                      <Calendar className="h-3.5 w-3.5" />
-                      Timeline
-                    </TabsTrigger>
-                    <TabsTrigger value="airport" className="rt-tab-trigger">
-                      <Building2 className="h-3.5 w-3.5" />
-                      Airport
-                    </TabsTrigger>
-                    <TabsTrigger value="bookings" className="rt-tab-trigger">
-                      <Plane className="h-3.5 w-3.5" />
-                      Records
-                    </TabsTrigger>
-                    <TabsTrigger value="explore" className="rt-tab-trigger relative">
-                      <Compass className="h-3.5 w-3.5" />
-                      Places
-                      {!hasDiscoveredExplore && (
-                        <Badge 
-                          variant="secondary" 
-                          className="absolute -top-1.5 -right-1.5 h-4 px-1.5 text-[10px] font-semibold bg-primary text-primary-foreground"
+                  <div className="rt-desktop-command-dock hidden md:grid" style={{ gridTemplateColumns: `repeat(${desktopPrimaryNav.length + 1}, minmax(0, 1fr))` }}>
+                    {desktopPrimaryNav.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = activeTab === item.id;
+                      const content = (
+                        <>
+                          {isActive && <span className="rt-desktop-dock-accent" />}
+                          <span className="rt-desktop-dock-icon">
+                            <Icon className="h-4 w-4" />
+                          </span>
+                          <span className="min-w-0 text-left">
+                            <span className="block truncate text-sm font-bold">{item.label}</span>
+                            <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">{item.detail}</span>
+                          </span>
+                          {item.id === 'explore' && !hasDiscoveredExplore && (
+                            <Badge className="ml-auto h-5 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">New</Badge>
+                          )}
+                        </>
+                      );
+
+                      if (item.href) {
+                        return (
+                          <Link key={item.id} to={item.href} className={cn('rt-desktop-dock-item', isActive && 'is-active')}>
+                            {content}
+                          </Link>
+                        );
+                      }
+
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => handleTabChange(item.id)}
+                          className={cn('rt-desktop-dock-item', isActive && 'is-active')}
                         >
-                          New
-                        </Badge>
-                      )}
-                    </TabsTrigger>
-                    <TabsTrigger value="expenses" className="rt-tab-trigger">
-                      <ReceiptText className="h-3.5 w-3.5" />
-                      Spend
-                    </TabsTrigger>
-                    <TabsTrigger value="packing" className="rt-tab-trigger">
-                      <Package className="h-3.5 w-3.5" />
-                      Pack
-                    </TabsTrigger>
-                    <TabsTrigger value="weather" className="rt-tab-trigger">
-                      <CloudSun className="h-3.5 w-3.5" />
-                      Weather
-                    </TabsTrigger>
-                    <TabsTrigger value="parking" className="rt-tab-trigger">
-                      <CircleParking className="h-3.5 w-3.5" />
-                      Parking
-                    </TabsTrigger>
-                    {isPro && (
-                      <TabsTrigger value="report" className="rt-tab-trigger">
-                        <FileText className="h-3.5 w-3.5" />
-                        Report
-                      </TabsTrigger>
-                    )}
-                    <TabsTrigger value="members" className="rt-tab-trigger">
-                      <Users className="h-3.5 w-3.5" />
-                      Access
-                    </TabsTrigger>
-                    <TabsTrigger value="companions" className="rt-tab-trigger">
-                      <Users className="h-3.5 w-3.5" />
-                      Travelers
-                    </TabsTrigger>
-                    {canAccessBusinessFeatures && (
-                      <TabsTrigger value="tour" className="rt-tab-trigger">
-                        <BriefcaseBusiness className="h-3.5 w-3.5" />
-                        Work Stops
-                      </TabsTrigger>
-                    )}
-                    <TabsTrigger value="notes" className="rt-tab-trigger">
-                      <NotebookTabs className="h-3.5 w-3.5" />
-                      Notes
-                    </TabsTrigger>
-                  </TabsList>
+                          {content}
+                        </button>
+                      );
+                    })}
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button type="button" className={cn('rt-desktop-dock-item', desktopMoreActive && 'is-active')}>
+                          {desktopMoreActive && <span className="rt-desktop-dock-accent" />}
+                          <span className="rt-desktop-dock-icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </span>
+                          <span className="min-w-0 text-left">
+                            <span className="block truncate text-sm font-bold">More</span>
+                            <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">Records & tools</span>
+                          </span>
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="nav-floating w-72 rounded-2xl border-0 p-1.5">
+                        {desktopMoreGroups.map((group, groupIndex) => (
+                          <div key={group.label}>
+                            {groupIndex > 0 && <DropdownMenuSeparator className="my-1 bg-border/45" />}
+                            <DropdownMenuLabel className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                              {group.label}
+                            </DropdownMenuLabel>
+                            {group.items.map((item) => {
+                              const Icon = item.icon;
+                              return (
+                                <DropdownMenuItem
+                                  key={item.id}
+                                  onClick={() => handleTabChange(item.id)}
+                                  className={cn(
+                                    'h-11 cursor-pointer gap-3 rounded-xl px-3 text-sm font-medium',
+                                    activeTab === item.id ? 'nav-pill-active focus:nav-pill-active' : 'hover:bg-muted/70 focus:bg-muted/70'
+                                  )}
+                                >
+                                  <Icon className="h-4 w-4 shrink-0" />
+                                  <span>{item.label}</span>
+                                </DropdownMenuItem>
+                              );
+                            })}
+                          </div>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
 
                   <div className="mt-4 sm:mt-5">
                     <TabsContent value="summary">
