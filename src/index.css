@@ -893,6 +893,79 @@
     -webkit-backdrop-filter: saturate(150%) blur(16px);
   }
 
+  .rt-module-brief {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    border-radius: 1rem;
+    border: 1px solid hsl(var(--border) / 0.42);
+    background:
+      linear-gradient(180deg, hsl(var(--card) / 0.78), hsl(var(--card) / 0.62)),
+      radial-gradient(420px 160px at 0% 0%, hsl(var(--brand-signal) / 0.07), transparent 65%);
+    padding: 0.75rem;
+    box-shadow: var(--elevation-flush);
+  }
+
+  @media (min-width: 768px) {
+    .rt-module-brief {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.875rem;
+    }
+  }
+
+  .rt-module-brief-item {
+    display: flex;
+    min-width: 0;
+    gap: 0.75rem;
+    border-radius: 0.875rem;
+    border: 1px solid;
+    padding: 0.75rem;
+  }
+
+  .rt-module-brief-icon {
+    display: inline-flex;
+    width: 2.125rem;
+    height: 2.125rem;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.75rem;
+    background: hsl(var(--primary) / 0.10);
+    color: hsl(var(--primary));
+  }
+
+  .rt-module-brief-label {
+    font-size: 0.67rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .rt-module-brief-value {
+    margin-top: 0.125rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.95rem;
+    font-weight: 800;
+    line-height: 1.15;
+    color: hsl(var(--foreground));
+  }
+
+  .rt-module-brief-detail {
+    margin-top: 0.125rem;
+    display: -webkit-box;
+    overflow: hidden;
+    color: hsl(var(--muted-foreground));
+    font-size: 0.76rem;
+    line-height: 1.28;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
   .rt-module-label {
     display: inline-flex;
     align-items: center;
@@ -1233,6 +1306,23 @@
 
   html[data-native-platform='ios'] .rt-ios-module-flow .rounded-2xl {
     border-radius: 1.25rem;
+  }
+
+  html[data-native-platform='ios'] .rt-module-brief {
+    border-radius: 1.25rem;
+    padding: 0.625rem;
+    background:
+      linear-gradient(180deg, hsl(var(--card) / 0.94), hsl(var(--card) / 0.84));
+  }
+
+  html[data-native-platform='ios'] .rt-module-brief .grid {
+    grid-template-columns: 1fr;
+  }
+
+  html[data-native-platform='ios'] .rt-module-brief-item {
+    min-height: 4.25rem;
+    border-radius: 1rem;
+    padding: 0.7rem;
   }
 
   html[data-native-platform='ios'] .rt-ios-module-flow input,

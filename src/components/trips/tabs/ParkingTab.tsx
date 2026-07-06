@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { navigateTo } from '@/lib/canonicalNavigation';
 import { ParkingExpirationIndicator } from '@/components/trips/ParkingExpirationIndicator';
 import { AppModuleHeader } from '@/components/trips/AppModuleHeader';
+import { ModuleOperatingBrief } from '@/components/trips/ModuleOperatingBrief';
 import { cn } from '@/lib/utils';
 import { UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
 import { extractDatetimeLocalValue, formatLocalTimeDirect, formatLocalDateDirect } from '@/lib/canonicalTimeNormalizer';
@@ -236,6 +237,8 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
   };
 
   const totalCost = parkingList.reduce((sum, p) => sum + Number(p.total_cost || 0), 0);
+  const activeCount = parkingList.filter((p) => getParkingStatus(p) === 'active').length;
+  const expiringCount = parkingList.filter((p) => getParkingStatus(p) === 'expiring').length;
 
   if (isLoading) {
     return <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>;
@@ -259,6 +262,31 @@ export function ParkingTab({ tripId, highlightId, onHighlightConsumed }: Parking
           </Button>
         )}
       </AppModuleHeader>
+      <ModuleOperatingBrief
+        items={[
+          {
+            icon: CircleParking,
+            label: 'Saved spots',
+            value: parkingList.length > 0 ? `${parkingList.length} saved` : 'None yet',
+            detail: activeCount > 0 ? `${activeCount} active parking window${activeCount === 1 ? '' : 's'}.` : 'Save parking before walking away from the car.',
+            tone: parkingList.length > 0 ? 'ready' : 'setup',
+          },
+          {
+            icon: Clock,
+            label: 'Expiration',
+            value: expiringCount > 0 ? `${expiringCount} expiring soon` : 'No urgent expiry',
+            detail: 'Expiration checks use the local parking time saved with the record.',
+            tone: expiringCount > 0 ? 'watch' : 'neutral',
+          },
+          {
+            icon: Navigation,
+            label: 'Return path',
+            value: parkingList.some((p) => typeof (p as any).latitude === 'number' && typeof (p as any).longitude === 'number') ? 'GPS saved' : 'Address/GPS',
+            detail: 'Use current location at the parking spot for reliable directions back.',
+            tone: parkingList.length > 0 ? 'neutral' : 'setup',
+          },
+        ]}
+      />
 
       {/* Summary */}
       <Card>

@@ -21,6 +21,7 @@ import { ExploreSectionFeed } from '@/components/trips/explore/ExploreSectionFee
 import { ExploreAreaPicker } from '@/components/trips/explore/ExploreAreaPicker';
 import { AddToTimelineModal } from '@/components/trips/explore/AddToTimelineModal';
 import { AppModuleHeader } from '@/components/trips/AppModuleHeader';
+import { ModuleOperatingBrief } from '@/components/trips/ModuleOperatingBrief';
 import { useExplorePagination } from '@/hooks/useExplorePagination';
 import { isOnline } from '@/lib/networkStatus';
 import {
@@ -42,6 +43,7 @@ import { Label } from '@/components/ui/label';
 import {
   Loader2, AlertCircle,
   Building2, Navigation, RefreshCw, Search, MapPinned, X, Plane, WifiOff, Compass,
+  SlidersHorizontal,
 } from 'lucide-react';
 
 interface ExploreTabProps {
@@ -312,6 +314,31 @@ export function ExploreTab({ tripId, trip }: ExploreTabProps) {
             <RefreshCw className="w-4 h-4 text-muted-foreground" />
           </Button>
         </AppModuleHeader>
+        <ModuleOperatingBrief
+          items={[
+            {
+              icon: OriginIcon,
+              label: 'Search area',
+              value: selectedArea?.label || origin.label || 'Trip context',
+              detail: selectedArea ? 'You selected a specific airport, lodging, or trip area.' : getExploreOriginSubtitle(origin.source),
+              tone: 'ready',
+            },
+            {
+              icon: Compass,
+              label: 'Results',
+              value: isOnline() ? (attractions.length > 0 ? `${attractions.length} places` : 'Ready to search') : 'Offline essentials',
+              detail: isOnline() ? 'Places calls are made only after the trip context resolves.' : 'Saved essentials appear when there is no connection.',
+              tone: isOnline() ? 'neutral' : 'watch',
+            },
+            {
+              icon: SlidersHorizontal,
+              label: 'Cost control',
+              value: `${radius} mi radius`,
+              detail: debouncedQuery ? `Filtered by "${debouncedQuery}".` : 'Narrow the area before expanding radius to protect provider usage.',
+              tone: 'neutral',
+            },
+          ]}
+        />
 
         {/* Subtitle */}
         <div className="flex items-center gap-1.5">

@@ -25,7 +25,8 @@ import { useBookingExpenseSync } from '@/hooks/useBookingExpenseSync';
 import { TripSectionLoading, TripSectionError } from '@/components/trips/TripSectionStates';
 import { ExpensesTab } from '@/components/trips/tabs/ExpensesTab';
 import { AppModuleHeader } from '@/components/trips/AppModuleHeader';
-import { ReceiptText } from 'lucide-react';
+import { ModuleOperatingBrief } from '@/components/trips/ModuleOperatingBrief';
+import { Camera, CircleDollarSign, ReceiptText } from 'lucide-react';
 
 interface TripExpensesContainerProps {
   tripId: string;
@@ -66,6 +67,11 @@ export function TripExpensesContainer({ tripId, trip, autoOpenAdd, onAutoOpenCon
   
   const isLoading = expensesLoading || bookingsLoading;
   const hasError = expensesError || bookingsError;
+  const runningTotal = expenses.reduce((sum, expense) => (
+    sum + Number(expense.converted_amount ?? expense.my_share ?? expense.amount ?? 0)
+  ), 0);
+  const lastExpense = [...expenses]
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0];
   
   if (isLoading) {
     return <TripSectionLoading message="Loading expenses..." />;
@@ -88,6 +94,31 @@ export function TripExpensesContainer({ tripId, trip, autoOpenAdd, onAutoOpenCon
         description="Capture receipts, reconcile booking costs, and keep trip spend report-ready while details are fresh."
         status={refreshQueued ? 'Offline queue' : `${expenses.length} expenses`}
         statusTone={refreshQueued ? 'cached' : 'neutral'}
+      />
+      <ModuleOperatingBrief
+        items={[
+          {
+            icon: CircleDollarSign,
+            label: 'Running total',
+            value: new Intl.NumberFormat('en-US', { style: 'currency', currency: homeCurrency, maximumFractionDigits: 0 }).format(runningTotal),
+            detail: expenses.length > 0 ? `${expenses.length} expenses plus synced booking costs where available.` : 'Capture the first receipt while the detail is fresh.',
+            tone: expenses.length > 0 ? 'ready' : 'setup',
+          },
+          {
+            icon: ReceiptText,
+            label: 'Last item',
+            value: lastExpense?.description || 'None yet',
+            detail: lastExpense ? `${lastExpense.date} / ${lastExpense.category}` : 'Receipts, meals, gas, parking, and trip costs stay report-ready.',
+            tone: lastExpense ? 'neutral' : 'setup',
+          },
+          {
+            icon: Camera,
+            label: 'Capture mode',
+            value: refreshQueued ? 'Offline queue' : 'Photo or manual',
+            detail: refreshQueued ? 'Queued receipts will sync when connection returns.' : 'Use camera upload when available, then verify the parsed fields.',
+            tone: refreshQueued ? 'watch' : 'neutral',
+          },
+        ]}
       />
       <ExpensesTab tripId={tripId} autoOpenAdd={autoOpenAdd} onAutoOpenConsumed={onAutoOpenConsumed} />
     </div>

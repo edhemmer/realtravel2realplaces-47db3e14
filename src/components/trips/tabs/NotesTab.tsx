@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { FileText, Phone, Link, Save } from 'lucide-react';
 import { useTripPermission } from '@/pages/TripDetail';
 import { AppModuleHeader } from '@/components/trips/AppModuleHeader';
+import { ModuleOperatingBrief } from '@/components/trips/ModuleOperatingBrief';
 
 interface NotesTabProps {
   tripId: string;
@@ -76,6 +77,31 @@ export function NotesTab({ tripId }: NotesTabProps) {
           </Button>
         )}
       </AppModuleHeader>
+      <ModuleOperatingBrief
+        items={[
+          {
+            icon: FileText,
+            label: 'Trip memory',
+            value: formData.general_notes.trim() ? 'Notes saved' : 'No notes yet',
+            detail: 'Keep the odd details here so they do not live in screenshots or memory.',
+            tone: formData.general_notes.trim() ? 'ready' : 'setup',
+          },
+          {
+            icon: Phone,
+            label: 'Emergency',
+            value: formData.emergency_numbers.trim() ? 'Numbers stored' : 'Needs contacts',
+            detail: 'Add hotel, local emergency, roadside, embassy, or family contacts.',
+            tone: formData.emergency_numbers.trim() ? 'ready' : 'setup',
+          },
+          {
+            icon: Link,
+            label: 'Links',
+            value: formData.important_links.trim() ? 'Links stored' : 'No links yet',
+            detail: hasChanges ? 'Save changes before leaving this module.' : 'Important URLs stay attached to the trip.',
+            tone: hasChanges ? 'watch' : 'neutral',
+          },
+        ]}
+      />
 
       <div className="grid gap-6">
         {/* General Notes */}

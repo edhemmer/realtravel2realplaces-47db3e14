@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { AppModuleHeader } from '@/components/trips/AppModuleHeader';
+import { ModuleOperatingBrief } from '@/components/trips/ModuleOperatingBrief';
 import { Trip, Booking } from '@/types/database';
 import { useBookings } from '@/hooks/useBookings';
 import { useExpenses } from '@/hooks/useExpenses';
@@ -365,6 +366,40 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
             <p className="mt-2 text-xs text-muted-foreground">Trip readiness</p>
           </div>
       </AppModuleHeader>
+      <ModuleOperatingBrief
+        items={[
+          {
+            icon: Route,
+            label: 'Next decision',
+            value: nextMoveLabel,
+            detail: isDriveTrip ? 'Open Driving Mode for route options, stops, fuel, and road/weather context.' : 'Open the relevant module below for flight, airport, local transit, or map handoff.',
+            tone: nextBooking || isDriveTrip ? 'ready' : 'setup',
+          },
+          {
+            icon: ShieldCheck,
+            label: 'Trip readiness',
+            value: `${readiness}% ready`,
+            detail: readiness >= 80 ? 'Core travel context is in place.' : 'Add missing records or route detail to improve confidence.',
+            tone: readiness >= 80 ? 'ready' : readiness >= 50 ? 'watch' : 'setup',
+          },
+          {
+            icon: BadgeDollarSign,
+            label: 'Managed spend',
+            value: currency(managedSpend),
+            detail: expenses.length > 0 || bookings.length > 0 || parking.length > 0 ? 'Bookings, expenses, and parking are included.' : 'Spend appears after booking or expense data is saved.',
+            tone: managedSpend > 0 ? 'neutral' : 'setup',
+          },
+        ]}
+        primaryAction={isDriveTrip ? {
+          label: 'Open Driving Mode',
+          href: `/trip/${tripId}/drive`,
+          icon: <Car className="h-4 w-4" />,
+        } : hasFlights ? {
+          label: 'Open Airport Window',
+          href: `/trip/${tripId}?tab=airport`,
+          icon: <Building2 className="h-4 w-4" />,
+        } : undefined}
+      />
 
       <section className="grid gap-3 lg:grid-cols-3">
         <GuidanceStep icon={<CheckCircle2 className="h-5 w-5" />} label="1. Know the next step" detail={nextMoveLabel} />

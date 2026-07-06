@@ -20,7 +20,8 @@ import { TripSectionLoading, TripSectionError } from '@/components/trips/TripSec
 import { BookingsTab } from '@/components/trips/tabs/BookingsTab';
 import { useFlightAirportRepair } from '@/hooks/useFlightAirportRepair';
 import { AppModuleHeader } from '@/components/trips/AppModuleHeader';
-import { Plane } from 'lucide-react';
+import { ModuleOperatingBrief } from '@/components/trips/ModuleOperatingBrief';
+import { CalendarClock, Plane, ScanLine, ShieldCheck } from 'lucide-react';
 
 interface TripBookingsContainerProps {
   tripId: string;
@@ -73,6 +74,31 @@ export function TripBookingsContainer({
         description="Flights, lodging, rentals, transport, and activities become one operating record for the trip."
         status={bookings.length > 0 ? `${bookings.length} records` : 'Setup needed'}
         statusTone={bookings.length > 0 ? 'neutral' : 'setup'}
+      />
+      <ModuleOperatingBrief
+        items={[
+          {
+            icon: ShieldCheck,
+            label: 'Source of truth',
+            value: bookings.length > 0 ? `${bookings.length} trip records` : 'No records yet',
+            detail: bookings.length > 0 ? 'These records feed timeline, airport, weather, spend, and movement.' : 'Import or add the first reservation to start the operating timeline.',
+            tone: bookings.length > 0 ? 'ready' : 'setup',
+          },
+          {
+            icon: CalendarClock,
+            label: 'Timeline impact',
+            value: bookings.length > 0 ? 'Auto-linked' : 'Waiting',
+            detail: 'Flights, stays, rentals, transport, and activities become timed trip steps.',
+            tone: bookings.length > 0 ? 'ready' : 'neutral',
+          },
+          {
+            icon: ScanLine,
+            label: 'Fast capture',
+            value: 'Paste, upload, or manual',
+            detail: 'Use confirmation parsing when possible, then review the fields before saving.',
+            tone: 'neutral',
+          },
+        ]}
       />
       <BookingsTab
         tripId={tripId}

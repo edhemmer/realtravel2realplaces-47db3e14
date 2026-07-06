@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { format } from 'date-fns';
 import { AlertTriangle, Building2, CheckCircle2, Clock, ExternalLink, Loader2, Map, ParkingCircle, Plane, RadioTower, TrainFront } from 'lucide-react';
 import { AppModuleHeader } from '@/components/trips/AppModuleHeader';
+import { ModuleOperatingBrief } from '@/components/trips/ModuleOperatingBrief';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -125,6 +126,31 @@ export function AirportTab({ tripId, trip }: AirportTabProps) {
         description="Terminal maps, official airport links, parking, transit, and flight-status checks in one place for the travel day."
         status={nextFlight ? flightStatusSummary.label : primaryAirportCode ? `${primaryAirportCode} context` : 'Add flight'}
         statusTone={nextFlight ? flightStatusSummary.tone : primaryAirportCode ? 'neutral' : 'setup'}
+      />
+      <ModuleOperatingBrief
+        items={[
+          {
+            icon: Plane,
+            label: 'Next flight',
+            value: nextFlight ? (flightNumber(nextFlight) || nextFlight.airline || nextFlight.vendor_name || 'Flight') : 'No flight linked',
+            detail: nextFlight ? `${normalizeIata(nextFlight.departure_airport_code) || '---'} to ${normalizeIata(nextFlight.arrival_airport_code) || '---'} / ${formatTime(nextFlight.start_datetime)}` : 'Add a flight reservation to unlock airport windows.',
+            tone: nextFlight ? 'ready' : 'setup',
+          },
+          {
+            icon: RadioTower,
+            label: 'Status check',
+            value: flightStatusLoading ? 'Checking' : flightStatusSummary.label,
+            detail: flightStatusLoading ? 'Contacting flight status through RT2RP.' : flightStatusSummary.detail,
+            tone: flightStatusSummary.tone === 'setup' ? 'setup' : flightStatusSummary.tone === 'cached' ? 'watch' : 'neutral',
+          },
+          {
+            icon: Map,
+            label: 'Airport context',
+            value: primaryAirportCode || 'No airport',
+            detail: primaryAirportCode ? 'Terminal map, parking, transit, and official airport links are grouped below.' : 'Airport tools appear after a valid IATA code is saved.',
+            tone: primaryAirportCode ? 'ready' : 'setup',
+          },
+        ]}
       />
 
       {isLoading && (

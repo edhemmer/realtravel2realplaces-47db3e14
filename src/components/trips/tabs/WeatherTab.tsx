@@ -34,6 +34,7 @@ import {
   type WeatherSnapshotRecord,
 } from '@/lib/weatherSnapshotCache';
 import { AppModuleHeader } from '@/components/trips/AppModuleHeader';
+import { ModuleOperatingBrief } from '@/components/trips/ModuleOperatingBrief';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -52,6 +53,7 @@ import {
   CalendarDays,
   Train,
   WifiOff,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface WeatherTabProps {
@@ -564,6 +566,31 @@ export function WeatherTab({ tripId, trip }: WeatherTabProps) {
         description="Forecasts for every airport, lodging, destination, and transport window in this trip."
         status={online ? `${locations.length} trip locations` : 'Cached/offline'}
         statusTone={online ? 'live' : 'cached'}
+      />
+      <ModuleOperatingBrief
+        items={[
+          {
+            icon: MapPin,
+            label: 'Coverage',
+            value: `${locations.length} trip locations`,
+            detail: 'Weather is scoped to airports, lodging, transport windows, and the destination.',
+            tone: locations.length > 0 ? 'ready' : 'setup',
+          },
+          {
+            icon: CloudSun,
+            label: 'Data mode',
+            value: online ? 'Forecast aware' : 'Cached',
+            detail: online ? 'Live forecast is used when the date window is close enough; seasonal data fills longer range plans.' : 'Showing saved weather where available until connection returns.',
+            tone: online ? 'neutral' : 'watch',
+          },
+          {
+            icon: AlertTriangle,
+            label: 'Travel risk',
+            value: locations.length > 0 ? 'Review by location' : 'Needs trip data',
+            detail: 'Rain, snow, heat, cold, and location timing are surfaced per travel window.',
+            tone: 'neutral',
+          },
+        ]}
       />
       <div className="px-1">
         {/* Legend */}

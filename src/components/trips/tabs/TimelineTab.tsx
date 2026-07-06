@@ -1,6 +1,7 @@
-import { Calendar, WifiOff } from 'lucide-react';
+import { Calendar, Clock3, Layers3, WifiOff } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AppModuleHeader } from '@/components/trips/AppModuleHeader';
+import { ModuleOperatingBrief } from '@/components/trips/ModuleOperatingBrief';
 import { TripTimeline } from '@/components/trips/TripTimeline';
 import { TripSectionLoading, TripSectionError } from '@/components/trips/TripSectionStates';
 import { useDesktopTripShell } from '@/containers/DesktopTripShell';
@@ -59,6 +60,31 @@ export function TimelineTab({ tripId, trip, onDrillThrough, onExploreTab }: Time
         description="Every flight, stay, rental, drive, parking window, activity, and scheduled place in one chronological operating view."
         status={displayEvents.length > 0 ? `${displayEvents.length} events` : 'Ready for plans'}
         statusTone={displayEvents.length > 0 ? 'neutral' : 'setup'}
+      />
+      <ModuleOperatingBrief
+        items={[
+          {
+            icon: Layers3,
+            label: 'Trip order',
+            value: displayEvents.length > 0 ? `${displayEvents.length} timed steps` : 'No steps yet',
+            detail: displayEvents.length > 0 ? 'Tap timeline rows to drill into the source record.' : 'Add reservations, parking, stops, or drive details to build the timeline.',
+            tone: displayEvents.length > 0 ? 'ready' : 'setup',
+          },
+          {
+            icon: Clock3,
+            label: 'Time source',
+            value: online ? 'Current data' : 'Cached window',
+            detail: online ? 'Live trip records are being used for ordering.' : 'Offline mode keeps the next useful trip steps visible.',
+            tone: online ? 'neutral' : 'watch',
+          },
+          {
+            icon: Calendar,
+            label: 'Single truth',
+            value: 'Chronological',
+            detail: 'Flight, stay, rental, drive, parking, and activity records share one sequence.',
+            tone: 'neutral',
+          },
+        ]}
       />
 
       <Card className="rt-command-panel">
