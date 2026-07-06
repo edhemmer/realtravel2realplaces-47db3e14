@@ -94,8 +94,27 @@ function dayLabel(dateISO: string): string {
 }
 
 function FlightRouteGraphic({ booking }: { booking?: Booking }) {
-  const origin = booking?.departure_airport_code || 'ORD';
-  const destination = booking?.arrival_airport_code || 'DEST';
+  if (!booking) {
+    return (
+      <div className="relative my-5 overflow-hidden rounded-2xl border border-dashed border-border/55 bg-background/35 px-4 py-6">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Flight data</p>
+            <p className="mt-1 text-lg font-black tracking-tight text-foreground">Not connected yet</p>
+          </div>
+          <span className="flex h-10 w-10 items-center justify-center rounded-full border border-primary/20 bg-primary/8 text-primary">
+            <Plane className="h-4 w-4" />
+          </span>
+        </div>
+        <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+          Add or import a flight before relying on airport, gate, or status guidance.
+        </p>
+      </div>
+    );
+  }
+
+  const origin = booking.departure_airport_code || 'Origin';
+  const destination = booking.arrival_airport_code || 'Destination';
 
   return (
     <div className="relative my-5 overflow-hidden rounded-2xl border border-border/40 bg-background/45 px-4 py-4">
@@ -165,15 +184,11 @@ function summarizeWeather(weatherByKey: Record<string, WeatherSnapshot>, trip: T
 function operatingScore({
   trip,
   bookings,
-  expenses,
-  parkingList,
   alerts,
   eventCount,
 }: {
   trip: Trip;
   bookings: Booking[];
-  expenses: Expense[];
-  parkingList: Parking[];
   alerts: TravelAlert[];
   eventCount: number;
 }): { score: number; label: string; detail: string } {
@@ -182,8 +197,6 @@ function operatingScore({
     eventCount > 0 || trip.transportation_mode === 'drive',
     bookings.length > 0 || trip.transportation_mode === 'drive',
     trip.transportation_mode === 'drive' ? Boolean(trip.destination_address || trip.destination_city) : true,
-    expenses.length > 0,
-    parkingList.length > 0 || trip.transportation_mode !== 'drive',
     alerts.length === 0,
   ];
   const score = Math.round((checks.filter(Boolean).length / checks.length) * 100);
@@ -194,6 +207,12 @@ function operatingScore({
       ? 'A few more details will make guidance sharper and more automatic.'
       : 'Add the missing trip records so RT2RP can watch the trip properly.';
   return { score, label, detail };
+}
+
+function trustToneClass(tone: 'ready' | 'watch' | 'setup') {
+  if (tone === 'ready') return 'border-emerald-500/22 bg-emerald-500/8';
+  if (tone === 'watch') return 'border-amber-500/28 bg-amber-500/9';
+  return 'border-primary/22 bg-primary/8';
 }
 
 export function TripCommandLoop({
@@ -230,11 +249,58 @@ export function TripCommandLoop({
   const score = operatingScore({
     trip,
     bookings,
-    expenses,
-    parkingList,
     alerts,
     eventCount: canonicalState.timelineEvents.length,
   });
+  const hasReliableMovement = isDriveTrip
+    ? Boolean(trip.destination_address || trip.destination_city)
+    : flights.length > 0 || bookings.some((booking) => booking.booking_type === 'transport' || booking.booking_type === 'car_rental');
+  const trustSignals = [
+    {
+      label: 'Connection',
+      value: online ? 'Online' : 'Offline',
+      detail: online ? 'Live refresh can run when modules request it.' : 'Using cached trip context until connection returns.',
+      icon: online ? CheckCircle2 : WifiOff,
+      tone: online ? 'ready' as const : 'watch' as const,
+    },
+    {
+      label: 'Trip records',
+      value: bookings.length > 0 || isDriveTrip ? 'Usable' : 'Missing',
+      detail: bookings.length > 0 ? `${bookings.length} reservation${bookings.length === 1 ? '' : 's'} connected.` : isDriveTrip ? 'Drive trips can start with route details.' : 'Add reservations before relying on timeline guidance.',
+      icon: bookings.length > 0 || isDriveTrip ? CheckCircle2 : AlertTriangle,
+      tone: bookings.length > 0 || isDriveTrip ? 'ready' as const : 'setup' as const,
+    },
+    {
+      label: 'Movement',
+      value: hasReliableMovement ? 'Ready' : 'Needs route',
+      detail: hasReliableMovement ? 'RT2RP has enough movement context to guide the next step.' : 'Add flight, train, car, or drive destination details.',
+      icon: hasReliableMovement ? Route : MapPin,
+      tone: hasReliableMovement ? 'ready' as const : 'setup' as const,
+    },
+    {
+      label: 'Weather watch',
+      value: weatherForecast.length > 0 ? 'Available' : 'Pending',
+      detail: weatherForecast.length > 0 ? 'Forecast context is attached to the command board.' : 'Open Weather to refresh trip conditions.',
+      icon: CloudSun,
+      tone: weatherForecast.length > 0 ? 'ready' as const : 'setup' as const,
+    },
+    {
+      label: 'Alerts',
+      value: alerts.length > 0 ? `${alerts.length} active` : 'Clear',
+      detail: alerts.length > 0 ? 'Review alerts before you move.' : 'No active alert is blocking the current plan.',
+      icon: alerts.length > 0 ? AlertTriangle : ShieldCheck,
+      tone: alerts.length > 0 ? 'watch' as const : 'ready' as const,
+    },
+  ];
+  const nextBestAction = primaryAlert
+    ? { label: primaryAlert.actionLabel || 'Review alert', href: primaryAlert.actionUrl || `/trip/${tripId}?tab=alerts` }
+    : !hasReliableMovement
+      ? { label: isDriveTrip ? 'Review route' : 'Add travel record', href: isDriveTrip ? `/trip/${tripId}/drive` : `/trip/${tripId}?tab=bookings` }
+      : weatherForecast.length === 0
+        ? { label: 'Refresh weather', href: `/trip/${tripId}?tab=weather` }
+        : missingExpenses
+          ? { label: 'Capture receipt', href: `/trip/${tripId}?tab=expenses&addExpense=1` }
+          : { label: 'Open timeline', href: `/trip/${tripId}?tab=flow` };
 
   const operatingCards = [
     {
@@ -367,6 +433,43 @@ export function TripCommandLoop({
           </div>
         )}
 
+        <div className="rounded-2xl border border-border/45 bg-card/72 p-3 shadow-sm">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <p className="rt-muted-label">60-second trust check</p>
+              <h3 className="mt-1 text-lg font-bold tracking-tight text-foreground">What RT2RP can verify right now</h3>
+              <p className="mt-1 max-w-3xl text-xs leading-relaxed text-muted-foreground">
+                This board only claims what it can see from your trip records, route context, weather snapshots, alert layer, and connection state.
+              </p>
+            </div>
+            <Button asChild size="sm" className="rt-primary-action h-9 shrink-0 px-4">
+              <Link to={nextBestAction.href}>
+                {nextBestAction.label}
+                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          </div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+            {trustSignals.map((signal) => {
+              const Icon = signal.icon;
+              return (
+                <div key={signal.label} className={cn('rounded-xl border p-3', trustToneClass(signal.tone))}>
+                  <div className="flex items-start gap-2">
+                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-background/45 text-primary">
+                      <Icon className="h-3.5 w-3.5" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{signal.label}</p>
+                      <p className="mt-0.5 truncate text-sm font-bold text-foreground">{signal.value}</p>
+                      <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">{signal.detail}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="rt-command-hero">
           <div className="relative z-10 min-w-0">
             <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/25 bg-amber-400/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-amber-500 dark:text-brand-champagne">
@@ -379,10 +482,10 @@ export function TripCommandLoop({
               )}
             </div>
             <h2 className="mt-4 max-w-2xl text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-              You are in command. RT2RP watches the moving parts.
+              You are in command. RT2RP shows what changed and what needs action.
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              The dashboard keeps the trip organized around the next decision: alerts, movement, weather, airport context, lodging, spend, and timeline.
+              The mosaic keeps the trip organized around the next decision: alerts, movement, weather, airport context, lodging, spend, and timeline.
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               {isDriveTrip && (
@@ -409,7 +512,7 @@ export function TripCommandLoop({
           <div className="relative z-10 rounded-2xl border border-border/50 bg-card/72 p-4 shadow-sm backdrop-blur">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="rt-muted-label">Confidence</p>
+                <p className="rt-muted-label">Trip readiness</p>
                 <p className="mt-1 text-3xl font-bold leading-none text-foreground">{score.score}%</p>
               </div>
               <span className={cn('rt-icon-tile', score.score >= 85 ? 'text-emerald-500' : score.score >= 65 ? 'text-amber-500' : 'text-destructive')}>

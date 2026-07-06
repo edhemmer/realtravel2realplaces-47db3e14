@@ -45,6 +45,8 @@ The strongest travel products win because they are fast, obvious under stress, t
 - Added operating briefs to Packing, Guide, Members, Companions, Stops, and Report so each module begins with the current read before showing forms/lists.
 - Clarified module language so the UI reads like an operating system: readiness, guidance, shared operations, people traveling, business movement, and trip records.
 - Preserved existing backend logic and canonical data flows while improving the visual rhythm and decision hierarchy.
+- Added a 60-second trust check standard for the command board: connection state, real trip records, movement readiness, weather availability, and active alerts must be visible before the traveler interprets the mosaic.
+- Removed fake route defaults from flight panels. If a flight is not connected, RT2RP says so instead of showing placeholder airport codes.
 
 ## Next Product Gaps
 
