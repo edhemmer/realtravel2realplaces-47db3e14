@@ -4,7 +4,7 @@ Real Travel 2 Real Places (RT2RP) is a production Travel Operating System.
 
 Repository documents control.
 
-Before making architectural, database, AI, UX, workflow, security, infrastructure, provider, native-mobile, reliability, or feature decisions, read in order:
+Before making architectural, database, AI, UX, workflow, security, infrastructure, provider, native-mobile, reliability, product-positioning, or feature decisions, read in order:
 
 1. `docs/00-START-HERE.md`
 2. `docs/01-PRODUCT-CONSTITUTION.md`
@@ -18,13 +18,16 @@ Before making architectural, database, AI, UX, workflow, security, infrastructur
 10. `docs/09-OFFLINE-SYNC-RESILIENCE.md`
 11. `docs/10-BUILD-ROADMAP.md`
 12. `docs/11-CODEX-MASTER-BUILD-PROMPT.md`
-13. the applicable specification under `specs/`.
+13. `docs/12-MARKET-AND-PRODUCT-STANDARD.md`
+14. the applicable specification under `specs/`.
 
 ## Interpretation Rule
 
 The governing corpus defines product standards and target architecture. It does **not** prove that a capability is currently implemented or authorize a user-facing claim.
 
 Only the current implementation, configuration, production evidence, and applicable validation establish whether a capability may be exposed or described to users.
+
+Competitive capabilities in `docs/12-MARKET-AND-PRODUCT-STANDARD.md` are benchmarks, not implementation requirements by default and never proof that RT2RP supports the same capability.
 
 In governing documents:
 
@@ -67,8 +70,12 @@ Every change should:
 - reduce manual effort;
 - improve truthfulness and reliability;
 - strengthen the unified trip;
+- reduce unnecessary app-switching or manual reconciliation;
 - support pleasure, business, and mixed travel;
-- support air, road, rail, and multi-modal travel without mode-specific fragmentation.
+- support air, road, rail, and multi-modal travel without mode-specific fragmentation;
+- meet the strongest relevant market expectation when RT2RP chooses to expose that capability.
+
+Do not chase competitor features merely for parity. Build only capabilities that strengthen RT2RP as the operating layer for the complete trip.
 
 If a proposed change does not support these goals, challenge it before implementation.
 
@@ -76,4 +83,4 @@ If a proposed change does not support these goals, challenge it before implement
 
 A feature is not complete because a page, API, database field, background job, provider call, or prompt exists.
 
-It is complete only when the full user outcome works end-to-end, failure behavior is deliberate, security is enforced, dependent surfaces remain consistent, observability is sufficient for the risk, and applicable tests pass.
+It is complete only when the full user outcome works end-to-end, failure behavior is deliberate, security is enforced, dependent surfaces remain consistent, observability is sufficient for the risk, applicable tests pass, and the resulting experience is competitive for the user problem it claims to solve.
