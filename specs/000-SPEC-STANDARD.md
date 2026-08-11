@@ -4,7 +4,7 @@
 
 Every meaningful implementation phase must have a bounded specification before code changes begin.
 
-A spec is not a feature wishlist. It is the contract between product intent, current implementation, architecture, tests, release evidence, and completion.
+A spec is not a feature wishlist. It is the contract between product intent, current implementation, architecture, market benchmark, tests, release evidence, and completion.
 
 A spec may describe internal target behavior that is not yet public. That target does not become a user-facing promise until the release gate is satisfied.
 
@@ -56,7 +56,25 @@ Document:
 - user-facing claims currently attached to the subsystem;
 - evidence supporting each material conclusion.
 
-### 6. Preservation Classification
+### 6. Competitive Benchmark and Differentiation
+
+Identify the strongest relevant current benchmark from `docs/12-MARKET-AND-PRODUCT-STANDARD.md` or a newly researched current product.
+
+Document:
+
+- what users already receive free for this problem;
+- what users pay for;
+- which product sets the specialist quality bar;
+- what RT2RP should match because it is table stakes;
+- what RT2RP deliberately will not copy;
+- what RT2RP's integration advantage is;
+- the competitive quality target for mobile usability, reliability, and interaction cost.
+
+Competitive research does not authorize a feature. It defines the external bar if RT2RP chooses to expose the capability.
+
+If there is no meaningful specialist benchmark, state that and define the evidence used instead.
+
+### 7. Preservation Classification
 
 For each material current path classify:
 
@@ -68,7 +86,7 @@ For each material current path classify:
 
 Include reasons and evidence.
 
-### 7. Canonical Domain Model
+### 8. Canonical Domain Model
 
 Define:
 
@@ -81,7 +99,7 @@ Define:
 - invariants;
 - source authority/precedence.
 
-### 8. Data Flow
+### 9. Data Flow
 
 Describe reads and writes end-to-end.
 
@@ -93,7 +111,7 @@ input -> validation -> command -> persistence -> canonical projection -> cache/r
 
 For multi-record or background behavior, identify transaction/idempotency boundaries.
 
-### 9. Failure and Truth States
+### 10. Failure and Truth States
 
 Specify only relevant states, including as applicable:
 
@@ -112,7 +130,7 @@ Specify only relevant states, including as applicable:
 
 Define which state is authoritative and what the traveler sees.
 
-### 10. Security / Privacy
+### 11. Security / Privacy
 
 Document:
 
@@ -125,7 +143,7 @@ Document:
 - account/member boundary;
 - abuse controls where relevant.
 
-### 11. Provider Contract
+### 12. Provider Contract
 
 If external data is involved, define:
 
@@ -143,7 +161,7 @@ If external data is involved, define:
 - observability;
 - production configuration dependency.
 
-### 12. AI Contract
+### 13. AI Contract
 
 If AI is involved, define:
 
@@ -158,7 +176,7 @@ If AI is involved, define:
 - eval fixtures;
 - objective release threshold.
 
-### 13. Offline / Reconnect
+### 14. Offline / Reconnect
 
 Define only if applicable.
 
@@ -166,7 +184,7 @@ Do not assume app-shell caching provides domain offline support.
 
 Specify read persistence, write behavior, conflicts, reconnect reconciliation, and sensitive-data handling.
 
-### 14. UX Contract
+### 15. UX Contract
 
 Describe:
 
@@ -177,9 +195,10 @@ Describe:
 - loading/error/empty/stale behavior;
 - mobile/desktop behavior;
 - accessibility considerations;
-- wording constraints for truth/freshness.
+- wording constraints for truth/freshness;
+- comparative interaction/cognitive-load target where a market benchmark exists.
 
-### 15. Migration Plan
+### 16. Migration Plan
 
 If existing data/code changes:
 
@@ -191,7 +210,7 @@ If existing data/code changes:
 - removal conditions for old path;
 - validation query/test.
 
-### 16. Observability and Operations
+### 17. Observability and Operations
 
 Define what production evidence is required to operate the capability safely:
 
@@ -204,7 +223,7 @@ Define what production evidence is required to operate the capability safely:
 
 Do not log secrets or unnecessary PII.
 
-### 17. Acceptance Tests
+### 18. Acceptance Tests
 
 Write objective tests before implementation.
 
@@ -220,11 +239,12 @@ Include as applicable:
 - mobile/desktop;
 - accessibility-critical interactions;
 - reconnect/partial failure;
-- regression cases.
+- regression cases;
+- competitive usability/parity checks for table-stakes behavior.
 
-Acceptance criteria must be binary or evidence-based where practical. Avoid subjective phrases such as "works well," "looks good," or "is smart."
+Acceptance criteria must be binary or evidence-based where practical. Avoid subjective phrases such as "works well," "looks good," "is smart," or "world-class" without measurable evidence.
 
-### 18. Release Evidence
+### 19. Release Evidence
 
 List the evidence required before the capability can be described publicly, for example:
 
@@ -234,9 +254,10 @@ List the evidence required before the capability can be described publicly, for 
 - provider/background chain verified;
 - manual end-to-end scenario verified;
 - failure/recovery verified;
+- competitive benchmark scenario verified where relevant;
 - public wording reviewed against actual behavior.
 
-### 19. Definition of Done
+### 20. Definition of Done
 
 The subsystem is complete only when:
 
@@ -248,15 +269,16 @@ The subsystem is complete only when:
 - public wording exactly matches behavior;
 - observability exists at the level required by risk;
 - migration/removal conditions are satisfied;
+- relevant table-stakes behavior is not knowingly inferior without a documented product reason;
 - remaining known risks are documented and acceptable for the exposed behavior.
 
-### 20. Non-Goals
+### 21. Non-Goals
 
 Explicitly list what this spec does not implement.
 
 Non-goals must not be exposed to users as implied capabilities.
 
-### 21. Public Exposure Decision
+### 22. Public Exposure Decision
 
 At validation, record one decision:
 
@@ -276,13 +298,15 @@ A good spec is:
 - testable;
 - honest;
 - grounded in current repository implementation;
+- informed by the current market without being feature-led;
 - explicit about preservation;
 - explicit about failure;
 - explicit about data ownership;
+- explicit about differentiation;
 - explicit about release evidence;
 - small enough to implement and review safely.
 
-A bad spec says "improve travel intelligence" without defining facts, rules, failure states, evidence, and acceptance criteria.
+A bad spec says "improve travel intelligence" or "match competitor X" without defining the user outcome, canonical facts, rules, failure states, differentiation, evidence, and acceptance criteria.
 
 ---
 
@@ -296,8 +320,10 @@ Before Codex implements a subsystem spec, it must be possible to answer:
 4. What data changes?
 5. What can fail?
 6. How does the UI tell the truth when it fails?
-7. How is the behavior tested?
-8. What evidence will establish that the capability is release-ready?
-9. What public promise, if any, becomes valid after validation?
+7. What is the strongest relevant market benchmark?
+8. What does RT2RP need to match, deliberately avoid, and do better?
+9. How is the behavior tested?
+10. What evidence will establish that the capability is release-ready?
+11. What public promise, if any, becomes valid after validation?
 
 If these cannot be answered, the spec is not ready.
