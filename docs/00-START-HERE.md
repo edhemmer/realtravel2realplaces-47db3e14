@@ -31,7 +31,7 @@ A strong RT2RP experience means the traveler can quickly understand:
 - who is traveling;
 - what can safely be ignored.
 
-The user should spend less time searching, remembering, checking, copying, reconciling, and worrying.
+The user should spend less time searching, remembering, checking, copying, reconciling, switching between travel apps, and worrying.
 
 The product should feel calm, current, intelligent, and dependable.
 
@@ -73,7 +73,7 @@ This rule is non-negotiable.
 
 ## Repository Documents Control
 
-Before making architectural, database, AI, UX, workflow, security, infrastructure, reliability, native-mobile, provider, or feature decisions, read the governing documents in this order:
+Before making architectural, database, AI, UX, workflow, security, infrastructure, reliability, native-mobile, provider, product-positioning, or feature decisions, read the governing documents in this order:
 
 1. `docs/00-START-HERE.md`
 2. `docs/01-PRODUCT-CONSTITUTION.md`
@@ -87,10 +87,13 @@ Before making architectural, database, AI, UX, workflow, security, infrastructur
 10. `docs/09-OFFLINE-SYNC-RESILIENCE.md`
 11. `docs/10-BUILD-ROADMAP.md`
 12. `docs/11-CODEX-MASTER-BUILD-PROMPT.md`
+13. `docs/12-MARKET-AND-PRODUCT-STANDARD.md`
 
 Feature work must also comply with the applicable specification under `specs/`.
 
 If older documentation conflicts with this corpus, this corpus controls unless a newer governing document explicitly supersedes it.
+
+Competitive capabilities described in `docs/12-MARKET-AND-PRODUCT-STANDARD.md` are benchmarks, not proof of current RT2RP capability and not automatic roadmap requirements.
 
 ---
 
@@ -152,7 +155,24 @@ Every feature must account for:
 12. offline/reconnect behavior where applicable;
 13. observability;
 14. automated tests;
-15. recovery from partial failure.
+15. recovery from partial failure;
+16. competitive quality appropriate to the user problem it claims to solve.
+
+---
+
+## Market Reality
+
+Basic travel organization is not enough to define a premium product.
+
+Established products already provide substantial combinations of itinerary management, reservation import, collaboration, flight updates, maps, planning, offline access, route tools, and expense tracking for free or at modest annual subscription prices.
+
+RT2RP must therefore compete on a higher-order outcome:
+
+**the complete trip behaves as one connected operational system, reducing the traveler's need to manually reconcile specialist apps and disconnected records.**
+
+RT2RP should meet the strongest relevant specialist expectation for each capability it chooses to expose, while remaining simpler and more coherent across the complete trip.
+
+Do not build breadth for its own sake.
 
 ---
 
@@ -205,6 +225,10 @@ A flight should not have competing representations across modules.
 A drive should not require the user to rebuild information already known elsewhere in the trip.
 
 One fact should be entered once whenever practical and then reused consistently.
+
+The user may still need provider-specific apps for boarding credentials, reservation changes, provider identity verification, employer controls, or other actions only that provider can perform. RT2RP must not pretend otherwise.
+
+RT2RP's job is to make the complete trip understandable and manageable across those providers.
 
 ---
 
@@ -265,12 +289,14 @@ For RT2RP, world-class means:
 
 - the product understands the trip as one connected system;
 - important information appears where and when it is needed;
+- transitions between travel modes and providers require less manual reconciliation;
 - the same fact does not drift across screens;
 - live information is current when presented as live;
 - failure does not silently produce misleading output;
 - AI improves decisions without inventing facts;
-- the app remains useful when connectivity degrades;
+- the app remains useful when connectivity degrades where that behavior is supported;
 - common actions require very little effort;
+- every exposed subsystem meets a strong competitive quality bar;
 - the product does not make promises it cannot keep;
 - the traveler develops confidence that RT2RP can be relied upon.
 
