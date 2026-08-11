@@ -20,13 +20,25 @@ Before making architectural, database, AI, UX, workflow, security, infrastructur
 12. `docs/11-CODEX-MASTER-BUILD-PROMPT.md`
 13. the applicable specification under `specs/`.
 
+## Interpretation Rule
+
+The governing corpus defines product standards and target architecture. It does **not** prove that a capability is currently implemented or authorize a user-facing claim.
+
+Only the current implementation, configuration, production evidence, and applicable validation establish whether a capability may be exposed or described to users.
+
+In governing documents:
+
+- **MUST / REQUIRED / NON-NEGOTIABLE** = mandatory rule or release gate.
+- **SHOULD** = default approach; deviation requires a documented reason.
+- **MAY** = optional behavior, not a product promise.
+
 ## Hard-Locked Product Rule
 
 **If RT2RP cannot fully and reliably do something, RT2RP does not mention it to the user.**
 
 Do not add user-facing coming-soon features, placeholder travel data, implied monitoring, implied live data, implied offline capability, or AI claims that exceed verified behavior.
 
-Incomplete capabilities remain internal and hidden.
+Incomplete or unproven capabilities remain internal and hidden.
 
 ## Preservation-First Rule
 
@@ -62,6 +74,6 @@ If a proposed change does not support these goals, challenge it before implement
 
 ## Completion Standard
 
-A feature is not complete because a page, API, database field, or prompt exists.
+A feature is not complete because a page, API, database field, background job, provider call, or prompt exists.
 
-It is complete only when the full user outcome works end-to-end, failure behavior is deliberate, security is enforced, dependent surfaces remain consistent, and applicable tests pass.
+It is complete only when the full user outcome works end-to-end, failure behavior is deliberate, security is enforced, dependent surfaces remain consistent, observability is sufficient for the risk, and applicable tests pass.
