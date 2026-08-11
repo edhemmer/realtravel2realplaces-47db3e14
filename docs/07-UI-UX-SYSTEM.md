@@ -8,6 +8,8 @@ The UI must reduce cognitive load and expose operational truth quickly.
 
 A beautiful screen that makes the traveler hunt is a failed screen.
 
+This document defines the target experience system. It does not authorize the UI to expose a capability that has not passed the product's release/evidence gate.
+
 ---
 
 ## Experience Principles
@@ -36,7 +38,7 @@ Show the decision first, supporting detail second, raw record detail on demand.
 
 ### 6. Mobile First, Desktop Complete
 
-The core trip must be fully operable on a phone.
+The core trip must be fully operable on a phone for every capability RT2RP publicly supports.
 
 Desktop may provide more simultaneous context, but it must not become a different product.
 
@@ -44,7 +46,7 @@ Desktop may provide more simultaneous context, but it must not become a differen
 
 ## Primary Navigation
 
-The preferred product spine is:
+The target product spine is:
 
 1. Today
 2. Timeline
@@ -56,20 +58,22 @@ Secondary capabilities should be grouped within the most natural primary area wh
 
 Do not add top-level navigation merely because a new table or feature exists.
 
+Do not expose an empty primary area solely to advertise target architecture; navigation must reflect validated product capability.
+
 ---
 
 ## Today
 
-Today is the operational command surface.
+Today is the target operational command surface.
 
-It should answer, in order:
+For supported data and intelligence, it should answer, in order:
 
 1. What is happening now?
 2. What is next?
 3. When/where do I need to act?
-4. Did anything important change?
+4. Did anything important change that RT2RP can actually detect?
 5. Is there a problem I must resolve?
-6. What can I ignore?
+6. What can I safely stop paying attention to?
 
 Today should not be a generic dashboard of equal-weight widgets.
 
@@ -92,15 +96,15 @@ When there is no urgent condition, the screen should feel calm.
 
 Timeline is the ordered truth of the trip.
 
-Requirements:
+Requirements for exposed timeline behavior:
 
 - chronological clarity;
 - local date/time display appropriate to each event;
 - clear transportation/stay/activity semantics;
 - location context;
-- source drill-through;
+- source drill-through where supported;
 - visual handling for completed/current/upcoming;
-- multi-day grouping;
+- multi-day grouping where supported;
 - no fake events generated from missing data.
 
 Timeline should be useful as both a preparation overview and an active trip reference.
@@ -111,16 +115,16 @@ Timeline should be useful as both a preparation overview and an active trip refe
 
 Travel represents movement, not one transportation mode.
 
-The experience should support air, road, rail, and mixed trips consistently.
+The target experience supports air, road, rail, and mixed trips consistently as those domains become validated.
 
-For each movement, prioritize:
+For each publicly supported movement, prioritize:
 
 - from;
 - to;
 - local date/time;
 - mode;
 - current operational status where reliably available;
-- next required action;
+- next required action where deterministically supported;
 - navigation/provider handoff where appropriate;
 - relevant reservation/record access.
 
@@ -144,7 +148,7 @@ When exploring, emphasize practical relevance over endless browse inventory.
 
 Records is the durable trip filing cabinet, organized for retrieval rather than storage theater.
 
-It may group supported records such as:
+It may group validated records such as:
 
 - reservations;
 - travelers;
@@ -183,15 +187,17 @@ Avoid giant forms that expose every possible field for every travel mode.
 
 Statuses must be understandable without internal terminology.
 
-Preferred user-facing concepts include only states that are real and useful.
+Use only states that are real and useful.
 
-For external/live data, examples may include:
+For external/provider-backed data, examples of acceptable semantics may include:
 
 - Updated recently
 - Last updated [time]
 - Saved for offline use
 - Needs information
 - Unable to refresh
+
+Only use each phrase when the underlying behavior makes it true.
 
 Avoid provider/debug terminology unless shown in diagnostics/support context.
 
@@ -223,8 +229,8 @@ Empty states should help users act, not advertise unimplemented features.
 
 Examples:
 
-- no expenses -> explain how to add an expense;
-- no travelers -> add traveler;
+- no expenses -> explain how to add an expense if expense entry is supported;
+- no travelers -> add traveler if traveler management is supported;
 - no reservation -> add/import reservation only if that path is fully supported.
 
 Do not mention future automation or integrations.
@@ -268,7 +274,7 @@ Critical actions should:
 - avoid modal chains;
 - avoid long multi-step navigation;
 - support one-handed mobile use where practical;
-- preserve state if the user switches apps.
+- preserve state if the user switches apps when the platform/data contract supports it.
 
 ---
 
@@ -285,7 +291,7 @@ Driving-related surfaces should favor:
 - minimal typing;
 - no unnecessary interaction loops.
 
-The product should not imply hands-free safety unless such behavior is explicitly implemented and validated.
+The product must not imply hands-free safety unless such behavior is explicitly implemented and validated.
 
 ---
 
@@ -301,13 +307,13 @@ Visual rules:
 - typography hierarchy does most of the work;
 - cards should group meaning, not decorate empty space;
 - icons support recognition but never replace critical text;
-- animations are subtle and optional.
+- animations are subtle and respect reduced-motion preferences.
 
 ---
 
 ## Responsive Behavior
 
-Mobile and desktop share the same information architecture.
+Mobile and desktop share the same information architecture for supported capabilities.
 
 ### Mobile
 
@@ -331,16 +337,18 @@ Mobile and desktop share the same information architecture.
 
 Non-negotiable baseline:
 
-- WCAG-aware contrast;
+- sufficient contrast;
 - visible focus;
 - semantic headings;
-- keyboard operability;
+- keyboard operability on web;
 - correct labels;
 - accessible form errors;
 - no color-only meaning;
 - reduced motion;
 - screen-reader-friendly dynamic updates;
 - touch targets sized for mobile use.
+
+Applicable accessibility requirements must be validated in critical flows before release.
 
 ---
 
@@ -355,13 +363,15 @@ Even before full localization, avoid architectural assumptions that make it diff
 - support long labels;
 - avoid assuming U.S.-only address patterns in core domain models.
 
+Localization readiness is an engineering constraint, not a claim that localization is currently offered.
+
 ---
 
 ## UX Acceptance Gate
 
-A screen is not complete until a traveler can answer its primary question quickly.
+A screen is not complete until a traveler can answer its primary question quickly and accurately for the supported user outcome.
 
-For every major surface test:
+For every major surface test, as applicable:
 
 - first-time user;
 - experienced user;
@@ -373,6 +383,8 @@ For every major surface test:
 - desktop viewport;
 - keyboard/screen-reader basics;
 - error/recovery path.
+
+Define objective scenario expectations in the subsystem spec rather than relying only on visual judgment.
 
 The final UX question is:
 
