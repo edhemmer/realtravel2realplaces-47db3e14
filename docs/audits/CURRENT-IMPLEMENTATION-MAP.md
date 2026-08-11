@@ -8,6 +8,24 @@ This document must become the factual map of the current production implementati
 
 Do not fill this from old product documentation alone. Inspect current `origin/main` code, migrations, functions, tests, native code, configuration, and public surfaces.
 
+A file's existence is not proof that its user outcome is active, configured, reachable, reliable, or publicly safe to claim.
+
+---
+
+## Evidence Rules
+
+For material conclusions, record enough evidence to trace the behavior. Evidence may include:
+
+- file/module path;
+- migration/table/function name;
+- runtime call path;
+- environment/config dependency;
+- provider/background dependency;
+- test name/path;
+- production/manual verification result.
+
+Use **UNKNOWN / NOT YET VERIFIED** when evidence is incomplete. Do not fill gaps from assumption.
+
 ---
 
 ## Audit Sections
@@ -21,43 +39,43 @@ For each route/surface record:
 
 ### Canonical / Domain Logic
 
-| Domain Concept | Current Canonical Owner | Other Implementations Found | Tests | Classification | Notes |
+| Domain Concept | Current Canonical Owner | Other Implementations Found | Tests | Classification | Evidence/Notes |
 |---|---|---|---|---|---|
 
 ### Data Model
 
-| Entity/Table | Purpose | Owner/User Boundary | Important Relationships | RLS | Main Readers/Writers | Notes |
+| Entity/Table | Purpose | Owner/User Boundary | Important Relationships | RLS | Main Readers/Writers | Evidence/Notes |
 |---|---|---|---|---|---|---|
 
 ### Edge Functions / Server Operations
 
-| Function | Purpose | Called By | External Provider/AI | Auth Boundary | Failure Handling | Tests/Evidence |
-|---|---|---|---|---|---|---|
+| Function | Purpose | Called By | External Provider/AI | Auth Boundary | Failure Handling | Production Config | Tests/Evidence |
+|---|---|---|---|---|---|---|---|
 
 ### Providers
 
-| Capability | Provider | Adapter/Function | Freshness | Cache | Failure State | User-Facing Claim |
-|---|---|---|---|---|---|---|
+| Capability | Provider | Adapter/Function | Source Authority | Freshness | Cache | Failure State | Production Config | User-Facing Claim | Evidence |
+|---|---|---|---|---|---|---|---|---|---|
 
 ### AI Capabilities
 
-| Capability | Entry Point | Model/Adapter | Structured Schema | Validation | Ambiguity Path | Tests |
-|---|---|---|---|---|---|---|
+| Capability | Entry Point | Model/Adapter | Structured Schema | Validation | Ambiguity Path | Production Config | Tests/Evals | Evidence |
+|---|---|---|---|---|---|---|---|---|
 
 ### Native / PWA
 
-| Capability | Web/PWA/iOS | Implementation | Data Dependency | Offline/Background Behavior | Verified? |
-|---|---|---|---|---|---|
+| Capability | Web/PWA/iOS | Implementation | Data Dependency | Offline/Background Behavior | Production Config | Verified? | Evidence |
+|---|---|---|---|---|---|---|---|
 
 ### Background Jobs / Notifications
 
-| Job | Trigger/Schedule | Purpose | Idempotent? | Delivery Path | Observability | Verified? |
-|---|---|---|---|---|---|---|
+| Job | Trigger/Schedule | Purpose | Idempotent? | Delivery Path | Observability | Production Config | Verified? | Evidence |
+|---|---|---|---|---|---|---|---|---|
 
 ### Test Inventory
 
-| Domain | Unit | Integration | Component | E2E | Critical Gaps |
-|---|---|---|---|---|---|
+| Domain | Unit | Integration | Component | E2E | Critical Gaps | Evidence |
+|---|---|---|---|---|---|---|
 
 ---
 
@@ -73,8 +91,12 @@ Every material implementation path must be classified:
 
 Classification requires evidence, not preference.
 
+When evidence is insufficient, record **NEEDS DEEPER AUDIT** rather than forcing a classification.
+
 ---
 
 ## Exit Gate
 
-This audit is complete only when a developer can trace each major user outcome from UI -> domain -> persistence/provider -> failure behavior -> tests.
+This audit is complete only when a developer can trace each major user outcome from UI -> domain -> persistence/provider -> production configuration -> failure behavior -> tests/evidence.
+
+No public capability may be treated as proven solely because it appears in an old feature inventory or product document.
