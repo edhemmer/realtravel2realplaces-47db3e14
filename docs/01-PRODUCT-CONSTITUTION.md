@@ -105,7 +105,7 @@ RT2RP should reduce searching, remembering, copying, checking, reconciling, and 
 
 RT2RP is designed for pleasure travel, business travel, and mixed-purpose travel.
 
-It must support trips built from any practical combination of:
+It must be capable of representing trips built from practical combinations of:
 
 - air;
 - personal vehicle;
@@ -117,9 +117,11 @@ It must support trips built from any practical combination of:
 - local transit;
 - walking where relevant to trip execution.
 
-No transportation mode is treated as an afterthought.
+No transportation mode is treated as an architectural afterthought.
 
 The canonical trip model must support multi-modal travel naturally.
+
+Public support for a particular mode exists only after the corresponding user outcome is validated.
 
 ---
 
@@ -207,6 +209,38 @@ The physical locations relevant to the trip.
 The durable information that supports execution and closeout.
 
 Features that do not strengthen this spine require explicit justification.
+
+---
+
+## Market Standard Principle
+
+RT2RP competes in a market where substantial travel functionality is already available free or at modest annual prices.
+
+Basic itinerary organization, shared planning, reservation import, map-connected plans, flight updates, offline access, route tools, and expense tracking already exist across established products.
+
+Therefore:
+
+**RT2RP must not define its value as "many travel features in one app."**
+
+Its category-defining value is operational continuity across the complete trip.
+
+RT2RP should make the handoffs between specialist domains easier to understand and manage:
+
+- home/ground movement to airport or station;
+- airport/rail departure to arrival;
+- arrival to local transfer;
+- transfer to lodging;
+- lodging to activity/work stop;
+- one travel mode to another;
+- trip activity to expenses/records/closeout.
+
+When RT2RP chooses to expose a capability also served by a strong specialist, the experience must meet a competitive quality bar appropriate to the consequence of being wrong.
+
+Do not ship a weak version of a specialist capability merely to make RT2RP appear broader.
+
+Quality beats checkbox parity.
+
+`docs/12-MARKET-AND-PRODUCT-STANDARD.md` defines the current external benchmark and must be refreshed before major pricing or positioning changes.
 
 ---
 
@@ -302,6 +336,13 @@ When deciding between:
 
 hide it.
 
+When deciding between:
+
+- copying a competitor feature for parity; or
+- strengthening operational continuity across the trip,
+
+choose operational continuity unless parity is required for a validated user outcome.
+
 ---
 
 ## Business Model Principle
@@ -315,13 +356,17 @@ Paid value should come from meaningful operational leverage such as:
 - stronger situational awareness;
 - better organization;
 - less manual coordination;
+- less app-switching and reconciliation;
 - more reliable trip records;
 - reduced administrative cleanup;
-- valuable intelligence that acts on the user's actual trip.
+- valuable intelligence that acts on the user's actual trip;
+- greater scale, automation, or business utility where truly delivered.
 
 Pricing tiers must never deliberately make essential trust or data-integrity behavior worse.
 
-Security, correctness, truthful states, and recovery are not premium features.
+Security, correctness, truthful states, recovery, and basic access to a user's own stored trip information are not premium features.
+
+Because competitors provide significant trip organization free, paid RT2RP tiers must earn their price through genuine additional leverage rather than withholding basic product integrity.
 
 ---
 
@@ -340,7 +385,9 @@ A new capability must satisfy all of the following before entering the user-faci
 9. It has automated validation appropriate to its risk.
 10. Its user-facing promise exactly matches its real behavior.
 11. It has been tested as an end-to-end user outcome.
-12. The product is better with it than without it.
+12. It meets a competitive quality bar appropriate to the user problem.
+13. It reduces manual reconciliation or creates meaningful operational leverage.
+14. The product is materially better with it than without it.
 
 Failure of any critical item blocks release.
 
@@ -357,9 +404,14 @@ Unless the product constitution is explicitly changed, RT2RP does not compete pr
 - a content/blogging platform;
 - a generic AI travel-planning chatbot;
 - a loyalty-points optimizer;
-- an enterprise travel procurement platform.
+- a flight-tracking specialist;
+- a road-trip content catalog;
+- an enterprise travel procurement/approval platform;
+- a travel photo-journal platform.
 
 RT2RP may integrate with adjacent services when doing so improves trip management.
+
+Provider-specific apps may remain necessary for boarding credentials, reservation modification, identity verification, loyalty actions, employer controls, or other provider-owned functions. RT2RP must never imply it replaces a provider function it cannot perform.
 
 ---
 
@@ -370,3 +422,7 @@ The traveler focuses on the trip.
 RT2RP handles as much of the operational complexity as it can reliably handle.
 
 The product earns trust by doing exactly what it says, every time it reasonably can, and never pretending to do what it cannot.
+
+The category-defining outcome is:
+
+**I may still use provider-specific apps when I need that provider, but RT2RP is where I understand and run my complete trip.**
