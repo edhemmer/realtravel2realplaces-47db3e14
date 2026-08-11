@@ -6,6 +6,8 @@ RT2RP must operate as one system even though it spans web, native mobile, databa
 
 This document defines the target architecture and the boundaries required to preserve reliability while modernizing the existing application.
 
+This target architecture is an internal engineering contract. It is not evidence that every described capability is already implemented or may be exposed to users.
+
 ---
 
 ## Architectural Shape
@@ -25,7 +27,7 @@ Supabase/PostgreSQL + Edge Functions
   ↓
 Provider Adapters / AI Adapters / Background Jobs
 
-Canonical Trip State feeds:
+Canonical Trip State feeds supported surfaces such as:
   Today
   Timeline
   Travel
@@ -46,9 +48,11 @@ AI is not the source of truth.
 
 ---
 
-## Existing Stack Preservation
+## Existing Stack Preservation Presumption
 
-The current stack is generally appropriate and should be preserved unless a specific limitation is proven:
+The current stack is presumed to remain unless Phase 0 audit evidence identifies a specific reliability, security, product, maintenance, or operational limitation that justifies change.
+
+Current technologies and patterns to audit for preservation include:
 
 - React;
 - TypeScript;
@@ -63,7 +67,7 @@ The current stack is generally appropriate and should be preserved unless a spec
 - provider-backed server functions;
 - canonical domain helpers already present in the repository.
 
-Architecture modernization should improve boundaries and reliability before replacing mature infrastructure.
+Do not replace mature infrastructure merely to conform to a preferred architecture style. Modernization should first improve ownership, contracts, reliability, and tests.
 
 ---
 
@@ -81,7 +85,7 @@ Responsibilities:
 
 The experience layer should not contain duplicated travel rules or raw provider interpretation.
 
-Primary surfaces:
+Primary target surfaces are organized around:
 
 - Dashboard / trip selection;
 - Today;
@@ -90,6 +94,8 @@ Primary surfaces:
 - Places;
 - Records;
 - Account/support/admin surfaces.
+
+Only validated capabilities may appear within those surfaces.
 
 ---
 
@@ -105,7 +111,7 @@ Responsibilities:
 - invoke mutations/commands;
 - keep presentational components simple.
 
-Existing container patterns should be strengthened rather than abandoned.
+Existing container patterns should be strengthened rather than abandoned when audit evidence supports them.
 
 A container must not become a second business-logic layer.
 
@@ -115,7 +121,7 @@ A container must not become a second business-logic layer.
 
 This is the heart of RT2RP.
 
-Responsibilities include deterministic logic for:
+Responsibilities may include deterministic logic for implemented domains such as:
 
 - trip state;
 - timeline projection;
@@ -188,7 +194,7 @@ Hidden trigger behavior that developers cannot reason about is architectural ris
 
 Edge functions form the boundary for operations that must not run directly in the browser.
 
-Use them for:
+Use them where applicable for:
 
 - provider secrets;
 - AI credentials;
@@ -207,14 +213,14 @@ Functions should share common auth, CORS, validation, logging, provider, and AI 
 
 All third-party travel data is accessed through adapters.
 
-Examples:
+Examples of possible provider domains include:
 
-- route provider;
-- transit provider;
-- place provider;
-- flight-status provider;
-- weather provider where used;
-- APNS/native notification provider.
+- routes;
+- transit;
+- places;
+- flight status;
+- weather, if implemented;
+- APNS/native notifications.
 
 Adapter responsibility:
 
@@ -245,13 +251,13 @@ AI usage must be centralized enough to control:
 - telemetry;
 - confidence/ambiguity behavior.
 
-Feature components should request an AI capability, not construct arbitrary prompts directly.
+Feature components should request a defined AI capability, not construct arbitrary prompts directly.
 
 ---
 
 ## Layer 9 — Background Operations
 
-Background jobs may support capabilities such as notifications, lifecycle enforcement, provider refreshes, and future operational monitoring.
+Background jobs may support validated capabilities such as notifications, lifecycle enforcement, provider refreshes, or operational monitoring.
 
 Every job requires:
 
@@ -265,7 +271,7 @@ Every job requires:
 - stale-job handling;
 - user impact definition.
 
-A background process that is required for a public product promise is production-critical infrastructure.
+A background process required for a public product promise is production-critical infrastructure and must be validated accordingly.
 
 ---
 
@@ -275,7 +281,7 @@ Canonical Trip State is the normalized operational interpretation of a trip at a
 
 It should be derived from authoritative records and observations.
 
-Conceptually it may contain:
+Conceptually it may contain supported domains such as:
 
 ```text
 trip
@@ -298,7 +304,7 @@ readiness
 
 Not all data must be materialized into one giant object.
 
-The architectural requirement is that these projections share canonical rules.
+The architectural requirement is that implemented projections share canonical rules.
 
 ---
 
@@ -337,13 +343,15 @@ user activity -> scheduled event
 work stop -> stop event
 ```
 
-The mapping rules must be centralized and tested.
+These are modeling examples, not evidence that each mapping is currently implemented.
+
+The mapping rules for exposed capabilities must be centralized and tested.
 
 ---
 
 ## Cross-Surface Propagation
 
-When a user corrects a material source fact, dependent surfaces must update coherently.
+When a user corrects a material source fact, every implemented dependent surface must update coherently.
 
 Example:
 
@@ -357,7 +365,9 @@ change hotel checkout
  -> report output uses corrected truth
 ```
 
-A mutation that updates only its local tab is incomplete.
+Only applicable implemented dependencies participate in the chain.
+
+A mutation that updates only its local tab while leaving known dependent surfaces stale is incomplete.
 
 ---
 
@@ -379,7 +389,7 @@ Rules:
 
 Capacitor/native capabilities are adapters around the same product domain.
 
-Native-specific code may handle:
+Native-specific code may handle supported behavior such as:
 
 - push/local notifications;
 - haptics;
@@ -441,14 +451,16 @@ Rules:
 - default-hidden for incomplete user-facing capabilities;
 - not a substitute for authorization;
 - not a substitute for tests;
-- documented owner and removal date/condition;
+- documented owner and removal condition;
 - avoid permanent flag accumulation.
+
+A calendar removal date may be used when appropriate, but a flag must at minimum have a concrete retirement condition.
 
 ---
 
 ## Reliability Boundaries
 
-Critical product boundaries include:
+Critical product boundaries include, where applicable:
 
 - authentication;
 - trip loading;
@@ -461,13 +473,13 @@ Critical product boundaries include:
 - expense persistence;
 - document access.
 
-Each must have deliberate failure and recovery behavior.
+Each exposed boundary must have deliberate failure and recovery behavior.
 
 ---
 
 ## Architecture Smells to Eliminate
 
-During modernization identify and remove:
+During modernization identify and remove or justify:
 
 - components performing raw provider calls;
 - duplicate query keys for the same entity;
@@ -491,10 +503,10 @@ A subsystem is architecturally healthy when:
 1. Its canonical source of truth is obvious.
 2. Its business rules have one owner.
 3. The UI does not reinterpret provider/database details independently.
-4. Errors and stale states are explicit.
-5. Changes propagate across dependent surfaces.
-6. Tests can exercise core behavior without mounting the whole app.
-7. Provider replacement would not require rewriting the UI.
-8. Native and web share product logic.
+4. Errors and stale states are explicit where relevant.
+5. Changes propagate across implemented dependent surfaces.
+6. Tests can exercise core behavior without mounting the whole app where practical.
+7. Provider replacement would not require rewriting unrelated UI.
+8. Native and web share product logic where both surfaces implement the capability.
 9. Security is enforced server-side.
 10. A new developer/agent can determine how the subsystem works from repository truth.
