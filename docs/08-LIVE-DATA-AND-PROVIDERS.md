@@ -4,15 +4,17 @@
 
 Live travel data can create enormous value and enormous trust risk.
 
-RT2RP must never confuse saved trip facts, cached provider observations, estimated values, and genuinely live provider-backed data.
+RT2RP must never confuse saved trip facts, cached provider observations, estimated values, and genuinely current provider-backed data.
+
+This document defines provider standards and target behavior. It is not proof that any provider capability is currently public or validated.
 
 ---
 
 ## Hard Rule
 
-If RT2RP presents information as current/live, the product must have a defined provider, freshness window, update path, failure path, and validation strategy.
+If RT2RP presents information as current/live, the product must have a defined provider, source authority, freshness window, update path, failure path, production configuration, and validation strategy.
 
-If those do not exist, the product does not claim live capability.
+If those do not exist and are not verified, the product does not claim live capability.
 
 ---
 
@@ -26,7 +28,7 @@ RT2RP domain request
  -> provider request
  -> provider response validation
  -> normalization
- -> freshness metadata
+ -> source/freshness metadata
  -> canonical observation/result
 ```
 
@@ -42,6 +44,7 @@ Every provider integration must document:
 - provider/vendor;
 - endpoint(s);
 - authentication;
+- production configuration dependency;
 - quota/rate limits;
 - expected latency;
 - timeout;
@@ -49,6 +52,7 @@ Every provider integration must document:
 - caching;
 - freshness window;
 - normalized fields;
+- source authority/precedence;
 - fields that are optional/unreliable;
 - change-detection rules;
 - cost model;
@@ -64,10 +68,10 @@ Every provider integration must document:
 Internally, provider-backed information should be capable of distinguishing states such as:
 
 ### LIVE / FRESH
-Observation is within the defined freshness window.
+Observation is within the defined freshness window and came from the intended current-data path.
 
 ### CACHED / RECENT
-Previously successful observation is still useful but not freshly retrieved.
+Previously successful observation is still useful but was not freshly retrieved for the present request.
 
 ### STALE
 Observation exists but exceeds the trustworthy freshness window.
@@ -81,7 +85,7 @@ The provider request cannot currently produce a trustworthy result.
 ### UNSUPPORTED
 RT2RP does not support the requested capability.
 
-The UI should expose only distinctions meaningful to the traveler.
+The UI should expose only distinctions meaningful to the traveler and only with wording that matches actual semantics.
 
 ---
 
@@ -97,6 +101,25 @@ Examples:
 - saved airport terminal is not a current gate assignment.
 
 If an estimate is used, product copy must match the actual semantics.
+
+Fallbacks must not overwrite or disguise the failure of a higher-authority source.
+
+---
+
+## Source Authority
+
+Provider observations normally augment operational state rather than rewrite booked/user truth indiscriminately.
+
+For each provider-backed field or semantic dimension, define:
+
+- what the saved/canonical fact represents;
+- what the provider observation represents;
+- which source is authoritative for the displayed decision;
+- how conflicts are handled;
+- whether a manual correction can be overwritten;
+- whether historical observations are retained.
+
+A provider's authority in one dimension does not make it authoritative for every field on the entity.
 
 ---
 
@@ -136,7 +159,7 @@ If provider-backed routing is offered, define:
 - deterministic fallback semantics;
 - navigation handoff.
 
-A route result should not silently survive major origin/destination edits.
+A route result must not silently survive material origin/destination edits unless the cache key/invalidation contract proves it still applies.
 
 ---
 
@@ -150,7 +173,7 @@ If live rail/transit data is offered, distinguish:
 - platform/track data;
 - disruption information.
 
-If only static routing is supported, do not imply live rail monitoring.
+If only static routing or saved reservation data is supported, do not imply live rail monitoring.
 
 ---
 
@@ -184,7 +207,7 @@ If weather is exposed, document:
 - timezone;
 - forecast timestamp;
 - horizon;
-- severe alert support if any;
+- severe-alert support if any;
 - route-weather methodology if any;
 - cache/freshness;
 - provider failure behavior.
@@ -230,10 +253,12 @@ Before such a promise is released, validate:
 - refresh cadence;
 - provider quotas;
 - retries;
-- concurrency;
+- concurrency/locking;
+- state comparison;
+- materiality/deduplication;
+- persistence;
 - device/token delivery;
 - notification permissions;
-- deduplication;
 - observability;
 - recovery from missed runs;
 - production test evidence.
@@ -265,7 +290,7 @@ Never save money by presenting stale information as current.
 
 Adapters must make provider replacement feasible.
 
-A provider should be replaceable without rewriting:
+A provider should be replaceable without rewriting unrelated:
 
 - Timeline;
 - Today;
@@ -282,16 +307,18 @@ Normalize provider semantics at the boundary.
 
 Before a provider-backed capability is public:
 
-1. Valid real provider calls succeed.
+1. Valid real provider calls succeed in the intended production configuration.
 2. Invalid/missing input is handled.
 3. Timeouts are handled.
 4. Rate limits are handled.
 5. Malformed/unexpected responses are handled.
 6. Cache behavior is verified.
 7. Stale state is distinguishable.
-8. User-visible wording is accurate.
-9. Cost controls exist.
-10. Observability exists.
-11. End-to-end tests or production verification cover the promise.
+8. Source authority/conflict behavior is verified.
+9. User-visible wording is accurate.
+10. Cost controls exist.
+11. Observability exists.
+12. End-to-end tests and/or controlled production verification cover the promise.
+13. Background/delivery behavior is proven if the wording implies monitoring or alerts.
 
 If the provider capability cannot meet this bar, keep it internal.
