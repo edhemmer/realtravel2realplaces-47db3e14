@@ -4,7 +4,7 @@
 
 You are working inside the Real Travel 2 Real Places (RT2RP) production repository.
 
-RT2RP is an existing Travel Operating System. Your job is to improve it without fragmenting it, weakening reliability, duplicating architecture, or overstating capability.
+RT2RP is an existing Travel Operating System. Your job is to improve it without fragmenting it, weakening reliability, duplicating architecture, overstating capability, or shipping competitively weak checkbox features.
 
 You are not building a demo.
 
@@ -16,7 +16,7 @@ The governing corpus defines standards and target architecture. It does **not** 
 
 ## Mandatory Reading Order
 
-Before making architectural, database, AI, UX, workflow, security, infrastructure, provider, native-mobile, reliability, or feature decisions, read:
+Before making architectural, database, AI, UX, workflow, security, infrastructure, provider, native-mobile, reliability, product-positioning, or feature decisions, read:
 
 1. `docs/00-START-HERE.md`
 2. `docs/01-PRODUCT-CONSTITUTION.md`
@@ -29,11 +29,14 @@ Before making architectural, database, AI, UX, workflow, security, infrastructur
 9. `docs/08-LIVE-DATA-AND-PROVIDERS.md`
 10. `docs/09-OFFLINE-SYNC-RESILIENCE.md`
 11. `docs/10-BUILD-ROADMAP.md`
-12. the assigned specification under `specs/`.
+12. `docs/12-MARKET-AND-PRODUCT-STANDARD.md`
+13. the assigned specification under `specs/`.
 
-Also inspect existing implementation, production/configuration dependencies, and tests relevant to the assigned subsystem.
+Also inspect existing implementation, production/configuration dependencies, tests, and current user-facing copy relevant to the assigned subsystem.
 
-Repository documents control architectural intent. Current code/configuration/evidence controls claims about what exists today.
+Repository documents control architectural/product intent. Current code/configuration/evidence controls claims about what exists today.
+
+Competitive examples define an external quality bar. They are never permission to add a feature.
 
 ---
 
@@ -73,6 +76,28 @@ Do not remove a working path until its replacement is proven and all dependencie
 
 ---
 
+## Competitive Discipline
+
+Before implementing or materially redesigning a user-facing subsystem:
+
+1. identify the strongest relevant current specialist/product benchmark;
+2. identify what users already receive free for the same problem;
+3. identify what users actually pay for;
+4. identify table-stakes behavior RT2RP must not knowingly underperform;
+5. define what RT2RP deliberately will not copy;
+6. define RT2RP's integration advantage within the complete trip;
+7. define objective quality/interaction/reliability targets in the assigned spec.
+
+Do not implement competitor features solely for parity.
+
+Do not use "all-in-one" as justification for shallow execution.
+
+If a specialist capability cannot be implemented to a defensible quality level, keep it internal or omit it until it can.
+
+RT2RP's primary differentiation is operational continuity across the complete trip, not the number of tabs/features.
+
+---
+
 ## Required Workflow
 
 ### Step 1 — Understand the Assignment
@@ -83,6 +108,7 @@ Restate internally:
 - domain entities;
 - current implementation paths;
 - governing spec;
+- relevant market benchmark;
 - acceptance tests;
 - release evidence;
 - explicit non-goals.
@@ -111,13 +137,25 @@ Before adding logic, identify the existing canonical owner or establish one acco
 
 One concept gets one canonical owner. Legitimate projections/caches must have explicit derivation and invalidation rules.
 
-### Step 4 — Make the Smallest Coherent Change
+### Step 4 — Define the Competitive Target
+
+From the assigned spec and current benchmark, state internally:
+
+- table stakes;
+- consequence of being wrong;
+- expected mobile interaction quality;
+- RT2RP differentiation;
+- behavior intentionally out of scope.
+
+Do not broaden scope simply because a competitor has more features.
+
+### Step 5 — Make the Smallest Coherent Change
 
 Prefer bounded implementation that fully closes one user outcome.
 
 Avoid mixing unrelated refactors, UI redesign, schema changes, new providers, and new AI capabilities in one task.
 
-### Step 5 — Validate End-to-End Propagation
+### Step 6 — Validate End-to-End Propagation
 
 When a canonical fact changes, verify every implemented dependent surface that should change.
 
@@ -132,7 +170,9 @@ Examples may include:
 - notifications;
 - realtime peers.
 
-### Step 6 — Test
+Also verify cross-domain transitions affected by the change.
+
+### Step 7 — Test
 
 Run relevant:
 
@@ -141,13 +181,14 @@ Run relevant:
 - RLS/security checks;
 - component tests;
 - end-to-end tests;
+- comparative usability scenario where applicable;
 - typecheck;
 - lint;
 - build.
 
 Add regression tests for bugs and high-risk travel logic.
 
-### Step 7 — Release Evidence Audit
+### Step 8 — Release Evidence Audit
 
 Before completion ask:
 
@@ -160,10 +201,12 @@ Before completion ask:
 - Is any user data at risk?
 - Is the required production configuration actually present?
 - Has the relevant failure/recovery path been validated?
+- Is a table-stakes workflow knowingly worse than the relevant benchmark without a documented product reason?
+- Does this reduce manual reconciliation across the trip, or merely add another feature surface?
 
 If yes or unknown for a critical promise, the task is not release-validated.
 
-### Step 8 — Public Exposure Decision
+### Step 9 — Public Exposure Decision
 
 Use the governing spec's decision:
 
@@ -185,6 +228,7 @@ Never infer EXPOSE merely because implementation code is complete.
 - Reservations, movements, stays, places, travelers, events, expenses, tasks, and alerts are related but distinct concepts.
 - Air, rail, drive, and mixed-mode travel are first-class target domains, but only validated behavior may be exposed.
 - Timeline and Today are projections of canonical truth, not separate truth stores.
+- Cross-domain transitions are a first-class product concern.
 
 ### Time
 
@@ -207,6 +251,7 @@ Never infer EXPOSE merely because implementation code is complete.
 - Structured material output requires schemas.
 - AI never invents live state.
 - Deterministic logic remains deterministic.
+- AI must reduce work or improve a supported decision, not merely produce content.
 
 ### Security
 
@@ -234,6 +279,7 @@ Never infer EXPOSE merely because implementation code is complete.
 - Keep critical mobile interactions large and obvious.
 - Avoid complex interaction while actively driving.
 - Accessibility is required, not polish.
+- Match or beat the relevant specialist's cognitive/interaction simplicity for table-stakes workflows unless a documented RT2RP requirement justifies additional complexity.
 
 ---
 
@@ -295,6 +341,9 @@ Files/modules and behavior changed.
 ### Consolidated/Removed
 Duplicate/superseded paths removed only after verification.
 
+### Competitive Benchmark
+Relevant specialist/table-stakes baseline and how the implementation compares.
+
 ### Data Impact
 Migrations/backfills/none.
 
@@ -329,14 +378,15 @@ Stop and report rather than guessing if:
 - a provider capability cannot be verified;
 - security ownership is ambiguous;
 - implementing the request would create a second source of truth;
-- user-facing wording would exceed actual capability.
+- user-facing wording would exceed actual capability;
+- the proposed feature exists only for competitive checkbox parity and lacks a meaningful RT2RP user outcome.
 
-The correct result may be to preserve the existing implementation, keep a new capability internal, narrow wording, or document why no code change is justified.
+The correct result may be to preserve the existing implementation, keep a new capability internal, narrow wording, omit the feature, or document why no code change is justified.
 
 ---
 
 ## Final Standard
 
-RT2RP must become more connected, more dependable, and easier to trust after every change.
+RT2RP must become more connected, more dependable, more competitive, and easier to trust after every change.
 
-If the change adds code but does not improve a validated traveler outcome, challenge the change.
+If the change adds code but does not improve a validated traveler outcome or strengthen operational continuity, challenge the change.
