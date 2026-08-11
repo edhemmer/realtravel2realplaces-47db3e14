@@ -8,6 +8,8 @@ They apply to human developers, Codex, other coding agents, migrations, provider
 
 The goal is not architectural purity. The goal is a dependable travel product.
 
+The governing corpus defines standards and target architecture; current implementation and release evidence determine what may be exposed as a product capability.
+
 ---
 
 ## Engineering Priorities
@@ -40,12 +42,13 @@ Before replacing working code, determine:
 - what data it owns;
 - what downstream modules depend on it;
 - what tests cover it;
+- what production/configuration dependencies it requires;
 - whether an existing canonical helper/service already owns the concept;
-- whether the perceived problem is architectural, UX, data, provider, state, or error-handling related.
+- whether the perceived problem is architectural, UX, data, provider, state, configuration, or error-handling related.
 
 Prefer strengthening and consolidation over parallel replacement.
 
-Do not create `NewTripState`, `TripStateV2`, alternate data clients, duplicate provider clients, duplicate access resolvers, or duplicate domain helpers without an approved migration plan and explicit removal of the superseded path.
+Do not create `NewTripState`, `TripStateV2`, alternate data clients, duplicate provider clients, duplicate access resolvers, or duplicate domain helpers without an approved migration plan and explicit removal conditions for the superseded path.
 
 ---
 
@@ -57,7 +60,7 @@ Examples:
 
 - trip identity;
 - local travel time representation;
-- movement status;
+- movement status semantics;
 - cost totals;
 - membership permissions;
 - trip lifecycle;
@@ -65,7 +68,7 @@ Examples:
 - notification eligibility;
 - timeline ordering.
 
-Views may transform canonical data for presentation. They may not invent alternate business rules.
+Views may transform canonical data for presentation. Caches/projections may exist when their derivation, invalidation, and reconciliation contracts are explicit. They may not become competing authority.
 
 ---
 
@@ -151,13 +154,13 @@ Unauthorized access, invalid token, permission escalation attempt, secret/config
 ### PROGRAMMING
 Unexpected exception, invariant violation, serialization issue, impossible state.
 
-Each class must have defined logging, UX, retry, and escalation behavior.
+Each class must have defined logging, UX, retry, and escalation behavior appropriate to the user impact.
 
 ---
 
 ## Truthful UI State Contract
 
-Every async surface must explicitly handle relevant states:
+Every async surface must explicitly handle relevant states such as:
 
 - loading;
 - success;
@@ -170,7 +173,7 @@ Every async surface must explicitly handle relevant states:
 - permission denied;
 - error.
 
-Do not collapse materially different states into a generic spinner or generic "unavailable" message if the distinction matters to the traveler.
+Do not collapse materially different states into a generic spinner or generic `unavailable` message when the distinction matters to the traveler.
 
 Do not display placeholder travel data in production.
 
@@ -230,15 +233,17 @@ Every provider integration must define:
 - purpose;
 - supported product promise;
 - authentication;
+- production configuration dependency;
 - timeout;
 - retry;
 - rate-limit handling;
 - cache/freshness policy;
 - normalized schema;
+- source authority;
 - provider-specific uncertainty;
 - failure behavior;
 - cost controls;
-- monitoring.
+- monitoring/observability.
 
 ---
 
@@ -302,7 +307,7 @@ For each offline-capable capability specify:
 
 ## Accessibility Standard
 
-Travelers may use RT2RP while walking, driving preparation, carrying luggage, in bright sunlight, under stress, or with physical/visual limitations.
+Travelers may use RT2RP while walking, preparing to drive, carrying luggage, in bright sunlight, under stress, or with physical/visual limitations.
 
 Required baseline:
 
@@ -328,7 +333,7 @@ Performance is a trust feature.
 Prioritize:
 
 - fast app start;
-- fast Today/Timeline availability;
+- fast Today/Timeline availability where those surfaces are exposed;
 - avoidance of redundant provider calls;
 - stable query keys;
 - bounded rerenders;
@@ -357,6 +362,8 @@ Critical flows should emit enough structured telemetry to answer:
 
 Never log secrets or unnecessary PII.
 
+Observability must be sufficient to support the release evidence required by the subsystem's risk level.
+
 ---
 
 ## Testing Pyramid
@@ -375,13 +382,15 @@ Critical interactive states and accessibility.
 ### End-to-End
 User promises and cross-module workflows.
 
-High-risk user promises require end-to-end coverage.
+High-risk user promises require end-to-end or equivalent controlled validation evidence.
 
 ---
 
 ## Regression Standard
 
 Every defect that could cause a traveler to receive wrong information, lose data, become stuck, or misunderstand trip state should receive a regression test before closure whenever technically practical.
+
+If a regression test is not practical, the closure record must state why and what alternative evidence protects the behavior.
 
 ---
 
@@ -395,8 +404,10 @@ No implementation task is complete until:
 - types/lint/build pass;
 - error states are deliberate;
 - security boundaries are validated;
+- production/configuration dependencies required for the promise are verified;
 - documentation/spec is updated if contracts changed;
-- no new duplicate source of truth was introduced.
+- no unintended duplicate source of truth was introduced;
+- release evidence and public-exposure decision are recorded for new or changed user-facing capability.
 
 ---
 
@@ -418,6 +429,7 @@ A feature must have:
 - a data owner;
 - a code owner/module boundary;
 - a test strategy;
-- an operational/failure contract.
+- an operational/failure contract;
+- release evidence appropriate to its risk.
 
-If none can be identified, the feature is architectural debt and must be consolidated or removed.
+If none can be identified, the feature is architectural debt and must be consolidated, hidden, or removed.
