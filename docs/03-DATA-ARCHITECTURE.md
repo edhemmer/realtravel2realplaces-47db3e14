@@ -70,10 +70,10 @@ A trip must remain understandable after one source record changes.
 
 ## Separate Facts from Projections
 
-RT2RP should distinguish:
+RT2RP must distinguish:
 
 ### FACTS
-Persisted or provider-observed truth.
+Persisted or provider-observed truth within a defined semantic dimension.
 
 Examples:
 
@@ -116,7 +116,7 @@ UI presentation must never become the source of truth.
 
 ## Source Metadata
 
-Material imported or provider-backed data should be able to retain source metadata where useful, such as:
+Material imported or provider-backed data should retain source metadata when it affects trust, reconciliation, or provider behavior, including as applicable:
 
 - source type;
 - source provider;
@@ -134,23 +134,28 @@ It should not clutter normal user interfaces unless it affects user decisions.
 
 ---
 
-## Manual Truth vs Provider Truth
+## Source Authority and Precedence
 
-The traveler must be able to correct important imported data.
+Precedence is **field- and dimension-specific**. RT2RP must not use one global rule that allows a provider refresh to overwrite unrelated booked or user-verified facts.
 
-Do not overwrite a deliberate manual correction with a lower-confidence automated refresh unless the domain explicitly requires provider authority.
+Examples:
 
-Each domain should define precedence.
+- a provider may be authoritative for the **current operational status** of a flight while the reservation remains authoritative for the traveler's saved confirmation number;
+- a user correction may be authoritative for a lodging address while a provider observation may be authoritative for a separately modeled live status field;
+- an accepted AI extraction may populate a booked departure time, but a later ambiguous extraction must not silently replace it.
 
-Typical precedence may be:
+Each domain specification must define:
 
-1. authoritative provider observation for genuinely live state;
-2. verified user-entered booking truth;
-3. accepted AI extraction;
-4. unverified imported suggestion;
-5. deterministic fallback estimate.
+1. the canonical field or semantic dimension;
+2. permitted sources;
+3. source authority/precedence;
+4. whether automation may overwrite an existing value;
+5. conflict handling;
+6. user-review requirements.
 
-This order is not universal. Each entity specification must define it.
+General rule: **provider observations augment operational state; they do not indiscriminately rewrite booked truth.**
+
+Do not overwrite a deliberate user correction with lower-confidence automation.
 
 ---
 
@@ -178,7 +183,7 @@ Migration should be incremental and preservation-first.
 
 ## Multi-Segment Travel
 
-The model must support:
+The model must support, when the corresponding product capability is implemented and validated:
 
 - outbound and return travel;
 - connections;
@@ -251,7 +256,7 @@ Today is a projection over canonical trip state.
 
 It must not maintain a second copy of booking/movement/expense truth.
 
-Today may derive:
+Today may derive only supported concepts such as:
 
 - current trip phase;
 - active event;
@@ -348,15 +353,15 @@ The app should be quiet when no meaningful action or awareness is needed.
 
 ## Provider Observation Model
 
-Live provider data should not overwrite historical booking truth indiscriminately.
+Live provider data must not overwrite historical booking truth indiscriminately.
 
 Think in terms of observations:
 
 ```text
-canonical entity
-  + latest provider observation
-  + observation timestamp
-  + freshness policy
+canonical booked/user fact
+  + latest normalized provider observation
+  + observation timestamp/freshness
+  + domain precedence rules
   -> current operational state
 ```
 
