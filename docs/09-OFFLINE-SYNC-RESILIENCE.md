@@ -6,13 +6,13 @@ Travel frequently happens with weak signal, captive portals, roaming limits, dea
 
 RT2RP must remain understandable and recoverable under degraded conditions.
 
-This document defines what "reliable" means when connectivity is imperfect.
+This document defines resilience standards and target behavior. It is not a claim that every domain is currently available offline.
 
 ---
 
 ## Hard Rule
 
-Do not claim offline capability for a user outcome unless the actual trip data required for that outcome is available offline and the behavior has been tested.
+Do not claim offline capability for a user outcome unless the actual trip data required for that outcome is available offline, access remains appropriately protected, and the behavior has been tested end-to-end.
 
 Caching the JavaScript application shell does not, by itself, make RT2RP an offline travel app.
 
@@ -20,9 +20,9 @@ Caching the JavaScript application shell does not, by itself, make RT2RP an offl
 
 ## Resilience Goals
 
-The product should:
+For supported behavior, the product should:
 
-- preserve already-saved trip information during temporary connectivity loss;
+- preserve already-saved trip information during temporary connectivity loss when that information is intentionally cached;
 - make it obvious when a live refresh cannot occur;
 - avoid losing user input after transient failure;
 - recover automatically when safe;
@@ -34,12 +34,12 @@ The product should:
 
 ## Data Classes
 
-Every domain should classify data by offline importance.
+Every domain considered for offline behavior should classify data by offline importance.
 
 ### CRITICAL REFERENCE
 Information the traveler may reasonably need without signal.
 
-Potential examples, if implemented securely:
+Potential examples, only if implemented securely:
 
 - itinerary/timeline essentials;
 - lodging address and confirmation;
@@ -57,11 +57,11 @@ Examples:
 
 - live flight status;
 - live traffic route duration;
-- current weather observation;
+- current weather/provider observations;
 - real-time platform/gate changes.
 
 ### WRITE-CANDIDATE
-User actions that may be queued offline only if conflict and idempotency behavior are fully designed.
+User actions that may be queued offline only if conflict and idempotency behavior are fully designed and tested.
 
 ---
 
@@ -70,14 +70,18 @@ User actions that may be queued offline only if conflict and idempotency behavio
 For each offline-readable dataset define:
 
 - what is persisted;
+- when/how it becomes available offline;
 - maximum retention;
 - last-sync timestamp;
 - schema/version handling;
 - access/security model;
 - stale display behavior;
-- logout/account-change clearing behavior.
+- logout/account-change clearing behavior;
+- device/platform differences.
 
 Offline data must never leak between users on shared devices.
+
+A feature is not offline-ready merely because a previous online session happened to leave data in a browser cache.
 
 ---
 
@@ -130,11 +134,13 @@ Cached provider data must retain:
 
 When offline or refresh fails, cached live data may remain visible only if the UI does not imply it is current beyond its trustworthy window.
 
+If freshness is no longer trustworthy, the UI must narrow or remove the operational claim rather than merely retain the last value.
+
 ---
 
 ## Reconnect Behavior
 
-On reconnect:
+On reconnect, as applicable:
 
 1. restore backend reachability;
 2. validate auth/session;
@@ -142,7 +148,9 @@ On reconnect:
 4. process supported queued writes in safe order;
 5. resolve conflicts;
 6. refresh provider data only according to normal cost/freshness rules;
-7. update UI states without requiring full app restart.
+7. update UI states without requiring a full app restart where practical.
+
+Reconnect logic must not assume that local state wins.
 
 ---
 
@@ -152,7 +160,7 @@ Realtime subscriptions are an optimization, not the sole synchronization mechani
 
 If realtime disconnects:
 
-- local UI remains usable from known state;
+- local UI may remain usable from known state;
 - reconnect re-subscribes;
 - authoritative queries refetch;
 - missed events do not permanently desynchronize the trip.
@@ -161,14 +169,15 @@ If realtime disconnects:
 
 ## Session Resilience
 
-Auth/session behavior must not trap users in redirect loops or destroy locally useful trip state prematurely.
+Auth/session behavior must not trap users in redirect loops or destroy intentionally persisted safe trip state prematurely.
 
 Expired sessions should:
 
 - clearly require reauthentication;
 - preserve safe navigation intent where practical;
 - avoid repeated route bouncing;
-- not submit protected mutations under an invalid session.
+- not submit protected mutations under an invalid session;
+- continue to enforce access controls for locally persisted sensitive data.
 
 ---
 
@@ -182,7 +191,7 @@ Rules:
 - tolerate old cached shapes during staged deployment where practical;
 - avoid forced reload during a critical save;
 - ensure migration incompatibilities fail safely;
-- test update behavior with an active trip.
+- test update behavior with an active trip when persisted trip data is involved.
 
 ---
 
@@ -194,7 +203,7 @@ One failed secondary provider should not blank the entire trip screen if canonic
 
 Design bounded failure regions.
 
-Example:
+Example semantics, only when true for the implementation:
 
 - saved flight details render;
 - live status panel fails separately;
@@ -207,7 +216,7 @@ Example:
 
 Retries must be deliberate.
 
-Do retry:
+Do retry when appropriate:
 
 - transient network failures;
 - selected idempotent reads;
@@ -225,7 +234,7 @@ Use exponential backoff/jitter where appropriate.
 
 ---
 
-## Local Storage / Persistence Security
+## Local Persistence Security
 
 Sensitive trip data persisted on-device requires deliberate review.
 
@@ -238,9 +247,12 @@ Consider:
 - logout clearing;
 - account switching;
 - PII sensitivity;
-- receipt/document caching.
+- receipt/document caching;
+- platform backup/sync behavior where relevant.
 
 Do not persist sensitive fields merely for convenience.
+
+Local persistence mechanisms must be chosen based on the sensitivity of the data, not only developer convenience.
 
 ---
 
@@ -249,6 +261,7 @@ Do not persist sensitive fields merely for convenience.
 For production-critical systems maintain:
 
 - database backup strategy;
+- restore verification strategy;
 - migration discipline;
 - ability to identify failed deploys;
 - rollback path;
@@ -256,13 +269,15 @@ For production-critical systems maintain:
 - incident logging;
 - status/support communication plan.
 
+A backup that has never been restorable in a controlled test is incomplete assurance.
+
 The product should fail conservatively rather than fabricate continuity.
 
 ---
 
 ## Resilience Testing
 
-Test critical flows under:
+Test critical supported flows under relevant conditions such as:
 
 - airplane mode;
 - slow network;
@@ -278,17 +293,21 @@ Test critical flows under:
 - realtime disconnect/reconnect;
 - stale cache.
 
+Each subsystem spec must identify which degraded scenarios are release-relevant.
+
 ---
 
 ## Acceptance Gate
 
 A capability may be described as resilient/offline-capable only when:
 
-1. required data is actually available;
-2. stale/live semantics remain truthful;
-3. user input cannot silently disappear;
-4. retry cannot duplicate material records;
-5. reconnect reconciles authoritative state;
-6. sensitive data handling is approved;
+1. required data is intentionally and actually available offline;
+2. access/security behavior is validated;
+3. stale/live semantics remain truthful;
+4. user input cannot silently disappear for supported offline/queued actions;
+5. retry cannot duplicate material records;
+6. reconnect reconciles authoritative state;
 7. degraded behavior is tested;
-8. recovery does not require developer intervention.
+8. app/session/update behavior does not corrupt the capability;
+9. recovery does not require developer intervention for expected failure modes;
+10. public wording matches the exact offline/resilience scope.
