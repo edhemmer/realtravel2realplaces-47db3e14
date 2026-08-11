@@ -10,6 +10,8 @@ You are not building a demo.
 
 You are not free to invent product behavior outside repository truth.
 
+The governing corpus defines standards and target architecture. It does **not** prove that a capability is currently implemented or publicly releasable.
+
 ---
 
 ## Mandatory Reading Order
@@ -29,9 +31,9 @@ Before making architectural, database, AI, UX, workflow, security, infrastructur
 11. `docs/10-BUILD-ROADMAP.md`
 12. the assigned specification under `specs/`.
 
-Also inspect existing implementation and tests relevant to the assigned subsystem.
+Also inspect existing implementation, production/configuration dependencies, and tests relevant to the assigned subsystem.
 
-Repository documents control.
+Repository documents control architectural intent. Current code/configuration/evidence controls claims about what exists today.
 
 ---
 
@@ -49,7 +51,7 @@ Never add:
 - AI output that implies provider-backed facts without provider evidence;
 - marketing-style capability claims inside the application.
 
-If an assigned implementation is incomplete at the end of the task, keep it internal/hidden.
+If an assigned implementation is incomplete or unproven at the end of the task, keep it internal/hidden.
 
 ---
 
@@ -82,6 +84,7 @@ Restate internally:
 - current implementation paths;
 - governing spec;
 - acceptance tests;
+- release evidence;
 - explicit non-goals.
 
 ### Step 2 — Inspect Current Reality
@@ -93,17 +96,20 @@ Search the repository for:
 - database schema/migrations;
 - edge functions;
 - provider calls;
+- production/configuration dependencies;
 - tests;
 - duplicate implementations;
 - feature copy.
 
 Do not assume documentation perfectly matches current code.
 
+Do not treat file existence as proof that a capability works end-to-end.
+
 ### Step 3 — Identify Canonical Ownership
 
 Before adding logic, identify the existing canonical owner or establish one according to the governing architecture.
 
-One concept gets one owner.
+One concept gets one canonical owner. Legitimate projections/caches must have explicit derivation and invalidation rules.
 
 ### Step 4 — Make the Smallest Coherent Change
 
@@ -113,7 +119,7 @@ Avoid mixing unrelated refactors, UI redesign, schema changes, new providers, an
 
 ### Step 5 — Validate End-to-End Propagation
 
-When a canonical fact changes, verify every dependent surface that should change.
+When a canonical fact changes, verify every implemented dependent surface that should change.
 
 Examples may include:
 
@@ -141,7 +147,7 @@ Run relevant:
 
 Add regression tests for bugs and high-risk travel logic.
 
-### Step 7 — Truth Audit
+### Step 7 — Release Evidence Audit
 
 Before completion ask:
 
@@ -152,8 +158,22 @@ Before completion ask:
 - Does AI invent missing facts?
 - Does the feature fail silently?
 - Is any user data at risk?
+- Is the required production configuration actually present?
+- Has the relevant failure/recovery path been validated?
 
-If yes, the task is not complete.
+If yes or unknown for a critical promise, the task is not release-validated.
+
+### Step 8 — Public Exposure Decision
+
+Use the governing spec's decision:
+
+- EXPOSE;
+- KEEP EXISTING EXPOSURE;
+- NARROW WORDING;
+- INTERNAL ONLY;
+- HIDE/REMOVE.
+
+Never infer EXPOSE merely because implementation code is complete.
 
 ---
 
@@ -163,13 +183,13 @@ If yes, the task is not complete.
 
 - Trip is the operating aggregate root.
 - Reservations, movements, stays, places, travelers, events, expenses, tasks, and alerts are related but distinct concepts.
-- Air, rail, drive, and mixed-mode travel are first-class.
+- Air, rail, drive, and mixed-mode travel are first-class target domains, but only validated behavior may be exposed.
 - Timeline and Today are projections of canonical truth, not separate truth stores.
 
 ### Time
 
 - Preserve local wall-time semantics.
-- Respect existing canonical time policy.
+- Respect existing canonical time policy unless a safer replacement is proven through migration/regression evidence.
 - Do not introduce casual `Date` parsing that shifts travel dates/times.
 - Timezone regressions are blockers.
 
@@ -178,7 +198,7 @@ If yes, the task is not complete.
 - Provider calls go through adapters/server boundaries.
 - Normalize response shapes.
 - Preserve freshness metadata.
-- Define unavailable state.
+- Define source authority and unavailable state.
 - Do not leak provider-specific structures into UI.
 
 ### AI
@@ -206,11 +226,11 @@ If yes, the task is not complete.
 
 ## UI Rules
 
-- Primary experience: Today, Timeline, Travel, Places, Records.
+- Target primary experience: Today, Timeline, Travel, Places, Records.
 - Keep the experience calm when healthy.
-- Put the next meaningful action before secondary analytics.
+- Put the next meaningful action before secondary analytics when timing matters.
 - Never use decorative warning/status UI without a real condition.
-- Use explicit loading/error/empty/stale states.
+- Use explicit loading/error/empty/stale states as applicable.
 - Keep critical mobile interactions large and obvious.
 - Avoid complex interaction while actively driving.
 - Accessibility is required, not polish.
@@ -227,7 +247,7 @@ Before schema changes:
 4. define backfill;
 5. define validation;
 6. stage code migration;
-7. remove old fields only after readers/writers are migrated.
+7. remove old fields only after readers/writers are migrated and rollback/recovery requirements are satisfied.
 
 Never perform a big-bang destructive schema rewrite.
 
@@ -255,10 +275,10 @@ provider
  -> client update
  -> retry/recovery
  -> observability
- -> tests
+ -> tests/production evidence
 ```
 
-If the chain is incomplete, do not expose or describe the capability.
+If the chain is incomplete or unverified, do not expose or describe the capability.
 
 ---
 
@@ -287,6 +307,12 @@ Authorization/RLS/PII implications.
 ### Tests
 Exact checks run and results.
 
+### Release Evidence
+What proves the capability can or cannot be publicly exposed.
+
+### Public Exposure Decision
+EXPOSE / KEEP EXISTING EXPOSURE / NARROW WORDING / INTERNAL ONLY / HIDE-REMOVE.
+
 ### Remaining Risk
 Anything not fully proven.
 
@@ -305,7 +331,7 @@ Stop and report rather than guessing if:
 - implementing the request would create a second source of truth;
 - user-facing wording would exceed actual capability.
 
-The correct result may be to preserve the existing implementation and document why.
+The correct result may be to preserve the existing implementation, keep a new capability internal, narrow wording, or document why no code change is justified.
 
 ---
 
@@ -313,4 +339,4 @@ The correct result may be to preserve the existing implementation and document w
 
 RT2RP must become more connected, more dependable, and easier to trust after every change.
 
-If the change adds code but does not improve the traveler outcome, challenge the change.
+If the change adds code but does not improve a validated traveler outcome, challenge the change.
