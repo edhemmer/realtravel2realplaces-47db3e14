@@ -72,10 +72,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         // Privacy wins over availability. Do not expose a new authenticated
         // session until the old account's local cache has been cleared.
+        // Keep the previous user id so the next auth transition retries the
+        // clear instead of accidentally treating the device as clean.
         console.error('Unable to clear offline data during auth transition:', error);
         if (transitionId === sessionTransitionRef.current) {
           setSession(null);
-          previousUserIdRef.current = null;
           setLoading(false);
         }
         return;
