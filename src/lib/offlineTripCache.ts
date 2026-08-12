@@ -1,9 +1,13 @@
 /**
- * v4.0.0: Offline Trip Cache
- * 
+ * v4.1.0: Offline Trip Cache
+ *
  * Manages IndexedDB storage for canonicalTripState snapshots.
  * Snapshots are read-only fallbacks — cloud data always has priority.
- * 
+ *
+ * SECURITY:
+ * - All RT2RP offline stores are cleared when the authenticated user changes
+ *   or signs out. Cached trip data must never survive an account boundary.
+ *
  * Database: rt2rp_offline_cache
  * Object store: trip_cache
  * Key: tripId
@@ -14,6 +18,12 @@ import type { CanonicalTripState } from '@/lib/canonicalTripState';
 const DB_NAME = 'rt2rp_offline_cache';
 const STORE_NAME = 'trip_cache';
 const DB_VERSION = 3;
+const OFFLINE_STORES = [
+  'trip_cache',
+  'expense_queue',
+  'weather_snapshot',
+  'explore_essentials',
+] as const;
 
 interface CachedSnapshot {
   tripId: string;
@@ -67,7 +77,7 @@ export async function saveTripSnapshot(
     });
     db.close();
   } catch (e) {
-    // Silent failure — cache is best-effort
+    // Cache persistence is best-effort; cloud data remains authoritative.
     console.warn('[offlineTripCache] saveTripSnapshot failed:', e);
   }
 }
@@ -112,5 +122,42 @@ export async function clearTripSnapshot(tripId: string): Promise<void> {
     db.close();
   } catch (e) {
     console.warn('[offlineTripCache] clearTripSnapshot failed:', e);
+  }
+}
+
+/**
+ * Clear every RT2RP offline store at an authenticated account boundary.
+ *
+ * This intentionally removes queued expenses as well as read-only snapshots.
+ * A signed-out or newly signed-in user must never inherit another account's
+ * locally cached trip, weather, places, or financial data.
+ */
+export async function clearAllOfflineData(): Promise<void> {
+  if (typeof indexedDB === 'undefined') return;
+
+  let db: IDBDatabase | null = null;
+  try {
+    db = await openDB();
+    const stores = OFFLINE_STORES.filter((name) => db!.objectStoreNames.contains(name));
+    if (stores.length === 0) {
+      db.close();
+      return;
+    }
+
+    const tx = db.transaction(stores, 'readwrite');
+    for (const storeName of stores) {
+      tx.objectStore(storeName).clear();
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error ?? new Error('Offline cache clear aborted'));
+    });
+    db.close();
+  } catch (e) {
+    db?.close();
+    console.error('[offlineTripCache] clearAllOfflineData failed:', e);
+    throw e;
   }
 }
