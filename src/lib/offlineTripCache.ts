@@ -1,12 +1,14 @@
 /**
- * v4.1.0: Offline Trip Cache
+ * v4.1.1: Offline Trip Cache
  *
  * Manages IndexedDB storage for canonicalTripState snapshots.
  * Snapshots are read-only fallbacks — cloud data always has priority.
  *
  * SECURITY:
  * - All RT2RP offline stores are cleared when the authenticated user changes
- *   or signs out. Cached trip data must never survive an account boundary.
+ *   or signs out.
+ * - A non-sensitive local owner marker survives app restarts so a later account
+ *   cannot inherit stale IndexedDB data even if the prior clear was interrupted.
  *
  * Database: rt2rp_offline_cache
  * Object store: trip_cache
@@ -18,6 +20,7 @@ import type { CanonicalTripState } from '@/lib/canonicalTripState';
 const DB_NAME = 'rt2rp_offline_cache';
 const STORE_NAME = 'trip_cache';
 const DB_VERSION = 3;
+const OFFLINE_OWNER_KEY = 'rt2rp.offline-cache-owner-user-id';
 const OFFLINE_STORES = [
   'trip_cache',
   'expense_queue',
@@ -56,6 +59,24 @@ function openDB(): Promise<IDBDatabase> {
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
+}
+
+export function getOfflineDataOwner(): string | null {
+  try {
+    return typeof localStorage === 'undefined' ? null : localStorage.getItem(OFFLINE_OWNER_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setOfflineDataOwner(userId: string | null): void {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    if (userId) localStorage.setItem(OFFLINE_OWNER_KEY, userId);
+    else localStorage.removeItem(OFFLINE_OWNER_KEY);
+  } catch (error) {
+    console.warn('[offlineTripCache] unable to persist cache owner marker:', error);
+  }
 }
 
 /**
