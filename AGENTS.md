@@ -25,7 +25,7 @@ Before making architectural, database, AI, UX, workflow, security, infrastructur
 
 The governing corpus defines product standards and target architecture. It does **not** prove that a capability is currently implemented or authorize a user-facing claim.
 
-Only the current implementation, configuration, production evidence, and applicable validation establish whether a capability may be exposed or described to users.
+Only current implementation, configuration, production evidence, and applicable validation establish whether a capability may be exposed or described to users.
 
 Competitive capabilities in `docs/12-MARKET-AND-PRODUCT-STANDARD.md` are benchmarks, not implementation requirements by default and never proof that RT2RP supports the same capability.
 
@@ -55,9 +55,31 @@ Before replacing code, classify the existing implementation as:
 - REPLACE
 - HIDE/REMOVE
 
-Do not create parallel V2 systems to avoid understanding the current implementation.
+Do not create parallel V2 systems to avoid understanding current implementation.
 
-Do not remove working behavior until the replacement is proven and dependent paths are migrated.
+Do not remove working behavior until replacement is proven and dependent paths are migrated.
+
+## Experience Quality Rule
+
+Do not defer user experience, graphics, accessibility, or perceived speed to a later polish phase.
+
+A user-facing subsystem is incomplete until it is:
+
+- clear under travel-day stress;
+- visually deliberate and production-grade;
+- responsive on supported mobile/desktop surfaces;
+- accessible;
+- truthful about live/cached/stale/offline state;
+- competitively usable for the problem it claims to solve;
+- free of decorative graphics that obscure weak functionality.
+
+Maps, charts, imagery, motion, and haptics must improve orientation, recognition, decision-making, or confidence. They are not decoration quotas.
+
+## Real-Time Rule
+
+`Live`, `real-time`, `monitored`, `automatically updated`, and `alert when changed` are release contracts.
+
+Do not use those terms unless entity matching, freshness, material-change detection, background execution where required, delivery, recovery, observability, and production validation are complete.
 
 ## Required Product Direction
 
@@ -73,7 +95,8 @@ Every change should:
 - reduce unnecessary app-switching or manual reconciliation;
 - support pleasure, business, and mixed travel;
 - support air, road, rail, and multi-modal travel without mode-specific fragmentation;
-- meet the strongest relevant market expectation when RT2RP chooses to expose that capability.
+- meet the strongest relevant market expectation when RT2RP chooses to expose that capability;
+- improve or preserve premium visual/interaction quality.
 
 Do not chase competitor features merely for parity. Build only capabilities that strengthen RT2RP as the operating layer for the complete trip.
 
@@ -81,6 +104,6 @@ If a proposed change does not support these goals, challenge it before implement
 
 ## Completion Standard
 
-A feature is not complete because a page, API, database field, background job, provider call, or prompt exists.
+A feature is not complete because a page, API, database field, background job, provider call, prompt, or visual design exists.
 
-It is complete only when the full user outcome works end-to-end, failure behavior is deliberate, security is enforced, dependent surfaces remain consistent, observability is sufficient for the risk, applicable tests pass, and the resulting experience is competitive for the user problem it claims to solve.
+It is complete only when the full user outcome works end-to-end, failure behavior is deliberate, security is enforced, dependent surfaces remain consistent, observability is sufficient for risk, applicable tests pass, real-time/offline claims are proven where used, and the resulting experience is visually and competitively credible for the user problem it claims to solve.
