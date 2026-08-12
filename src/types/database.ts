@@ -99,6 +99,7 @@ export interface Expense {
   receipt_url?: string;
   expense_purpose?: ExpensePurpose; // v1.3.0: For mixed trips only
   engagement_id?: string | null; // Patch 2.3.8: Optional Stop assignment
+  client_expense_id?: string | null; // v4.1.0: Durable idempotency key for offline replay
   created_at: string;
   updated_at: string;
 }
