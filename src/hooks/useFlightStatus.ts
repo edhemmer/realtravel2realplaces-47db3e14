@@ -31,6 +31,13 @@ function dateToken(value?: string | null): string | null {
   return value.substring(0, 10);
 }
 
+function freshnessDetail(result: FlightStatusResult): string {
+  if (!result.fetchedAt) return '';
+  const fetched = new Date(result.fetchedAt);
+  if (Number.isNaN(fetched.getTime())) return '';
+  return ` Last provider observation: ${fetched.toLocaleString()}.`;
+}
+
 export function useFlightStatus(params: {
   flightNumber?: string | null;
   departureDateTime?: string | null;
@@ -98,9 +105,9 @@ export function describeFlightStatus(result?: FlightStatusResult | null): {
       : result.signal.type === 'gate_change' ? 'Gate-change signal detected.'
       : 'Delay signal detected.';
     return {
-      label: result.cached ? 'Cached alert' : 'Live alert',
+      label: result.cached ? 'Cached provider alert' : 'Recent provider alert',
       tone: result.cached ? 'cached' : 'live',
-      detail: message,
+      detail: `${message}${freshnessDetail(result)}`,
     };
   }
 
@@ -121,8 +128,8 @@ export function describeFlightStatus(result?: FlightStatusResult | null): {
   }
 
   return {
-    label: result.cached ? 'Cached clear' : 'Live checked',
+    label: result.cached ? 'Cached provider check' : 'Provider checked recently',
     tone: result.cached ? 'cached' : 'live',
-    detail: 'No delay, gate-change, or cancellation signal was returned by the flight provider.',
+    detail: `No delay, gate-change, or cancellation signal was returned in this provider observation.${freshnessDetail(result)}`,
   };
 }
