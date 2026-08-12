@@ -15,7 +15,7 @@ import LandingFooter from '@/components/landing/LandingFooter';
 import '@/styles/landing.css';
 
 const seoTitle = 'Real Travel 2 Real Places | Chaos to Clarity Travel Management App';
-const seoDescription = 'Find clarity in the travel chaos. RealTravel2RealPlaces is a premium trip management app for travel booked anywhere, connecting itinerary, maps, lodging, Driving Mode, transit, weather, expenses, offline details, and reports into one trip home.';
+const seoDescription = 'Find clarity in the travel chaos. RealTravel2RealPlaces connects trip details, timeline, lodging, driving, weather context, expenses, cached upcoming timeline data, and reports into one trip home.';
 
 export default function LandingPage() {
   return (
@@ -25,12 +25,12 @@ export default function LandingPage() {
         <meta name="description" content={seoDescription} />
         <meta
           name="keywords"
-          content="travel management app, trip management app, itinerary management, travel organizer, manage trips booked anywhere, why pay for travel app, map app alternative for trip management, airline app alternative, booking app alternative, driving mode, airport maps, local transit maps, travel expenses, offline travel app, business travel app, road trip management"
+          content="travel management app, trip management app, itinerary management, travel organizer, manage trips booked anywhere, driving mode, airport maps, local transit, travel expenses, cached trip timeline, business travel app, road trip management"
         />
         <link rel="canonical" href="https://realtravel2realplaces.app/" />
 
         <meta property="og:title" content="Real Travel 2 Real Places | Chaos to Clarity Travel Management" />
-        <meta property="og:description" content="The paid trip layer single-purpose travel apps do not provide: next steps, Driving Mode, airport and transit windows, expenses, offline context, and reports." />
+        <meta property="og:description" content="A connected trip-management layer for next steps, driving, airport and transit context, expenses, cached timeline access, and reports." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://realtravel2realplaces.app/" />
         <meta property="og:site_name" content="Real Travel 2 Real Places" />
@@ -38,7 +38,7 @@ export default function LandingPage() {
 
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Real Travel 2 Real Places | Chaos to Clarity" />
-        <meta name="twitter:description" content="The premium trip layer that connects itinerary, maps, weather, expenses, offline context, and reports." />
+        <meta name="twitter:description" content="Connect trip details, timeline, driving, weather context, expenses, cached timeline access, and reports in one place." />
         <meta name="twitter:image" content="https://realtravel2realplaces.app/pwa-icon-512.png" />
 
         <script type="application/ld+json">
@@ -52,16 +52,16 @@ export default function LandingPage() {
             operatingSystem: 'Web, iOS',
             description: seoDescription,
             featureList: [
-              'Today view for any trip booked anywhere',
-              'Today view for next actions and leave-by timing',
-              'Trip operating system for bookings, maps, movement, and expenses',
+              'Today view for next actions from saved trip details',
+              'Trip timeline for bookings and trip events',
               'Driving Mode for road trips, route context, and next stops',
-              'Airport map and parking links',
-              'Local transit map and routing windows',
-              'Offline trip details and expense capture',
-              'Multi-currency travel expenses',
-              'Trip sharing with scoped permissions',
-              'Business and personal trip management',
+              'Airport map and parking links when available',
+              'Local transit context when required provider data is available',
+              'Cached upcoming trip timeline after connectivity drops',
+              'Queued expense capture while offline with sync after reconnection',
+              'Multi-currency expense fields',
+              'Invitation-based trip sharing with permission-aware actions',
+              'Business and personal trip records',
             ],
             offers: {
               '@type': 'Offer',

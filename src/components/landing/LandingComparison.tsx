@@ -4,13 +4,13 @@ type FeatureStatus = 'yes' | 'no' | 'partial' | 'pro';
 
 const features: { name: string; us: FeatureStatus; maps: FeatureStatus; airline: FeatureStatus; booking: FeatureStatus }[] = [
   { name: 'One trip home across flights, lodging, drive, transit, parking, expenses, and notes', us: 'yes', maps: 'no', airline: 'no', booking: 'partial' },
-  { name: 'Real-time "what do I do next?" guidance before and during travel', us: 'yes', maps: 'partial', airline: 'partial', booking: 'no' },
-  { name: 'Drive mode with trip stops, gas shortcut, weather, road context, and offline details', us: 'yes', maps: 'partial', airline: 'no', booking: 'no' },
-  { name: 'Airport, local transit, weather, and parking windows in the trip context', us: 'yes', maps: 'partial', airline: 'partial', booking: 'no' },
-  { name: 'Business/personal expense capture, splitting, and export-ready reports', us: 'yes', maps: 'no', airline: 'no', booking: 'partial' },
-  { name: 'Companion sharing with scoped permissions and privacy masking', us: 'yes', maps: 'partial', airline: 'no', booking: 'partial' },
-  { name: 'Offline trip record when service is weak or gone', us: 'yes', maps: 'partial', airline: 'partial', booking: 'partial' },
-  { name: 'Turns confirmations and receipts into managed trip data', us: 'yes', maps: 'no', airline: 'partial', booking: 'partial' },
+  { name: 'Trip-aware "what do I do next?" guidance from the trip details you have saved', us: 'yes', maps: 'partial', airline: 'partial', booking: 'no' },
+  { name: 'Drive mode with trip stops, gas shortcut, weather, road context, and cached trip context', us: 'yes', maps: 'partial', airline: 'no', booking: 'no' },
+  { name: 'Airport, local transit, weather, and parking context inside the trip when data is available', us: 'yes', maps: 'partial', airline: 'partial', booking: 'no' },
+  { name: 'Business/personal expense capture and trip reporting', us: 'yes', maps: 'no', airline: 'no', booking: 'partial' },
+  { name: 'Invitation-based trip sharing with permission-aware actions', us: 'yes', maps: 'partial', airline: 'no', booking: 'partial' },
+  { name: 'Cached upcoming timeline plus queued expense capture when connectivity drops', us: 'yes', maps: 'partial', airline: 'partial', booking: 'partial' },
+  { name: 'Turns supported confirmations and receipts into reviewable trip data', us: 'yes', maps: 'no', airline: 'partial', booking: 'partial' },
   { name: 'Designed for the whole travel period, not just planning or one vendor', us: 'yes', maps: 'no', airline: 'no', booking: 'no' },
 ];
 
@@ -30,7 +30,7 @@ export default function LandingComparison() {
             Why pay when you already have travel apps?
           </h2>
           <p className="landing-section-subtext mt-3">
-            Map apps, airline apps, and booking sites are excellent at their own lanes. RealTravel2RealPlaces is the paid operations layer that connects the lanes and tells you what matters next.
+            Map apps, airline apps, and booking sites are excellent at their own lanes. RealTravel2RealPlaces connects the trip details you already have so the next useful action is easier to find.
           </p>
         </div>
 
@@ -48,7 +48,7 @@ export default function LandingComparison() {
           <div className="landing-value-card">
             <span className="landing-value-kicker">Booking apps</span>
             <h3>Know the reservation.</h3>
-            <p>They do not run the trip day by day, preserve offline context, split costs, or produce operational reports.</p>
+            <p>They do not connect the entire trip day by day, keep your RT2RP timeline context available after a connection drops, or organize your trip expenses and reports.</p>
           </div>
         </div>
 
