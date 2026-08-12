@@ -1,233 +1,121 @@
 # RT2RP — Competitive Capability Matrix
 
-**Status:** AUDIT REQUIRED
+**Status:** PHASE 0 — INITIAL MAIN COMPETITIVE AUDIT
+
+**Audited branch:** `main`
 
 ## Purpose
 
-This document compares the current RT2RP implementation against the strongest relevant current travel-product benchmarks.
+Compare current RT2RP implementation against the current market bar in `docs/12-MARKET-AND-PRODUCT-STANDARD.md` using code/configuration evidence rather than old feature inventories.
 
-It is the evidence bridge between:
-
-- current repository reality;
-- `docs/12-MARKET-AND-PRODUCT-STANDARD.md`;
-- preservation/modernization decisions;
-- subsystem specifications;
-- visual/interaction quality;
-- real-time/reliability expectations.
-
-Do not complete this matrix from old feature inventories alone.
-
-Inspect current code, production configuration, tests, public wording, rendered behavior, and real end-to-end outcomes.
-
----
-
-## Hard Rules
-
-1. A competitor feature does not create an RT2RP requirement automatically.
-2. A documented RT2RP feature is not considered real until verified.
-3. A free competitor capability may make an RT2RP paywall commercially weak even if RT2RP implements it well.
-4. A specialist benchmark defines quality expectations only for capabilities RT2RP chooses to expose.
-5. RT2RP's differentiation should come primarily from operational continuity across the complete trip, not feature count.
-6. `Live`, `real-time`, `offline`, `automatic`, and similar claims require direct evidence, not inferred architecture.
-7. Visual quality must be judged from rendered workflows and stress states, not source code alone.
+Rendered visual quality and production provider behavior remain unproven where browser/device or live production evidence was not available in this pass.
 
 ---
 
 ## Classification
 
-For each domain classify current RT2RP as one of:
-
-- **LEADING** — demonstrably stronger for the defined traveler outcome;
-- **DIFFERENTIATED** — creates unique integrated trip value even if a specialist is deeper;
-- **PARITY** — meets the relevant modern expectation;
-- **BELOW PARITY** — implemented but materially weaker than expected;
+- **LEADING** — demonstrably stronger for the user outcome;
+- **DIFFERENTIATED** — creates unique integrated trip value even if specialist depth is lower;
+- **PARITY** — meets modern expectation;
+- **BELOW PARITY** — real but materially weaker than expected;
 - **UNPROVEN** — code/claims exist but evidence is insufficient;
 - **NOT SUPPORTED** — intentionally not exposed;
-- **NOT IN SCOPE** — does not belong in RT2RP's product identity.
+- **NOT IN SCOPE** — does not belong in RT2RP.
 
-Do not use LEADING or PARITY without evidence.
-
----
-
-## Core Matrix
-
-| Traveler Problem / Domain | Current RT2RP Evidence | Publicly Exposed? | Strongest Benchmark | Typical Free Expectation | Typical Paid Value | RT2RP Classification | Integration Advantage | Gap / Risk | Decision | Spec |
-|---|---|---|---|---|---|---|---|---|---|---|
-| Trip intake / confirmation import | | | TripIt / KAYAK / Wanderlog | Basic import/organization increasingly free | Automation, convenience, scale | | | | | |
-| Unified itinerary / timeline | | | TripIt / Tripsy / Wanderlog | Strong itinerary organization often free | Advanced assistance/offline/polish | | | | | |
-| Today / operational command | | | TripIt Pro / Flighty within flight domain | Limited cross-domain command elsewhere | Proactive operational leverage | | | | | |
-| Flight execution | | | Flighty / TripIt Pro | Basic tracking may be free | Speed, predictions, connections, alerts | | | | | |
-| Real-time flight/change delivery | | | Flighty / TripIt Pro / KAYAK | Some live updates free | Faster/proactive reliable delivery | | | | | |
-| Drive / road-trip execution | | | Roadtrippers / modern maps | Basic maps/navigation free elsewhere | Route depth, complex trips, optimization | | | | | |
-| Rail / transit integration | | | TripIt/KAYAK itinerary + provider apps | Reservation display | Reliable live/connection context where offered | | | | | |
-| Multi-modal continuity | | | No single specialist owns complete stack | Fragmented across products | Core RT2RP differentiation | | | | | |
-| Collaboration / sharing | | | Wanderlog / KAYAK / TripIt | Collaboration commonly free | Advanced coordination/admin depth | | | | | |
-| Places / nearby discovery | | | Maps / Wanderlog / Roadtrippers | Discovery abundant/free | Optimization/personalization/route value | | | | | |
-| Expense capture | | | TravelSpend / Navan / Concur | Basic tracking varies | Offline, currency, automation, reconciliation | | | | | |
-| Cost splitting / settlement | | | TravelSpend / Splitwise-like tools | Some free options | Deeper group controls | | | | | |
-| Business/mixed trip records | | | Navan / Concur / expense specialists | Limited consumer baseline | Reduced admin, receipts, reporting | | | | | |
-| Offline critical trip access | | | TripIt / KAYAK / Wanderlog Pro / strong mobile apps | Increasing expectation | Reliable continuity | | | | | |
-| Notifications / monitoring | | | Flighty / TripIt Pro / KAYAK | Basic alerts often available | Speed, materiality, prediction, proactive help | | | | | |
-| AI intake / trip intelligence | | | Wanderlog + broad AI planners | AI generation common | Accurate workflow reduction / grounded intelligence | | | | | |
-| Native/mobile interaction quality | | | Flighty / Tripsy / TripIt | High baseline | Premium speed, polish, platform integration | | | | | |
-| Visual hierarchy / graphics / maps | | | Flighty / Tripsy / Wanderlog / Roadtrippers by domain | Professional mobile UI expected | Clarity, premium feel, richer spatial/operational context | | | | | |
-| Loading / degraded-state UX | | | Strong specialist apps | Usable basic failure states expected | High-confidence continuity | | | | | |
-| Accessibility / stress usability | | | Platform-quality apps | Baseline accessibility expected | Trust and broad usability | | | | | |
-| Post-trip closeout / durable record | | | TravelSpend / Concur / Polarsteps (different purpose) | Fragmented | RT2RP opportunity if operationally useful | | | | | |
+No current row is labeled LEADING solely from source review.
 
 ---
 
-## Evidence Required Per Row
+## Current Main Matrix
 
-Record at minimum:
-
-- exact RT2RP entry point;
-- canonical/domain owner;
-- persistence/provider path;
-- production configuration dependency;
-- failure behavior;
-- automated tests;
-- manual end-to-end verification status;
-- rendered mobile/desktop verification where user-facing;
-- current public wording;
-- competitor source and research date;
-- interaction/reliability comparison where practical;
-- freshness/background/delivery evidence for real-time claims;
-- offline persistence/reconnect evidence for offline claims.
-
-A feature inventory bullet is context, not proof.
-
----
-
-## Competitive Decision Options
-
-### PRESERVE
-Current RT2RP is strong, reliable, and fits product identity.
-
-### STRENGTHEN TO PARITY
-Capability is core but materially weaker than modern expectation.
-
-### DIFFERENTIATE
-Do not chase specialist depth; strengthen the cross-domain integration advantage.
-
-### CONSOLIDATE
-Multiple RT2RP paths prevent a coherent experience.
-
-### NARROW
-Capability is real but wording/scope exceeds competitive or reliability reality.
-
-### HIDE UNTIL READY
-Capability cannot meet required quality/reliability bar.
-
-### REMOVE / NOT IN SCOPE
-Competitor capability does not strengthen RT2RP's purpose.
+| Traveler Problem / Domain | Current RT2RP Evidence | Benchmark | Classification | Integration Advantage | Main Gap / Risk | Decision |
+|---|---|---|---|---|---|---|
+| Trip intake / confirmation import | Multiple server parsers, image/itinerary/receipt parsing, inbound email, pending-import staging, canonical mappers, validation and tests | TripIt / KAYAK / Wanderlog | **UNPROVEN / POTENTIAL PARITY** | Imported facts can flow into canonical trip/expenses/timeline | Multiple import generations and no quantified accuracy/eval threshold yet | PRESERVE + consolidate pipeline + benchmark friction/accuracy |
+| Unified itinerary / timeline | Canonical trip state + TripTimeline + mobile cached timeline | TripIt / Tripsy / Wanderlog | **UNPROVEN / STRONG FOUNDATION** | Timeline can consume broader expenses/parking/movement/context than classic itinerary | Rendered clarity, dense multimodal and edit propagation not yet proven | PRESERVE + strengthen to demonstrated parity |
+| Today / operational command | Canonical Today execution stack, next-action resolver, readiness, drive signals, alerts, proactive/orchestrated context | TripIt Pro / Flighty within specialist domain | **DIFFERENTIATED FOUNDATION, UNPROVEN QUALITY** | Cross-domain now/next/action is RT2RP's strongest unique concept | Overlapping engines and no full real-trip E2E proof | DIFFERENTIATE + consolidate decision ownership |
+| Flight execution | authenticated Aviationstack signal lookup + flight UI hooks/display code | Flighty / TripIt Pro | **BELOW SPECIALIST PARITY** | Flight status can inform whole-trip Today/Timeline/ground movement | Narrow signal model, 10-min cache, usage gate, weak entity-match proof, no rich operational status | Keep only necessary flight context; strengthen before broader claims |
+| Real-time flight/change delivery | foreground query; generic notification/push infrastructure exists | Flighty / TripIt Pro / KAYAK | **UNPROVEN / BELOW PARITY IF CLAIMED** | Potential to connect disruption to next actions | No proven background polling/change-detect/push chain | HIDE monitoring claims until complete |
+| Drive / road-trip execution | dedicated DriveMode, HERE route, drive engine, route geometry, hazard/intelligence helpers, Today integration | Roadtrippers / modern maps | **UNPROVEN / DIFFERENTIATED POTENTIAL** | Can connect route, lodging, parking, expenses and next movement | Need real rendered route UX, provider freshness, hazard validation, mixed-mode behavior | PRESERVE + strengthen integrated execution rather than copy road-trip catalog |
+| Rail / transit integration | HERE transit function + transit intelligence + generic booking/timeline structures | TripIt/KAYAK + operator apps | **UNPROVEN** | Fits same trip/movement graph | First-class rail semantics/live scope not yet proven | Strengthen only where real supported outcome exists |
+| Multi-modal continuity | movement orchestration/multimodal engines, canonical trip/timeline and broad booking types | Fragmented market | **DIFFERENTIATED ARCHITECTURAL POTENTIAL** | Core category opportunity: one trip across modes | Multiple movement engines; transitions not yet proven end-to-end | Make this a primary differentiation spec after consolidation |
+| Collaboration / sharing | member/share/invite hooks/routes + realtime sync + RLS migration history | Wanderlog / KAYAK / TripIt | **UNPROVEN** | Shared operational trip, not just shared plan | Security/RLS/PII matrix incomplete; realtime table coverage unverified | Preserve, security-validate, then benchmark usability |
+| Places / nearby discovery | real place search/photo/nearby functions, Explore hooks/components/caches | Maps / Wanderlog / Roadtrippers | **UNPROVEN / LIKELY TABLE STAKES** | Places can attach to actual trip context/timeline | Not differentiated; mock attractions file must be proven non-production | Preserve as supporting capability; don't overinvest in browse breadth |
+| Expense capture | extensive expense UI/domain logic, receipt parser, offline queue, multi-currency normalization | TravelSpend / Navan / Concur | **BELOW PARITY ON RELIABILITY UNTIL FIX** | Expenses connect directly to trip records, bookings and closeout | Offline idempotency defect; report reconciliation unproven | Fix S1 reliability, then strengthen traveler/business utility |
+| Cost splitting / settlement | expense shares/related code exists in repo | TravelSpend / Splitwise-like | **UNPROVEN** | Could use traveler/member context | Complete settlement semantics/UX not audited | Do not claim until validated; may be optional scope |
+| Business/mixed trip records | trip types, expenses, work stops, reports/business gating | Navan / Concur | **DIFFERENTIATED PROSUMER POTENTIAL** | Can support personal + business without enterprise procurement burden | Financial/report accuracy and business workflow depth unproven | Preserve/narrow to prosumer trip management |
+| Offline critical trip access | IndexedDB canonical trip snapshots; mobile Timeline cached fallback; weather/Explore caches | TripIt / KAYAK / Wanderlog Pro / strong mobile apps | **BELOW PARITY / UNPROVEN BROADLY** | Canonical snapshot could become Critical Trip Packet | user isolation/logout clearing, freshness, full critical-record coverage not proven | Strengthen; narrow public offline claim now |
+| Offline expense capture | IndexedDB queue and local sync flow | TravelSpend / Concur mobile | **BELOW PARITY DUE RELIABILITY DEFECT** | Could be excellent integrated travel finance | missing durable idempotency; shared/account cache lifecycle unproven | HIDE strong claim until fixed |
+| Notifications / monitoring | canonical reminder engine, generate-notifications function, APNS/send-push/native helpers | Flighty / TripIt Pro / KAYAK | **UNPROVEN** | Alerts can use full trip context | scheduler/run history/delivery/retry/observability not proven | Preserve infrastructure; prove before claim |
+| AI intake / trip intelligence | centralized AI provider, parsing functions, grounded assistant, deterministic orchestration | Wanderlog + broad AI planners | **DIFFERENTIATED FOUNDATION, UNPROVEN RELEASE QUALITY** | AI can work on actual trip rather than generic travel chat | context trust/evals/telemetry and overlapping intelligence engines | Preserve + centralize + objective evals |
+| Native/mobile interaction quality | Capacitor/iOS project, native push/local notifications, haptics/navigation/bootstrap | Flighty / Tripsy / TripIt | **UNPROVEN** | Same canonical logic can power native shell | actual device/rendered polish and lifecycle evidence not inspected | Preserve platform; perform real device/browser visual validation |
+| Visual hierarchy / graphics / maps | substantial Tailwind/CSS/component system, route/airport/explore visual surfaces | Flighty / Tripsy / Wanderlog / Roadtrippers | **UNPROVEN** | Could visualize connected operational trip rather than isolated modules | source review cannot establish stellar graphics; legacy module density may reduce clarity | Apply new UX contract and rendered visual regression |
+| Loading / degraded-state UX | TripSectionStates, ErrorBoundary, network status, cached timeline, provider metadata | strong specialist apps | **UNPROVEN / MIXED** | Bounded failure architecture exists | some wording overstates cache readiness/live clear; full partial failure behavior untested | Strengthen truth states + E2E |
+| Accessibility / stress usability | shadcn primitives, semantic/accessibility patterns, mobile layouts | platform-quality apps | **UNPROVEN** | Operational hierarchy can reduce cognitive load | no full rendered keyboard/screen reader/stress audit | Validate before calling production-grade |
+| Post-trip closeout / durable record | reports, trip report tab, expense/records infrastructure | TravelSpend / Concur / Polarsteps (different purpose) | **UNPROVEN / DIFFERENTIATED POTENTIAL** | Operational history can combine travel + money + records | reconciliation and actual retention/reuse value unproven | Preserve; build CLOSE experience only from proven records |
 
 ---
 
-# Interaction-Cost Test
+## What Main Already Does Better Than a Typical Prototype
 
-For common workflows compare steps/time/cognitive effort where practical.
+RT2RP already has several architectural advantages that should not be destroyed in modernization:
 
-Examples:
+1. **Canonical trip-state intent is real.** The app is not purely screen-local state.
+2. **Today is already execution-oriented.** The product has a genuine command-surface concept rather than only an itinerary list.
+3. **Time handling has unusually serious domain treatment.** Canonical time policy/normalization and regression tests are substantial.
+4. **Road travel has meaningful depth.** Driving is not merely a link to Maps.
+5. **AI is partially centralized and grounded.** The codebase already resists a generic chatbot architecture.
+6. **Offline is not imaginary.** There are real caches/queues, but the promises currently outrun the reliability/security proof.
+7. **Native support is real infrastructure.** iOS/Capacitor and notification/haptic/navigation helpers exist.
 
-- create trip from confirmation;
-- find next reservation;
-- understand tomorrow's first movement;
-- open lodging address/confirmation;
-- correct imported time;
-- add expense/receipt;
-- share trip;
-- understand a material live change;
-- recover after provider/network failure;
-- access essential trip information without connectivity where supported.
-
-RT2RP should not require meaningfully more work than a specialist for table-stakes behavior unless additional friction protects trust/correctness or creates cross-domain value.
+These are preservation assets.
 
 ---
 
-# Visual/Experience Test
+## Where Main Is Currently Below the New Standard
 
-For important user-facing domains compare:
+### 1. Product truth
 
-1. first-viewport clarity;
-2. typography hierarchy;
-3. information density;
-4. touch/interaction simplicity;
-5. map/route usefulness;
-6. graphics relevance;
-7. motion restraint;
-8. loading/error/stale state quality;
-9. dense-trip readability;
-10. native feel;
-11. accessibility;
-12. perceived speed.
+Marketing/SEO can currently make stronger claims than Phase 0 evidence supports, especially offline/live/automatic behavior.
 
-RT2RP does not need to visually imitate competitors.
+### 2. Operational continuity is implemented in layers but not yet proven as one experience
 
-It must feel equally deliberate, coherent, and trustworthy while retaining its own brand.
+The repo has many engines and modules capable of creating the desired operating system, but too many ownership boundaries are ambiguous. The next gain comes from consolidation, not another intelligence engine.
 
----
+### 3. Specialist-quality live execution is not there yet
 
-# Real-Time Quality Test
+Flight status is materially behind Flighty-level execution. That is acceptable only if RT2RP narrows its role to trustworthy trip context rather than pretending to be a flight specialist.
 
-For any live/monitoring row record:
+### 4. Offline reliability is not commercially ready as currently worded
 
-- provider/source;
-- identity match;
-- freshness window;
-- measured refresh success;
-- material change latency where measurable;
-- background cadence;
-- deduplication/noise behavior;
-- notification delivery behavior;
-- missed-run recovery;
-- stale/failure UX;
-- service objectives;
-- current benchmark.
+Trip snapshot architecture is promising, but security/lifecycle/freshness must be hardened. Offline expense capture specifically has a duplicate-write risk.
 
-A provider API call alone does not qualify as real-time parity.
+### 5. Visual excellence is unproven
+
+The codebase has a large design system, premium CSS and many visual components, but “stellar” cannot be awarded from source. A rendered mobile/desktop audit is mandatory.
+
+### 6. End-to-end evidence is too weak relative to domain complexity
+
+The unit/domain test base is strong. Browser/device user-promise coverage is not visible at comparable depth.
 
 ---
 
-# Differentiation Test
+## Priority Competitive Moves
 
-For each domain ask:
+Do **not** add more feature categories. Raise these existing strengths to the new standard in this order:
 
-1. What does the specialist do better because it focuses on one domain?
-2. What should RT2RP intentionally not reproduce?
-3. What additional trip context does RT2RP have?
-4. Can RT2RP use that context to reduce handoffs or decisions?
-5. Is the integrated value obvious without extra complexity?
-
-The preferred answer is not `RT2RP has more features`.
-
-The preferred answer is:
-
-**RT2RP connects this capability to the rest of the trip so the traveler does less work.**
+1. **Truth + security + financial integrity** — offline cache isolation, idempotent expenses, narrow unsupported copy.
+2. **Canonical execution consolidation** — Today/alerts/movement/intelligence ownership.
+3. **Timeline + Today experience** — make the two central surfaces clearly better than static itinerary management.
+4. **Multimodal continuity** — prove handoffs between air/drive/rail/stays/ground movement.
+5. **Critical Trip Packet** — secure, intentional offline access to essential confirmed trip information.
+6. **Provider/live contracts** — only then add/proclaim strong real-time behaviors.
+7. **Rendered premium experience** — applied during every slice, with full convergence after architecture consolidation.
+8. **Commercial/package differentiation** — only after the above is proven.
 
 ---
 
-# Paid Value Audit
+## Exit Status
 
-For every planned paid differentiator record:
+**INITIAL BENCHMARK COMPLETE; FULL COMPETITIVE VALIDATION NOT COMPLETE.**
 
-| Proposed Paid Value | Comparable Free Capability | Comparable Paid Product/Price | RT2RP Additional Leverage | Proven? | Pricing Decision |
-|---|---|---|---|---|---|
-
-Do not commercialize basic correctness, security, recovery, truthful states, accessibility, or access to the user's own stored trip data as premium quality.
-
----
-
-# Exit Gate
-
-The audit is complete when:
-
-1. every major public RT2RP domain has a current benchmark;
-2. every classification is evidence-backed;
-3. every BELOW PARITY core capability has a strengthen/hide decision;
-4. every UNPROVEN public capability is narrowed/hidden until verified;
-5. every planned paid differentiator has a credible value argument against current free alternatives;
-6. every retained domain has a clear role in the complete trip;
-7. real-time/offline claims have direct operational evidence;
-8. critical user-facing surfaces have rendered experience evidence;
-9. roadmap/spec order reflects traveler value and risk rather than novelty.
+No current capability is labeled LEADING from source review alone. LEADING/PARITY requires rendered, end-to-end and where relevant production-provider evidence under the new subsystem spec standard.
