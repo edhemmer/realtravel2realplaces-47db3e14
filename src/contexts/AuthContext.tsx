@@ -1,7 +1,8 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AuthError, Session, User } from '@supabase/supabase-js';
 import { supabase, supabaseConfig } from '@/integrations/supabase/client';
 import { authCallbackUrl } from '@/lib/auth/authRedirects';
+import { clearAllOfflineData } from '@/lib/offlineTripCache';
 
 interface SignUpData {
   email: string;
@@ -50,8 +51,41 @@ function profileNameData(firstName: string, lastName: string) {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const previousUserIdRef = useRef<string | null>(null);
+  const sessionTransitionRef = useRef(0);
 
-  const applySession = useCallback((nextSession: Session | null) => {
+  /**
+   * Apply an auth session without allowing local offline data to cross an
+   * authenticated account boundary. Clearing happens before the new session
+   * becomes readable by the app.
+   */
+  const applySession = useCallback(async (nextSession: Session | null) => {
+    const transitionId = ++sessionTransitionRef.current;
+    const previousUserId = previousUserIdRef.current;
+    const nextUserId = nextSession?.user?.id ?? null;
+    const crossesAccountBoundary = Boolean(previousUserId && previousUserId !== nextUserId);
+
+    if (crossesAccountBoundary) {
+      setLoading(true);
+      try {
+        await clearAllOfflineData();
+      } catch (error) {
+        // Privacy wins over availability. Do not expose a new authenticated
+        // session until the old account's local cache has been cleared.
+        console.error('Unable to clear offline data during auth transition:', error);
+        if (transitionId === sessionTransitionRef.current) {
+          setSession(null);
+          previousUserIdRef.current = null;
+          setLoading(false);
+        }
+        return;
+      }
+    }
+
+    // Ignore stale async transitions if a newer auth event arrived first.
+    if (transitionId !== sessionTransitionRef.current) return;
+
+    previousUserIdRef.current = nextUserId;
     setSession(nextSession);
     setLoading(false);
   }, []);
@@ -60,11 +94,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data, error } = await supabase.auth.getSession();
     if (error) {
       console.error('Error refreshing auth session:', error);
-      applySession(null);
+      await applySession(null);
       return null;
     }
 
-    applySession(data.session ?? null);
+    await applySession(data.session ?? null);
     return data.session ?? null;
   }, [applySession]);
 
@@ -79,23 +113,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!mounted) return;
 
-      applySession(nextSession ?? null);
+      void applySession(nextSession ?? null);
 
       if (event === 'PASSWORD_RECOVERY' && window.location.pathname !== '/reset-password') {
         window.location.assign('/reset-password');
       }
     });
 
-    supabase.auth.getSession().then(({ data, error }) => {
+    supabase.auth.getSession().then(async ({ data, error }) => {
       if (!mounted) return;
 
       if (error) {
         console.error('Error loading auth session:', error);
-        applySession(null);
+        await applySession(null);
         return;
       }
 
-      applySession(data.session ?? null);
+      await applySession(data.session ?? null);
     });
 
     return () => {
@@ -128,7 +162,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       data.user.identities.length === 0;
 
     if (!error && data.session) {
-      applySession(data.session);
+      await applySession(data.session);
     }
 
     if (!error && data.user && !existingAccount) {
@@ -159,7 +193,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     if (!error && data.session) {
-      applySession(data.session);
+      await applySession(data.session);
     }
 
     return { error, session: data.session ?? null };
@@ -167,7 +201,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     if (!supabaseConfig.hasConfig) {
-      applySession(null);
+      await applySession(null);
       return;
     }
 
@@ -175,7 +209,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) {
       console.error('Sign out error:', error);
     }
-    applySession(null);
+    await applySession(null);
   }, [applySession]);
 
   const value = useMemo<AuthContextType>(() => {
