@@ -4,260 +4,199 @@
 
 Live travel data can create enormous value and enormous trust risk.
 
-RT2RP must never confuse saved trip facts, cached provider observations, estimated values, and genuinely current provider-backed data.
+RT2RP must never confuse saved trip facts, cached provider observations, deterministic estimates, and genuinely current provider-backed data.
 
-This document defines provider standards and target behavior. It is not proof that any provider capability is currently public or validated.
+This document defines target provider and real-time behavior. It is not proof that a capability is currently public or validated.
 
 ---
 
 ## Hard Rule
 
-If RT2RP presents information as current, live, monitored, automatically updated, or real-time, the product must have a defined provider, source authority, freshness window, update path, failure path, production configuration, observability, and validation strategy.
+If RT2RP presents information as `live`, `real-time`, `monitored`, `automatically updated`, or `alert when changed`, the complete operational chain must exist and be validated.
 
-If those do not exist and are not verified, the product does not make the claim.
+At minimum that means:
 
-Real-time is a product contract, not a visual label.
+```text
+canonical entity
+ -> provider identity match
+ -> provider retrieval
+ -> response validation
+ -> normalization
+ -> freshness classification
+ -> observation persistence/cache
+ -> material-change comparison
+ -> canonical operational state
+ -> UI and/or notification delivery
+ -> retry/recovery
+ -> observability
+```
 
----
+If the chain is incomplete or unverified, the product does not make the claim.
 
-## Real-Time Product Standard
-
-For every real-time capability, RT2RP must be able to answer:
-
-1. What exactly is being monitored or refreshed?
-2. What provider or authoritative source produces the information?
-3. How is the RT2RP entity matched to the provider entity?
-4. How often is the information eligible to refresh?
-5. What makes an observation fresh, recent, stale, or unusable?
-6. What happens if the provider is slow or unavailable?
-7. What change is considered material?
-8. How are duplicate/noisy changes suppressed?
-9. How does the user learn about the change?
-10. How is missed background work recovered?
-11. What production evidence proves the chain works?
-
-If these questions do not have precise answers, the capability is not release-ready as real-time.
+Real-time is a product contract, not a label.
 
 ---
 
 ## Provider Architecture
 
-All providers are accessed through server-side adapters where secrets or privileged requests are involved.
+External data is accessed through controlled adapters/server boundaries when secrets or privileged requests are involved.
 
-```text
-RT2RP domain request / scheduled refresh
- -> provider adapter
- -> provider request
- -> provider response validation
- -> entity reconciliation
- -> normalization
- -> source/freshness metadata
- -> observation persistence/cache
- -> material change evaluation
- -> canonical operational state
- -> UI / alert / notification
-```
+Provider payloads do not define RT2RP's internal model and must not leak into page/component contracts.
 
-Provider response shapes do not leak into UI components.
+Foreground and background retrieval should use the same normalized semantics where practical.
 
-The same provider adapter should serve foreground and background paths where practical so semantics do not drift.
-
----
-
-## Provider Contract
-
-Every provider integration must document:
+Every provider capability must define:
 
 - capability served;
 - provider/vendor;
 - endpoint(s);
 - authentication;
-- production configuration dependency;
-- quota/rate limits;
+- production configuration;
+- entity matching;
+- normalized fields;
+- source authority;
 - expected latency;
 - timeout;
-- retry rules;
-- caching;
-- freshness window;
-- normalized fields;
-- source authority/precedence;
-- fields that are optional/unreliable;
-- entity matching/identity rules;
-- change-detection rules;
+- retries;
+- rate limits;
+- cache/freshness policy;
+- background cadence where applicable;
+- material-change rules;
 - cost model;
 - failure behavior;
+- fallback/no-fallback;
+- privacy/retention;
 - observability;
-- data-retention/privacy considerations;
-- fallback or no-fallback behavior;
-- background scheduling requirements where applicable;
-- public wording allowed after validation.
+- allowed public wording after validation.
 
 ---
 
 ## Truth States
 
-Internally, provider-backed information should distinguish states at least conceptually.
+Provider-backed state must distinguish, at least internally:
 
-### LIVE / FRESH
-Observation is within the defined freshness window and came from the intended current-data path.
+### FRESH
+A valid observation is inside the capability's freshness window.
 
-### CACHED / RECENT
-A previously successful observation remains useful but was not freshly retrieved for the present request.
+### RECENT / CACHED
+A prior observation remains useful but was not freshly retrieved for the present request.
 
 ### STALE
-Observation exists but exceeds the trustworthy freshness window.
+The observation is older than the trustworthy operational window.
 
 ### NEEDS INPUT
-Required identifiers or locations are missing.
+Required identity/location data is missing.
 
 ### PROVIDER UNAVAILABLE
-The provider request cannot currently produce a trustworthy result.
-
-### UNSUPPORTED
-RT2RP does not support the requested capability.
+A trustworthy current result cannot be obtained.
 
 ### UNKNOWN / UNRESOLVED
-The system cannot safely determine the requested state from available evidence.
+Available evidence is insufficient to safely determine the state.
 
-The UI should expose only distinctions meaningful to the traveler and only with wording matching actual semantics.
+### UNSUPPORTED
+RT2RP does not support the capability.
+
+The UI exposes only distinctions meaningful to the traveler, using wording and graphics that match the real semantics.
 
 ---
 
 ## Freshness Policy
 
-Freshness is capability-specific.
+Freshness is domain-specific.
 
-Do not create one global "live" TTL for all provider data.
+Do not use one global TTL for all travel data.
 
-A freshness contract should define:
+Every live capability defines:
 
-- active-trip window;
-- pre-trip window;
-- post-event window;
+- pre-trip refresh window;
+- active-trip refresh window;
+- event-proximity acceleration if justified;
 - normal refresh cadence;
-- accelerated cadence near time-critical events where justified;
 - cache TTL;
 - stale threshold;
 - hard-expiry threshold;
 - manual refresh behavior if offered;
-- provider quota/cost implications.
+- post-event behavior;
+- quota/cost implications.
 
-Example principle:
+A gate assignment, live traffic duration, place rating, and destination photo do not have the same freshness requirement.
 
-A place rating can tolerate a different freshness window than a departure gate or live traffic estimate.
-
-Freshness thresholds belong in code/configuration and tests, not only prose.
-
----
-
-## Service-Level Objectives
-
-For any public operational live-data capability, the subsystem spec should define measurable service objectives appropriate to the provider and user risk.
-
-Potential dimensions include:
-
-- successful refresh rate;
-- provider response latency;
-- time from material provider change to RT2RP observation;
-- time from material change to user-visible update/notification where promised;
-- stale-data rate;
-- duplicate-alert rate;
-- provider error rate;
-- background-job success rate.
-
-Do not invent arbitrary universal numbers.
-
-Each capability must set evidence-based targets against provider constraints and competitive expectations.
-
-A capability that repeatedly misses its operational objective should be narrowed, degraded honestly, or hidden until corrected.
-
----
-
-## No False Fallbacks
-
-A deterministic estimate may be useful, but it must never be presented as provider-backed reality.
-
-Examples:
-
-- route estimate is not traffic-aware live route time;
-- scheduled flight time is not live flight status;
-- seasonal climate is not current weather;
-- saved airport terminal is not a current gate assignment.
-
-If an estimate is used, product copy and graphics must match the actual semantics.
-
-Fallbacks must not overwrite or disguise failure of a higher-authority source.
-
-A fallback must have its own explicit source/state.
+Freshness thresholds should exist in code/configuration and tests, not only prose.
 
 ---
 
 ## Source Authority
 
-Provider observations normally augment operational state rather than rewrite booked/user truth indiscriminately.
+Provider observations augment operational state; they do not indiscriminately overwrite saved or user-corrected truth.
 
-For each provider-backed field or semantic dimension, define:
+For every provider-backed field or semantic dimension define:
 
-- what saved/canonical fact represents;
-- what provider observation represents;
-- which source is authoritative for the displayed decision;
+- what the canonical saved fact means;
+- what the provider observation means;
+- which source is authoritative for the current decision;
 - how conflicts are handled;
-- whether a manual correction can be overwritten;
-- whether historical observations are retained;
-- how source transitions are audited.
+- whether a user correction may be overwritten;
+- whether history is retained.
 
-A provider's authority in one dimension does not make it authoritative for every field on the entity.
+Authority is field/domain-specific.
 
-Example:
-
-A flight-status provider may be authoritative for current gate/delay state while the user's confirmed reservation remains authoritative for booking reference and traveler assignment.
+A flight-status provider may be authoritative for current delay/gate state while the confirmed reservation remains authoritative for booking reference and traveler assignment.
 
 ---
 
-## Entity Matching and Reconciliation
+## Entity Matching
 
-Incorrect provider matching is a high-risk failure.
+A fresh observation attached to the wrong entity is worse than no observation.
 
-Every live domain must define stable identity rules.
+Each live domain defines stable matching rules using appropriate identifiers such as:
 
-Examples may use combinations of:
-
-- operating carrier;
-- flight/service number;
-- service date;
-- origin/destination;
 - provider record ID;
-- route coordinates;
-- place provider ID.
+- operating carrier + service number + date;
+- origin/destination;
+- normalized place/provider ID;
+- route origin/destination coordinates and route identity.
 
-Do not silently apply an observation when identity confidence is insufficient.
-
-Ambiguous provider matches should resolve to unknown/unavailable rather than plausible-but-wrong state.
+Ambiguous matches resolve to unknown/unavailable, not plausible-but-wrong state.
 
 ---
 
-## Flight Status
+## No False Fallbacks
 
-If flight status is offered, define and validate:
+Fallbacks must keep their real semantics.
 
-- carrier/service identity;
-- operating vs marketing carrier semantics;
-- codeshare behavior;
+Examples:
+
+- scheduled flight time is not live flight status;
+- deterministic route duration is not traffic-aware current routing;
+- seasonal climate is not current weather;
+- saved terminal is not a current gate;
+- cached data outside the freshness window is not live.
+
+Fallback state must not visually mimic a successful fresh provider result.
+
+---
+
+# Domain Contracts
+
+## Flights
+
+If live flight status is offered, validate at minimum:
+
+- operating/marketing carrier semantics;
+- codeshares;
 - service date;
 - segment identity;
-- scheduled times;
-- estimated/actual times;
-- delay/cancellation/diversion status;
-- terminal/gate when available;
-- baggage claim if offered;
-- observation timestamp;
+- scheduled/estimated/actual times;
+- delay/cancellation/diversion state;
+- terminal/gate where available;
+- baggage claim only if supported;
+- observation time;
 - refresh cadence;
-- provider outage behavior;
-- late inbound aircraft or predictive behavior only if truly supported.
+- provider outage behavior.
 
-Do not claim proactive monitoring or alerts until background refresh, material change detection, delivery, and recovery are proven end-to-end in production.
+Do not expose specialist-style prediction, inbound-aircraft intelligence, connection assistance, or similar claims unless the exact data and end-to-end behavior exist.
 
-Flight specialists such as Flighty and TripIt Pro establish a high quality bar for live flight execution. RT2RP does not need to reproduce every aviation-specialist feature, but every flight status it exposes must be timely, understandable, and trustworthy. citeturn297138search3turn638315search0
+RT2RP does not need every aviation-specialist feature. The flight information it does expose must be timely, clear, and integrated correctly with the rest of the trip.
 
 ---
 
@@ -265,22 +204,21 @@ Flight specialists such as Flighty and TripIt Pro establish a high quality bar f
 
 If provider-backed routing is offered, define:
 
-- origin/destination resolution;
+- origin/destination identity;
 - coordinate quality;
 - route mode;
 - distance;
 - duration;
 - traffic inclusion/exclusion;
-- toll/ferry/avoidance settings if supported;
-- observation timestamp;
-- cache policy;
-- route identity/hash;
+- avoidance/toll/ferry semantics where supported;
+- route identity/cache key;
+- freshness;
 - deterministic fallback semantics;
 - navigation handoff.
 
-A route result must not silently survive material origin/destination edits unless the cache key/invalidation contract proves it still applies.
+Material origin/destination changes invalidate old route results.
 
-If traffic is not included, the UI must not imply traffic-aware arrival time.
+If traffic is absent, do not imply a traffic-aware arrival time.
 
 ---
 
@@ -288,261 +226,269 @@ If traffic is not included, the UI must not imply traffic-aware arrival time.
 
 If live rail/transit data is offered, distinguish:
 
-- booked schedule;
-- provider schedule;
+- saved/booked schedule;
+- current provider schedule;
 - live service status;
-- platform/track data;
-- disruption information;
-- service cancellation/substitution where supported;
-- transfer/connection semantics.
+- platform/track;
+- cancellation/disruption;
+- transfers/connections.
 
-If only static routing or saved reservation data is supported, do not imply live rail monitoring.
+If only saved reservation or static routing data exists, do not imply live monitoring.
 
 ---
 
 ## Places
 
-Place search/provider results should define:
+Place provider contracts define:
 
-- query location;
-- radius/bounds;
-- provider ID;
+- query location/bounds;
+- provider identity;
 - category mapping;
-- rating/review semantics;
-- photo source;
+- rating/review meaning;
+- photo source/attribution;
 - pagination;
-- cache TTL;
-- hours/open state only if trustworthy;
-- closed/permanently closed handling where available;
-- provider attribution requirements.
+- cache/freshness;
+- open/closed status only if reliable;
+- permanent closure handling where available.
 
-Do not invent counts, ratings, photos, opening state, or availability.
+Never invent counts, ratings, images, hours, or availability.
 
 ---
 
 ## Weather
 
-Weather is operationally useful only when source and scope are clear.
-
-If weather is exposed, document:
+If weather is public, define:
 
 - provider;
 - forecast location;
 - timezone;
-- forecast timestamp;
-- horizon;
-- severe-alert support if any;
-- route-weather methodology if any;
+- forecast issue time;
+- forecast horizon;
+- severe-alert source if offered;
+- route-weather methodology if offered;
 - cache/freshness;
-- provider failure behavior.
+- failure behavior.
 
-Do not imply route-specific weather intelligence if only destination forecast data exists.
+Destination weather is not route-weather intelligence.
 
-Do not imply severe-weather alerts unless an actual alert source and delivery chain exist.
+A forecast is not a severe-weather monitoring system unless the alert chain exists.
 
 ---
 
-## Change Detection
+# Change Detection and Monitoring
 
-Provider refresh does not automatically equal a user alert.
+## Material Change
 
-A change-detection service compares normalized observations and determines whether a material change occurred.
+A provider field changing does not automatically deserve a user alert.
 
-Requirements:
+Change detection requires:
 
 - stable entity identity;
-- previous observation;
-- new observation;
+- previous normalized observation;
+- new normalized observation;
 - semantic comparison;
 - materiality rules;
-- dedupe key;
-- alert eligibility;
+- deduplication key;
 - suppression/cooldown rules where appropriate;
-- audit/telemetry.
+- user relevance;
+- telemetry.
 
-Noisy fields must not create alert spam.
-
-Materiality should reflect traveler impact, not merely field inequality.
+Materiality reflects traveler impact, not mere data inequality.
 
 ---
 
 ## Background Monitoring
 
-Any promise using words such as:
-
-- monitor;
-- watch;
-- alert when changed;
-- automatically keep updated;
-- real-time alerts;
-
-requires a functioning background system, not merely refresh-on-open.
-
-Before such a promise is released, validate:
+Any background-monitoring promise requires validated:
 
 - scheduler/trigger;
 - eligibility window;
-- refresh cadence;
-- provider quotas;
+- cadence;
+- provider quota/cost control;
+- locking/concurrency;
 - retries;
-- concurrency/locking;
-- state comparison;
-- materiality/deduplication;
-- persistence;
-- delivery path;
-- device/token registration;
-- notification permission handling;
-- observability;
 - missed-run recovery;
-- clock/timezone behavior;
-- production test evidence.
+- state comparison;
+- deduplication;
+- persistence;
+- notification intent;
+- delivery path;
+- device/token lifecycle;
+- permission behavior;
+- deep link destination;
+- client reconciliation;
+- observability.
 
-Until then, do not mention monitoring.
+Refresh-on-open is not monitoring.
 
 ---
 
-## Notification Delivery Contract
+## Notification Delivery
 
-A notification is not complete when a database row is created.
+A notification is not complete when a row is written.
 
-For every promised alert, define:
+The delivery chain is:
 
 ```text
 qualifying condition
- -> background evaluation
- -> deduped notification intent
+ -> validated notification intent
  -> delivery provider
- -> device/user delivery state
+ -> delivery attempt/state
+ -> device/user receipt where observable
  -> deep link / destination
  -> client reconciliation
  -> retry / terminal failure
 ```
 
-Measure actual delivery where platform/provider telemetry allows.
+If notifications are disabled or a token is invalid, RT2RP must not imply push delivery remains active.
 
-If a user disables notifications, the product should not imply push delivery remains active.
-
-Critical information should remain available in-app where appropriate even when push delivery is unavailable.
+Important state should remain visible in-app where appropriate.
 
 ---
 
-## Foreground Refresh Experience
+# Real-Time Experience
 
-Foreground refresh must not destabilize the screen.
+Foreground refresh should preserve orientation.
 
 Prefer:
 
-- retain saved/cached canonical state;
-- refresh live panel independently;
-- update only materially changed fields;
-- display freshness when it matters;
-- avoid full-screen resets;
-- preserve scroll/input state.
+- saved/canonical content remains visible;
+- live regions refresh independently;
+- only materially changed fields receive emphasis;
+- stale/unavailable state is explicit;
+- scroll/input state remains stable;
+- no full-screen reset for a secondary provider refresh.
 
-Manual refresh controls should exist only if they provide meaningful value and provider cost/rate limits support them.
+When a material change occurs, communicate:
+
+1. what changed;
+2. old vs new when useful;
+3. when it was observed;
+4. what action is needed, if any.
+
+Do not make the traveler manually compare screens.
 
 ---
 
-## Cost Governance
+# Service Objectives
 
-Provider spend must be controlled centrally.
+Every public high-consequence live capability should define measurable operational objectives appropriate to provider constraints and traveler risk.
 
-Use:
+Possible measurements include:
 
-- cache TTLs based on actual freshness needs;
+- successful refresh rate;
+- response latency;
+- stale-result rate;
+- time from material provider change to RT2RP observation;
+- time from observation to user-visible update/notification where promised;
+- duplicate-alert rate;
+- background-run success rate;
+- provider error/rate-limit rate.
+
+Do not invent one universal target for every provider.
+
+Set targets from real provider behavior, current market expectations, and consequence of delay/error.
+
+A capability that cannot consistently meet its required objective must degrade honestly, narrow its promise, or remain hidden.
+
+---
+
+# Cost and Reliability Controls
+
+Use centrally managed:
+
+- cache TTLs based on actual freshness need;
 - deduplication;
-- proximity to travel date/time;
-- trip activity state;
-- provider quotas;
+- trip/event proximity;
+- background eligibility;
 - server-side rate limiting;
 - request budgets;
-- usage metrics;
-- circuit-breaker/backoff behavior where appropriate.
+- bounded retries/backoff;
+- quota monitoring;
+- usage/cost telemetry;
+- circuit-breaker behavior where useful.
 
-Never save money by presenting stale information as current.
+Never reduce cost by presenting stale information as current.
 
-Do not over-poll low-value data merely to claim real-time behavior.
-
----
-
-## Provider Replacement
-
-Adapters must make provider replacement feasible.
-
-A provider should be replaceable without rewriting unrelated:
-
-- Timeline;
-- Today;
-- Travel cards;
-- domain models;
-- notification logic;
-- AI prompts;
-- reports.
-
-Normalize provider semantics at the boundary.
-
-Provider-specific enhancements may exist behind capability interfaces when they create value without contaminating canonical models.
+Never over-poll low-value data merely to market the word `real-time`.
 
 ---
 
-## Observability
+# Observability
 
-Operational provider capabilities require structured production visibility.
+Operational provider capabilities should capture, as applicable:
 
-At minimum, where appropriate, capture:
-
-- request counts;
-- success/failure;
+- request count;
+- success/failure class;
 - latency;
-- timeout/rate-limit class;
+- timeout/rate-limit;
 - cache hit/miss;
-- stale fallback use;
-- matched entity identifier (non-sensitive); 
+- fallback/stale use;
+- non-sensitive matched entity identifier;
 - material changes detected;
-- notifications created/delivered;
-- provider cost/usage indicators;
-- background run success/failure.
+- notifications intended/sent;
+- background-job success/failure;
+- cost/usage indicators.
 
 Do not log secrets, confirmation numbers, or unnecessary PII.
 
 ---
 
-## Competitive Quality Gate
+# Provider Replacement
 
-A provider-backed capability should be compared with the relevant specialist or market benchmark before public release.
+Provider adapters must make replacement feasible without rewriting unrelated UI/domain logic.
 
-The objective is not feature-for-feature copying.
+Provider replacement should not require redesigning:
 
-Ask:
+- Today;
+- Timeline;
+- Travel;
+- Records;
+- reports;
+- AI context;
+- notification logic.
 
-1. Is RT2RP materially slower, less clear, or less trustworthy for the core user outcome?
-2. If specialist depth is intentionally lower, does RT2RP create compensating cross-trip integration value?
-3. Does the traveler understand the source/freshness better than in a generic dashboard?
-4. Is the capability worth exposing, or would it reduce trust in the broader product?
-
-A weak live capability is worse than a clearly scoped saved-data experience.
+Provider-specific enhancements may exist behind capability interfaces when they create value without contaminating canonical models.
 
 ---
 
-## Production Validation
+# Competitive Quality Gate
 
-Before a provider-backed capability is public:
+Before exposing a provider-backed capability, compare the user outcome with the strongest relevant market benchmark.
 
-1. Valid real provider calls succeed in intended production configuration.
-2. Entity matching is correct for representative and ambiguous cases.
-3. Invalid/missing input is handled.
-4. Timeouts are handled.
-5. Rate limits are handled.
-6. Malformed/unexpected responses are handled.
-7. Cache behavior is verified.
-8. Fresh/recent/stale behavior is verified.
-9. Source authority/conflict behavior is verified.
-10. User-visible wording and graphics are accurate.
+Do not copy every specialist feature.
+
+Ask:
+
+1. Is RT2RP materially slower, less clear, or less trustworthy for the core task?
+2. Does any reduced specialist depth create compensating cross-trip integration value?
+3. Are source and freshness semantics clearer than a generic dashboard?
+4. Does the capability strengthen the complete trip enough to justify exposing it?
+
+A weak live feature damages the whole product more than a clearly scoped saved-data experience.
+
+---
+
+# Production Validation Gate
+
+Before provider-backed behavior is public:
+
+1. Production configuration is verified.
+2. Representative real provider calls succeed.
+3. Entity matching is correct, including ambiguous cases.
+4. Missing/invalid input is handled.
+5. Timeout/rate-limit/malformed responses are handled.
+6. Cache and invalidation behavior are verified.
+7. Fresh/recent/stale/hard-expiry behavior is verified.
+8. Source authority/conflicts are verified.
+9. Fallback semantics remain truthful.
+10. User wording and graphics match reality.
 11. Cost controls exist.
 12. Observability exists.
-13. End-to-end tests and/or controlled production verification cover the promise.
-14. Background/delivery behavior is proven if wording implies monitoring or alerts.
-15. Missed-run/recovery behavior is proven where background execution matters.
-16. Competitive quality is acceptable for the defined user outcome.
+13. Failure/recovery is validated.
+14. Background/delivery behavior is proven where monitoring/alerts are claimed.
+15. Missed-run recovery is proven where background execution matters.
+16. Defined service objectives are met with acceptable evidence.
+17. Competitive quality is defensible for the user outcome.
 
-If the provider capability cannot meet this bar, keep it internal or narrow the public behavior.
+If any critical item is unknown, keep the capability internal or narrow the public promise.
