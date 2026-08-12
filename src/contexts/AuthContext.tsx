@@ -2,7 +2,11 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { AuthError, Session, User } from '@supabase/supabase-js';
 import { supabase, supabaseConfig } from '@/integrations/supabase/client';
 import { authCallbackUrl } from '@/lib/auth/authRedirects';
-import { clearAllOfflineData } from '@/lib/offlineTripCache';
+import {
+  clearAllOfflineData,
+  getOfflineDataOwner,
+  setOfflineDataOwner,
+} from '@/lib/offlineTripCache';
 
 interface SignUpData {
   email: string;
@@ -51,29 +55,26 @@ function profileNameData(firstName: string, lastName: string) {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const previousUserIdRef = useRef<string | null>(null);
   const sessionTransitionRef = useRef(0);
 
   /**
    * Apply an auth session without allowing local offline data to cross an
-   * authenticated account boundary. Clearing happens before the new session
-   * becomes readable by the app.
+   * authenticated account boundary. The cache-owner marker survives app
+   * restarts, so an interrupted prior clear still forces cleanup later.
    */
   const applySession = useCallback(async (nextSession: Session | null) => {
     const transitionId = ++sessionTransitionRef.current;
-    const previousUserId = previousUserIdRef.current;
     const nextUserId = nextSession?.user?.id ?? null;
-    const crossesAccountBoundary = Boolean(previousUserId && previousUserId !== nextUserId);
+    const offlineOwnerId = getOfflineDataOwner();
+    const crossesAccountBoundary = Boolean(offlineOwnerId && offlineOwnerId !== nextUserId);
 
     if (crossesAccountBoundary) {
       setLoading(true);
       try {
         await clearAllOfflineData();
       } catch (error) {
-        // Privacy wins over availability. Do not expose a new authenticated
-        // session until the old account's local cache has been cleared.
-        // Keep the previous user id so the next auth transition retries the
-        // clear instead of accidentally treating the device as clean.
+        // Privacy wins over availability. Keep the persisted owner marker so
+        // the next transition/restart retries before exposing another account.
         console.error('Unable to clear offline data during auth transition:', error);
         if (transitionId === sessionTransitionRef.current) {
           setSession(null);
@@ -86,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Ignore stale async transitions if a newer auth event arrived first.
     if (transitionId !== sessionTransitionRef.current) return;
 
-    previousUserIdRef.current = nextUserId;
+    setOfflineDataOwner(nextUserId);
     setSession(nextSession);
     setLoading(false);
   }, []);
