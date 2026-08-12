@@ -19,9 +19,9 @@ A risk is not closed because code changed. `VALIDATING` means a mitigation exist
 | ID | Risk | Category | User Impact | Likelihood | Severity | Current Mitigation / Phase 1 Change | Required Validation / Next Action | Status |
 |---|---|---|---|---|---|---|---|---|
 | R-001 | Offline expense retry can create duplicate server expenses | Money / offline sync | Duplicate financial records, incorrect totals/reports | L3 Possible | **S1 Trip-Critical** | Phase 1 adds `expenses.client_expense_id`, a unique database index, stable replay payload, conflict-targeted upsert, and a regression test for stable retry identity | Apply migration in controlled environment; test crash/reload after successful server write but before local dequeue; verify one canonical row and report totals | **VALIDATING** |
-| R-002 | Offline trip/expense/weather/place data can survive an authenticated account boundary | Privacy / offline | Previous user's trip data may remain on shared/account-switched device | UNKNOWN | **S0 Trust/Safety Critical until disproven** | Phase 1 adds `clearAllOfflineData()` and blocks session exposure until all RT2RP IndexedDB stores clear on user change/sign-out; failed clearing remains fail-closed and retries on later transitions | Cross-account browser/iOS test: user A loads data -> sign out/account switch -> user B cannot access A cache; test clear failure behavior | **VALIDATING** |
+| R-002 | Offline trip/expense/weather/place data can survive an authenticated account boundary | Privacy / offline | Previous user's trip data may remain on shared/account-switched device | UNKNOWN | **S0 Trust/Safety Critical until disproven** | Phase 1 adds `clearAllOfflineData()`, a persisted non-sensitive cache-owner user marker, and blocks session exposure until all RT2RP IndexedDB stores clear on user change/sign-out; failed clearing remains fail-closed across restarts | Cross-account browser/iOS test: user A loads data -> sign out/account switch/app restart -> user B cannot access A cache; test forced clear failure behavior | **VALIDATING** |
 | R-003 | Public copy broadly claims offline behavior beyond proven scope | Product truth | Traveler relies on unavailable data during degraded connectivity | L3 Possible | **S1** | Phase 1 narrows Landing metadata, comparison table, and FAQ to cached upcoming timeline + queued expense behavior and explicitly says provider/live features require connectivity | Complete remaining claim inventory in Plans, Help Center, onboarding, install/App Store, notifications, emails | **MITIGATING** |
-| R-004 | Flight client can label a result `Live checked` even though backend uses cache/gates/null-signal semantics | Provider freshness / truth | Traveler may interpret absence of signal as current all-clear | L3 Possible | **S1** | Public generic real-time wording narrowed in Phase 1 | Replace flight UI binary live-clear semantics with explicit observation freshness/source/result state | OPEN |
+| R-004 | Flight client can label a result as live even though backend uses foreground/cache/gate semantics | Provider freshness / truth | Traveler may interpret absence of signal as continuous current all-clear | L3 Possible | **S1** | Phase 1 removes `Live checked` / `Live alert` wording and replaces it with recent/cached provider-observation language plus fetched-at context when available | Validate all flight surfaces and provider failure/null semantics; keep monitoring claims hidden until background chain is proven | **MITIGATING** |
 | R-005 | Flight provider matching is not visibly strict enough for high-consequence live status | Provider identity | Status could attach to wrong segment/date/route | L2 Uncommon/UNKNOWN | **S1** | query includes flight date + flight IATA | Validate returned service date, route/airports, carrier semantics and segment identity | OPEN |
 | R-006 | No complete background flight monitoring chain proven while travel product may imply automatic alerts | Notifications / provider | User expects notification without opening app and misses disruption | UNKNOWN | **S1** if publicly promised | foreground status function + notification infrastructure | Keep monitoring claims hidden until scheduler/change detect/persistence/push/retry/production evidence exists | OPEN |
 | R-007 | `generate-notifications` schedule/delivery chain not yet proven in production | Background jobs | reminders may silently not generate/deliver | UNKNOWN | **S1/S2 depending claim** | cron-secret protected function, reminder engine, send-push function | Verify scheduler, run history, token delivery, retries, observability, missed-run recovery | INVESTIGATING |
@@ -46,8 +46,9 @@ A risk is not closed because code changed. `VALIDATING` means a mitigation exist
 ### Account-boundary cache isolation
 
 - `src/lib/offlineTripCache.ts` now exposes one clear-all operation covering `trip_cache`, `expense_queue`, `weather_snapshot`, and `explore_essentials`.
-- `AuthContext` invokes that operation before exposing a different authenticated account or completing sign-out.
-- A failed clear does not mark the device clean; the old user identity remains the boundary marker so the next transition retries before a new session can be exposed.
+- A non-sensitive local cache-owner user ID marker persists across app restarts so an interrupted cleanup remains detectable later.
+- `AuthContext` checks that durable owner marker before exposing a different authenticated account or completing sign-out.
+- A failed clear does not mark the device clean; the owner marker remains so the next transition/restart retries before a new session can be exposed.
 
 ### Offline expense idempotency
 
@@ -61,6 +62,7 @@ A risk is not closed because code changed. `VALIDATING` means a mitigation exist
 
 - Landing SEO/schema no longer describes RT2RP generically as an offline or real-time travel product.
 - Landing comparison and FAQ now describe the proven cached-timeline/queued-expense boundary and connectivity requirement for provider-backed features.
+- Flight status wording now describes recent/cached provider observations rather than claiming `Live checked` or `Live alert` behavior.
 
 ---
 
@@ -76,7 +78,7 @@ Before merge, run at minimum:
 4. `npm run lint`
 5. Supabase migration apply in a controlled environment
 6. offline replay crash/retry scenario
-7. user A -> sign out/account switch -> user B local-data isolation scenario on web and iOS
+7. user A -> sign out/account switch/app restart -> user B local-data isolation scenario on web and iOS
 
 ---
 
@@ -94,7 +96,7 @@ Before merge, run at minimum:
 1. R-013 — RLS/storage/PII/sharing verification;
 2. R-017 — truthful empty/stale offline state;
 3. R-008/R-009/R-010 — execution/intelligence/alert ownership consolidation;
-4. R-004/R-005/R-006 — flight identity/freshness/background contract;
+4. R-005/R-006 — flight identity/freshness/background contract;
 5. R-014 — financial/report reconciliation;
 6. R-018 — import pipeline consolidation;
 7. R-015 — critical browser E2E/visual/offline/provider-failure scenarios;
