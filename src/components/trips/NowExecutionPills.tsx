@@ -1,12 +1,8 @@
 /**
- * v2.6.19: NOW Execution Pills
+ * NOW Execution Pills
  *
- * Mobile-only component rendering the NOW tab's execution engine:
- * - Base pills: Explore + Add Expense (always)
- * - Execution pills: one per today-relevant actionable item
- * - Empty state: "No scheduled actions today." when no actionable items
- *
- * Hidden on desktop.
+ * Mobile-only shortcuts around saved trip events. A navigation control is only
+ * rendered when canonical navigation can resolve a defensible destination.
  */
 
 import { useMemo } from 'react';
@@ -22,20 +18,16 @@ interface NowExecutionPillsProps {
   onAddExpense: () => void;
 }
 
-/**
- * v3.5.3: Resolve a navigation action for an actionable item.
- * Uses coords-first resolution: airport coords → address NavTarget → coords-based URL.
- * NEVER sends raw strings like city names or "Nearby" as map queries.
- */
-function handleItemNavigate(item: TodayActionItem) {
-  const result = resolveCanonicalNavigation({
+function resolveItemNavigation(item: TodayActionItem) {
+  return resolveCanonicalNavigation({
     address: item.address,
-    bookingType: item.bookingType === 'flight' || item.eventType === 'flight_departure' || item.eventType === 'flight' ? 'flight' : undefined,
+    bookingType: item.bookingType === 'flight' || item.eventType === 'flight_departure' || item.eventType === 'flight'
+      ? 'flight'
+      : undefined,
     departureAirportCode: item.departureAirportCode,
     arrivalAirportCode: item.arrivalAirportCode,
     locationLabel: item.title,
   });
-  if (result) openCanonicalNav(result);
 }
 
 export function NowExecutionPills({ timelineEvents, onExplore, onAddExpense }: NowExecutionPillsProps) {
@@ -43,7 +35,6 @@ export function NowExecutionPills({ timelineEvents, onExplore, onAddExpense }: N
 
   return (
     <div className="md:hidden space-y-2">
-      {/* Base pills — always present */}
       <div className="flex gap-2">
         <Button
           variant="default"
@@ -62,32 +53,51 @@ export function NowExecutionPills({ timelineEvents, onExplore, onAddExpense }: N
         </Button>
       </div>
 
-      {/* Execution pills or empty state */}
       {todayItems.length > 0 ? (
         <div className="flex flex-col gap-1.5">
-          {todayItems.map((item) => (
-            <Button
-              key={item.id}
-              variant="secondary"
-              size="sm"
-              className="h-10 rounded-full text-xs font-medium press-scale w-full justify-start gap-2"
-              onClick={() => handleItemNavigate(item)}
-            >
-              <Navigation className="w-3.5 h-3.5 shrink-0 text-primary" />
-              <span className="truncate">{item.title}</span>
-              {item.localTime && (
-                <span className="ml-auto flex items-center gap-1 text-muted-foreground shrink-0">
-                  <Clock className="w-3 h-3" />
-                  {item.localTime}
-                </span>
-              )}
-            </Button>
-          ))}
+          {todayItems.map((item) => {
+            const nav = resolveItemNavigation(item);
+            const content = (
+              <>
+                {nav && <Navigation className="w-3.5 h-3.5 shrink-0 text-primary" />}
+                <span className="truncate">{item.title}</span>
+                {item.localTime && (
+                  <span className="ml-auto flex items-center gap-1 text-muted-foreground shrink-0">
+                    <Clock className="w-3 h-3" />
+                    {item.localTime}
+                  </span>
+                )}
+              </>
+            );
+
+            if (!nav) {
+              return (
+                <div
+                  key={item.id}
+                  className="flex h-10 w-full items-center gap-2 rounded-full border border-border/40 bg-muted/30 px-4 text-xs font-medium text-foreground"
+                >
+                  {content}
+                </div>
+              );
+            }
+
+            return (
+              <Button
+                key={item.id}
+                variant="secondary"
+                size="sm"
+                className="h-10 rounded-full text-xs font-medium press-scale w-full justify-start gap-2"
+                onClick={() => void openCanonicalNav(nav)}
+              >
+                {content}
+              </Button>
+            );
+          })}
         </div>
       ) : (
         <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-muted/30 border border-border/30">
           <CalendarCheck className="w-4 h-4 text-muted-foreground/60 shrink-0" />
-          <p className="text-xs text-muted-foreground">No scheduled actions today.</p>
+          <p className="text-xs text-muted-foreground">No upcoming saved trip actions today.</p>
         </div>
       )}
     </div>
