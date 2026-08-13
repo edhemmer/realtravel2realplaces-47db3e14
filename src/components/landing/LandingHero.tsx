@@ -20,13 +20,13 @@ export default function LandingHero() {
             </h1>
 
             <p className="landing-hero-subtext">
-              RealTravel2RealPlaces turns any trip you booked anywhere into one organized travel home: itinerary, lodging, Driving Mode, airport maps, local transit, weather, expenses, offline details, and the next clear step.
+              RealTravel2RealPlaces gives the trip one organized home for saved reservations, timeline details, driving context, airport links when available, weather context, expenses, and trip records.
             </p>
 
             <div className="landing-hero-proof-row" aria-label="Product capabilities">
-              <span>Any booking source</span>
+              <span>Saved trip records</span>
               <span>Driving Mode</span>
-              <span>Airport + transit windows</span>
+              <span>Timeline + expenses</span>
             </div>
 
             <div className="flex items-center gap-3 sm:gap-4 mt-6 sm:mt-8">
@@ -39,7 +39,7 @@ export default function LandingHero() {
             </div>
           </div>
 
-          <div className="landing-hero-visual" aria-label="Travel operations command view">
+          <div className="landing-hero-visual" aria-label="Trip management view">
             <div className="landing-hero-visual-frame">
               <ProductTripCard />
             </div>

@@ -1,12 +1,12 @@
 import { Building2, Car, LayoutDashboard, ListChecks, Route, WifiOff } from 'lucide-react';
 
 const capabilities = [
-  { icon: LayoutDashboard, title: 'Trip home', description: 'One place for the trip in motion: itinerary, maps, movement, airports, spend, weather, and readiness.' },
-  { icon: ListChecks, title: 'Today', description: 'The next action, next deadline, and next place to be - one calm screen.' },
-  { icon: Car, title: 'Drive mode', description: 'Road-trip mode with navigation handoff, gas search, weather, route context, offline state, and next stops.' },
-  { icon: Building2, title: 'Airport windows', description: 'Terminal maps, parking links, airport context, and flight details without digging through tabs.' },
-  { icon: Route, title: 'Itinerary and transit', description: 'Local transit windows, movement decisions, and the full trip timeline connected together.' },
-  { icon: WifiOff, title: 'Offline ready', description: 'Key trip details and expense capture stay useful when signal gets weak or disappears.' },
+  { icon: LayoutDashboard, title: 'Trip home', description: 'One place for saved itinerary details, maps, movement records, airports, spend, and weather context.' },
+  { icon: ListChecks, title: 'Timeline', description: 'See saved bookings and trip events in trip order on one screen.' },
+  { icon: Car, title: 'Drive mode', description: 'Road-trip mode with navigation handoff, gas search, weather context, saved stops, and trip details.' },
+  { icon: Building2, title: 'Airport context', description: 'Saved flight details plus airport map and parking links when the required information is available.' },
+  { icon: Route, title: 'Itinerary and transit', description: 'Trip timeline and local transit context when the required location and provider data are available.' },
+  { icon: WifiOff, title: 'Offline continuity', description: 'Previously loaded upcoming timeline details can remain available, and new expenses can queue for sync after reconnection.' },
 ];
 
 export default function LandingSolution() {
@@ -18,7 +18,7 @@ export default function LandingSolution() {
             Built for travel management, not just planning.
           </h2>
           <p className="landing-section-subtext mt-3">
-            RealTravel turns the messy travel day into simple windows you can actually use while moving.
+            RealTravel keeps the trip details you have saved connected in one place while you travel.
           </p>
         </div>
 
