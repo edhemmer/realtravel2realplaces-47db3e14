@@ -4,27 +4,27 @@ import { ChevronDown } from 'lucide-react';
 const faqs = [
   {
     question: 'What kind of app is Real Travel 2 Real Places?',
-    answer: 'Real Travel 2 Real Places is a travel management app, not just a trip planner. It helps travelers organize what is next, where to go, drive days, weather context, expenses, and key trip details in one place.',
+    answer: 'Real Travel 2 Real Places is a travel management app for keeping saved trip details, timeline records, driving context, expenses, weather context, and other supported trip information together.',
   },
   {
     question: 'How is this different from a trip planner?',
-    answer: 'Trip planners help you choose places before you go. RealTravel focuses on operating the trip after plans become real: flights, lodging, movement, receipts, parking, road trips, airport context, transit context, and daily execution.',
+    answer: 'Trip planners focus on choosing and arranging a trip. RealTravel focuses on keeping the trip records you already have connected while you travel.',
   },
   {
     question: 'Does it support road trips and driving?',
-    answer: 'Yes. Drive mode supports navigation handoff, next stops, gas search, weather and route context, with key cached trip context available after connectivity drops.',
+    answer: 'Yes. Driving Mode supports navigation handoff, saved stops, gas search, weather context, and road-trip details stored with the trip.',
   },
   {
     question: 'Does it include airport maps and local transit?',
-    answer: 'Trips can surface airport map and parking links from available official sources and local transit routing when the required trip, location, and provider data are available.',
+    answer: 'Trips can surface airport map or parking links and local transit context when the required trip, location, and provider data are available.',
   },
   {
     question: 'Does it work offline?',
-    answer: 'After trip data has been loaded, RT2RP can show cached upcoming timeline details and queue new expenses while you are offline. Queued expenses sync after reconnection. Live and provider-backed features still require connectivity.',
+    answer: 'After trip data has been loaded, RT2RP can show cached upcoming timeline details and queue new expenses while offline. Queued expenses sync after reconnection. Provider-backed features still require connectivity.',
   },
   {
     question: 'Is it useful for business travel?',
-    answer: 'RT2RP supports business and personal trip records with booking management, expenses, multi-currency fields, reports, drive days, and operational trip views.',
+    answer: 'RT2RP supports business and personal trip records, expense tracking, multi-currency fields, and trip reporting workflows that are available in the account.',
   },
   {
     question: 'Can I share a trip with someone I am traveling with?',
@@ -32,7 +32,7 @@ const faqs = [
   },
   {
     question: 'Is it free?',
-    answer: 'Yes. The free plan includes core trip management features. Pro and Business tiers are designed for frequent travelers, complex trips, and advanced management workflows.',
+    answer: 'Yes. The Free plan includes up to 2 lifetime trips and does not require a credit card.',
   },
 ];
 
@@ -43,9 +43,7 @@ export default function LandingFAQ() {
     <section className="landing-faq-section">
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-10">
-          <h2 className="landing-section-headline">
-            Frequently Asked Questions
-          </h2>
+          <h2 className="landing-section-headline">Frequently Asked Questions</h2>
         </div>
 
         <div className="landing-faq-list">
