@@ -5,14 +5,10 @@ export default function LandingPricing() {
     <section className="landing-pricing-section">
       <div className="max-w-3xl mx-auto text-center">
         <h2 className="landing-section-headline">
-          Try it free. Pay when it becomes your operating system.
+          Start with a real trip.
         </h2>
         <p className="landing-section-subtext mt-4">
-          The Free tier gives you 2 trips to prove the value. Pro and Business are for travelers who want unlimited trips, advanced operations, reporting, and fewer loose ends every month.
-        </p>
-
-        <p className="mt-8 text-lg font-semibold text-[hsl(var(--landing-text))]">
-          If travel costs real money, missed context costs more.
+          The Free plan includes up to 2 lifetime trips so you can use RT2RP with your own travel details before deciding whether it belongs in your travel routine.
         </p>
 
         <div className="mt-6">
