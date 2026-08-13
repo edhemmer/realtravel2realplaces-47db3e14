@@ -30,6 +30,19 @@ interface PreviousWeather {
 const WEATHER_CACHE_KEY = 'trip_weather_cache';
 const WEATHER_CACHE_DURATION = 1000 * 60 * 60 * 6; // 6 hours
 
+/**
+ * Build a flight departure reminder without claiming RT2RP knows when the
+ * traveler must leave. A clock-only reminder does not prove route duration,
+ * traffic, airport processing time, parking/transit time, or traveler location.
+ */
+export function buildFlightDepartureReminder(
+  carrier: string | null | undefined,
+  minutesUntilDeparture: number
+): string {
+  const subject = carrier?.trim() ? carrier.trim() : 'Flight';
+  return `${subject} departs in ${minutesUntilDeparture} minutes. Check your route and airport timing before leaving.`;
+}
+
 function getWeatherCache(tripId: string): PreviousWeather | null {
   try {
     const cache = localStorage.getItem(`${WEATHER_CACHE_KEY}_${tripId}`);
@@ -174,7 +187,8 @@ export function useTravelAlerts(
       const minutesUntilDeparture = differenceInMinutes(startTime, now);
       
       if (booking.booking_type === 'flight') {
-        // For flights, show alert 2 hours before
+        // For flights, show a clock-based reminder 2 hours before departure.
+        // Do not infer the traveler's leave-now time without route/airport context.
         const alertTime2hr = addMinutes(startTime, -120);
         if (isAfter(now, alertTime2hr) && isBefore(now, startTime)) {
           alerts.push({
@@ -182,7 +196,10 @@ export function useTravelAlerts(
             type: 'departure_reminder',
             severity: minutesUntilDeparture <= 60 ? 'critical' : 'warning',
             title: '✈️ Flight Departure Soon',
-            message: `${booking.airline || booking.vendor_name} departs in ${minutesUntilDeparture} minutes. Leave for airport now!`,
+            message: buildFlightDepartureReminder(
+              booking.airline || booking.vendor_name,
+              minutesUntilDeparture
+            ),
             actionLabel: booking.address ? 'Open Maps' : undefined,
             actionUrl: booking.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(booking.address)}` : undefined,
             relatedId: booking.id,
