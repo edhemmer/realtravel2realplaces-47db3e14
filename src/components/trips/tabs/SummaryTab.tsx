@@ -25,13 +25,11 @@ import { Trip } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TripBriefSection } from '@/components/trips/TripBriefSection';
-import { TripCommandLoop } from '@/components/trips/TripCommandLoop';
 import { TravelAlertsCard } from '@/components/trips/TravelAlertsCard';
 import { FlightSummaryCard } from '@/components/trips/FlightSummaryCard';
 import { DriveSummaryCard } from '@/components/trips/DriveSummaryCard';
 import { GasExpenseDialog } from '@/components/trips/GasExpenseDialog';
 import { ExpenseReminderBanner } from '@/components/trips/ExpenseReminderBanner';
-import { TripHealthChecklist } from '@/components/trips/TripHealthChecklist';
 import { FirstTripHint } from '@/components/trips/FirstTripHint';
 import { AirportSnapshotCard } from '@/components/trips/AirportSnapshotCard';
 import { TripTimeline } from '@/components/trips/TripTimeline';
@@ -60,7 +58,6 @@ export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onV
   const { data: companions = [] } = useCompanions(tripId);
   const { data: bookingCompanions = [] } = useBookingCompanionsByTrip(tripId);
   const { data: userProfile } = useUserProfile();
-  const { isPro } = useAccess();
   const { data: engagementEvents = [] } = useEngagementEvents(tripId);
   const temperatureUnit = (userProfile?.temperature_unit as 'fahrenheit' | 'celsius') || 'fahrenheit';
 
@@ -135,18 +132,6 @@ export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onV
 
   return (
     <div className="space-y-4 md:space-y-5">
-      <TripCommandLoop
-        tripId={tripId}
-        trip={trip}
-        canonicalState={canonicalState}
-        bookings={bookings}
-        expenses={expenses}
-        parkingList={parkingList}
-        alerts={alerts}
-        onExplore={onExploreTab}
-        onDrillThrough={onDrillThrough}
-      />
-
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
         <section className="space-y-4">
           {hasAlerts && (
@@ -210,17 +195,6 @@ export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onV
               <FlightSummaryCard bookings={bookings} companions={companions} bookingCompanions={bookingCompanions} />
               {hasFlights && <AirportSnapshotCard bookings={bookings} />}
             </>
-          )}
-
-          {isPro && onDrillThrough && (
-            <TripHealthChecklist
-              trip={trip}
-              bookings={bookings}
-              parkingList={parkingList}
-              expenses={expenses}
-              preferredCurrency={userProfile?.preferred_currency}
-              onNavigate={onDrillThrough}
-            />
           )}
 
           <Card className="rt-kpi-panel">
