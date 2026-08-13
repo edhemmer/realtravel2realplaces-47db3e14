@@ -2,11 +2,6 @@
  * TripBookingsContainer - Container component for Trip Bookings tab
  * 
  * Patch 2.2.2: Canonical trip containers & bug-fix-at-source architecture
- * 
- * This container:
- * - Fetches booking data through canonical hooks
- * - Provides normalized per-booking costs for display
- * - Handles loading/error/empty states consistently
  */
 
 import { Trip } from '@/types/database';
@@ -36,7 +31,7 @@ export function TripBookingsContainer({
   const { data: bookings = [], isLoading, error } = useBookings(tripId);
   const { isOwner, canAddLodging } = useTripPermission();
   
-  useFlightAirportRepair(tripId, trip?.end_date, bookings);
+  useFlightAirportRepair(tripId, trip?.end_date, bookings, isOwner);
   
   if (isLoading) {
     return <TripSectionLoading message="Loading bookings..." />;
