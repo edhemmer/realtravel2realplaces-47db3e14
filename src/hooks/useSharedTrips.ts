@@ -42,15 +42,14 @@ export function useSharedTrips() {
       if (membersError) throw membersError;
       (memberships || []).forEach(m => {
         tripIdSet.add(m.trip_id);
-        // If not already tracked via trip_shares, derive permission
         if (!permissionMap.has(m.trip_id)) {
-          permissionMap.set(m.trip_id, m.read_only ? 'view' : 'edit');
+          const hasScopedContribution = m.can_expenses === true || m.can_stay === true;
+          permissionMap.set(m.trip_id, hasScopedContribution ? 'edit' : 'view');
         }
       });
 
       if (tripIdSet.size === 0) return [];
 
-      // Fetch trip details
       const tripIds = Array.from(tripIdSet);
       const { data: trips, error: tripsError } = await supabase
         .from('trips')
@@ -71,21 +70,43 @@ export function useSharedTrips() {
 }
 
 /**
- * v3.9.5: Canonical trip capabilities — capability-scoped, not role-scoped.
- * Returns granular write permissions derived from trip_members + trip_shares.
+ * Canonical trip capabilities.
+ *
+ * IMPORTANT: `canEdit` is legacy broad-edit compatibility. Modern trip_members
+ * guests never receive it. Scoped contribution permissions stay separate so
+ * `can_expenses` or `can_stay` cannot unlock unrelated edit controls.
  */
 export interface TripCapabilities {
   isOwner: boolean;
-  /** Legacy compat — true if owner OR has any write capability */
+  /** Broad legacy edit authority. Modern scoped guests are always false. */
   canEdit: boolean;
-  /** Can modify trip metadata (name, dates, etc.) — owner only */
+  /** Can modify trip metadata (name, dates, etc.) — owner only. */
   canEditTripMeta: boolean;
-  /** Can add expenses — owner OR guest with can_expenses flag */
+  /** Can add expenses — owner OR guest with can_expenses. */
   canAddExpenses: boolean;
-  /** Can add lodging/stays — owner OR guest with can_stay flag */
+  /** Can add lodging/stays — owner OR guest with can_stay. */
   canAddLodging: boolean;
-  /** True only when user has zero write capabilities */
+  /** True only when the user has no write/contribution capability. */
   isReadOnlyOverall: boolean;
+}
+
+export function deriveMemberCapabilities(membership: {
+  read_only: boolean;
+  can_expenses: boolean;
+  can_stay: boolean;
+}): TripCapabilities {
+  const canAddExpenses = membership.read_only !== true && membership.can_expenses === true;
+  const canAddLodging = membership.read_only !== true && membership.can_stay === true;
+  const hasScopedContribution = canAddExpenses || canAddLodging;
+
+  return {
+    isOwner: false,
+    canEdit: false,
+    canEditTripMeta: false,
+    canAddExpenses,
+    canAddLodging,
+    isReadOnlyOverall: !hasScopedContribution,
+  };
 }
 
 export function useTripOwnership(tripId: string) {
@@ -99,7 +120,6 @@ export function useTripOwnership(tripId: string) {
         canAddExpenses: false, canAddLodging: false, isReadOnlyOverall: true,
       };
 
-      // Check if user owns the trip
       const { data: trip, error: tripError } = await supabase
         .from('trips')
         .select('user_id')
@@ -115,7 +135,6 @@ export function useTripOwnership(tripId: string) {
         };
       }
 
-      // Check trip_members for capability-scoped permissions
       const { data: membership, error: memberError } = await supabase
         .from('trip_members')
         .select('read_only, can_expenses, can_stay')
@@ -127,20 +146,12 @@ export function useTripOwnership(tripId: string) {
       if (memberError) throw memberError;
 
       if (membership) {
-        const canAddExpenses = membership.can_expenses === true;
-        const canAddLodging = membership.can_stay === true;
-        const hasAnyWrite = canAddExpenses || canAddLodging;
-        return {
-          isOwner: false,
-          canEdit: hasAnyWrite,
-          canEditTripMeta: false,
-          canAddExpenses,
-          canAddLodging,
-          isReadOnlyOverall: !hasAnyWrite,
-        };
+        return deriveMemberCapabilities(membership);
       }
 
-      // Fallback: check legacy trip_shares
+      // Legacy trip_shares retain their historic broad edit signal until they
+      // are inventoried/migrated. Phase 2 server RLS still places an upper bound
+      // on trip, expense and booking writes.
       const { data: share, error: shareError } = await supabase
         .from('trip_shares')
         .select('permission')
