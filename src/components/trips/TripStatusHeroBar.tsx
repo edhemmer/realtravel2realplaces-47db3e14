@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { Trip, TripState } from '@/types/database';
-import { useCanonicalTripState } from '@/hooks/useCanonicalTripState';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,7 +13,6 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EditTripDatesDialog } from './EditTripDatesDialog';
-import { TripAskDialog } from './TripAskDialog';
 import { resolveCanonicalLifecycle } from '@/lib/canonicalTimePolicy';
 import { getTripMode, getModeTheme } from '@/lib/modeTheme';
 
@@ -24,13 +22,12 @@ interface TripStatusHeroBarProps {
 
 /**
  * Shows only lifecycle state that RT2RP can derive from the trip record.
- * Retention/deletion timing is intentionally absent until a backend retention
- * policy and export path are implemented and verified end-to-end.
+ *
+ * Retention timing and the trip assistant are intentionally absent until their
+ * complete product contracts are implemented and validated end-to-end.
  */
 export function TripStatusHeroBar({ trip }: TripStatusHeroBarProps) {
-  const { state: canonicalState } = useCanonicalTripState(trip.id, trip);
   const [editDatesOpen, setEditDatesOpen] = useState(false);
-  const [askOpen, setAskOpen] = useState(false);
   const tripState = (trip.trip_state || 'active') as TripState;
 
   const lifecycle = useMemo(
@@ -110,27 +107,15 @@ export function TripStatusHeroBar({ trip }: TripStatusHeroBarProps) {
             </div>
 
             <div className="mt-3 flex items-center justify-between gap-2">
-              <div className="flex min-w-0 items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 shrink-0 gap-1.5 rounded-lg px-2 text-xs text-muted-foreground hover:text-foreground"
-                  onClick={() => setEditDatesOpen(true)}
-                >
-                  <CalendarCog className="w-3.5 h-3.5" />
-                  <span>Edit Dates</span>
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 shrink-0 gap-1.5 rounded-lg px-2 text-xs text-primary hover:text-primary/80"
-                  onClick={() => setAskOpen(true)}
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Ask</span>
-                </Button>
-              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 shrink-0 gap-1.5 rounded-lg px-2 text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => setEditDatesOpen(true)}
+              >
+                <CalendarCog className="w-3.5 h-3.5" />
+                <span>Edit Dates</span>
+              </Button>
 
               <Badge
                 variant="outline"
@@ -151,13 +136,6 @@ export function TripStatusHeroBar({ trip }: TripStatusHeroBarProps) {
         open={editDatesOpen}
         onOpenChange={setEditDatesOpen}
         trip={trip}
-      />
-
-      <TripAskDialog
-        open={askOpen}
-        onOpenChange={setAskOpen}
-        trip={trip}
-        canonicalState={canonicalState}
       />
     </>
   );
