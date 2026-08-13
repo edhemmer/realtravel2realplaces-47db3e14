@@ -24,6 +24,7 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { useBookingExpenseSync } from '@/hooks/useBookingExpenseSync';
 import { TripSectionLoading, TripSectionError } from '@/components/trips/TripSectionStates';
 import { ExpensesTab } from '@/components/trips/tabs/ExpensesTab';
+import { ReceiptRecordsPanel } from '@/components/trips/ReceiptRecordsPanel';
 import { AppModuleHeader } from '@/components/trips/AppModuleHeader';
 import { ModuleOperatingBrief } from '@/components/trips/ModuleOperatingBrief';
 import { Camera, CircleDollarSign, ReceiptText } from 'lucide-react';
@@ -115,11 +116,12 @@ export function TripExpensesContainer({ tripId, trip, autoOpenAdd, onAutoOpenCon
             icon: Camera,
             label: 'Capture mode',
             value: refreshQueued ? 'Offline queue' : 'Photo or manual',
-            detail: refreshQueued ? 'Queued receipts will sync when connection returns.' : 'Use camera upload when available, then verify the parsed fields.',
+            detail: refreshQueued ? 'Queued expenses will sync when connection returns.' : 'Use camera upload when available, then verify the parsed fields.',
             tone: refreshQueued ? 'watch' : 'neutral',
           },
         ]}
       />
+      <ReceiptRecordsPanel expenses={expenses} />
       <ExpensesTab tripId={tripId} autoOpenAdd={autoOpenAdd} onAutoOpenConsumed={onAutoOpenConsumed} />
     </div>
   );
