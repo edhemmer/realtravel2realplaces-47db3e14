@@ -1,14 +1,20 @@
 /**
  * TravelAlertsCard - Compact banner-style travel alerts
  * v5.0.0: Compressed from full cards to compact banners
+ *
+ * Promise-standard rule: presentation must not imply an official alert source
+ * when the underlying object was derived from ordinary forecast conditions.
  */
 
 import { TravelAlert } from '@/hooks/useTravelAlerts';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { 
-  AlertTriangle, Bell, Cloud, MapPin, ExternalLink, 
-  Car, Clock, Package, Plane
+import {
+  AlertTriangle,
+  Cloud,
+  Car,
+  Clock,
+  Package,
+  Plane,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -34,6 +40,38 @@ const severityStyles: Record<TravelAlert['severity'], string> = {
   info: 'border-primary/40 bg-primary/5 text-primary',
 };
 
+export interface TravelAlertDisplayCopy {
+  title: string;
+  message: string;
+}
+
+/**
+ * Normalizes legacy alert objects to the evidence level we can defend.
+ *
+ * `severe_weather` is currently produced from forecast condition/probability
+ * checks, not an official severe-weather alert feed. Until an official-alert
+ * source is implemented and separately typed, the UI must call it forecast
+ * risk and direct the traveler to current local advisories.
+ */
+export function getTravelAlertDisplayCopy(alert: TravelAlert): TravelAlertDisplayCopy {
+  if (alert.type !== 'severe_weather') {
+    return { title: alert.title, message: alert.message };
+  }
+
+  const citySuffix = alert.title.includes('—')
+    ? ` — ${alert.title.split('—').slice(1).join('—').trim()}`
+    : '';
+
+  const message = alert.message
+    .replace(/^Severe weather expected/i, 'Forecast conditions may be disruptive')
+    .replace(/Check local advisories\.?$/i, 'Check current local advisories before acting.');
+
+  return {
+    title: `⚠️ Forecast Weather Risk${citySuffix}`,
+    message,
+  };
+}
+
 export function TravelAlertsCard({ alerts, className, maxVisible, onViewAllAlerts }: TravelAlertsCardProps) {
   if (alerts.length === 0) return null;
 
@@ -42,40 +80,44 @@ export function TravelAlertsCard({ alerts, className, maxVisible, onViewAllAlert
 
   return (
     <div className={cn('space-y-1.5', className)}>
-      {visibleAlerts.map((alert) => (
-        <div
-          key={alert.id}
-          className={cn(
-            'flex items-center gap-2.5 px-3 py-2 rounded-lg border text-sm',
-            severityStyles[alert.severity]
-          )}
-        >
-          <span className="shrink-0">{alertIcons[alert.type]}</span>
-          <div className="flex-1 min-w-0">
-            <span className="font-medium text-xs">{alert.title}</span>
-            <span className="text-muted-foreground text-[11px] ml-1.5">{alert.message}</span>
+      {visibleAlerts.map((alert) => {
+        const display = getTravelAlertDisplayCopy(alert);
+
+        return (
+          <div
+            key={alert.id}
+            className={cn(
+              'flex items-center gap-2.5 px-3 py-2 rounded-lg border text-sm',
+              severityStyles[alert.severity]
+            )}
+          >
+            <span className="shrink-0">{alertIcons[alert.type]}</span>
+            <div className="flex-1 min-w-0">
+              <span className="font-medium text-xs">{display.title}</span>
+              <span className="text-muted-foreground text-[11px] ml-1.5">{display.message}</span>
+            </div>
+            {alert.actionLabel && alert.actionUrl && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 px-2 text-[10px] gap-1 shrink-0"
+                onClick={() => {
+                  if (alert.actionUrl!.startsWith('/')) {
+                    window.location.assign(alert.actionUrl!);
+                    return;
+                  }
+                  const url = alert.actionUrl!.startsWith('http')
+                    ? alert.actionUrl!
+                    : `https://${alert.actionUrl}`;
+                  window.open(url, '_blank', 'noopener,noreferrer');
+                }}
+              >
+                {alert.actionLabel}
+              </Button>
+            )}
           </div>
-          {alert.actionLabel && alert.actionUrl && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-6 px-2 text-[10px] gap-1 shrink-0"
-              onClick={() => {
-                if (alert.actionUrl!.startsWith('/')) {
-                  window.location.assign(alert.actionUrl!);
-                  return;
-                }
-                const url = alert.actionUrl!.startsWith('http')
-                  ? alert.actionUrl!
-                  : `https://${alert.actionUrl}`;
-                window.open(url, '_blank', 'noopener,noreferrer');
-              }}
-            >
-              {alert.actionLabel}
-            </Button>
-          )}
-        </div>
-      ))}
+        );
+      })}
       {hasMore && onViewAllAlerts && (
         <Button
           variant="ghost"
