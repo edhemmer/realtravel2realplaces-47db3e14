@@ -47,16 +47,12 @@ interface TripExpensesContainerProps {
  * Tours are excluded from all cost calculations.
  */
 export function TripExpensesContainer({ tripId, trip, autoOpenAdd, onAutoOpenConsumed }: TripExpensesContainerProps) {
-  // Canonical data fetching
-  const { data: expenses = [], isLoading: expensesLoading, error: expensesError, refreshQueued } = useExpenses(tripId);
-  
-  // v4.0.3: Process offline expense queue on reconnect
+  const { data: expenses = [], isLoading: expensesLoading, error: expensesError } = useExpenses(tripId);
   useOfflineExpenseSync(tripId);
   const { data: bookings = [], isLoading: bookingsLoading, error: bookingsError } = useBookings(tripId);
   const { data: userProfile } = useUserProfile();
   const homeCurrency = userProfile?.preferred_currency || 'USD';
   
-  // v4.9.5: Canonical retroactive repair — ensures every booking has a linked expense
   useBookingExpenseSync({
     tripId,
     bookings,
@@ -68,6 +64,7 @@ export function TripExpensesContainer({ tripId, trip, autoOpenAdd, onAutoOpenCon
   
   const isLoading = expensesLoading || bookingsLoading;
   const hasError = expensesError || bookingsError;
+  const hasQueuedExpenses = expenses.some((expense) => expense.isPendingSync === true);
   const runningTotal = expenses.reduce((sum, expense) => (
     sum + Number(expense.converted_amount ?? expense.my_share ?? expense.amount ?? 0)
   ), 0);
@@ -79,11 +76,7 @@ export function TripExpensesContainer({ tripId, trip, autoOpenAdd, onAutoOpenCon
   }
   
   if (hasError) {
-    return (
-      <TripSectionError 
-        message="We couldn't load your expenses. Please try again."
-      />
-    );
+    return <TripSectionError message="We couldn't load your expenses. Please try again." />;
   }
   
   return (
@@ -93,8 +86,8 @@ export function TripExpensesContainer({ tripId, trip, autoOpenAdd, onAutoOpenCon
         eyebrow="Spend control"
         title="Spend"
         description="Capture receipts, reconcile booking costs, and keep trip spend report-ready while details are fresh."
-        status={refreshQueued ? 'Offline queue' : `${expenses.length} expenses`}
-        statusTone={refreshQueued ? 'cached' : 'neutral'}
+        status={hasQueuedExpenses ? 'Offline queue' : `${expenses.length} expenses`}
+        statusTone={hasQueuedExpenses ? 'cached' : 'neutral'}
       />
       <ModuleOperatingBrief
         items={[
@@ -115,9 +108,9 @@ export function TripExpensesContainer({ tripId, trip, autoOpenAdd, onAutoOpenCon
           {
             icon: Camera,
             label: 'Capture mode',
-            value: refreshQueued ? 'Offline queue' : 'Photo or manual',
-            detail: refreshQueued ? 'Queued expenses will sync when connection returns.' : 'Use camera upload when available, then verify the parsed fields.',
-            tone: refreshQueued ? 'watch' : 'neutral',
+            value: hasQueuedExpenses ? 'Offline queue' : 'Photo or manual',
+            detail: hasQueuedExpenses ? 'Queued expenses will sync when connection returns.' : 'Use camera upload when available, then verify the parsed fields.',
+            tone: hasQueuedExpenses ? 'watch' : 'neutral',
           },
         ]}
       />
