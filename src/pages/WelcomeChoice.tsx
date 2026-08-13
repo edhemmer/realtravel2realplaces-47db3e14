@@ -1,8 +1,5 @@
 /**
- * WelcomeChoice — v2.3.11: Post-first-trip entry choice
- *
- * Shows once after the first trip is created. Two CTAs: Create a Trip (opens
- * wizard) or Go to Dashboard. One-time display via localStorage flag.
+ * WelcomeChoice — post-first-trip entry choice.
  */
 
 import { useEffect, useState } from 'react';
@@ -15,12 +12,10 @@ import { canCreateTrips } from '@/lib/native/platform';
 
 const WELCOME_CHOICE_KEY = 'rt2rp_welcome_choice_shown';
 
-/** Check if this screen has already been shown */
 export function hasSeenWelcomeChoice(): boolean {
   return localStorage.getItem(WELCOME_CHOICE_KEY) === 'true';
 }
 
-/** Mark the welcome choice as shown */
 function markWelcomeChoiceSeen() {
   localStorage.setItem(WELCOME_CHOICE_KEY, 'true');
 }
@@ -29,7 +24,6 @@ export default function WelcomeChoice() {
   const navigate = useNavigate();
   const [redirecting, setRedirecting] = useState(false);
 
-  // If already seen, redirect immediately to dashboard
   useEffect(() => {
     if (hasSeenWelcomeChoice()) {
       navigate('/dashboard', { replace: true });
@@ -39,20 +33,18 @@ export default function WelcomeChoice() {
   const allowCreate = canCreateTrips();
 
   const handleCreateTrip = () => {
-    if (redirecting) return; // prevent double-click
+    if (redirecting) return;
     if (!allowCreate) {
-      // Native iOS: creation is disabled — fall through to dashboard.
       handleGoToDashboard();
       return;
     }
     setRedirecting(true);
     markWelcomeChoiceSeen();
-    // Navigate to dashboard with state to auto-open the create trip dialog
     navigate('/dashboard', { replace: true, state: { openCreateTrip: true } });
   };
 
   const handleGoToDashboard = () => {
-    if (redirecting) return; // prevent double-click
+    if (redirecting) return;
     setRedirecting(true);
     markWelcomeChoiceSeen();
     navigate('/dashboard', { replace: true });
@@ -77,14 +69,13 @@ export default function WelcomeChoice() {
               <div className="w-20 h-20 mx-auto rounded-2xl bg-white shadow-md flex items-center justify-center overflow-hidden">
                 <img src="/rt2rp-logo-web.png" alt="Real Travel 2 Real Places" className="w-16 h-16 object-contain" />
               </div>
-              <h1 className="text-2xl font-bold">Your command center is ready</h1>
+              <h1 className="text-2xl font-bold">Your RT2RP account is ready</h1>
               <p className="text-muted-foreground leading-relaxed">
-                Add a trip to see Today, Timeline, Travel, Places, and Spend come to life - or look around the dashboard first.
+                Create a trip to start saving reservations, timeline details, expenses, and other supported trip records - or look around the dashboard first.
               </p>
             </div>
 
             <div className="space-y-3 pt-2">
-              {/* Primary CTA — hidden on native iOS where trip creation is disabled */}
               {allowCreate && (
                 <Button
                   onClick={handleCreateTrip}
@@ -97,7 +88,6 @@ export default function WelcomeChoice() {
                 </Button>
               )}
 
-              {/* Secondary CTA */}
               <Button
                 onClick={handleGoToDashboard}
                 disabled={redirecting}
