@@ -14,8 +14,8 @@ import LandingFinalCTA from '@/components/landing/LandingFinalCTA';
 import LandingFooter from '@/components/landing/LandingFooter';
 import '@/styles/landing.css';
 
-const seoTitle = 'Real Travel 2 Real Places | Chaos to Clarity Travel Management App';
-const seoDescription = 'Find clarity in the travel chaos. RealTravel2RealPlaces connects trip details, timeline, lodging, driving, weather context, expenses, cached upcoming timeline data, and reports into one trip home.';
+const seoTitle = 'Real Travel 2 Real Places | Trip Management App';
+const seoDescription = 'Keep trip details, bookings, timeline events, lodging, expenses, packing, and supported travel context together in one trip.';
 
 export default function LandingPage() {
   return (
@@ -25,20 +25,20 @@ export default function LandingPage() {
         <meta name="description" content={seoDescription} />
         <meta
           name="keywords"
-          content="travel management app, trip management app, itinerary management, travel organizer, manage trips booked anywhere, driving mode, airport maps, local transit, travel expenses, cached trip timeline, business travel app, road trip management"
+          content="travel management app, trip management app, itinerary management, travel organizer, manage trips, travel bookings, travel expenses, packing lists"
         />
         <link rel="canonical" href="https://realtravel2realplaces.app/" />
 
-        <meta property="og:title" content="Real Travel 2 Real Places | Chaos to Clarity Travel Management" />
-        <meta property="og:description" content="A connected trip-management layer for next steps, driving, airport and transit context, expenses, cached timeline access, and reports." />
+        <meta property="og:title" content="Real Travel 2 Real Places | Trip Management" />
+        <meta property="og:description" content={seoDescription} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://realtravel2realplaces.app/" />
         <meta property="og:site_name" content="Real Travel 2 Real Places" />
         <meta property="og:image" content="https://realtravel2realplaces.app/pwa-icon-512.png" />
 
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Real Travel 2 Real Places | Chaos to Clarity" />
-        <meta name="twitter:description" content="Connect trip details, timeline, driving, weather context, expenses, cached timeline access, and reports in one place." />
+        <meta name="twitter:title" content="Real Travel 2 Real Places | Trip Management" />
+        <meta name="twitter:description" content={seoDescription} />
         <meta name="twitter:image" content="https://realtravel2realplaces.app/pwa-icon-512.png" />
 
         <script type="application/ld+json">
@@ -52,16 +52,16 @@ export default function LandingPage() {
             operatingSystem: 'Web, iOS',
             description: seoDescription,
             featureList: [
-              'Today view for next actions from saved trip details',
-              'Trip timeline for bookings and trip events',
-              'Driving Mode for road trips, route context, and next stops',
+              'Trip records for bookings and saved travel details',
+              'Trip timeline for saved bookings and events',
+              'Trip expense tracking with receipt photos',
+              'Packing lists',
               'Airport map and parking links when available',
-              'Local transit context when required provider data is available',
-              'Cached upcoming trip timeline after connectivity drops',
+              'Local transit context when required data is available',
+              'Cached upcoming timeline details after trip data has been loaded',
               'Queued expense capture while offline with sync after reconnection',
               'Multi-currency expense fields',
               'Invitation-based trip sharing with permission-aware actions',
-              'Business and personal trip records',
             ],
             offers: {
               '@type': 'Offer',
