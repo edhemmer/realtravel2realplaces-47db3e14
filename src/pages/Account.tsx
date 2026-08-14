@@ -10,20 +10,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Mail, Crown, User, Lock, CheckCircle, ChevronRight, ShieldCheck, BookOpen, Sparkles, Briefcase, Sun, Moon, Monitor } from 'lucide-react';
+import { Mail, Crown, User, Lock, CheckCircle, ChevronRight, ShieldCheck, BookOpen, Briefcase, Sun, Moon, Monitor } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/integrations/supabase/client';
 import { passwordResetUrl } from '@/lib/auth/authRedirects';
 import { toast } from 'sonner';
 import { TravelPreferencesCard } from '@/components/account/TravelPreferencesCard';
-import { UpgradePlanDialog } from '@/components/account/UpgradePlanDialog';
 import { NotificationPreferencesCard } from '@/components/account/NotificationPreferencesCard';
 import { EmailImportCard } from '@/components/account/EmailImportCard';
 import { VehicleRangeCard } from '@/components/account/VehicleRangeCard';
 import { EMAIL_FORWARDING_ENABLED } from '@/lib/featureFlags';
 import { PlanPill } from '@/components/PlanPill';
 import { resetOnboarding } from './Onboarding';
-import { isNativeIOS } from '@/lib/native/platform';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,14 +38,12 @@ import { Trash2 } from 'lucide-react';
 export default function Account() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { tier, isPro, canAccessBusinessFeatures, isLoading: isAccessLoading } = useAccess();
+  const { tier, isLoading: isAccessLoading } = useAccess();
   const { data: profile, isLoading: isProfileLoading } = useUserProfile();
   const { data: isAdmin } = useIsAdmin();
   const [isResetting, setIsResetting] = useState(false);
   const [resetSent, setResetSent] = useState(false);
-  const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const onIOS = isNativeIOS();
   const { preference: themePref, setPreference: setThemePref } = useTheme();
 
   const handleResetPassword = async () => {
@@ -76,14 +72,12 @@ export default function Account() {
 
   const isLoading = isAccessLoading || isProfileLoading;
   
-  // Determine plan icon
   const getPlanIcon = () => {
     if (tier === 'business') return <Briefcase className="w-5 h-5 text-primary" />;
     if (tier === 'pro') return <Crown className="w-5 h-5 text-primary" />;
     return <User className="w-5 h-5 text-primary" />;
   };
 
-  // Derive display role annotation for admin users
   const getRoleAnnotation = () => {
     if (isAdmin) {
       return '(Admin access)';
@@ -99,21 +93,12 @@ export default function Account() {
     navigate('/onboarding');
   };
 
-  // Get plan description
   const getPlanDescription = () => {
     if (tier === 'business') {
-      return (
-        <>
-          <span className="font-medium text-foreground">Business plan</span> – unlimited trips, stops, and advanced reports.
-        </>
-      );
+      return <span className="font-medium text-foreground">Business plan</span>;
     }
     if (tier === 'pro') {
-      return (
-        <>
-          <span className="font-medium text-foreground">Pro plan</span> – unlimited trips and advanced features.
-        </>
-      );
+      return <span className="font-medium text-foreground">Pro plan</span>;
     }
     return (
       <>
@@ -121,10 +106,6 @@ export default function Account() {
       </>
     );
   };
-
-  // Show upgrade button for free users only (Pro and Business don't need it).
-  // Hidden inside the iOS app: per App Store rules, this is a web SaaS — billing happens on the web.
-  const showUpgradeButton = tier === 'free' && !onIOS;
 
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
@@ -150,10 +131,9 @@ export default function Account() {
       <div className="max-w-2xl mx-auto space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Account</h1>
-          <p className="text-muted-foreground">Manage your account settings and plan.</p>
+          <p className="text-muted-foreground">Manage your account settings.</p>
         </div>
 
-        {/* Email Section */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -176,14 +156,13 @@ export default function Account() {
           </CardContent>
         </Card>
 
-        {/* Plan Section */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               {getPlanIcon()}
               Current Plan
             </CardTitle>
-            <CardDescription>{onIOS ? 'Your current plan' : 'Your subscription status'}</CardDescription>
+            <CardDescription>Plan attached to this account</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -202,38 +181,11 @@ export default function Account() {
                 <p className="text-sm text-muted-foreground">
                   {getPlanDescription()}
                 </p>
-                
-                {/* Upgrade CTA for Free users only */}
-                {showUpgradeButton && (
-                  <Button 
-                    variant="default"
-                    className="w-full justify-between"
-                    onClick={() => setUpgradeDialogOpen(true)}
-                  >
-                    <span className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4" />
-                      Upgrade plan
-                    </span>
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                )}
-                
-                {!onIOS && (
-                  <Button
-                    variant="outline"
-                    className="w-full justify-between"
-                    onClick={() => navigate('/plans')}
-                  >
-                    View all plans
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                )}
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Travel Preferences Section */}
         {!isLoading && (
           <TravelPreferencesCard
             initialAirport={profile?.preferred_home_airport}
@@ -244,7 +196,6 @@ export default function Account() {
           />
         )}
 
-        {/* Appearance */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -279,7 +230,6 @@ export default function Account() {
           </CardContent>
         </Card>
 
-        {/* Vehicle Range (Optional) */}
         {!isLoading && (
           <VehicleRangeCard
             initialMilesPerTank={profile?.avg_miles_per_tank}
@@ -287,15 +237,12 @@ export default function Account() {
           />
         )}
 
-        {/* Notification Preferences */}
         {!isLoading && (
           <NotificationPreferencesCard />
         )}
 
-        {/* Email Import — hidden via feature flag */}
         {EMAIL_FORWARDING_ENABLED && <EmailImportCard />}
 
-        {/* Help / Getting Started Section */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -316,7 +263,6 @@ export default function Account() {
           </CardContent>
         </Card>
 
-        {/* Password Section */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -348,7 +294,6 @@ export default function Account() {
           </CardContent>
         </Card>
 
-        {/* Delete Account Section */}
         <Card className="border-destructive/30">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -388,13 +333,6 @@ export default function Account() {
           </CardContent>
         </Card>
       </div>
-
-
-      {/* Upgrade Plan Dialog */}
-      <UpgradePlanDialog 
-        open={upgradeDialogOpen} 
-        onOpenChange={setUpgradeDialogOpen} 
-      />
     </Layout>
   );
 }
