@@ -4,7 +4,6 @@ import { Layout } from '@/components/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccess } from '@/hooks/useAccess';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { TIER_LIMITS } from '@/types/subscription';
 import { useIsAdmin } from '@/hooks/useAdminUsers';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -48,13 +47,13 @@ export default function Account() {
 
   const handleResetPassword = async () => {
     if (!user?.email) return;
-    
+
     setIsResetting(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
         redirectTo: passwordResetUrl(),
       });
-      
+
       if (error) {
         toast.error('Failed to send reset email. Please try again.');
         console.error('Password reset error:', error);
@@ -71,7 +70,7 @@ export default function Account() {
   };
 
   const isLoading = isAccessLoading || isProfileLoading;
-  
+
   const getPlanIcon = () => {
     if (tier === 'business') return <Briefcase className="w-5 h-5 text-primary" />;
     if (tier === 'pro') return <Crown className="w-5 h-5 text-primary" />;
@@ -86,7 +85,6 @@ export default function Account() {
   };
 
   const roleAnnotation = getRoleAnnotation();
-  const lifetimeTripCount = profile?.lifetime_trip_count ?? 0;
 
   const handleViewOnboarding = () => {
     resetOnboarding();
@@ -100,11 +98,7 @@ export default function Account() {
     if (tier === 'pro') {
       return <span className="font-medium text-foreground">Pro plan</span>;
     }
-    return (
-      <>
-        <span className="font-medium text-foreground">Free plan</span> - {lifetimeTripCount} of {TIER_LIMITS.free.maxTripsLifetime} lifetime trips used.
-      </>
-    );
+    return <span className="font-medium text-foreground">Free plan</span>;
   };
 
   const handleDeleteAccount = async () => {
@@ -170,7 +164,7 @@ export default function Account() {
             ) : (
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
-                  <PlanPill showTripLimit />
+                  <PlanPill />
                   {roleAnnotation && (
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <ShieldCheck className="w-3 h-3" />
@@ -252,8 +246,8 @@ export default function Account() {
             <CardDescription>Resources and guides</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full justify-between"
               onClick={handleViewOnboarding}
             >
