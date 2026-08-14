@@ -14,7 +14,7 @@ import { useRemoveTripMembership } from '@/hooks/useTripMembers';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, MapPin, Calendar, Plane, Car, TrainFront, Route, Trash2, Users, ChevronRight, Radio, UserMinus, Sparkles, Compass, ListChecks, WifiOff, Coins, ShieldCheck, BriefcaseBusiness, Activity, Building2, ReceiptText, LayoutDashboard } from 'lucide-react';
+import { Plus, MapPin, Calendar, Plane, Car, TrainFront, Route, Trash2, Users, ChevronRight, Radio, UserMinus, WifiOff, Coins, ShieldCheck, BriefcaseBusiness, Activity, Building2, ReceiptText, LayoutDashboard, Compass } from 'lucide-react';
 import { getTripMode, getModeTheme, type TripMode } from '@/lib/modeTheme';
 import { useNavigate } from 'react-router-dom';
 import { formatTripDateRange } from '@/lib/displayFormats';
@@ -79,11 +79,9 @@ export default function Dashboard() {
     return () => window.clearTimeout(timeout);
   }, [tripsLoading]);
 
-  // v3.8.20: Auto-open create trip dialog; detect onboarding state
   const { shouldShowOnboarding } = useOnboardingStatus();
   
   useEffect(() => {
-    // Native iOS build: trip creation is disabled — never auto-open the wizard.
     if (!CAN_CREATE_TRIPS) return;
     const state = location.state as { openCreateTrip?: boolean; isOnboarding?: boolean } | null;
     if (state?.openCreateTrip) {
@@ -91,7 +89,6 @@ export default function Dashboard() {
       setIsOnboarding(!!state.isOnboarding);
       window.history.replaceState({}, document.title);
     } else if (shouldShowOnboarding) {
-      // New user who hasn't completed onboarding — auto-open create trip wizard
       setCreateDialogOpen(true);
       setIsOnboarding(true);
     }
@@ -111,7 +108,6 @@ export default function Dashboard() {
     }
   }, [tripToRemove, removeMembership]);
   
-  
   const handleNavigate = useCallback((id: string) => {
     navigate(`/trip/${id}`);
   }, [navigate]);
@@ -124,7 +120,6 @@ export default function Dashboard() {
     setTripToRemove(id);
   }, []);
 
-  // v3.9.3: Canonical active trip resolver — consumption only
   const todayStr = useMemo(() => getTodayDateOnly(), []);
   const activeTrip = useMemo(() => {
     if (!trips || trips.length === 0) return null;
@@ -133,8 +128,6 @@ export default function Dashboard() {
       .sort((a: Trip, b: Trip) => a.start_date < b.start_date ? -1 : 1)[0] ?? null;
   }, [trips, todayStr]);
 
-  // Canonical "what now?" surface — promotes the nearest upcoming trip (≤14d)
-  // when no trip is active, so users always get a single decisive next step.
   const nowCardTrip = useMemo(() => {
     if (activeTrip) return activeTrip;
     if (!trips || trips.length === 0) return null;
@@ -143,7 +136,6 @@ export default function Dashboard() {
       .sort((a: Trip, b: Trip) => a.start_date < b.start_date ? -1 : 1)[0] ?? null;
   }, [trips, activeTrip, todayStr]);
 
-  // v3.9.3: Elevate active trip to index 0
   const sortedTrips = useMemo(() => {
     if (!trips || trips.length === 0) return [];
     if (!activeTrip) return trips;
@@ -157,7 +149,7 @@ export default function Dashboard() {
 
     return [
       {
-        label: 'Ready trips',
+        label: 'Trips',
         value: sortedTrips.length,
         icon: Activity,
         tone: 'text-primary',
@@ -230,7 +222,6 @@ export default function Dashboard() {
   return (
     <Layout>
       <PageTransition className="w-full min-w-0 space-y-4 bg-ambient-wash sm:space-y-6">
-        {/* Header */}
         <motion.div
           variants={sectionRise}
           initial="hidden"
@@ -246,9 +237,9 @@ export default function Dashboard() {
                   <ShieldCheck className="h-3.5 w-3.5" />
                   Chaos to Clarity
                 </div>
-                <h1 className="text-[30px] font-bold leading-[1.08] tracking-tight sm:text-4xl">Trip Command Center</h1>
+                <h1 className="text-[30px] font-bold leading-[1.08] tracking-tight sm:text-4xl">My Trips</h1>
                 <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-                  Book anywhere. RT2RP turns reservations, movement, weather, spend, maps, and the next decision into one operating view.
+                  Keep your saved trips, dates, reservations, expenses, and shared access together.
                 </p>
               </div>
 
@@ -283,7 +274,6 @@ export default function Dashboard() {
           </GlassSurface>
         </motion.div>
 
-        {/* Canonical "Now Card" — single source of "what should I do right now?" */}
         {nowCardTrip && <NowCard trip={nowCardTrip} />}
 
         <ConnectionHealthStrip health={connectionHealth.data} isLoading={connectionHealth.isLoading} />
@@ -297,7 +287,6 @@ export default function Dashboard() {
           />
         )}
 
-        {/* Pending Email Imports — hidden via feature flag */}
         {EMAIL_FORWARDING_ENABLED && (
           <motion.div
             variants={sectionRise}
@@ -310,7 +299,6 @@ export default function Dashboard() {
           </motion.div>
         )}
 
-        {/* My Trips */}
         {sortedTrips.length > 0 && (
           <motion.div
             variants={sectionRise}
@@ -321,8 +309,8 @@ export default function Dashboard() {
           >
             <div className="flex items-end justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold">Managed trips</h2>
-                <p className="text-sm text-muted-foreground">Live, upcoming, shared, and archived trip operations in one governed view.</p>
+                <h2 className="text-lg font-semibold">Saved trips</h2>
+                <p className="text-sm text-muted-foreground">Trip records with their current date-based lifecycle state.</p>
               </div>
             </div>
             <motion.div
@@ -346,7 +334,6 @@ export default function Dashboard() {
           </motion.div>
         )}
 
-        {/* Shared Trips */}
         {sharedTrips.length > 0 && (
           <motion.div
             variants={sectionRise}
@@ -381,7 +368,6 @@ export default function Dashboard() {
           </motion.div>
         )}
 
-        {/* First-Trip Empty State */}
         {!hasTrips && (
           <motion.div
             variants={sectionRise}
@@ -398,42 +384,9 @@ export default function Dashboard() {
                 <h3 className="text-xl font-semibold mb-2">Your first trip is waiting</h3>
                 <p className="text-muted-foreground text-center mb-6 max-w-md text-sm leading-relaxed">
                   {CAN_CREATE_TRIPS
-                    ? 'Add a trip to bring Today, Timeline, Travel, Places, and Spend to life - reservations, timing, and the next step in one calm place.'
-                    : 'Create or import trips from the secure web app. They sync here automatically for mobile use.'}
+                    ? 'Add a trip to save dates, reservations, expenses, receipts, packing items, and useful places in one trip record.'
+                    : 'Sign in with the same account to view trips created or imported from the web app.'}
                 </p>
-
-                {CAN_CREATE_TRIPS && (
-                  <div className="w-full max-w-lg grid grid-cols-2 gap-2.5 mb-6 text-left">
-                    <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
-                      <Sparkles className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                      <div>
-                        <div className="text-xs font-semibold">Today</div>
-                        <div className="text-[11px] text-muted-foreground leading-snug">What to do next, when to leave.</div>
-                      </div>
-                    </div>
-                    <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
-                      <Compass className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                      <div>
-                        <div className="text-xs font-semibold">Travel</div>
-                        <div className="text-[11px] text-muted-foreground leading-snug">Routes, airport timing, and transit context.</div>
-                      </div>
-                    </div>
-                    <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
-                      <ListChecks className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                      <div>
-                        <div className="text-xs font-semibold">Places</div>
-                          <div className="text-[11px] text-muted-foreground leading-snug">Nearby food, services, and local context.</div>
-                      </div>
-                    </div>
-                    <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
-                      <Route className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                      <div>
-                        <div className="text-xs font-semibold">Timeline</div>
-                        <div className="text-[11px] text-muted-foreground leading-snug">Your trip on one timeline.</div>
-                      </div>
-                    </div>
-                  </div>
-                )}
 
                 {CAN_CREATE_TRIPS && (
                   <Button
@@ -448,9 +401,8 @@ export default function Dashboard() {
 
                 {CAN_CREATE_TRIPS && (
                   <div className="mt-5 flex justify-center flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-muted-foreground">
-                    <span className="flex items-center gap-1.5"><WifiOff className="w-3 h-3 text-primary/70" />Works offline</span>
-                    <span className="flex items-center gap-1.5"><Coins className="w-3 h-3 text-primary/70" />Multi-currency aware</span>
-                    <span className="flex items-center gap-1.5"><Users className="w-3 h-3 text-primary/70" />Share with co-travelers</span>
+                    <span className="flex items-center gap-1.5"><Coins className="w-3 h-3 text-primary/70" />Multi-currency expenses</span>
+                    <span className="flex items-center gap-1.5"><Users className="w-3 h-3 text-primary/70" />Trip sharing</span>
                   </div>
                 )}
               </CardContent>
@@ -478,7 +430,6 @@ export default function Dashboard() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* v3.9.8: Remove shared trip membership confirm */}
       <AlertDialog open={!!tripToRemove} onOpenChange={() => setTripToRemove(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -499,9 +450,6 @@ export default function Dashboard() {
   );
 }
 
-/**
- * TravelModeIcon — Uses canonical getModeTheme() for all mode styling.
- */
 const MODE_ICONS: Record<TripMode, React.ComponentType<{ className?: string }>> = {
   fly: Plane,
   drive: Car,
@@ -521,9 +469,6 @@ function TravelModeIcon({ mode, isPast }: { mode: TripMode; isPast: boolean }) {
   );
 }
 
-/** 
- * TripCard — Memoized card with premium hover elevation
- */
 const TripCard = React.memo(function TripCard({
   trip,
   isShared = false,
@@ -541,7 +486,7 @@ const TripCard = React.memo(function TripCard({
   onNavigate: (id: string) => void;
   onRemove?: (id: string) => void;
 }) {
-  const { cardClassName, isLocked } = getTripCardLifecycleStyles(trip as Trip, isPro);
+  const { cardClassName } = getTripCardLifecycleStyles(trip as Trip, isPro);
   const tripState = (trip as Trip).trip_state || 'active';
   const todayStr = getTodayDateOnly();
   const isPastTrip = trip.end_date < todayStr;
@@ -566,18 +511,16 @@ const TripCard = React.memo(function TripCard({
   const pastTripStyles = isPastTrip ? 'opacity-60' : '';
   const activeBorder = isActive ? 'border-success/50 ring-1 ring-success/20' : '';
 
-    return (
+  return (
     <GlassSurface
       elevation="raised"
-        className={`group relative w-full min-w-0 max-w-full overflow-hidden rounded-2xl transition-all duration-base ease-cinema hover:-translate-y-0.5 hover:shadow-elevation-floating ${cardClassName} ${pastTripStyles} ${activeBorder}`}
+      className={`group relative w-full min-w-0 max-w-full overflow-hidden rounded-2xl transition-all duration-base ease-cinema hover:-translate-y-0.5 hover:shadow-elevation-floating ${cardClassName} ${pastTripStyles} ${activeBorder}`}
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-primary/6 to-transparent" />
       <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-amber-400/10 blur-2xl" />
       <div className="pointer-events-none absolute bottom-0 left-0 h-16 w-28 bg-[radial-gradient(circle_at_0%_100%,hsl(160_60%_42%/0.12),transparent_65%)]" />
-      {/* Mode accent strip */}
       <div className={`h-[3px] w-full ${modeTheme.gradients.buttonBg}`} />
 
-      {/* Content area — reserves room for the absolute action button on the right */}
       <div className="relative pr-[56px] sm:pr-[96px]">
         <CardHeader className="px-4 pb-1 pt-4 sm:px-5 sm:pb-2 sm:pt-5">
           <div className="flex min-w-0 items-start justify-between gap-2">
@@ -591,7 +534,7 @@ const TripCard = React.memo(function TripCard({
                   {isActive && (
                     <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-brand-signal/15 text-brand-signal-deep dark:text-brand-signal">
                       <Radio className="w-2.5 h-2.5" />
-                      Live
+                      Active
                     </span>
                   )}
                 </div>
@@ -619,7 +562,7 @@ const TripCard = React.memo(function TripCard({
           </div>
           <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 text-[10px] font-semibold uppercase text-muted-foreground/70">
             <span className="h-1.5 rounded-full bg-primary/25" />
-            <span>{isActive ? 'Live now' : isPastTrip ? 'Archived trip' : 'Ready trip'}</span>
+            <span>{isActive ? 'Active trip' : isPastTrip ? 'Archived trip' : 'Upcoming trip'}</span>
             <span className="h-1.5 rounded-full bg-amber-400/30" />
           </div>
           <div className="flex items-center justify-between">
@@ -654,7 +597,6 @@ const TripCard = React.memo(function TripCard({
         </CardContent>
       </div>
 
-      {/* Mode action button — sized to stay fully inside the card on narrow mobile widths */}
       <button
         onClick={handleCardClick}
         aria-label={`Open trip: ${trip.name}`}
@@ -723,32 +665,32 @@ function TravelCommandBand({
   const actions = [
     {
       label: 'Today',
-      detail: isActive ? 'What needs attention now' : 'Trip readiness and next step',
+      detail: 'Open trip summary',
       icon: LayoutDashboard,
       onClick: () => onOpen('summary'),
       primary: true,
     },
     {
       label: 'Timeline',
-      detail: 'Everything in order',
+      detail: 'Saved trip events',
       icon: Route,
       onClick: () => onOpen('flow'),
     },
     {
       label: 'Airport',
-      detail: 'Maps, status, parking',
+      detail: 'Saved airports and links',
       icon: Building2,
       onClick: () => onOpen('airport'),
     },
     {
       label: isDriveTrip ? 'Driving' : 'Travel',
-      detail: isDriveTrip ? 'Cockpit and route' : 'Routes and transit',
+      detail: isDriveTrip ? 'Saved drive details' : 'Travel details',
       icon: isDriveTrip ? Car : Compass,
       onClick: isDriveTrip ? onDrive : () => onOpen('ops'),
     },
     {
       label: 'Spend',
-      detail: 'Receipts and costs',
+      detail: 'Expenses and receipts',
       icon: ReceiptText,
       onClick: () => onOpen('expenses'),
     },
@@ -766,7 +708,7 @@ function TravelCommandBand({
         <div className="grid gap-0 lg:grid-cols-[minmax(260px,0.75fr)_1fr]">
           <div className="border-b border-border/45 bg-card/70 p-4 lg:border-b-0 lg:border-r lg:p-5">
             <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/8 px-2.5 py-1 text-[11px] font-semibold uppercase text-primary">
-              {isActive ? 'Live trip' : 'Next trip'}
+              {isActive ? 'Active trip' : 'Upcoming trip'}
             </div>
             <h2 className="text-xl font-bold leading-tight">{trip.name}</h2>
             <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -774,7 +716,7 @@ function TravelCommandBand({
               {trip.destination_city}, {trip.destination_country}
             </p>
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              Start here. RT2RP keeps the next step, movement, maps, spend, and records connected.
+              Open the saved trip sections below.
             </p>
           </div>
 
