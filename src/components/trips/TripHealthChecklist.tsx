@@ -1,18 +1,17 @@
-/**
- * TripHealthChecklist - traveler-facing readiness review.
- *
- * This is read-only analysis. It points the user to missing records instead of
- * guessing or modifying trip data.
- */
-
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  AlertTriangle, Info, CheckCircle2, 
-  Plane, Building2, Car, CircleParking, 
-  DollarSign, ArrowRight 
+import {
+  AlertTriangle,
+  Info,
+  CheckCircle2,
+  Plane,
+  Building2,
+  Car,
+  CircleParking,
+  DollarSign,
+  ArrowRight,
 } from 'lucide-react';
 import { Trip, Booking, Parking, Expense } from '@/types/database';
 import { hasExplicitTime } from '@/lib/datetimeIntegrity';
@@ -37,26 +36,27 @@ interface TripHealthChecklistProps {
 }
 
 /**
- * Analyze trip data for missing or incomplete information
- * All checks are based purely on stored data - no guessing or inference
+ * Review only fields RT2RP can verify from saved records.
+ * This is not a travel-readiness certification and does not infer missing
+ * real-world information outside the data stored in RT2RP.
  */
 function analyzeTrip(
   trip: Trip,
   bookings: Booking[],
   parkingList: Parking[],
   expenses: Expense[],
-  preferredCurrency?: string | null
+  preferredCurrency?: string | null,
 ): HealthIssue[] {
+  void preferredCurrency;
   const issues: HealthIssue[] = [];
 
-  // ===== TRIP MODE CHECKS =====
   if (trip.transportation_mode === 'drive') {
     if (!trip.origin_address && !trip.destination_address) {
       issues.push({
         id: 'drive-addresses-missing',
         severity: 'warning',
         icon: <Car className="w-4 h-4" />,
-        message: 'Driving Mode needs at least one full route address for reliable route timing.',
+        message: 'No full route address is saved for this drive trip.',
         fixLabel: 'Edit trip',
         target: null,
       });
@@ -65,7 +65,7 @@ function analyzeTrip(
         id: 'drive-address-partial',
         severity: 'info',
         icon: <Car className="w-4 h-4" />,
-        message: 'Add both starting and destination addresses to improve route timing, fuel planning, and alerts.',
+        message: 'Only one full route address is saved for this drive trip.',
         fixLabel: 'Edit trip',
         target: null,
       });
@@ -77,20 +77,18 @@ function analyzeTrip(
       id: 'no-records',
       severity: 'warning',
       icon: <Info className="w-4 h-4" />,
-      message: 'No reservations or timed records are attached yet, so RT2RP cannot build a useful Timeline.',
+      message: 'No reservations or timed records are attached to this trip yet.',
       fixLabel: 'Add record',
       target: { tab: 'bookings' },
     });
   }
 
-  // ===== FLIGHT CHECKS =====
-  const flights = bookings.filter(b => b.booking_type === 'flight');
-  flights.forEach(flight => {
-    const flightLabel = flight.airline 
+  const flights = bookings.filter((booking) => booking.booking_type === 'flight');
+  flights.forEach((flight) => {
+    const flightLabel = flight.airline
       ? `${flight.airline}${flight.confirmation_number ? ` (${flight.confirmation_number})` : ''}`
       : flight.confirmation_number || 'Unnamed flight';
 
-    // Check: missing departure time
     if (!hasExplicitTime(flight.start_datetime)) {
       issues.push({
         id: `flight-time-${flight.id}`,
@@ -103,12 +101,10 @@ function analyzeTrip(
     }
   });
 
-  // ===== STAY CHECKS =====
-  const stays = bookings.filter(b => b.booking_type === 'stay');
-  stays.forEach(stay => {
+  const stays = bookings.filter((booking) => booking.booking_type === 'stay');
+  stays.forEach((stay) => {
     const stayLabel = stay.property_name || stay.vendor_name || 'Unnamed lodging';
 
-    // Check: missing check-in time
     if (!hasExplicitTime(stay.start_datetime)) {
       issues.push({
         id: `stay-checkin-${stay.id}`,
@@ -120,7 +116,6 @@ function analyzeTrip(
       });
     }
 
-    // Check: missing check-out time
     if (stay.end_datetime && !hasExplicitTime(stay.end_datetime)) {
       issues.push({
         id: `stay-checkout-${stay.id}`,
@@ -132,7 +127,6 @@ function analyzeTrip(
       });
     }
 
-    // Check: missing address
     if (!stay.address || stay.address.trim().length < 5) {
       issues.push({
         id: `stay-address-${stay.id}`,
@@ -145,12 +139,10 @@ function analyzeTrip(
     }
   });
 
-  // ===== RENTAL CAR CHECKS =====
-  const rentals = bookings.filter(b => b.booking_type === 'car_rental');
-  rentals.forEach(rental => {
+  const rentals = bookings.filter((booking) => booking.booking_type === 'car_rental');
+  rentals.forEach((rental) => {
     const rentalLabel = rental.rental_company || rental.vendor_name || rental.confirmation_number || 'Rental car';
 
-    // Check: missing pickup time
     if (!hasExplicitTime(rental.start_datetime)) {
       issues.push({
         id: `rental-pickup-${rental.id}`,
@@ -162,7 +154,6 @@ function analyzeTrip(
       });
     }
 
-    // Check: missing return time
     if (rental.end_datetime && !hasExplicitTime(rental.end_datetime)) {
       issues.push({
         id: `rental-return-${rental.id}`,
@@ -175,26 +166,23 @@ function analyzeTrip(
     }
   });
 
-  // ===== PARKING CHECKS =====
-  parkingList.forEach(parking => {
+  parkingList.forEach((parking) => {
     const parkingLabel = parking.label || parking.address || 'Unnamed parking';
 
-    // Check: missing end time
     if (!parking.end_datetime) {
       issues.push({
         id: `parking-end-${parking.id}`,
         severity: 'warning',
         icon: <CircleParking className="w-4 h-4" />,
-        message: `Parking at "${parkingLabel}" has no end time set.`,
+        message: `Parking at "${parkingLabel}" has no end time saved.`,
         fixLabel: 'Set end time',
         target: { tab: 'parking', recordId: parking.id },
       });
     }
   });
 
-  // ===== EXPENSE CHECKS (mixed trip purpose) =====
   if (trip.trip_type === 'mixed') {
-    const expensesWithoutPurpose = expenses.filter(e => !e.expense_purpose);
+    const expensesWithoutPurpose = expenses.filter((expense) => !expense.expense_purpose);
     if (expensesWithoutPurpose.length > 0) {
       issues.push({
         id: 'expenses-missing-purpose',
@@ -220,17 +208,16 @@ export function TripHealthChecklist({
 }: TripHealthChecklistProps) {
   const issues = useMemo(
     () => analyzeTrip(trip, bookings, parkingList, expenses, preferredCurrency),
-    [trip, bookings, parkingList, expenses, preferredCurrency]
+    [trip, bookings, parkingList, expenses, preferredCurrency],
   );
 
-  const warningCount = issues.filter(i => i.severity === 'warning').length;
-  const infoCount = issues.filter(i => i.severity === 'info').length;
+  const warningCount = issues.filter((issue) => issue.severity === 'warning').length;
+  const infoCount = issues.filter((issue) => issue.severity === 'info').length;
 
-  const getSeverityIcon = (severity: 'warning' | 'info') => {
-    return severity === 'warning' 
+  const getSeverityIcon = (severity: 'warning' | 'info') =>
+    severity === 'warning'
       ? <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
       : <Info className="w-4 h-4 text-primary" />;
-  };
 
   return (
     <Card className="overflow-hidden border-border/45 bg-card/70 shadow-elevation-raised">
@@ -242,11 +229,12 @@ export function TripHealthChecklist({
             ) : (
               <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
             )}
-            Readiness review
+            Saved trip data review
           </span>
+
           {issues.length === 0 ? (
             <Badge variant="outline" className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20">
-              All clear
+              No missing fields found
             </Badge>
           ) : (
             <div className="flex gap-1">
@@ -264,21 +252,20 @@ export function TripHealthChecklist({
           )}
         </CardTitle>
       </CardHeader>
+
       <CardContent className="pt-0">
         {issues.length === 0 ? (
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Core trip records look complete enough for RT2RP to operate from Today and Timeline.
+            No missing fields were found in the saved-record checks RT2RP can verify here. This does not certify overall trip readiness.
           </p>
         ) : (
           <div className="space-y-2">
-            {issues.map(issue => (
+            {issues.map((issue) => (
               <div
                 key={issue.id}
                 className="flex items-start gap-3 rounded-xl border border-border/45 bg-background/55 p-3 text-sm"
               >
-                <div className="mt-0.5 shrink-0">
-                  {getSeverityIcon(issue.severity)}
-                </div>
+                <div className="mt-0.5 shrink-0">{getSeverityIcon(issue.severity)}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="shrink-0 text-muted-foreground">{issue.icon}</span>

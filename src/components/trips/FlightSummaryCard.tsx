@@ -1,13 +1,13 @@
 import { Booking, Companion } from '@/types/database';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plane, Users, Clock, ExternalLink, MapPin } from 'lucide-react';
+import { Plane, Users, Clock, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UNKNOWN_TIME_PLACEHOLDER } from '@/lib/datetimeIntegrity';
 import { formatLocalDateDirect } from '@/lib/canonicalTimeNormalizer';
 import { getDepartureTimeLabel, getArrivalTimeLabel, hasFlightTime } from '@/lib/timeDisplay';
 import { extractAirportCodes, airports } from '@/lib/airportData';
-import { validateIATA, buildFlightDisplayLine } from '@/lib/flightDisplayUtils';
+import { validateIATA } from '@/lib/flightDisplayUtils';
 import { AirportInfoPill } from './AirportInfoPill';
 import { useAccess } from '@/hooks/useAccess';
 import { computeFlightLocalDatetimes } from '@/lib/canonical/normalizeCanonicalItem';
@@ -28,38 +28,23 @@ interface FlightSummaryCardProps {
 export function FlightSummaryCard({ bookings, companions, bookingCompanions }: FlightSummaryCardProps) {
   const { isPro } = useAccess();
   const flights = bookings
-    .filter((b) => b.booking_type === 'flight')
-    .sort((a, b) => {
-      const aStr = a.start_datetime || '';
-      const bStr = b.start_datetime || '';
-      if (aStr < bStr) return -1;
-      if (aStr > bStr) return 1;
-      return 0;
-    });
+    .filter((booking) => booking.booking_type === 'flight')
+    .sort((a, b) => (a.start_datetime || '').localeCompare(b.start_datetime || ''));
 
-  if (flights.length === 0) {
-    return null;
-  }
+  if (flights.length === 0) return null;
 
   const getCompanionsForFlight = (bookingId: string): Companion[] => {
     const linkedIds = bookingCompanions
-      .filter(bc => bc.booking_id === bookingId)
-      .map(bc => bc.companion_id);
-    return companions.filter(c => linkedIds.includes(c.id));
+      .filter((bookingCompanion) => bookingCompanion.booking_id === bookingId)
+      .map((bookingCompanion) => bookingCompanion.companion_id);
+    return companions.filter((companion) => linkedIds.includes(companion.id));
   };
 
   const totalTravelers = companions.length + 1;
 
-  const extractFlightInfo = (notes?: string): string | null => {
-    if (!notes) return null;
-    const match = notes.match(/(?:flight\s*#?\s*)?([A-Z]{2}\s*\d+)/i);
-    return match ? match[1].replace(/\s+/g, '') : null;
-  };
-
   const lookupAirportName = (code?: string): string | undefined => {
     if (!code) return undefined;
-    const entry = airports.find(a => a.code === code);
-    return entry?.name;
+    return airports.find((airport) => airport.code === code)?.name;
   };
 
   const getFlightAirportCodes = (flight: Booking): { origin?: string; destination?: string; originName?: string; destinationName?: string } => {
@@ -67,9 +52,11 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
     const dbDest = validateIATA(flight.arrival_airport_code);
     const originName = flight.departure_airport_name || lookupAirportName(dbOrigin || undefined);
     const destinationName = flight.arrival_airport_name || lookupAirportName(dbDest || undefined);
+
     if (dbOrigin || dbDest) {
       return { origin: dbOrigin || undefined, destination: dbDest || undefined, originName, destinationName };
     }
+
     let codes = extractAirportCodes(flight.notes || '');
     if (codes.origin || codes.destination) {
       return {
@@ -78,6 +65,7 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
         destinationName: destinationName || lookupAirportName(codes.destination),
       };
     }
+
     codes = extractAirportCodes(flight.vendor_name || '');
     if (codes.origin || codes.destination) {
       return {
@@ -86,6 +74,7 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
         destinationName: destinationName || lookupAirportName(codes.destination),
       };
     }
+
     if (flight.pickup_location) {
       codes = extractAirportCodes(flight.pickup_location);
       if (codes.origin) {
@@ -96,6 +85,7 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
         };
       }
     }
+
     return { originName, destinationName };
   };
 
@@ -115,30 +105,24 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
       </CardHeader>
       <CardContent className="pt-3">
         <div className="space-y-3">
-          {flights.map((flight, index) => {
+          {flights.map((flight) => {
             const flightCompanions = getCompanionsForFlight(flight.id);
             const hasLinkedTravelers = flightCompanions.length > 0;
-            const flightNumber = extractFlightInfo(flight.notes);
             const airportCodes = getFlightAirportCodes(flight);
-            
+
             return (
               <div
                 key={flight.id}
                 className="relative p-4 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors border border-transparent hover:border-primary/10"
               >
                 <div className="absolute -left-1 top-4 w-1 h-8 rounded-full bg-primary/60" />
-                
+
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0 pl-2">
                     <div className="flex items-center gap-2 flex-wrap mb-1.5">
                       <span className="font-semibold text-base">
                         {flight.airline || flight.vendor_name}
                       </span>
-                      {flightNumber && (
-                        <Badge variant="outline" className="font-mono text-xs">
-                          {flightNumber}
-                        </Badge>
-                      )}
                       {flight.confirmation_number && (
                         <Badge variant="secondary" className="text-xs">
                           Conf: {flight.confirmation_number}
@@ -147,16 +131,15 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                     </div>
 
                     {(() => {
-                      // v3.10.0: Show IATA codes if available, else airport name, never blank
                       const depDisplay = airportCodes.origin || airportCodes.originName;
                       const arrDisplay = airportCodes.destination || airportCodes.destinationName;
                       if (!depDisplay && !arrDisplay) return null;
+
                       return (
                         <div className="mb-1.5 pl-0">
                           <p className="text-sm font-medium text-foreground">
                             {depDisplay || '—'} → {arrDisplay || '—'}
                           </p>
-                          {/* Show airport names as secondary text when IATA codes are displayed */}
                           {(airportCodes.origin && airportCodes.originName) || (airportCodes.destination && airportCodes.destinationName) ? (
                             <p className="text-xs text-muted-foreground mt-0.5">
                               {airportCodes.origin && airportCodes.originName ? airportCodes.originName : ''}
@@ -167,48 +150,35 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                         </div>
                       );
                     })()}
-                    
+
                     <div className="flex items-center gap-3 text-sm text-muted-foreground mb-1.5">
                       <span className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5" />
                         {(() => {
-                          // v3.9.42: Raw time enforcement — extract once, pass as trusted display text
                           const flightLocal = computeFlightLocalDatetimes(flight.start_datetime, flight.end_datetime);
-                          const depRawTime = flightLocal.departLocalTime; // HH:mm string, no formatting
-                          const arrRawTime = flightLocal.arriveLocalTime; // HH:mm string, no formatting
-
+                          const depRawTime = flightLocal.departLocalTime;
+                          const arrRawTime = flightLocal.arriveLocalTime;
                           const dateDisplay = formatLocalDateDirect(flight.start_datetime);
-                          // getDepartureTimeLabel returns depRawTime verbatim when non-empty
                           const depTime = getDepartureTimeLabel(depRawTime, flight.start_datetime);
                           const depHasTime = hasFlightTime(depRawTime, flight.start_datetime);
                           const arrTime = getArrivalTimeLabel(arrRawTime, flight.end_datetime);
                           const arrHasTime = hasFlightTime(arrRawTime, flight.end_datetime);
-                          
+
                           return (
                             <>
                               {dateDisplay && (
-                                <span className="font-medium text-foreground tabular-nums">
-                                  {dateDisplay}
-                                </span>
+                                <span className="font-medium text-foreground tabular-nums">{dateDisplay}</span>
                               )}
                               {depHasTime ? (
-                                <span className="text-muted-foreground tabular-nums">
-                                  {depTime}
-                                </span>
+                                <span className="text-muted-foreground tabular-nums">{depTime}</span>
                               ) : (
-                                <span className="text-destructive font-medium">
-                                  {UNKNOWN_TIME_PLACEHOLDER}
-                                </span>
+                                <span className="text-destructive font-medium">{UNKNOWN_TIME_PLACEHOLDER}</span>
                               )}
                               {flight.end_datetime && (
                                 arrHasTime ? (
-                                  <span className="text-xs tabular-nums">
-                                    → {arrTime}
-                                  </span>
+                                  <span className="text-xs tabular-nums">→ {arrTime}</span>
                                 ) : (
-                                  <span className="text-xs text-destructive font-medium">
-                                    → {UNKNOWN_TIME_PLACEHOLDER}
-                                  </span>
+                                  <span className="text-xs text-destructive font-medium">→ {UNKNOWN_TIME_PLACEHOLDER}</span>
                                 )
                               )}
                             </>
@@ -216,40 +186,26 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                         })()}
                       </span>
                     </div>
-                    
+
                     {flight.passenger_name && (
-                      <div className="text-xs text-muted-foreground mb-1">
-                        {flight.passenger_name}
-                      </div>
+                      <div className="text-xs text-muted-foreground mb-1">{flight.passenger_name}</div>
                     )}
-                    
+
                     {isPro && (airportCodes.origin || airportCodes.destination) && (
                       <div className="flex flex-wrap gap-2 mt-2">
-                        {airportCodes.origin && (
-                          <AirportInfoPill 
-                            airportCode={airportCodes.origin} 
-                            label="Origin" 
-                          />
-                        )}
-                        {airportCodes.destination && (
-                          <AirportInfoPill 
-                            airportCode={airportCodes.destination} 
-                            label="Destination" 
-                          />
-                        )}
+                        {airportCodes.origin && <AirportInfoPill airportCode={airportCodes.origin} label="Origin" />}
+                        {airportCodes.destination && <AirportInfoPill airportCode={airportCodes.destination} label="Destination" />}
                       </div>
                     )}
                   </div>
-                  
+
                   {flight.link_url && (
                     <Button
                       size="sm"
                       variant="default"
                       className="shrink-0 h-8 text-xs press-scale"
                       onClick={() => {
-                        const url = flight.link_url!.startsWith('http') 
-                          ? flight.link_url! 
-                          : `https://${flight.link_url}`;
+                        const url = flight.link_url!.startsWith('http') ? flight.link_url! : `https://${flight.link_url}`;
                         window.open(url, '_blank', 'noopener,noreferrer');
                       }}
                     >
@@ -258,7 +214,7 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                     </Button>
                   )}
                 </div>
-                
+
                 {hasLinkedTravelers && (
                   <div className="mt-2 pt-2 border-t border-border/15 pl-2">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1.5">
@@ -267,11 +223,7 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {flightCompanions.map((companion) => (
-                        <Badge 
-                          key={companion.id} 
-                          variant="secondary"
-                          className="text-xs"
-                        >
+                        <Badge key={companion.id} variant="secondary" className="text-xs">
                           {companion.name}
                         </Badge>
                       ))}
@@ -292,11 +244,7 @@ export function FlightSummaryCard({ bookings, companions, bookingCompanions }: F
             <div className="flex flex-wrap gap-1.5">
               <Badge variant="secondary" className="text-xs">You (Owner)</Badge>
               {companions.map((companion) => (
-                <Badge 
-                  key={companion.id} 
-                  variant="outline" 
-                  className="text-xs"
-                >
+                <Badge key={companion.id} variant="outline" className="text-xs">
                   {companion.name}
                 </Badge>
               ))}

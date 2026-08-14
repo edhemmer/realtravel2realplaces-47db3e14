@@ -1,12 +1,12 @@
 import { Check } from 'lucide-react';
 
 const reasons = [
-  'See the next thing to do, where it is, and when to leave for it',
-  'Open airport maps, parking, local transit, and drive navigation from the trip',
-  'Use Drive mode for route context, gas search, weather, next stops, and offline details',
-  'Track expenses in the moment before receipts and details disappear',
-  'Keep the trip usable on planes, in garages, in airports, and in weak service areas',
-  'Manage simple family trips and complex business travel from the same trip home',
+  'Keep saved bookings, locations, and trip events together',
+  'Open available airport, parking, transit, and map links from the trip',
+  'Use saved route and stop details during drive trips',
+  'Track expenses and attach receipt photos while traveling',
+  'Review cached upcoming timeline details after trip data has been loaded',
+  'Manage personal and business trip records from the same account',
 ];
 
 export default function LandingWhyDuringTrip() {
@@ -15,10 +15,10 @@ export default function LandingWhyDuringTrip() {
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-10">
           <h2 className="landing-section-headline">
-            Useful before, during, and between every move.
+            Useful before and during the trip.
           </h2>
           <p className="landing-section-subtext mt-3">
-            Planning tools help before you leave. RealTravel keeps working when the trip becomes real.
+            Keep the travel details you saved organized and accessible from one trip.
           </p>
         </div>
 

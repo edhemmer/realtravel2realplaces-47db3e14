@@ -28,7 +28,7 @@ export default function Privacy() {
 
           <div className="prose prose-invert prose-sm sm:prose-base max-w-none space-y-6 text-[hsl(var(--landing-text-muted))]">
             <p className="text-[hsl(var(--landing-text))]">
-              <strong>Last updated:</strong> February 2026 · v1.1
+              <strong>Last updated:</strong> August 2026 · v1.2
             </p>
 
             <h2 className="text-xl font-semibold text-white mt-8 mb-4">What We Collect</h2>
@@ -41,22 +41,22 @@ export default function Privacy() {
               Your data is used solely to provide the trip management features you signed up for. We do not sell, rent, or share your personal information with third parties for marketing purposes.
             </p>
             <p>
-              Real Travel 2 Real Places relies on third-party service providers to deliver certain functionality, such as mapping, weather information, and payment processing, in accordance with their respective privacy and usage terms.
+              Real Travel 2 Real Places relies on third-party service providers to deliver certain functionality, such as mapping and weather information, in accordance with their respective privacy and usage terms.
             </p>
 
             <h2 className="text-xl font-semibold text-white mt-8 mb-4">Data Storage & Security</h2>
             <p>
-              Your data is stored securely using industry-standard encryption. We use secure cloud infrastructure to protect your information.
+              Account and trip data are stored in authenticated cloud services. Access to private trip records and receipt files is restricted through application authentication, database access policies, and private storage controls.
             </p>
 
             <h2 className="text-xl font-semibold text-white mt-8 mb-4">Your Rights</h2>
             <p>
-              You can access, update, or delete your account and all associated data at any time through your account settings. If you have questions, contact us at the email below.
+              You can access, update, or delete your account and associated data through your account settings. If you have questions, contact us at the email below.
             </p>
 
             <h2 className="text-xl font-semibold text-white mt-8 mb-4">Cookies</h2>
             <p>
-              We use essential cookies to keep you logged in and remember your preferences. We do not use tracking cookies for advertising.
+              We use essential cookies and local browser storage where needed to keep you signed in and remember application state and preferences. We do not use advertising cookies.
             </p>
 
             <h2 className="text-xl font-semibold text-white mt-8 mb-4">Contact</h2>

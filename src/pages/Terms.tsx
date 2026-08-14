@@ -28,7 +28,7 @@ export default function Terms() {
 
           <div className="prose prose-invert prose-sm sm:prose-base max-w-none space-y-6 text-[hsl(var(--landing-text-muted))]">
             <p className="text-[hsl(var(--landing-text))]">
-              <strong>Last updated:</strong> February 2026 · v1.1
+              <strong>Last updated:</strong> August 2026 · v1.2
             </p>
 
             <h2 className="text-xl font-semibold text-white mt-8 mb-4">Agreement to Terms</h2>
@@ -74,7 +74,7 @@ export default function Terms() {
 
             <h2 className="text-xl font-semibold text-white mt-8 mb-4">Changes to Terms</h2>
             <p>
-              We reserve the right to modify these terms at any time. We will notify users of significant changes via email or in-app notification.
+              We may update these terms from time to time. The current version and its last-updated date are published on this page.
             </p>
 
             <h2 className="text-xl font-semibold text-white mt-8 mb-4">Contact</h2>

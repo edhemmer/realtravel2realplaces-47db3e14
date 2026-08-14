@@ -1,7 +1,7 @@
 import { Companion } from '@/types/database';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle } from 'lucide-react';
+import { Info } from 'lucide-react';
 
 interface BookingCompanion {
   id: string;
@@ -24,77 +24,64 @@ interface TsaWarningCardProps {
   onCompanionClick?: (companion: Companion) => void;
 }
 
-export function TsaWarningCard({ 
-  bookings, 
-  companions, 
+export function TsaWarningCard({
+  bookings,
+  companions,
   bookingCompanions,
-  onCompanionClick 
+  onCompanionClick,
 }: TsaWarningCardProps) {
-  // Get all flight bookings
-  const flights = bookings.filter((b) => b.booking_type === 'flight');
+  const flights = bookings.filter((booking) => booking.booking_type === 'flight');
+  if (flights.length === 0) return null;
 
-  if (flights.length === 0) {
-    return null;
-  }
-
-  // Collect unique companions missing TSA numbers across all flights
-  const missingTsaCompanions = new Map<string, Companion>();
+  const companionsWithoutSavedTsa = new Map<string, Companion>();
 
   flights.forEach((flight) => {
-    // Get linked companions for this flight
     const linkedIds = bookingCompanions
-      .filter(bc => bc.booking_id === flight.id)
-      .map(bc => bc.companion_id);
-    
-    const flightCompanions = companions.filter(c => linkedIds.includes(c.id));
-    
-    // Check each companion - only include if TSA is missing AND not yet reviewed
-    flightCompanions.forEach((companion) => {
-      if (!companion.tsa_precheck_number && !companion.tsa_reviewed && !missingTsaCompanions.has(companion.id)) {
-        missingTsaCompanions.set(companion.id, companion);
-      }
-    });
+      .filter((bookingCompanion) => bookingCompanion.booking_id === flight.id)
+      .map((bookingCompanion) => bookingCompanion.companion_id);
+
+    companions
+      .filter((companion) => linkedIds.includes(companion.id))
+      .forEach((companion) => {
+        if (!companion.tsa_precheck_number && !companion.tsa_reviewed) {
+          companionsWithoutSavedTsa.set(companion.id, companion);
+        }
+      });
   });
 
-  // Convert to array and sort by name
-  const uniqueMissingCompanions = Array.from(missingTsaCompanions.values())
+  const travelers = Array.from(companionsWithoutSavedTsa.values())
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  // If no missing TSA numbers, don't show the card
-  if (uniqueMissingCompanions.length === 0) {
-    return null;
-  }
+  if (travelers.length === 0) return null;
 
   return (
-    <Card className="border-amber-300/50 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-700/50">
+    <Card className="border-border/50 bg-card/70">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base flex items-center gap-2 text-amber-700 dark:text-amber-400">
-          <AlertTriangle className="w-5 h-5" />
-          TSA PreCheck Missing
+        <CardTitle className="text-base flex items-center gap-2">
+          <Info className="w-5 h-5 text-primary" />
+          TSA PreCheck not saved
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-sm text-amber-700/80 dark:text-amber-400/80">
-          These travelers don't have a TSA PreCheck number on file:
+        <p className="text-sm text-muted-foreground">
+          These travelers do not have a TSA PreCheck number saved in RT2RP:
         </p>
-        
+
         <div className="flex flex-wrap gap-2">
-          {uniqueMissingCompanions.map((companion) => (
-            <Badge 
+          {travelers.map((companion) => (
+            <Badge
               key={companion.id}
-              variant="secondary" 
-              className={`text-sm bg-amber-200/70 text-amber-800 dark:bg-amber-800/50 dark:text-amber-200 ${
-                onCompanionClick ? 'cursor-pointer hover:bg-amber-300/70 dark:hover:bg-amber-700/50 transition-colors' : ''
-              }`}
+              variant="secondary"
+              className={onCompanionClick ? 'cursor-pointer transition-colors' : ''}
               onClick={() => onCompanionClick?.(companion)}
             >
               {companion.name}
             </Badge>
           ))}
         </div>
-        
-        <p className="text-xs text-amber-600/70 dark:text-amber-500/70">
-          Tip: Click a traveler's name to open their details and add TSA information.
+
+        <p className="text-xs text-muted-foreground">
+          TSA PreCheck is optional. Select a traveler if you want to save their number or mark the item reviewed.
         </p>
       </CardContent>
     </Card>

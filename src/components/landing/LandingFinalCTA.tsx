@@ -5,10 +5,10 @@ export default function LandingFinalCTA() {
     <section className="landing-pricing-section">
       <div className="max-w-3xl mx-auto text-center">
         <h2 className="landing-section-headline">
-          Step out of the chaos.
+          Keep the trip together.
         </h2>
         <p className="landing-section-subtext mt-3">
-          Bring every trip into clarity with a travel operations command center built for daily use.
+          Create a trip and keep the travel details you save organized in one place.
         </p>
 
         <div className="flex items-center justify-center gap-3 sm:gap-4 mt-8">
@@ -16,7 +16,7 @@ export default function LandingFinalCTA() {
             to="/auth?tab=signup"
             className="landing-btn-primary-hero"
           >
-            Create Your Trip Hub
+            Start Free
           </Link>
           <Link
             to="/auth"
