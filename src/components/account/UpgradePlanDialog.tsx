@@ -1,13 +1,3 @@
-/**
- * UpgradePlanDialog.tsx
- * 
- * Informational dialog for controlled upgrade access.
- * This component explains available plans without collecting payment details.
- * 
- * v2.6.4: Initial implementation with disabled billing state
- * v2.6.5: Added upgrade intent tracking on button clicks
- */
-
 import {
   Dialog,
   DialogContent,
@@ -16,191 +6,28 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Check, Crown, Briefcase, Sparkles, Info } from 'lucide-react';
-import { useSubscription } from '@/hooks/useSubscription';
-import { useUpgradeIntent, type UpgradeEntryPoint } from '@/hooks/useUpgradeIntent';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Info } from 'lucide-react';
 
 interface UpgradePlanDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Which plan tab to show by default */
   defaultPlan?: 'pro' | 'business';
-  /** Where this dialog was opened from (for intent tracking) */
-  entryPoint?: UpgradeEntryPoint;
+  entryPoint?: string;
 }
 
-const proFeatures = [
-  'Unlimited trips',
-  'Places and local operating context',
-  'Full Timeline with trip events',
-  'Advanced cost summaries',
-  'Readiness review and gap analysis',
-  'Parking expiration alerts',
-  'Priority support',
-];
-
-const businessFeatures = [
-  'Everything in Pro',
-  'Business expense reporting',
-  'Multi-stop work routes',
-  'Stop-level expense assignment',
-  'PDF & CSV report exports',
-  'Dedicated support',
-];
-
-export function UpgradePlanDialog({ 
-  open, 
-  onOpenChange, 
-  defaultPlan = 'pro',
-  entryPoint = 'account_page'
-}: UpgradePlanDialogProps) {
-  const { data: subscription } = useSubscription();
-  const { trackUpgradeIntent } = useUpgradeIntent();
-  const currentTier = subscription?.tier || 'free';
-
+export function UpgradePlanDialog({ open, onOpenChange }: UpgradePlanDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-primary" />
-            Upgrade Your Plan
+            <Info className="w-5 h-5 text-primary" />
+            Paid plans are not available yet
           </DialogTitle>
           <DialogDescription>
-            Unlock advanced features to manage your travel more effectively.
+            RT2RP is currently offering the Free plan. Paid plan options will not be shown until their features and account workflows are ready for users.
           </DialogDescription>
         </DialogHeader>
-
-        <Tabs defaultValue={defaultPlan} className="mt-2">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="pro" className="gap-1.5">
-              <Crown className="w-4 h-4" />
-              Pro
-            </TabsTrigger>
-            <TabsTrigger value="business" className="gap-1.5">
-              <Briefcase className="w-4 h-4" />
-              Business
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Pro Plan Tab */}
-          <TabsContent value="pro" className="space-y-4 mt-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-lg">Pro Plan</h3>
-                {currentTier === 'pro' && (
-                  <Badge variant="secondary" className="text-xs">Current</Badge>
-                )}
-              </div>
-              <p className="text-sm text-muted-foreground">
-                For power travelers who want full control and insights.
-              </p>
-            </div>
-
-            <ul className="space-y-2">
-              {proFeatures.map((feature) => (
-                <li key={feature} className="flex items-start gap-2 text-sm">
-                  <Check className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
-                  <span>{feature}</span>
-                </li>
-              ))}
-            </ul>
-
-            {currentTier !== 'pro' && (
-              <div className="pt-2">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div>
-                        {/* 
-                          v2.6.5: Track access intent for follow-up
-                        */}
-                        <Button 
-                          className="w-full" 
-                          aria-describedby="billing-note"
-                          onClick={() => trackUpgradeIntent('pro', entryPoint)}
-                        >
-                          <Crown className="w-4 h-4 mr-2" />
-                          Request Pro Access
-                        </Button>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="max-w-xs">
-                      <p>We&apos;ll record your request and follow up with plan access.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-            )}
-          </TabsContent>
-
-          {/* Business Plan Tab */}
-          <TabsContent value="business" className="space-y-4 mt-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-lg">Business Plan</h3>
-                <Badge variant="outline" className="text-xs">Team Access</Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Advanced features for business travel and expense management.
-              </p>
-            </div>
-
-            <ul className="space-y-2">
-              {businessFeatures.map((feature) => (
-                <li key={feature} className="flex items-start gap-2 text-sm">
-                  <Check className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
-                  <span>{feature}</span>
-                </li>
-              ))}
-            </ul>
-
-            <div className="pt-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div>
-                      {/* 
-                        v2.6.5: Track access intent for follow-up
-                      */}
-                      <Button 
-                        className="w-full" 
-                        aria-describedby="billing-note"
-                        onClick={() => trackUpgradeIntent('business', entryPoint)}
-                      >
-                        <Briefcase className="w-4 h-4 mr-2" />
-                        Request Business Access
-                      </Button>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs">
-                    <p>We&apos;ll record your team request and follow up with the right plan path.</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          </TabsContent>
-        </Tabs>
-
-        {/* Billing Status Note */}
-        <div 
-          id="billing-note"
-          className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg text-sm text-muted-foreground mt-2"
-        >
-          <Info className="w-4 h-4 mt-0.5 shrink-0" />
-          <p>
-            Paid plan access is handled through a controlled rollout so support,
-            account setup, and travel operations stay reliable.
-          </p>
-        </div>
 
         <div className="flex justify-end pt-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
