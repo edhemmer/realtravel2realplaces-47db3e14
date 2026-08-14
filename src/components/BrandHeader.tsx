@@ -3,9 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { PlanPill } from '@/components/PlanPill';
 
 interface BrandHeaderProps {
-  /** "app" for light app shell, "landing" for dark marketing page */
   variant?: 'app' | 'landing';
-  /** Right-side content (nav links, buttons, user menu) */
   children?: React.ReactNode;
 }
 
@@ -15,7 +13,6 @@ export function BrandHeader({ variant = 'app', children }: BrandHeaderProps) {
 
   return (
     <div className="rt-brand-header flex items-center justify-between w-full gap-2 min-w-0">
-      {/* Brand cluster: wordmark + pill */}
       <Link
         to="/"
         className="rt-brand-link flex min-w-0 flex-1 items-center gap-1.5 sm:gap-3 flex-nowrap hover:opacity-80 transition-opacity"
@@ -46,10 +43,9 @@ export function BrandHeader({ variant = 'app', children }: BrandHeaderProps) {
             RealTravel <span className="italic font-normal opacity-90">2</span> RealPlaces
           </span>
         </span>
-        {!isLanding && user && <PlanPill showTripLimit className="rt-brand-plan flex-shrink-0 max-[374px]:hidden" />}
+        {!isLanding && user && <PlanPill className="rt-brand-plan flex-shrink-0 max-[374px]:hidden" />}
       </Link>
 
-      {/* Right-side controls */}
       {children}
     </div>
   );

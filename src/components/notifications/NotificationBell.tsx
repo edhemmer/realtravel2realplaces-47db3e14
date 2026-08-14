@@ -1,9 +1,9 @@
 /**
- * NotificationBell - Bell icon with unread count badge + dropdown of notifications
+ * NotificationBell - Bell icon with unread count badge + dropdown of stored notifications.
  *
- * Reads ONLY from canonical notifications output (useNotifications hook).
- * No independent suppression or filtering — all preference enforcement
- * happens in the canonical reminders engine (server-side).
+ * This surface presents notification rows that already exist plus trip invites.
+ * It does not imply that scheduled reminder generation or device delivery is
+ * currently enabled or guaranteed.
  */
 
 import { useState } from 'react';
@@ -30,7 +30,6 @@ import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 
-/** Map canonical reminder types to icons */
 function getNotificationIcon(type: string) {
   switch (type) {
     case 'departure':
@@ -38,14 +37,14 @@ function getNotificationIcon(type: string) {
     case 'expense_nudge':
       return <Receipt className="w-4 h-4 text-amber-500 shrink-0" />;
     case 'parking_expiration':
-    case 'parking_expiry': // legacy compat
+    case 'parking_expiry':
       return <CircleParking className="w-4 h-4 text-destructive shrink-0" />;
     case 'tour_start':
     case 'next_stop':
-    case 'stop_reminder': // legacy compat
+    case 'stop_reminder':
       return <MapPin className="w-4 h-4 text-primary shrink-0" />;
     case 'ticket_required':
-    case 'ticket_reminder': // legacy compat
+    case 'ticket_reminder':
       return <Ticket className="w-4 h-4 text-emerald-500 shrink-0" />;
     case 'lodging_checkin':
       return <Hotel className="w-4 h-4 text-primary shrink-0" />;
@@ -125,83 +124,67 @@ export function NotificationBell() {
 
   return (
     <>
-    <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="rounded-full relative overflow-visible">
-          <Bell className="w-5 h-5 text-muted-foreground" />
-          {totalBadge > 0 && (
-            <Badge className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 text-[10px] font-bold bg-destructive text-destructive-foreground border-2 border-card z-50 pointer-events-none">
-              {totalBadge > 9 ? '9+' : totalBadge}
-            </Badge>
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80 p-0" sideOffset={8}>
-        {inviteCount > 0 && (
-          <button
-            onClick={() => { setOpen(false); setInvitesOpen(true); }}
-            className="flex items-center gap-2 px-3 py-2.5 border-b border-border/50 w-full text-left hover:bg-primary/5 transition-colors"
-          >
-            <MailOpen className="w-4 h-4 text-primary shrink-0" />
-            <span className="text-sm font-medium text-primary flex-1">
-              {inviteCount} trip invite{inviteCount > 1 ? 's' : ''} pending
-            </span>
-            <Badge className="h-5 min-w-[20px] px-1.5 text-[10px] font-bold bg-primary text-primary-foreground">
-              {inviteCount}
-            </Badge>
-          </button>
-        )}
-
-        <div className="flex items-center justify-between px-3 py-2.5 border-b border-border/50">
-          <span className="text-sm font-semibold text-foreground">Notifications</span>
-          {unreadCount > 0 && (
+      <DropdownMenu open={open} onOpenChange={setOpen}>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="rounded-full relative overflow-visible">
+            <Bell className="w-5 h-5 text-muted-foreground" />
+            {totalBadge > 0 && (
+              <Badge className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 text-[10px] font-bold bg-destructive text-destructive-foreground border-2 border-card z-50 pointer-events-none">
+                {totalBadge > 9 ? '9+' : totalBadge}
+              </Badge>
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-80 p-0" sideOffset={8}>
+          {inviteCount > 0 && (
             <button
-              onClick={() => markAllRead.mutate()}
-              className="text-xs text-primary hover:underline flex items-center gap-1"
+              onClick={() => { setOpen(false); setInvitesOpen(true); }}
+              className="flex items-center gap-2 px-3 py-2.5 border-b border-border/50 w-full text-left hover:bg-primary/5 transition-colors"
             >
-              <Check className="w-3 h-3" />
-              Mark all read
+              <MailOpen className="w-4 h-4 text-primary shrink-0" />
+              <span className="text-sm font-medium text-primary flex-1">
+                {inviteCount} trip invite{inviteCount > 1 ? 's' : ''} pending
+              </span>
+              <Badge className="h-5 min-w-[20px] px-1.5 text-[10px] font-bold bg-primary text-primary-foreground">
+                {inviteCount}
+              </Badge>
             </button>
           )}
-        </div>
 
-        {notifications.length === 0 ? (
-          <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-            No notifications yet
+          <div className="flex items-center justify-between px-3 py-2.5 border-b border-border/50">
+            <span className="text-sm font-semibold text-foreground">Notifications</span>
+            {unreadCount > 0 && (
+              <button
+                onClick={() => markAllRead.mutate()}
+                className="text-xs text-primary hover:underline flex items-center gap-1"
+              >
+                <Check className="w-3 h-3" />
+                Mark all read
+              </button>
+            )}
           </div>
-        ) : (
-          <ScrollArea className="max-h-[360px]">
-            {notifications.map((n) => (
-              <NotificationItem
-                key={n.id}
-                notification={n}
-                onRead={(id) => markRead.mutate(id)}
-                onDismiss={(id) => dismiss.mutate(id)}
-                onNavigate={handleNavigate}
-              />
-            ))}
-          </ScrollArea>
-        )}
 
-        {notifications.length > 0 && (
-          <div className="px-3 py-2 border-t border-border/50">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full text-xs text-muted-foreground"
-              onClick={() => {
-                navigate('/account');
-                setOpen(false);
-              }}
-            >
-              Notification Settings
-            </Button>
-          </div>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+          {notifications.length === 0 ? (
+            <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+              No notifications yet
+            </div>
+          ) : (
+            <ScrollArea className="max-h-[360px]">
+              {notifications.map((n) => (
+                <NotificationItem
+                  key={n.id}
+                  notification={n}
+                  onRead={(id) => markRead.mutate(id)}
+                  onDismiss={(id) => dismiss.mutate(id)}
+                  onNavigate={handleNavigate}
+                />
+              ))}
+            </ScrollArea>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
 
-    <TripInvitesDialog open={invitesOpen} onOpenChange={setInvitesOpen} />
+      <TripInvitesDialog open={invitesOpen} onOpenChange={setInvitesOpen} />
     </>
   );
 }
