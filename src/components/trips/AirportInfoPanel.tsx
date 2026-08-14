@@ -1,4 +1,4 @@
-import { Airport, getAirportByCode, formatAirportFull } from '@/lib/airportData';
+import { getAirportByCode, formatAirportFull } from '@/lib/airportData';
 import {
   Drawer,
   DrawerContent,
@@ -10,13 +10,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Globe, 
-  Map, 
-  Car, 
-  ParkingCircle, 
-  Clock, 
-  Shield, 
+import {
+  Globe,
+  Map,
+  Car,
+  ParkingCircle,
+  Shield,
   Info,
   Plane,
   X,
@@ -26,20 +25,12 @@ interface AirportInfoPanelProps {
   airportCode: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Label for context, e.g., "Origin" or "Destination" */
   label?: string;
 }
 
-export function AirportInfoPanel({ 
-  airportCode, 
-  open, 
-  onOpenChange,
-  label 
-}: AirportInfoPanelProps) {
+export function AirportInfoPanel({ airportCode, open, onOpenChange, label }: AirportInfoPanelProps) {
   const airport = getAirportByCode(airportCode);
-  
 
-  // Safely open external URLs
   const openUrl = (url: string | undefined) => {
     if (!url) return;
     window.open(url, '_blank', 'noopener,noreferrer');
@@ -51,26 +42,18 @@ export function AirportInfoPanel({
         <div className="mx-auto w-full max-w-lg">
           <DrawerHeader className="relative">
             <DrawerClose asChild>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="absolute right-2 top-2"
-              >
+              <Button variant="ghost" size="icon" className="absolute right-2 top-2">
                 <X className="h-4 w-4" />
                 <span className="sr-only">Close</span>
               </Button>
             </DrawerClose>
-            
+
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
                 <Plane className="h-5 w-5 text-primary" />
               </div>
               <div className="flex-1">
-                {label && (
-                  <Badge variant="secondary" className="mb-1 text-xs">
-                    {label}
-                  </Badge>
-                )}
+                {label && <Badge variant="secondary" className="mb-1 text-xs">{label}</Badge>}
                 <DrawerTitle className="text-lg">
                   {airport ? airport.name : 'Airport Information'}
                 </DrawerTitle>
@@ -90,7 +73,6 @@ export function AirportInfoPanel({
           </DrawerHeader>
 
           <div className="overflow-y-auto px-4 pb-6">
-            {/* About This Airport - Specific Reference Section */}
             <section className="mb-6 rounded-lg border bg-muted/30 p-4">
               <h4 className="flex items-center gap-2 text-sm font-semibold mb-2">
                 <Plane className="h-4 w-4 text-primary" />
@@ -114,28 +96,22 @@ export function AirportInfoPanel({
                   )}
                   <Separator className="my-2" />
                   <p className="text-xs text-muted-foreground">
-                    Use the official airport windows below for terminal maps, transport, parking,
-                    and airport-specific services.
+                    Use the official airport links below for current terminal maps, transport, parking, and airport-specific services.
                   </p>
                 </div>
               ) : (
                 <div className="text-sm text-muted-foreground space-y-2">
                   <p>Airport code: <span className="font-mono font-semibold">{airportCode}</span></p>
                   <p className="text-xs">
-                    Verify this airport code with your carrier, then use official airport tools
-                    for terminal maps, parking, and transport.
+                    Verify this airport code with your carrier, then use official airport tools for terminal maps, parking, and transport.
                   </p>
                 </div>
               )}
             </section>
 
-            {/* Official Website - Primary Action */}
             <div className="mb-6">
               {airport?.officialUrl ? (
-                <Button 
-                  className="w-full" 
-                  onClick={() => openUrl(airport.officialUrl)}
-                >
+                <Button className="w-full" onClick={() => openUrl(airport.officialUrl)}>
                   <Globe className="mr-2 h-4 w-4" />
                   Official Airport Website
                 </Button>
@@ -147,35 +123,22 @@ export function AirportInfoPanel({
               )}
             </div>
 
-            {/* Secondary Links */}
             {airport && (airport.mapUrl || airport.transportUrl || airport.parkingUrl) && (
               <div className="mb-6 grid grid-cols-1 gap-2 sm:grid-cols-3">
                 {airport.mapUrl && (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => openUrl(airport.mapUrl)}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => openUrl(airport.mapUrl)}>
                     <Map className="mr-1.5 h-3.5 w-3.5" />
                     Map
                   </Button>
                 )}
                 {airport.transportUrl && (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => openUrl(airport.transportUrl)}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => openUrl(airport.transportUrl)}>
                     <Car className="mr-1.5 h-3.5 w-3.5" />
                     Transport
                   </Button>
                 )}
                 {airport.parkingUrl && (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => openUrl(airport.parkingUrl)}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => openUrl(airport.parkingUrl)}>
                     <ParkingCircle className="mr-1.5 h-3.5 w-3.5" />
                     Parking
                   </Button>
@@ -185,35 +148,17 @@ export function AirportInfoPanel({
 
             <Separator className="my-4" />
 
-            {/* Standard Airport Guidance */}
             <div className="space-y-4">
               <p className="text-xs text-muted-foreground">
-                The guidance below applies to most airports. For airport-specific 
-                information, check the official website above.
+                Airport procedures and recommended arrival timing vary. Confirm current guidance with your airline and the official airport before travel.
               </p>
-              <h4 className="flex items-center gap-2 text-sm font-medium">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                Arrival Timing
-              </h4>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <p>
-                  <span className="font-medium text-foreground">Domestic flights:</span>{' '}
-                  Arrive ~2 hours before departure
-                </p>
-                <p>
-                  <span className="font-medium text-foreground">International flights:</span>{' '}
-                  Arrive ~3 hours before departure
-                </p>
-              </div>
-
-              <Separator />
 
               <h4 className="flex items-center gap-2 text-sm font-medium">
                 <Shield className="h-4 w-4 text-muted-foreground" />
                 Security Note
               </h4>
               <p className="text-sm text-muted-foreground">
-                Security screening is required before airside access.
+                Security screening is required before airside access. Follow current airport and screening-authority instructions.
               </p>
 
               <Separator />
@@ -223,28 +168,24 @@ export function AirportInfoPanel({
                 Terminal Reminder
               </h4>
               <p className="text-sm text-muted-foreground">
-                Confirm terminal details with your airline.
+                Confirm terminal and gate details with your airline or official airport source.
               </p>
 
               <Separator />
 
-              {/* Landside vs Airside Explainer */}
               <div className="rounded-lg bg-muted/50 p-4">
-                <h4 className="mb-2 text-sm font-medium">
-                  Landside vs Airside
-                </h4>
+                <h4 className="mb-2 text-sm font-medium">Landside vs Airside</h4>
                 <div className="space-y-1.5 text-sm text-muted-foreground">
                   <p>
                     <span className="font-medium text-foreground">Landside</span>{' '}
-                    includes check-in, ticketing, and baggage drop.
+                    generally includes public check-in, ticketing, and baggage-drop areas.
                   </p>
                   <p>
                     <span className="font-medium text-foreground">Airside</span>{' '}
-                    is past security and requires a boarding pass.
+                    is the secure area beyond passenger screening.
                   </p>
                 </div>
               </div>
-
             </div>
           </div>
         </div>
