@@ -3,7 +3,6 @@ import type { DrivePlan } from '@/types/drive';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Car, MapPin, Navigation } from 'lucide-react';
-import { openNavTarget } from '@/lib/location/navigationTargets';
 
 interface DriveSummaryCardProps {
   trip: Trip & {
@@ -61,7 +60,7 @@ export function DriveSummaryCard({ trip, drivePlan }: DriveSummaryCardProps) {
           <Button
             type="button"
             className="w-full"
-            onClick={() => openNavTarget(primaryNav.target)}
+            onClick={() => window.open(primaryNav.url, '_blank', 'noopener,noreferrer')}
           >
             <Navigation className="w-4 h-4 mr-2" />
             Open navigation
