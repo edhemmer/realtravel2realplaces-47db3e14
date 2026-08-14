@@ -1,28 +1,24 @@
 /**
- * Onboarding Page — v3.11.0: Command-center intro
+ * Onboarding Page
  *
- * Premium intro card that frames the four pillars (Today / Timeline / Travel / Places)
- * and the core promises (offline, multi-currency, shareable) before routing
- * into the Create Trip Wizard. No upload/import/paste prompts in onboarding.
+ * First-use introduction for verified trip-management capabilities.
+ * Keeps onboarding completion and Create Trip routing behavior unchanged.
  */
 
 import { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Button } from '@/components/ui/button';
-import { Plane, ArrowRight, Compass, Sparkles, ListChecks, WifiOff, Coins, Users } from 'lucide-react';
-import { 
+import { Plane, ArrowRight, CalendarDays, MapPin, Receipt, ListChecks } from 'lucide-react';
+import {
   useOnboardingStatus,
-  useCompleteOnboarding, 
+  useCompleteOnboarding,
   clearManualOnboardingView,
   isManualOnboardingView,
-  setManualOnboardingView
+  setManualOnboardingView,
 } from '@/hooks/useOnboardingStatus';
 import { canCreateTrips } from '@/lib/native/platform';
 
-/**
- * Reset onboarding for manual view from Account page
- */
 export function resetOnboarding() {
   setManualOnboardingView(true);
 }
@@ -44,7 +40,6 @@ export default function Onboarding() {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Native iOS build: trip creation is disabled — skip onboarding wizard entirely.
   if (!canCreateTrips()) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -60,6 +55,7 @@ export default function Onboarding() {
         console.error('Failed to mark onboarding complete:', err);
       }
     }
+
     clearManualOnboardingView();
     navigate('/dashboard', { replace: true, state: { openCreateTrip: true, isOnboarding: true } });
   };
@@ -75,6 +71,7 @@ export default function Onboarding() {
         console.error('Failed to mark onboarding complete:', err);
       }
     }
+
     clearManualOnboardingView();
     navigate('/dashboard', { replace: true });
   };
@@ -92,56 +89,39 @@ export default function Onboarding() {
               Welcome to Real Travel 2 Real Places
             </h1>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Your travel command center — the next step, always one tap away.
+              Create a trip, keep its important records together, and open the details you saved when you need them.
             </p>
           </div>
 
-          {/* Four pillars */}
           <div className="grid grid-cols-2 gap-2.5 text-left">
             <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
-              <Sparkles className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+              <CalendarDays className="w-4 h-4 text-primary mt-0.5 shrink-0" />
               <div>
-                <div className="text-xs font-semibold">Today</div>
-                <div className="text-[11px] text-muted-foreground leading-snug">What to do next, when to leave.</div>
+                <div className="text-xs font-semibold">Timeline</div>
+                <div className="text-[11px] text-muted-foreground leading-snug">See saved trip events in date and time order.</div>
               </div>
             </div>
             <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
-              <Compass className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+              <MapPin className="w-4 h-4 text-primary mt-0.5 shrink-0" />
               <div>
-                <div className="text-xs font-semibold">Travel</div>
-                <div className="text-[11px] text-muted-foreground leading-snug">Routes, airport timing, and transit context.</div>
+                <div className="text-xs font-semibold">Travel details</div>
+                <div className="text-[11px] text-muted-foreground leading-snug">Keep saved locations, bookings, and movement details with the trip.</div>
+              </div>
+            </div>
+            <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
+              <Receipt className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+              <div>
+                <div className="text-xs font-semibold">Expenses</div>
+                <div className="text-[11px] text-muted-foreground leading-snug">Record trip spending and attach receipt photos.</div>
               </div>
             </div>
             <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
               <ListChecks className="w-4 h-4 text-primary mt-0.5 shrink-0" />
               <div>
-                <div className="text-xs font-semibold">Places</div>
-                <div className="text-[11px] text-muted-foreground leading-snug">Nearby food, services, and local context.</div>
+                <div className="text-xs font-semibold">Packing</div>
+                <div className="text-[11px] text-muted-foreground leading-snug">Keep a trip packing list with the rest of your records.</div>
               </div>
             </div>
-            <div className="rounded-xl bg-card border border-border/60 p-3 flex items-start gap-2.5">
-              <Plane className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-              <div>
-                <div className="text-xs font-semibold">Timeline</div>
-                <div className="text-[11px] text-muted-foreground leading-snug">Your trip on one timeline.</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Trust row */}
-          <div className="flex justify-center flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <WifiOff className="w-3 h-3 text-primary/70" />
-              Works offline
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Coins className="w-3 h-3 text-primary/70" />
-              Multi-currency aware
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Users className="w-3 h-3 text-primary/70" />
-              Share with co-travelers
-            </span>
           </div>
 
           <div className="space-y-3">
