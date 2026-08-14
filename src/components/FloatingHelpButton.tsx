@@ -1,8 +1,8 @@
 /**
- * FloatingHelpButton — v4.10.0
- * 
- * Persistent floating help button visible on all authenticated pages.
- * Shows contextual page-level tips in a popover, with a link to the full Help Center.
+ * FloatingHelpButton
+ *
+ * Persistent contextual help for authenticated pages. Tips describe only
+ * currently exposed, evidence-backed behavior.
  */
 
 import { useState } from 'react';
@@ -24,41 +24,39 @@ const PAGE_HELP: Record<string, PageHelp> = {
   '/dashboard': {
     title: 'Dashboard',
     tips: [
-      'Tap "Create Trip" to start a new trip — choose Fly, Drive, or Train.',
-      'Paste a confirmation or drop a screenshot to create a trip automatically.',
-      'Your active, shared, and past trips all appear here.',
+      'Use Add Trip to create a trip when trip creation is available on this device.',
+      'Your saved trips are grouped with their date-based lifecycle state.',
+      'Trips shared with your account appear in Shared With Me.',
     ],
   },
   '/account': {
     title: 'Account Settings',
     tips: [
-      'Update your profile, travel preferences, and notification timing.',
-      'Set your home airport for smarter flight suggestions.',
-      'Configure vehicle range (tank size, miles per tank) for Drive Trips.',
-      'Manage your subscription plan here.',
+      'Review the plan tier currently attached to your account.',
+      'Save travel display defaults such as currency, date format, distance, and temperature units.',
+      'Change appearance, request a password reset, or delete your account from this page.',
     ],
   },
   '/plans': {
     title: 'Plans',
     tips: [
-      'Compare Free, Pro, and Business plan features.',
-      'Upgrade anytime to unlock unlimited trips and advanced features.',
+      'This page shows the plan currently attached to your account.',
+      'Paid options remain hidden until their complete purchase and feature workflows are available.',
     ],
   },
   '/reports': {
     title: 'Reports',
     tips: [
-      'View expense summaries across all your trips.',
-      'Filter by date range, category, or trip.',
-      'Export reports as PDF for reimbursement.',
+      'Reports use saved expense records from trips your account can access.',
+      'Filters change the rows shown in the report and exported files.',
+      'PDF and CSV exports reflect the current filtered report view.',
     ],
   },
   '/help': {
     title: 'Help Center',
     tips: [
-      'Browse by section or tap a topic in the quick nav bar.',
-      'Each article shows which plan tier is required.',
-      'Step-by-step guides for every feature.',
+      'Use the Help Center for guidance on currently supported workflows.',
+      'If a capability is not available in the product, Help should not advertise it.',
     ],
   },
 };
@@ -66,11 +64,11 @@ const PAGE_HELP: Record<string, PageHelp> = {
 function getTripPageHelp(pathname: string): PageHelp | null {
   if (pathname.match(/\/trip\/[^/]+\/drive/)) {
     return {
-      title: 'Driving Mode',
+      title: 'Drive Details',
       tips: [
-        'See your current route and next destination.',
-        'Tap Navigate to open turn-by-turn directions.',
-        'Return to NOW to see your full execution view.',
+        'Review the starting point and destination saved with the trip.',
+        'Use the navigation handoff when an available navigation target is shown.',
+        'Return to the trip to review its other saved records.',
       ],
     };
   }
@@ -78,12 +76,11 @@ function getTripPageHelp(pathname: string): PageHelp | null {
     return {
       title: 'Trip Detail',
       tips: [
-        'NOW shows what\'s happening right now — next action, leave-by time, and quick actions.',
-        'PLAN shows your full timeline with all events grouped by date.',
-        'EXPLORE discovers real places nearby — tap "Add to Timeline" to schedule visits.',
-        'Track expenses in EXPENSES. Upload receipt photos for automatic entry.',
-        'Access Bookings, Parking, Packing, Companions, and more from the MORE menu.',
-        'For drive trips: tap Driving Mode in Today to open route, stop, and navigation tools.',
+        'Use the trip sections to review saved reservations, timeline events, expenses, parking, packing, and travelers.',
+        'Timeline shows saved trip events in date order.',
+        'Places can show provider-backed results when the required location and provider data are available.',
+        'Expenses and receipts stay attached to the trip record for later review.',
+        'Airport links and drive navigation are shown only when the required saved trip data is available.',
       ],
     };
   }
@@ -101,7 +98,6 @@ export function FloatingHelpButton() {
     <div
       className="fixed right-4 bottom-[calc(var(--rt2rp-safe-bottom,env(safe-area-inset-bottom,0px))+5rem)] z-40"
     >
-
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -132,7 +128,7 @@ export function FloatingHelpButton() {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Need help? Visit the full Help Center for guides and tips.
+              Need help? Open the Help Center for supported guides and tips.
             </p>
           )}
           <Button
