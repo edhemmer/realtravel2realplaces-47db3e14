@@ -2,16 +2,11 @@
  * v4.4.x: Explore Category Pagination Engine
  *
  * Per-category page state management for the Explore feed.
- * Appends new items without resorting existing ones.
- * Uses existing dedupe logic from mockAttractions.
+ * Appends new provider-backed items without resorting existing ones.
  */
 
 import { AttractionSuggestion } from '@/types/attraction';
-import { dedupeAttractions } from '@/lib/mockAttractions';
-
-// ============================================================================
-// TYPES
-// ============================================================================
+import { dedupeAttractions } from '@/lib/explore/dedupeAttractions';
 
 export interface CategoryPageState {
   items: AttractionSuggestion[];
@@ -28,14 +23,7 @@ export const CATEGORY_PAGE_SIZE = 15;
 /** Initial visible count per section (matches ExploreSectionFeed INITIAL_SHOW) */
 export const INITIAL_VISIBLE = 3;
 
-// ============================================================================
-// HELPERS
-// ============================================================================
-
-/**
- * Initialize pagination state from sections produced by buildExploreSections.
- * Each section gets its full item pool stored, with hasMore based on pool size.
- */
+/** Initialize pagination state from sections produced by buildExploreSections. */
 export function initCategoryPagination(
   sections: { id: string; items: AttractionSuggestion[] }[]
 ): CategoryPaginationMap {
@@ -51,19 +39,13 @@ export function initCategoryPagination(
   return map;
 }
 
-/**
- * Compute visible items for a category based on current page state.
- * Page 0 shows INITIAL_VISIBLE, each subsequent page adds CATEGORY_PAGE_SIZE.
- */
+/** Compute visible items for a category based on current page state. */
 export function getVisibleItems(state: CategoryPageState): AttractionSuggestion[] {
   const visibleCount = INITIAL_VISIBLE + state.pageIndex * CATEGORY_PAGE_SIZE;
   return state.items.slice(0, visibleCount);
 }
 
-/**
- * Advance pagination for a category. Returns updated state.
- * Dedupes appended items against existing ones.
- */
+/** Advance pagination for a category, deduplicating any newly fetched provider items. */
 export function advanceCategoryPage(
   current: CategoryPageState,
   additionalItems?: AttractionSuggestion[]
@@ -72,11 +54,8 @@ export function advanceCategoryPage(
   const nextVisibleCount = INITIAL_VISIBLE + nextPageIndex * CATEGORY_PAGE_SIZE;
 
   let allItems = current.items;
-
-  // If additional items provided (from deeper engine queries), append with dedupe
   if (additionalItems && additionalItems.length > 0) {
-    const combined = [...current.items, ...additionalItems];
-    allItems = dedupeAttractions(combined);
+    allItems = dedupeAttractions([...current.items, ...additionalItems]);
   }
 
   return {
