@@ -10,7 +10,6 @@
  */
 
 import { AttractionSuggestion } from '@/types/attraction';
-import { dedupeAttractions } from '@/lib/mockAttractions';
 
 // ============================================================================
 // TYPES
@@ -25,6 +24,37 @@ export interface ExploreSection {
 export interface ExploreSectionsResult {
   rightNow: AttractionSuggestion[];
   sections: ExploreSection[];
+}
+
+// ============================================================================
+// DEDUPLICATION
+// ============================================================================
+
+/**
+ * Deduplicate provider results without depending on any mock/fixture module.
+ * Prefer stable provider identity; fall back to normalized name + location.
+ */
+function dedupeAttractions(items: AttractionSuggestion[]): AttractionSuggestion[] {
+  const seenIds = new Set<string>();
+  const seenKeys = new Set<string>();
+  const unique: AttractionSuggestion[] = [];
+
+  for (const item of items) {
+    const id = item.id?.trim();
+    const fallbackKey = `${item.name || ''}|${item.locationSummary || ''}`
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (id && seenIds.has(id)) continue;
+    if (fallbackKey && seenKeys.has(fallbackKey)) continue;
+
+    if (id) seenIds.add(id);
+    if (fallbackKey) seenKeys.add(fallbackKey);
+    unique.push(item);
+  }
+
+  return unique;
 }
 
 // ============================================================================
@@ -170,8 +200,6 @@ export function buildExploreSections(
   // Sort Right Now by score descending, cap at 10
   rightNow.sort((a, b) => computeScore(b, timeBucket, weatherCondition) - computeScore(a, timeBucket, weatherCondition));
   if (rightNow.length > 10) rightNow.length = 10;
-
-  const rightNowIds = new Set(rightNow.map(i => i.id));
 
   // === SECTIONS: All items per category (including Right Now items) ===
   const sections: ExploreSection[] = [];
