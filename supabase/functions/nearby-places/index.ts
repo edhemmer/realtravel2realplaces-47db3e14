@@ -7,12 +7,12 @@
  * Input: { lat, lng, type, radiusMeters, limit }
  * Output: { places: NearbyPlace[] }
  *
- * v4.10.1: Uses locationRestriction (hard boundary) instead of locationBias
- * to ensure results are strictly within the user-selected radius.
+ * v4.10.1: Uses a bounded provider search and enforces user/provider gates.
  */
 
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 import { gatePlacesRequest } from "../_shared/placesGate.ts";
+import { signPlacesPhotoRef } from "../_shared/places-photo-signing.ts";
 
 interface NearbySearchRequest {
   lat: number;
@@ -183,43 +183,41 @@ async function fetchOsmPlaces(lat: number, lng: number, type: string, radiusMete
   }
 }
 
-/**
- * Map our internal type to a Text Search query + includedType for accuracy.
- * Text Search gives far better relevance than Nearby Search.
- */
-function buildTextQuery(type: string, lat: number, lng: number): { textQuery: string; includedType?: string } {
+function buildTextQuery(type: string, _lat: number, _lng: number): { textQuery: string; includedType?: string } {
   switch (type) {
-    case 'restaurant':
-      return { textQuery: 'restaurants', includedType: 'restaurant' };
+    case 'restaurant': return { textQuery: 'restaurants', includedType: 'restaurant' };
     case 'bar':
-    case 'night_club':
-      return { textQuery: 'bars and pubs', includedType: 'bar' };
-    case 'cafe':
-      return { textQuery: 'cafes and coffee shops', includedType: 'cafe' };
-    case 'tourist_attraction':
-      return { textQuery: 'tourist attractions and landmarks', includedType: 'tourist_attraction' };
-    case 'museum':
-      return { textQuery: 'museums and galleries', includedType: 'museum' };
-    case 'park':
-      return { textQuery: 'parks hiking trails nature walks and gardens', includedType: 'park' };
-    case 'hiking_trail':
-      return { textQuery: 'hiking trails and trailheads' };
-    case 'grocery_store':
-      return { textQuery: 'grocery stores and supermarkets', includedType: 'grocery_store' };
-    case 'gas_station':
-      return { textQuery: 'gas stations', includedType: 'gas_station' };
-    case 'convenience_store':
-      return { textQuery: 'convenience stores', includedType: 'convenience_store' };
-    default:
-      return { textQuery: type.replace(/_/g, ' ') };
+    case 'night_club': return { textQuery: 'bars and pubs', includedType: 'bar' };
+    case 'cafe': return { textQuery: 'cafes and coffee shops', includedType: 'cafe' };
+    case 'tourist_attraction': return { textQuery: 'tourist attractions and landmarks', includedType: 'tourist_attraction' };
+    case 'museum': return { textQuery: 'museums and galleries', includedType: 'museum' };
+    case 'park': return { textQuery: 'parks hiking trails nature walks and gardens', includedType: 'park' };
+    case 'hiking_trail': return { textQuery: 'hiking trails and trailheads' };
+    case 'grocery_store': return { textQuery: 'grocery stores and supermarkets', includedType: 'grocery_store' };
+    case 'gas_station': return { textQuery: 'gas stations', includedType: 'gas_station' };
+    case 'convenience_store': return { textQuery: 'convenience stores', includedType: 'convenience_store' };
+    default: return { textQuery: type.replace(/_/g, ' ') };
   }
+}
+
+async function buildSignedPhotoUrl(photoName: string): Promise<string | null> {
+  const ref = `${photoName}/media`;
+  const signed = await signPlacesPhotoRef(ref);
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+  if (!signed || !supabaseUrl) return null;
+
+  const params = new URLSearchParams({
+    ref: signed.ref,
+    exp: String(signed.expiresAt),
+    sig: signed.signature,
+  });
+  return `${supabaseUrl}/functions/v1/places-photo?${params.toString()}`;
 }
 
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
 
-  // Auth + per-user daily budget gate (server-side hard cap)
   const gate = await gatePlacesRequest(req, "search");
   if (!gate.ok) return gate.response;
 
@@ -246,9 +244,6 @@ Deno.serve(async (req) => {
     }
 
     const { textQuery, includedType } = buildTextQuery(type, lat, lng);
-
-    // Use Text Search (New) API with locationBias (circle) to prefer nearby results.
-    // Strict radius enforcement is handled client-side via haversine filter.
     const requestBody: Record<string, unknown> = {
       textQuery,
       locationBias: {
@@ -261,12 +256,9 @@ Deno.serve(async (req) => {
       rankPreference: 'DISTANCE',
     };
 
-    if (includedType) {
-      requestBody.includedType = includedType;
-    }
+    if (includedType) requestBody.includedType = includedType;
 
-    const url = 'https://places.googleapis.com/v1/places:searchText';
-    const response = await fetch(url, {
+    const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -288,17 +280,9 @@ Deno.serve(async (req) => {
     }
 
     const data = await response.json();
-
-    const places: NearbyPlace[] = (data.places || [])
-      .slice(0, limit)
-      .map((p: any) => {
-        // Build photo ref for proxy (keeps API key server-side)
-        let photoUrl: string | null = null;
-        if (p.photos && p.photos.length > 0) {
-          const photoName = p.photos[0].name;
-          // Return the photo resource name — client will use places-photo proxy
-          photoUrl = `${photoName}/media`;
-        }
+    const places: NearbyPlace[] = await Promise.all(
+      (data.places || []).slice(0, limit).map(async (p: any) => {
+        const photoName = p.photos?.[0]?.name as string | undefined;
         return {
           placeId: p.id || '',
           name: p.displayName?.text || '',
@@ -306,10 +290,11 @@ Deno.serve(async (req) => {
           rating: p.rating ?? null,
           lat: p.location?.latitude ?? 0,
           lng: p.location?.longitude ?? 0,
-          photoUrl,
+          photoUrl: photoName ? await buildSignedPhotoUrl(photoName) : null,
           reviewCount: p.userRatingCount ?? null,
         };
-      });
+      })
+    );
 
     console.log(`[nearby-places] Text Search for "${textQuery}" returned ${places.length} results`);
 
