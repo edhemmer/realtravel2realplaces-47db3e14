@@ -57,8 +57,8 @@ export function TimelineTab({ tripId, trip, onDrillThrough, onExploreTab }: Time
         icon={Calendar}
         eyebrow="Timeline"
         title="Trip Timeline"
-        description="Every flight, stay, rental, drive, parking window, activity, and scheduled place in one chronological operating view."
-        status={displayEvents.length > 0 ? `${displayEvents.length} events` : 'Ready for plans'}
+        description="Saved flights, stays, rentals, drive details, parking, activities, and scheduled places arranged by date and time."
+        status={displayEvents.length > 0 ? `${displayEvents.length} events` : 'No events yet'}
         statusTone={displayEvents.length > 0 ? 'neutral' : 'setup'}
       />
       <ModuleOperatingBrief
@@ -66,22 +66,22 @@ export function TimelineTab({ tripId, trip, onDrillThrough, onExploreTab }: Time
           {
             icon: Layers3,
             label: 'Trip order',
-            value: displayEvents.length > 0 ? `${displayEvents.length} timed steps` : 'No steps yet',
-            detail: displayEvents.length > 0 ? 'Tap timeline rows to drill into the source record.' : 'Add reservations, parking, stops, or drive details to build the timeline.',
-            tone: displayEvents.length > 0 ? 'ready' : 'setup',
+            value: displayEvents.length > 0 ? `${displayEvents.length} saved events` : 'No events yet',
+            detail: displayEvents.length > 0 ? 'Tap a timeline row to open its saved source record.' : 'Add reservations, parking, stops, or drive details to populate the timeline.',
+            tone: displayEvents.length > 0 ? 'neutral' : 'setup',
           },
           {
             icon: Clock3,
-            label: 'Time source',
-            value: online ? 'Current data' : 'Cached window',
-            detail: online ? 'Live trip records are being used for ordering.' : 'Offline mode keeps the next useful trip steps visible.',
+            label: 'Data shown',
+            value: online ? 'Loaded trip records' : 'Cached trip records',
+            detail: online ? 'The timeline is ordered from the trip records loaded in this session.' : 'Only cached trip events available on this device are shown while offline.',
             tone: online ? 'neutral' : 'watch',
           },
           {
             icon: Calendar,
-            label: 'Single truth',
+            label: 'View',
             value: 'Chronological',
-            detail: 'Flight, stay, rental, drive, parking, and activity records share one sequence.',
+            detail: 'Supported saved trip records are grouped into one date-and-time sequence.',
             tone: 'neutral',
           },
         ]}
@@ -94,7 +94,7 @@ export function TimelineTab({ tripId, trip, onDrillThrough, onExploreTab }: Time
             Full itinerary timeline
           </CardTitle>
           <CardDescription className="text-xs">
-            This is the single source of truth for what happens when.
+            Chronological view built from the trip records currently available to the app.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-4 md:p-5">
@@ -102,8 +102,8 @@ export function TimelineTab({ tripId, trip, onDrillThrough, onExploreTab }: Time
             <div className="mb-3 flex items-center gap-2 rounded-xl border border-border/35 bg-muted/35 px-3 py-2">
               <WifiOff className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
               <div>
-                <p className="text-xs font-medium text-muted-foreground">Offline mode</p>
-                <p className="text-[11px] text-muted-foreground/70">Showing cached trip steps.</p>
+                <p className="text-xs font-medium text-muted-foreground">Offline</p>
+                <p className="text-[11px] text-muted-foreground/70">Showing cached trip events available on this device.</p>
               </div>
             </div>
           )}
