@@ -10,10 +10,7 @@
  */
 
 import { AttractionSuggestion } from '@/types/attraction';
-
-// ============================================================================
-// TYPES
-// ============================================================================
+import { dedupeAttractions } from '@/lib/explore/dedupeAttractions';
 
 export interface ExploreSection {
   id: string;
@@ -26,87 +23,16 @@ export interface ExploreSectionsResult {
   sections: ExploreSection[];
 }
 
-// ============================================================================
-// DEDUPLICATION
-// ============================================================================
-
-/**
- * Deduplicate provider results without depending on any mock/fixture module.
- * Prefer stable provider identity; fall back to normalized name + location.
- */
-function dedupeAttractions(items: AttractionSuggestion[]): AttractionSuggestion[] {
-  const seenIds = new Set<string>();
-  const seenKeys = new Set<string>();
-  const unique: AttractionSuggestion[] = [];
-
-  for (const item of items) {
-    const id = item.id?.trim();
-    const fallbackKey = `${item.name || ''}|${item.locationSummary || ''}`
-      .toLowerCase()
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    if (id && seenIds.has(id)) continue;
-    if (fallbackKey && seenKeys.has(fallbackKey)) continue;
-
-    if (id) seenIds.add(id);
-    if (fallbackKey) seenKeys.add(fallbackKey);
-    unique.push(item);
-  }
-
-  return unique;
-}
-
-// ============================================================================
-// CATEGORY → SECTION MAPPING
-// ============================================================================
-
 const SECTION_DEFS: { id: string; title: string; categories: string[] }[] = [
-  {
-    id: 'attractions',
-    title: 'Signature Attractions',
-    categories: ['Tourist Attraction', 'Theme Park', 'Entertainment', 'Tour'],
-  },
-  {
-    id: 'dining',
-    title: 'Dining',
-    categories: ['Restaurant'],
-  },
-  {
-    id: 'cafes',
-    title: 'Cafes & Coffee',
-    categories: ['Cafe'],
-  },
-  {
-    id: 'nightlife',
-    title: 'Bars & Nightlife',
-    categories: ['Bar'],
-  },
-  {
-    id: 'parks',
-    title: 'Parks & Gardens',
-    categories: ['Park'],
-  },
-  {
-    id: 'hiking',
-    title: 'Hiking Trails',
-    categories: ['Hiking Trail'],
-  },
-  {
-    id: 'culture',
-    title: 'Museums & Culture',
-    categories: ['Museum', 'Art Gallery', 'Visitor Center'],
-  },
-  {
-    id: 'grocery',
-    title: 'Grocery & Markets',
-    categories: ['Grocery'],
-  },
+  { id: 'attractions', title: 'Signature Attractions', categories: ['Tourist Attraction', 'Theme Park', 'Entertainment', 'Tour'] },
+  { id: 'dining', title: 'Dining', categories: ['Restaurant'] },
+  { id: 'cafes', title: 'Cafes & Coffee', categories: ['Cafe'] },
+  { id: 'nightlife', title: 'Bars & Nightlife', categories: ['Bar'] },
+  { id: 'parks', title: 'Parks & Gardens', categories: ['Park'] },
+  { id: 'hiking', title: 'Hiking Trails', categories: ['Hiking Trail'] },
+  { id: 'culture', title: 'Museums & Culture', categories: ['Museum', 'Art Gallery', 'Visitor Center'] },
+  { id: 'grocery', title: 'Grocery & Markets', categories: ['Grocery'] },
 ];
-
-// ============================================================================
-// TIME-OF-DAY BUCKETING
-// ============================================================================
 
 type TimeBucket = 'morning' | 'afternoon' | 'evening';
 
@@ -120,22 +46,18 @@ function getTimeBucket(): TimeBucket {
 function timeBoost(category: string, bucket: TimeBucket): number {
   if (bucket === 'morning') {
     if (['Hiking Trail', 'Park'].includes(category)) return 0.3;
-    if (['Cafe'].includes(category)) return 0.2;
+    if (category === 'Cafe') return 0.2;
   }
   if (bucket === 'afternoon') {
     if (['Museum', 'Tourist Attraction'].includes(category)) return 0.2;
-    if (['Cafe'].includes(category)) return 0.15;
+    if (category === 'Cafe') return 0.15;
   }
   if (bucket === 'evening') {
     if (['Restaurant', 'Bar'].includes(category)) return 0.35;
-    if (['Entertainment'].includes(category)) return 0.3;
+    if (category === 'Entertainment') return 0.3;
   }
   return 0;
 }
-
-// ============================================================================
-// WEATHER BIASING
-// ============================================================================
 
 const OUTDOOR = new Set(['Hiking Trail', 'Park']);
 const INDOOR = new Set(['Museum', 'Art Gallery', 'Restaurant', 'Cafe', 'Bar', 'Grocery', 'Entertainment']);
@@ -147,15 +69,11 @@ function weatherBias(category: string, weatherCondition?: string | null): number
   if (bad) {
     if (INDOOR.has(category)) return 0.4;
     if (OUTDOOR.has(category)) return -0.3;
-  } else {
-    if (OUTDOOR.has(category)) return 0.15;
+  } else if (OUTDOOR.has(category)) {
+    return 0.15;
   }
   return 0;
 }
-
-// ============================================================================
-// SCORING
-// ============================================================================
 
 function computeScore(a: AttractionSuggestion, timeBucket: TimeBucket, weatherCondition?: string | null): number {
   const ratingScore = (a.rating ?? 3) / 5;
@@ -164,24 +82,14 @@ function computeScore(a: AttractionSuggestion, timeBucket: TimeBucket, weatherCo
   return base + timeBoost(a.category, timeBucket) + weatherBias(a.category, weatherCondition);
 }
 
-// ============================================================================
-// PUBLIC API
-// ============================================================================
-
 export function buildExploreSections(
   attractions: AttractionSuggestion[],
   weatherCondition?: string | null
 ): ExploreSectionsResult {
   const pool = dedupeAttractions(attractions);
   const timeBucket = getTimeBucket();
+  const scored = pool.map((a) => ({ item: a, score: computeScore(a, timeBucket, weatherCondition) }));
 
-  // Score all items
-  const scored = pool.map((a) => ({
-    item: a,
-    score: computeScore(a, timeBucket, weatherCondition),
-  }));
-
-  // === RIGHT NOW: Pick top 1-2 from EACH category for diversity ===
   const rightNow: AttractionSuggestion[] = [];
   const categoryBuckets = new Map<string, typeof scored>();
 
@@ -191,37 +99,24 @@ export function buildExploreSections(
     categoryBuckets.get(cat)!.push(entry);
   }
 
-  // Sort each bucket by score and pick top 1
   for (const [, bucket] of categoryBuckets) {
     bucket.sort((a, b) => b.score - a.score);
     if (bucket.length > 0) rightNow.push(bucket[0].item);
   }
 
-  // Sort Right Now by score descending, cap at 10
   rightNow.sort((a, b) => computeScore(b, timeBucket, weatherCondition) - computeScore(a, timeBucket, weatherCondition));
   if (rightNow.length > 10) rightNow.length = 10;
 
-  // === SECTIONS: All items per category (including Right Now items) ===
   const sections: ExploreSection[] = [];
-
   for (const def of SECTION_DEFS) {
     const categorySet = new Set(def.categories);
-
     const sectionItems = scored
       .filter(({ item }) => categorySet.has(item.category))
       .sort((a, b) => b.score - a.score)
       .map(({ item }) => item);
-
-    if (sectionItems.length === 0) continue;
-
-    sections.push({
-      id: def.id,
-      title: def.title,
-      items: sectionItems,
-    });
+    if (sectionItems.length > 0) sections.push({ id: def.id, title: def.title, items: sectionItems });
   }
 
-  // Catch uncategorized
   const allSectionCategories = new Set(SECTION_DEFS.flatMap(d => d.categories));
   const uncategorized = scored
     .filter(({ item }) => !allSectionCategories.has(item.category))
@@ -229,11 +124,7 @@ export function buildExploreSections(
     .map(({ item }) => item);
 
   if (uncategorized.length > 0) {
-    sections.push({
-      id: 'more',
-      title: 'More to Explore',
-      items: uncategorized,
-    });
+    sections.push({ id: 'more', title: 'More to Explore', items: uncategorized });
   }
 
   return { rightNow, sections };
