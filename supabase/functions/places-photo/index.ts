@@ -1,12 +1,13 @@
 /**
- * v1.0.0: Places Photo Proxy
- * 
- * Proxies Google Places photos to hide API key from client.
- * Input: ?ref=places/{placeId}/photos/{photoRef}/media
- * Output: Image binary (proxied from Google)
+ * Places Photo Proxy
+ *
+ * Proxies Google Places photos without exposing the provider key.
+ * Public image delivery is authorized by a short-lived HMAC signature minted
+ * by the authenticated nearby-places function.
  */
 
 import { getCorsHeaders, handleCors } from "../_shared/cors.ts";
+import { verifyPlacesPhotoSignature } from "../_shared/places-photo-signing.ts";
 
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
@@ -14,18 +15,21 @@ Deno.serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const ref = url.searchParams.get('ref');
+    const ref = url.searchParams.get('ref') ?? '';
+    const expiresAt = Number(url.searchParams.get('exp') ?? '');
+    const signature = url.searchParams.get('sig') ?? '';
 
-    if (!ref) {
-      return new Response('Missing ref parameter', {
+    if (!ref || !/^places\/[^/]+\/photos\/[^/]+\/media$/.test(ref)) {
+      return new Response('Invalid ref parameter', {
         status: 400,
         headers: getCorsHeaders(req),
       });
     }
 
-    if (!/^places\/[^/]+\/photos\/[^/]+\/media$/.test(ref)) {
-      return new Response('Invalid ref parameter', {
-        status: 400,
+    const authorized = await verifyPlacesPhotoSignature(ref, expiresAt, signature);
+    if (!authorized) {
+      return new Response('Unauthorized', {
+        status: 401,
         headers: getCorsHeaders(req),
       });
     }
@@ -39,8 +43,8 @@ Deno.serve(async (req) => {
     }
 
     const photoUrl = `https://places.googleapis.com/v1/${ref}?maxHeightPx=400&maxWidthPx=400&key=${apiKey}`;
-
     const response = await fetch(photoUrl);
+
     if (!response.ok) {
       console.error(`[places-photo] Google error: ${response.status}`);
       return new Response('Photo not available', {
@@ -51,12 +55,14 @@ Deno.serve(async (req) => {
 
     const imageData = await response.arrayBuffer();
     const contentType = response.headers.get('content-type') || 'image/jpeg';
+    const now = Math.floor(Date.now() / 1000);
+    const remainingTtl = Math.max(0, expiresAt - now);
 
     return new Response(imageData, {
       headers: {
         ...getCorsHeaders(req),
         'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=86400', // Cache 24h
+        'Cache-Control': `public, max-age=${Math.min(remainingTtl, 86400)}`,
       },
     });
   } catch (err) {
