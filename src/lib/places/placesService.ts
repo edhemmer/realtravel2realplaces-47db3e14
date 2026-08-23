@@ -1,7 +1,7 @@
 /**
  * v3.11.4: Places Service — Low-Level Provider Wrapper
  *
- * Thin wrapper around the nearby-places edge function.
+ * Thin wrapper around the authenticated nearby-places edge function.
  * Only imported by placesEngine.ts — no direct usage by UI components.
  * Fail-safe: returns empty array on any error, never throws.
  */
@@ -15,6 +15,7 @@ export interface NearbyPlace {
   rating: number | null;
   lat: number;
   lng: number;
+  /** Short-lived signed places-photo URL minted by nearby-places. */
   photoUrl?: string | null;
   reviewCount?: number | null;
 }
@@ -42,10 +43,7 @@ interface FetchNearbyPlacesParams {
   limit?: number;
 }
 
-/**
- * Low-level fetch via the nearby-places edge function.
- * Consumed by placesEngine only — not by UI components directly.
- */
+/** Low-level fetch via the authenticated nearby-places edge function. */
 export async function fetchNearbyPlaces({
   lat,
   lng,
@@ -69,17 +67,11 @@ export async function fetchNearbyPlaces({
       return [];
     }
 
-    // Build proxy photo URLs using the places-photo edge function
-    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-    const baseUrl = projectId
-      ? `https://${projectId}.supabase.co/functions/v1/places-photo`
-      : null;
-
+    // nearby-places owns provider access and photo authorization. The client
+    // never reconstructs raw Google photo resource URLs or provider-key proxies.
     return (data.places as NearbyPlace[]).slice(0, limit).map((place) => ({
       ...place,
-      photoUrl: place.photoUrl && baseUrl
-        ? `${baseUrl}?ref=${encodeURIComponent(place.photoUrl)}`
-        : null,
+      photoUrl: place.photoUrl || null,
     }));
   } catch (err) {
     console.warn('[PlacesService] Unexpected error:', err);
