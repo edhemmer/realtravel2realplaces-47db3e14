@@ -37,13 +37,6 @@ const PAGE_HELP: Record<string, PageHelp> = {
       'Change appearance, request a password reset, or delete your account from this page.',
     ],
   },
-  '/plans': {
-    title: 'Plans',
-    tips: [
-      'This page shows the plan currently attached to your account.',
-      'Paid options remain hidden until their complete purchase and feature workflows are available.',
-    ],
-  },
   '/reports': {
     title: 'Reports',
     tips: [

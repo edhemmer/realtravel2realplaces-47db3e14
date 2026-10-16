@@ -32,7 +32,6 @@ const AdminPlans = lazy(() => import("./pages/AdminPlans"));
 const AdminSupportTickets = lazy(() => import("./pages/AdminSupportTickets"));
 const AdminUsers = lazy(() => import("./pages/AdminUsers"));
 const Account = lazy(() => import("./pages/Account"));
-const Plans = lazy(() => import("./pages/Plans"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const Reports = lazy(() => import("./pages/Reports"));
@@ -226,14 +225,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/plans"
-        element={
-          <ProtectedRoute>
-            <Plans />
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/plans" element={<Navigate to="/account" replace />} />
       <Route
         path="/reports"
         element={
