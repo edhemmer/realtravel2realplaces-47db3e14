@@ -64,7 +64,7 @@ export default function InstallApp() {
             <Smartphone className="h-14 w-14 text-primary mx-auto" />
             <h1 className="text-2xl font-bold text-foreground">Install the App</h1>
             <p className="text-muted-foreground text-sm">
-              Add Real Travel 2 Real Places to your home screen for the best experience — fast loading, offline access, and no browser chrome.
+              Add Real Travel 2 Real Places to your home screen for a standalone app-style shortcut without browser chrome.
             </p>
           </div>
 
@@ -112,7 +112,7 @@ export default function InstallApp() {
           )}
 
           <p className="text-xs text-center text-muted-foreground">
-            Works on all phones and tablets. No app store needed.
+            Home-screen installation availability depends on your browser and device.
           </p>
         </CardContent>
       </Card>
