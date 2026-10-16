@@ -1,5 +1,5 @@
 /**
- * Reports Page - Business-only Advanced Reports
+ * Reports Page - saved expense reporting
  * 
  * Patch 2.4.5: Added export consistency validation, filter summary clarity,
  * and user-facing accuracy language.
@@ -17,12 +17,11 @@
  * - Validation failures prevent export and explain the issue to users
  * - Query failures throw to React Query error boundaries
  * 
- * BUSINESS TIER GATING:
- * - canAccessBusinessFeatures check redirects non-Business users
- * - Route is accessible to all, but content is gated
- * - This provides a clear upgrade path for non-Business users
+ * ACCESS GATING:
+ * - canAccessBusinessFeatures currently controls access to this internal reporting surface
+ * - Non-eligible accounts receive a neutral unavailable state; no upgrade promise is shown
  * 
- * EXPORT ACCURACY GUARANTEES:
+ * EXPORT CONSISTENCY CHECKS:
  * - validateExportConsistency() recalculates totals before export
  * - If totals don't match (data changed during session), export is blocked
  * - Users are instructed to refresh and retry
@@ -79,7 +78,7 @@ import {
 import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
 import jsPDF from 'jspdf';
 import { useToast } from '@/hooks/use-toast';
-import { Expense, Companion } from '@/types/database';
+import { Expense } from '@/types/database';
 import { Engagement } from '@/hooks/useEngagements';
 import {
   Collapsible,
@@ -126,7 +125,6 @@ export default function Reports() {
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
   const [selectedTrips, setSelectedTrips] = useState<string[]>([]);
-  const [selectedCompanion, setSelectedCompanion] = useState<string>('all');
   const [selectedStop, setSelectedStop] = useState<string>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   
@@ -165,24 +163,6 @@ export default function Reports() {
       
       if (error) throw error;
       return data as Expense[];
-    },
-    enabled: !!user && trips.length > 0,
-  });
-
-  // Fetch all companions for user's trips
-  const { data: allCompanions = [] } = useQuery({
-    queryKey: ['all-companions', user?.id],
-    queryFn: async () => {
-      if (!user || trips.length === 0) return [];
-      
-      const tripIds = trips.map(t => t.id);
-      const { data, error } = await supabase
-        .from('companions')
-        .select('*')
-        .in('trip_id', tripIds);
-      
-      if (error) throw error;
-      return data as Companion[];
     },
     enabled: !!user && trips.length > 0,
   });
@@ -392,7 +372,7 @@ export default function Reports() {
       const generatedDate = format(new Date(), 'yyyy-MM-dd HH:mm:ss');
       const filterInfo = getFilterSummary();
       const metadataRows = [
-        `# RT2RP Advanced Report`,
+        `# RT2RP Expense Report`,
         `# Generated: ${generatedDate}`,
         `# Filters: ${filterInfo}`,
         `# Total Rows: ${sortedRows.length}`,
@@ -465,7 +445,7 @@ export default function Reports() {
       
       pdf.setFontSize(10);
       pdf.setFont('helvetica', 'normal');
-      pdf.text('Advanced Report', margin, 19);
+      pdf.text('Expense Report', margin, 19);
 
       // Generated date in header
       pdf.setFontSize(9);
@@ -567,7 +547,7 @@ export default function Reports() {
         pdf.setFont('helvetica', 'normal');
         pdf.setTextColor(150, 150, 150);
         pdf.text(
-          `Real Travel 2 Real Places • Advanced Report`,
+          `Real Travel 2 Real Places • Expense Report`,
           margin,
           pageHeight - 8
         );
@@ -589,7 +569,6 @@ export default function Reports() {
     setDateFrom('');
     setDateTo('');
     setSelectedTrips([]);
-    setSelectedCompanion('all');
     setSelectedStop('all');
     setSelectedCategory('all');
   };
@@ -605,16 +584,16 @@ export default function Reports() {
 
   const isLoading = tripsLoading || expensesLoading || accessLoading;
 
-  // Redirect if not Business user
+  // Show neutral unavailable state when this account does not have reporting access
   if (!accessLoading && !canAccessBusinessFeatures) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-[400px]">
           <Card className="max-w-md">
             <CardHeader>
-              <CardTitle>Business Feature</CardTitle>
+              <CardTitle>Reports unavailable</CardTitle>
               <CardDescription>
-                Advanced Reports is available for Business plan users.
+                Reports are not enabled for this account.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -638,11 +617,11 @@ export default function Reports() {
             <div className="min-w-0">
               <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-primary/15 bg-primary/8 px-2.5 py-1 text-[11px] font-semibold uppercase text-primary">
                 <ShieldCheck className="h-3.5 w-3.5" />
-                Export-validated reporting
+                Saved expense reporting
               </div>
-              <h1 className="text-3xl font-bold leading-tight tracking-tight">Business Travel Reports</h1>
+              <h1 className="text-3xl font-bold leading-tight tracking-tight">Trip Expense Reports</h1>
               <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-                Audit-ready filtering, totals, and exports across trips, stops, categories, and reimbursements.
+                Filter saved expense records by trip, date, stop, and category, then export the current view.
               </p>
             </div>
 
