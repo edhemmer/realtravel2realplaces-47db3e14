@@ -52,7 +52,7 @@ export default function NativeWelcome() {
           transition={{ duration: 0.5, delay: 0.4 }}
           className="mt-5 text-base leading-relaxed text-muted-foreground"
         >
-          A calm place for everything your trip needs — bookings, timing, and the next step, always one tap away.
+          A calm place for your saved trip details — bookings, timeline, expenses, packing, and places.
         </motion.p>
       </div>
 
