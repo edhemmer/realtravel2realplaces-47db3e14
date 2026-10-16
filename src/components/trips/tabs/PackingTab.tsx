@@ -6,6 +6,7 @@ import { useWeatherEngine } from '@/hooks/useWeatherEngine';
 import { generatePackingRecommendations, buildPackingContext, deriveClimateTags, type PackingEngineResult, type PackingEngineOutput, type PackingContext } from '@/lib/packingEngine';
 import { resolveWeather } from '@/lib/weatherEngine';
 import { supabase } from '@/integrations/supabase/client';
+import { PACKING_GENERATION_ENABLED } from '@/lib/featureFlags';
 import { PackingItem } from '@/types/database';
 import { airports } from '@/lib/airportData';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -525,29 +526,30 @@ export function PackingTab({ tripId }: PackingTabProps) {
         icon={Luggage}
         eyebrow="Trip readiness"
         title="Packing"
-        description="Turn weather, trip length, destination type, and stops into a focused list you can act on before departure."
+        description="Keep a trip-specific packing checklist, track quantities, and mark items packed before departure."
         status={packingItems.length > 0 ? `${Math.round(progress)}% packed` : 'Setup needed'}
         statusTone={packingItems.length > 0 ? (progress === 100 ? 'live' : 'neutral') : 'setup'}
       >
         {canEdit && (
           <div className="flex items-center gap-1.5">
-            {packingItems.length === 0 ? (
+            {PACKING_GENERATION_ENABLED && packingItems.length === 0 && (
               <Button onClick={() => generatePackingList(false)} size="sm" disabled={isGenerating} className="rt-primary-action h-9 px-3 text-xs">
                 <Sparkles className="w-3.5 h-3.5 mr-1.5" />
                 {isGenerating ? 'Generating...' : 'Generate list'}
               </Button>
-            ) : (
-              <>
-                <Button onClick={() => setShowRegenerateConfirm(true)} variant="outline" size="sm" disabled={isGenerating} className="h-9 text-xs px-3">
-                  <RefreshCw className={`w-3 h-3 mr-1 ${isGenerating ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
-                <Button onClick={copyToClipboard} variant="outline" size="icon" className="h-9 w-9">
-                  {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                </Button>
-              </>
             )}
-            <Button onClick={() => setDialogOpen(true)} size="icon" className="h-9 w-9" variant="outline">
+            {PACKING_GENERATION_ENABLED && packingItems.length > 0 && (
+              <Button onClick={() => setShowRegenerateConfirm(true)} variant="outline" size="sm" disabled={isGenerating} className="h-9 text-xs px-3">
+                <RefreshCw className={`w-3 h-3 mr-1 ${isGenerating ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            )}
+            {packingItems.length > 0 && (
+              <Button onClick={copyToClipboard} variant="outline" size="icon" className="h-9 w-9">
+                {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+              </Button>
+            )}
+            <Button onClick={() => setDialogOpen(true)} size="icon" className="h-9 w-9" variant="outline" aria-label="Add packing item">
               <Plus className="w-3.5 h-3.5" />
             </Button>
           </div>
@@ -566,21 +568,21 @@ export function PackingTab({ tripId }: PackingTabProps) {
             icon: ListChecks,
             label: 'Pack status',
             value: totalItems > 0 ? `${packedItems}/${totalItems}` : 'No list yet',
-            detail: totalItems > 0 ? 'Track progress without re-reading every category.' : 'Generate a weather-aware list, then add personal items.',
+            detail: totalItems > 0 ? 'Track progress without re-reading every category.' : 'Add items to build your trip checklist.',
             tone: totalItems > 0 ? (progress === 100 ? 'ready' : 'neutral') : 'setup',
           },
           {
             icon: MapPin,
             label: 'Trip span',
             value: `${tripNights} night${tripNights !== 1 ? 's' : ''}`,
-            detail: trip?.destination_city ? `${trip.destination_city}${locationCount > 1 ? ` plus ${locationCount - 1} more stop${locationCount > 2 ? 's' : ''}` : ''}` : 'Dates and destination drive recommendations.',
+            detail: trip?.destination_city ? `${trip.destination_city}${locationCount > 1 ? ` plus ${locationCount - 1} more stop${locationCount > 2 ? 's' : ''}` : ''}` : 'Saved trip dates and destination context.',
             tone: 'neutral',
           },
           {
             icon: Cloud,
-            label: 'Weather logic',
+            label: 'Weather context',
             value: allClimateTags.length > 0 ? allClimateTags.slice(0, 2).map(tag => CLIMATE_TAG_LABELS[tag] || tag).join(', ') : 'Pending',
-            detail: weatherLoading ? 'Checking weather context.' : 'Rain, cold, heat, and multi-stop changes are reflected when available.',
+            detail: weatherLoading ? 'Checking weather context.' : 'Weather context is shown when available; saved packing items are not changed automatically.',
             tone: allClimateTags.length > 0 ? 'ready' : 'setup',
           },
         ]}
@@ -598,23 +600,24 @@ export function PackingTab({ tripId }: PackingTabProps) {
         </div>
         {canEdit && (
           <div className="flex items-center gap-1.5 flex-shrink-0">
-            {packingItems.length === 0 ? (
+            {PACKING_GENERATION_ENABLED && packingItems.length === 0 && (
               <Button onClick={() => generatePackingList(false)} size="sm" disabled={isGenerating} className="h-8 text-xs">
                 <Sparkles className="w-3.5 h-3.5 mr-1.5" />
                 {isGenerating ? 'Generating…' : 'Generate Smart List'}
               </Button>
-            ) : (
-              <>
-                <Button onClick={() => setShowRegenerateConfirm(true)} variant="ghost" size="sm" disabled={isGenerating} className="h-7 text-xs px-2">
-                  <RefreshCw className={`w-3 h-3 mr-1 ${isGenerating ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
-                <Button onClick={copyToClipboard} variant="ghost" size="sm" className="h-7 text-xs px-2">
-                  {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                </Button>
-              </>
             )}
-            <Button onClick={() => setDialogOpen(true)} size="sm" className="h-7 w-7 p-0" variant="outline">
+            {PACKING_GENERATION_ENABLED && packingItems.length > 0 && (
+              <Button onClick={() => setShowRegenerateConfirm(true)} variant="ghost" size="sm" disabled={isGenerating} className="h-7 text-xs px-2">
+                <RefreshCw className={`w-3 h-3 mr-1 ${isGenerating ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            )}
+            {packingItems.length > 0 && (
+              <Button onClick={copyToClipboard} variant="ghost" size="sm" className="h-7 text-xs px-2">
+                {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+              </Button>
+            )}
+            <Button onClick={() => setDialogOpen(true)} size="sm" className="h-7 w-7 p-0" variant="outline" aria-label="Add packing item">
               <Plus className="w-3.5 h-3.5" />
             </Button>
           </div>
@@ -835,7 +838,7 @@ export function PackingTab({ tripId }: PackingTabProps) {
         /* Empty state */
         <div className="rounded-lg border border-dashed border-border/60 bg-card">
           <div className="flex flex-col items-center justify-center py-10 px-4">
-            {isGenerating ? (
+            {PACKING_GENERATION_ENABLED && isGenerating ? (
               <>
                 <div className="relative w-14 h-14 mb-3">
                   <div className="absolute inset-0 rounded-full border-2 border-primary/20" />
@@ -854,16 +857,18 @@ export function PackingTab({ tripId }: PackingTabProps) {
                 </div>
                 <p className="text-sm font-medium">No packing list yet</p>
                 <p className="text-xs text-muted-foreground mt-0.5 text-center max-w-xs">
-                  {weather ? 'Weather data ready — generate your AI-powered smart list.' : 'Add your trip details to get started.'}
+                  Add the items you want to bring and track them here.
                 </p>
                 {canEdit && (
                   <div className="flex gap-2 mt-3">
-                    <Button onClick={() => generatePackingList(false)} size="sm" disabled={isGenerating} className="h-8 text-xs">
-                      <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-                      Generate Smart List
-                    </Button>
+                    {PACKING_GENERATION_ENABLED && (
+                      <Button onClick={() => generatePackingList(false)} size="sm" disabled={isGenerating} className="h-8 text-xs">
+                        <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                        Generate Smart List
+                      </Button>
+                    )}
                     <Button onClick={() => setDialogOpen(true)} variant="outline" size="sm" className="h-8 text-xs">
-                      Add Manually
+                      Add Item
                     </Button>
                   </div>
                 )}
@@ -936,26 +941,28 @@ export function PackingTab({ tripId }: PackingTabProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Regenerate Confirmation */}
-      <Dialog open={showRegenerateConfirm} onOpenChange={setShowRegenerateConfirm}>
-        <DialogContent className="sm:max-w-xs">
-          <DialogHeader>
-            <DialogTitle className="text-base">Regenerate packing list?</DialogTitle>
-            <DialogDescription className="text-xs">
-              Updates suggestions with latest weather. Custom items are preserved.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex gap-2 pt-1">
-            <Button variant="outline" onClick={() => setShowRegenerateConfirm(false)} className="flex-1 h-8 text-xs">
-              Cancel
-            </Button>
-            <Button onClick={() => generatePackingList(true)} disabled={isGenerating} className="flex-1 h-8 text-xs">
-              <RefreshCw className={`w-3 h-3 mr-1 ${isGenerating ? 'animate-spin' : ''}`} />
-              {isGenerating ? 'Updating…' : 'Regenerate'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {PACKING_GENERATION_ENABLED && (
+        {/* Regenerate Confirmation */}
+        <Dialog open={showRegenerateConfirm} onOpenChange={setShowRegenerateConfirm}>
+          <DialogContent className="sm:max-w-xs">
+            <DialogHeader>
+              <DialogTitle className="text-base">Regenerate packing list?</DialogTitle>
+              <DialogDescription className="text-xs">
+                Updates suggestions with latest weather. Custom items are preserved.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex gap-2 pt-1">
+              <Button variant="outline" onClick={() => setShowRegenerateConfirm(false)} className="flex-1 h-8 text-xs">
+                Cancel
+              </Button>
+              <Button onClick={() => generatePackingList(true)} disabled={isGenerating} className="flex-1 h-8 text-xs">
+                <RefreshCw className={`w-3 h-3 mr-1 ${isGenerating ? 'animate-spin' : ''}`} />
+                {isGenerating ? 'Updating…' : 'Regenerate'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
