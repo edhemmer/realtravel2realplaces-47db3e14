@@ -941,8 +941,8 @@ export function PackingTab({ tripId }: PackingTabProps) {
         </DialogContent>
       </Dialog>
 
+      {/* Regenerate Confirmation — hidden until packing generation is validated */}
       {PACKING_GENERATION_ENABLED && (
-        {/* Regenerate Confirmation */}
         <Dialog open={showRegenerateConfirm} onOpenChange={setShowRegenerateConfirm}>
           <DialogContent className="sm:max-w-xs">
             <DialogHeader>
