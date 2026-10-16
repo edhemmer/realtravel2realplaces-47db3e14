@@ -196,10 +196,9 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
     from_location: '',
     to_location: '',
     operator: '',
-    // Flight airport/flight number
+    // Flight airport fields
     departure_airport_code: '',
     arrival_airport_code: '',
-    flight_number: '',
   });
 
   // Auto-populate booking link when vendor/airline name changes
@@ -245,7 +244,6 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
       return_location: '',
       departure_airport_code: '',
       arrival_airport_code: '',
-      flight_number: '',
     });
     setBookingType('flight');
     setUrlAutoFilled(false);
@@ -785,7 +783,6 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
       operator: (booking as any).operator || '',
       departure_airport_code: booking.departure_airport_code || '',
       arrival_airport_code: booking.arrival_airport_code || '',
-      flight_number: (booking as any).flight_number || '',
     });
     // Load existing companions for this booking
     const existingCompanionIds = bookingCompanions
@@ -1667,14 +1664,6 @@ export function BookingsTab({ tripId, highlightId, onHighlightConsumed }: Bookin
                       maxLength={4}
                     />
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Flight Number</Label>
-                  <Input
-                    value={formData.flight_number}
-                    onChange={(e) => setFormData({ ...formData, flight_number: e.target.value })}
-                    placeholder="UA 1234"
-                  />
                 </div>
                 {/* Frequent Flyer # - commented out per user request
                 <div className="space-y-2">
