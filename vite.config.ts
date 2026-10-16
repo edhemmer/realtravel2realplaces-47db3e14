@@ -55,7 +55,7 @@ export default defineConfig(({ mode }) => ({
       manifest: {
         name: "Real Travel 2 Real Places",
         short_name: "RT2RP",
-        description: "Know exactly where to be and when. Your real-time travel command center.",
+        description: "Organize saved trip details, timelines, places, expenses, and packing in one app.",
         theme_color: "#0d9488",
         background_color: "#f8fafc",
         display: "standalone",
