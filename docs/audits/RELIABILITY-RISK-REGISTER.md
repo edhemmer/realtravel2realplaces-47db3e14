@@ -1,10 +1,10 @@
 # RT2RP — Reliability Risk Register
 
-**Status:** PHASE 23 — TRUTH HARDENING IN PROGRESS
+**Status:** PHASE 25 — SECURITY HARDENING IN PROGRESS
 
 **Baseline audited:** `main` @ `40e25fdc79ab22c0abe29e1228a3e7a57def1eb7`
 
-**Current implementation branch:** `agent/phase23`
+**Current implementation branch:** `agent/phase25`
 
 ## Purpose
 
@@ -36,11 +36,13 @@ A risk is not closed because code changed. `VALIDATING` means a mitigation exist
 | R-016 | Mobile exposes many secondary module surfaces/legacy aliases | UX / cognitive load | Traveler must know app structure under stress | L4 Likely | **S2/S3** | Today/Timeline primary defaults exist | Consolidate under Today/Timeline/Travel/Places/Records while preserving workflows | OPEN |
 | R-017 | Offline empty state can imply useful cached data exists when no saved snapshot is present | Truthful UX | False confidence useful offline data is present | L3 Possible | **S2** | `OfflineLocationContextCard` now explicitly says `No saved trip snapshot on this device`; Timeline copy distinguishes loaded records from cached device records and shows cached events only when present | Test empty, fresh and stale snapshots on web/iOS; verify snapshot age and no-cache behavior across restart | **VALIDATING** |
 | R-018 | Multiple import pipeline families may diverge | Import/data integrity | Duplicate/inconsistent booking/timeline records | L3 Possible | **S2** | Staging/validators/mappers/tests exist | Trace each intake route; declare canonical pipeline and deprecate duplicates after parity tests | OPEN |
-| R-019 | `mockAttractions.ts` exists in production source tree; active production use not yet proven absent | Product truth | Fabricated place content could appear as real | UNKNOWN | **S1/S2** | Real places provider also exists | Prove no production caller or isolate/remove mock path | INVESTIGATING |
+| R-019 | Fabricated attraction fixtures existed in production source and legacy retrieval code | Product truth | Synthetic place content could be mistaken for real provider data | L3 before mitigation | **S1/S2** | Phase 24 removed the legacy mock-attractions hook and fabricated dataset; real Explore ranking/pagination now use a neutral provider-result dedupe utility and the final Vercel head builds READY without the mock module | Run browser E2E against provider success/failure/no-results paths and confirm no fixture imports remain in production bundles | **VALIDATING** |
 | R-020 | CarPlay scaffold exists but is not a proven product implementation | Product truth/native | Expectation mismatch if mentioned | L1 unless claimed | **S3** | Scaffold only | Keep internal until real target/entitlements/UI validated | ACCEPTED INTERNAL RISK |
 | R-021 | Manual booking UI exposes Flight Number but current booking persistence/read contract does not store it canonically | Booking/data loss | User can enter a flight number and reasonably expect it to persist, but the value can be lost or unavailable to provider matching | L4 Likely when manually editing flights | **S1** | Guessed flight identity polling has been disabled so missing canonical identity no longer drives provider traffic | Implement one vertical slice: schema column, generated types, secure `get_bookings_safe` return, create/update/import persistence, manual UI, display/provider matching and regression tests; until then remove/hide the dead input through a controlled source edit | OPEN |
 | R-022 | Packing generation is a hard AI-provider dependency with no deterministic fallback and contains broad hard-coded assumptions | AI/product truth | Generation can fail on provider config/rate/credit conditions or produce inappropriate packing advice while appearing authoritative | L3 Possible | **S2** | Manual packing remains available; provider failures are surfaced rather than silently fabricated | Define supported packing contract, deterministic baseline/fallback, schema validation, provenance/freshness, representative regression fixtures and production provider validation before marketing as reliable intelligence | INVESTIGATING |
 | R-023 | Frontend Free lifetime-trip constant is 2 while proven historical database function uses 5 and deployed override is not yet evidenced | Plan/entitlement contract | User could be shown the wrong usage limit or experience inconsistent entitlement behavior | UNKNOWN | **S2** | Visible trip-limit counts removed from PlanPill and Account; tier labels remain as persisted account state | Resolve deployed database function/policy, reconcile one canonical entitlement limit, add server/client contract tests, then decide whether any numeric limit should be exposed | INVESTIGATING |
+| R-024 | Public SECURITY DEFINER RPC grants expose privileged database functions beyond their intended call paths | Database authorization / RPC | Anonymous or ordinary callers can directly invoke privileged helpers; live advisor evidence confirms run_trip_lifecycle_enforcement() is externally executable even though it can lock and permanently delete qualifying trip data | CONFIRMED | **S0/S1** | Live RT2RP security advisor and catalog audit completed. High-risk tables checked have RLS enabled. Source call-path review shows lifecycle enforcement and provider-usage counters are intended to run behind cron/JWT-validated service-role Edge Functions. Production grants are not yet changed because the active connector lost DDL permission during this phase. | Revoke EXECUTE from PUBLIC/anon/authenticated on run_trip_lifecycle_enforcement(), increment_places_usage(uuid,text), and increment_flight_status_usage(uuid,integer); grant service_role only; then classify remaining SECURITY DEFINER RPCs into authenticated, service-only, and trigger-only sets and rerun advisors | **CONFIRMED — RELEASE BLOCKER** |
+| R-025 | JWT-disabled Places photo proxy can consume Google Places quota unless requests are bound to authenticated search results | Provider cost / abuse | Unauthenticated callers could use RT2RP as a provider-cost proxy | L3 before mitigation | **S1/S2** | Phase 25 source now signs photo refs in authenticated/budget-gated nearby-places, verifies HMAC+expiry in places-photo, and makes the client consume only signed photo URLs; missing signing secret fails closed to no photo. Vercel client head builds READY. | Configure PLACES_PHOTO_SIGNING_SECRET, deploy nearby-places + places-photo to RT2RP Supabase, test unsigned/expired/valid URLs, then verify provider usage and advisor state | **VALIDATING** |
 
 ---
 
@@ -70,6 +72,9 @@ A risk is not closed because code changed. `VALIDATING` means a mitigation exist
 - Timeline distinguishes loaded trip records from cached device records and no longer claims live data or a universal source of truth.
 - Offline location context requires an actual saved snapshot and exposes stale/no-cache states explicitly.
 - Unverified retention countdown and numeric Free trip-limit claims are hidden.
+- Phase 24 removed fabricated attraction fixtures and their legacy retrieval hook from production source.
+- Phase 25 changes the Places photo proxy from an open provider-key proxy to short-lived signed photo URLs in source; live Supabase deployment/configuration remains pending.
+- Live RT2RP security-advisor review confirmed excessive SECURITY DEFINER execute grants, including an anonymously executable destructive lifecycle RPC; this is now a release blocker until production ACLs are narrowed.
 
 ---
 
@@ -101,12 +106,14 @@ Before merge/release, run at minimum:
 - R-021 blocks provider flight matching or monitoring that depends on manually entered flight identity until canonical persistence exists.
 - R-022 blocks dependable/smart packing marketing until provider/fallback/schema behavior is validated.
 - R-023 blocks public numeric trip-limit wording until the deployed entitlement contract is reconciled.
+- R-024 is release-blocking: destructive/internal SECURITY DEFINER RPCs must not remain executable by anon/public roles.
+- R-025 blocks treating the Places photo proxy as hardened until the signing secret and updated Edge Functions are deployed and tested.
 
 ---
 
 ## Priority Remediation Order
 
-1. R-013 — RLS/storage/PII/sharing verification;
+1. R-024/R-013 — live RPC privilege reduction plus RLS/storage/PII/sharing verification;
 2. R-021/R-005/R-006 — canonical flight identity, provider matching and background contract;
 3. R-008/R-009/R-010 — execution/intelligence/alert ownership consolidation;
 4. R-014 — financial/report reconciliation;
