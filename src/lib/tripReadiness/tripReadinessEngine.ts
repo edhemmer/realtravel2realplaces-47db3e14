@@ -8,6 +8,7 @@
  */
 
 import type { CanonicalTimelineEvent, CanonicalDateRange } from '@/lib/canonicalTripState';
+import { getNextStopFromTimelineEvents } from '@/lib/canonicalNextStop';
 import type { WeatherEngineResult, WeatherMode } from '@/lib/weatherEngine';
 import type { DrivePlan } from '@/types/drive';
 import type { PlanTier } from '@/utils/planTier';
@@ -154,26 +155,21 @@ function resolveNextActionCard(
   }
 
   if (status === 'ACTIVE') {
-    // Find next upcoming event after now
-    const upcoming = timelineEvents.find(e => {
-      const eventDate = e.eventLocalDateTime?.substring(0, 10);
-      return eventDate && eventDate >= today;
-    });
+    const { nextStop } = getNextStopFromTimelineEvents(timelineEvents);
 
-    if (upcoming) {
-      const timeStr = upcoming.eventLocalDateTime?.substring(11, 16);
+    if (nextStop) {
       return {
         type: 'NEXT_ACTION',
-        title: upcoming.title,
-        subtitle: upcoming.subtitle,
-        details: timeStr ? [`${timeStr}`] : undefined,
+        title: nextStop.title || nextStop.displayName,
+        subtitle: nextStop.subtitle || nextStop.locationLabel,
+        details: nextStop.eventLocalTime ? [nextStop.eventLocalTime] : undefined,
       };
     }
 
     return {
       type: 'NEXT_ACTION',
       title: 'Trip in progress',
-      subtitle: 'Enjoy your trip!',
+      subtitle: 'No later timed trip event is saved.',
     };
   }
 
@@ -188,15 +184,14 @@ function resolveNextActionCard(
     };
   }
 
-  // Within 24 hours or close — show first departure
-  const firstEvent = timelineEvents[0];
-  if (firstEvent) {
-    const timeStr = firstEvent.eventLocalDateTime?.substring(11, 16);
+  // Close to departure — use the same canonical future-event selector as Today.
+  const { nextStop } = getNextStopFromTimelineEvents(timelineEvents);
+  if (nextStop) {
     return {
       type: 'NEXT_ACTION',
-      title: firstEvent.title,
-      subtitle: daysOut <= 1 ? 'Departing soon' : firstEvent.subtitle,
-      details: timeStr ? [`${timeStr}`] : undefined,
+      title: nextStop.title || nextStop.displayName,
+      subtitle: daysOut <= 1 ? 'Departing soon' : nextStop.subtitle || nextStop.locationLabel,
+      details: nextStop.eventLocalTime ? [nextStop.eventLocalTime] : undefined,
     };
   }
 
