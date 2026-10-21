@@ -34,10 +34,31 @@ Deno.serve(async (req) => {
 
     if (
       typeof originLat !== 'number' || typeof originLng !== 'number' ||
-      typeof destLat !== 'number' || typeof destLng !== 'number'
+      typeof destLat !== 'number' || typeof destLng !== 'number' ||
+      !Number.isFinite(originLat) || !Number.isFinite(originLng) ||
+      !Number.isFinite(destLat) || !Number.isFinite(destLng) ||
+      originLat < -90 || originLat > 90 ||
+      destLat < -90 || destLat > 90 ||
+      originLng < -180 || originLng > 180 ||
+      destLng < -180 || destLng > 180
     ) {
       return new Response(
         JSON.stringify({ error: 'Invalid coordinates' }),
+        { status: 400, headers: corsJsonHeaders(req) }
+      );
+    }
+
+    if (
+      departureTime != null &&
+      departureTime !== 'now' &&
+      (
+        typeof departureTime !== 'string' ||
+        !/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?(?:Z|[+-]\\d{2}:\\d{2})$/.test(departureTime) ||
+        !Number.isFinite(Date.parse(departureTime))
+      )
+    ) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid departure time' }),
         { status: 400, headers: corsJsonHeaders(req) }
       );
     }
