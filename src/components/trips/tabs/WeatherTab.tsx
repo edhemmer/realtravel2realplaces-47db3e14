@@ -219,19 +219,19 @@ function extractWeatherLocations(trip: Trip, bookings: Booking[]): WeatherLocati
 
 const MODE_CONFIG: Record<WeatherMode, { label: string; colorClass: string; iconColorClass: string; bgClass: string }> = {
   FORECAST_PRIMARY: {
-    label: 'Live Forecast',
+    label: 'Forecast',
     colorClass: 'text-emerald-600 dark:text-emerald-400',
     iconColorClass: 'text-emerald-500',
     bgClass: 'bg-emerald-500/10',
   },
   FORECAST_BLEND: {
-    label: 'Blended Forecast',
+    label: 'Forecast + Guide',
     colorClass: 'text-sky-600 dark:text-sky-400',
     iconColorClass: 'text-sky-500',
     bgClass: 'bg-sky-500/10',
   },
   SEASONAL_NORMALS: {
-    label: 'Seasonal Averages',
+    label: 'Seasonal Guide',
     colorClass: 'text-amber-600 dark:text-amber-400',
     iconColorClass: 'text-amber-500',
     bgClass: 'bg-amber-500/10',
@@ -364,6 +364,16 @@ function WeatherLocationCard({ location, trip, temperatureUnit }: WeatherLocatio
         </div>
       </CardHeader>
       <CardContent className="pt-0 space-y-3">
+        {weather.weatherMode === 'SEASONAL_NORMALS' && (
+          <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-2.5 py-2 text-[10px] leading-relaxed text-muted-foreground">
+            Planning estimate based on broad climate-zone seasonal patterns, not a location-specific forecast.
+          </p>
+        )}
+        {weather.weatherMode === 'FORECAST_BLEND' && (
+          <p className="rounded-lg border border-sky-500/20 bg-sky-500/5 px-2.5 py-2 text-[10px] leading-relaxed text-muted-foreground">
+            Provider forecast days are supplemented with broad seasonal guidance for dates outside forecast coverage.
+          </p>
+        )}
         {/* Summary row */}
         <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-1.5">
@@ -419,13 +429,13 @@ function WeatherLocationCard({ location, trip, temperatureUnit }: WeatherLocatio
 
         {scopedEnvelope.length === 0 && (
           <p className="text-xs text-muted-foreground italic">
-            No forecast data available for this date range
+            No weather guidance available for this date range
           </p>
         )}
 
         {isLoading && shouldFetchForecast && (
           <p className={`text-[10px] ${modeConfig.colorClass}`}>
-            Fetching live forecast…
+            Fetching forecast…
           </p>
         )}
       </CardContent>
@@ -563,7 +573,7 @@ export function WeatherTab({ tripId, trip }: WeatherTabProps) {
         icon={CloudSun}
         eyebrow="Weather intelligence"
         title="Weather"
-        description="Forecasts for every airport, lodging, destination, and transport window in this trip."
+        description="Provider forecasts when dates are in range, with broad seasonal planning guidance farther out."
         status={online ? `${locations.length} trip locations` : 'Cached/offline'}
         statusTone={online ? 'live' : 'cached'}
       />
@@ -580,7 +590,7 @@ export function WeatherTab({ tripId, trip }: WeatherTabProps) {
             icon: CloudSun,
             label: 'Data mode',
             value: online ? 'Forecast aware' : 'Cached',
-            detail: online ? 'Live forecast is used when the date window is close enough; seasonal data fills longer range plans.' : 'Showing saved weather where available until connection returns.',
+            detail: online ? 'Provider forecast is used when the date window is close enough; broad climate-zone guidance fills farther-out dates.' : 'Showing saved weather where available until connection returns.',
             tone: online ? 'neutral' : 'watch',
           },
           {
