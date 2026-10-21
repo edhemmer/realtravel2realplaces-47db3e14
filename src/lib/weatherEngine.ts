@@ -412,6 +412,8 @@ export interface WeatherEngineInput {
     condition: string;
     precipitation: number;
   }>;
+  /** Provider/query fetch timestamp for forecast provenance. */
+  forecastAsOf?: string;
 }
 
 /**
@@ -482,9 +484,11 @@ export function resolveWeather(input: WeatherEngineInput): WeatherEngineResult {
   const reason: WeatherUnavailableReason | undefined = 
     mode === 'SEASONAL_NORMALS' ? 'OUT_OF_RANGE' : undefined;
 
-  // v3.10.7: asOf for forecast modes
-  const asOf = (mode === 'FORECAST_PRIMARY' || mode === 'FORECAST_BLEND') && input.forecast && input.forecast.length > 0
-    ? new Date().toISOString()
+  // Forecast freshness must come from the provider/query fetch contract,
+  // never from render time.
+  const asOf = (mode === 'FORECAST_PRIMARY' || mode === 'FORECAST_BLEND') &&
+    input.forecast && input.forecast.length > 0
+    ? input.forecastAsOf
     : undefined;
 
   return {
