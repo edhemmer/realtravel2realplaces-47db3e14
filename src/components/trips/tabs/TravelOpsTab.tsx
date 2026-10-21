@@ -316,7 +316,7 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
   const parkingTotal = parking.reduce((sum, item) => sum + Number(item.my_share ?? item.total_cost ?? 0), 0);
   const routeSummary = liveDriveRoute.route?.summary || null;
   const routeStatusLabel =
-    liveDriveRoute.status === 'live' ? 'Live route'
+    liveDriveRoute.status === 'live' ? 'Provider route'
     : liveDriveRoute.status === 'estimate' ? 'Estimated route'
     : liveDriveRoute.status === 'needs_origin' ? 'Needs origin'
     : liveDriveRoute.status === 'needs_destination' ? 'Needs destination'
@@ -440,7 +440,7 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
           <OpsWindow
             icon={<Route className="h-5 w-5" />}
             title="Drive route"
-            detail={liveDriveRoute.status === 'live' ? 'Provider-backed distance and traffic timing are ready. Compare options before departure.' : liveDriveRoute.detail}
+            detail={liveDriveRoute.status === 'live' ? 'Provider-backed distance and traffic-aware timing are available for this travel window.' : liveDriveRoute.detail}
             badge={routeStatusLabel}
           >
             <div className="overflow-hidden rounded-xl border border-border/50 bg-muted/30">
@@ -497,7 +497,7 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
               </div>
               <div className="rounded-xl border border-border/50 bg-background/70 p-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  {liveDriveRoute.status === 'live' ? 'Live distance and timing' : 'Route distance and timing'}
+                  {liveDriveRoute.status === 'live' ? 'Provider distance and timing' : 'Route distance and timing'}
                 </p>
                 <p className="mt-1 text-sm font-semibold text-foreground">
                   {routeSummary
