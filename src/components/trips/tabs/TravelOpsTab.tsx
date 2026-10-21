@@ -316,7 +316,7 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
   const parkingTotal = parking.reduce((sum, item) => sum + Number(item.my_share ?? item.total_cost ?? 0), 0);
   const routeSummary = liveDriveRoute.route?.summary || null;
   const routeStatusLabel =
-    liveDriveRoute.status === 'live' ? 'Live route'
+    liveDriveRoute.status === 'live' ? 'Provider route'
     : liveDriveRoute.status === 'estimate' ? 'Estimated route'
     : liveDriveRoute.status === 'needs_origin' ? 'Needs origin'
     : liveDriveRoute.status === 'needs_destination' ? 'Needs destination'
@@ -353,8 +353,8 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
         icon={LayoutDashboard}
         eyebrow="Travel OS"
         title="Travel command"
-        description="Use this before and during travel to see movement, route confidence, airport windows, local transit, weather, spend, and the next operational step."
-        status={online ? 'Live windows' : 'Offline cache'}
+        description="Use this before and during travel to review saved movement records, route details, airport links, transit handoffs, current weather, spend, and upcoming itinerary items."
+        status={online ? 'Connected' : 'Offline'}
         statusTone={online ? 'live' : 'cached'}
       >
           <div className="rt-kpi-panel min-w-[220px] p-3">
@@ -410,20 +410,20 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
       <section className="grid gap-3 lg:grid-cols-3">
         <TrustSignal
           label="Route truth"
-          value={isDriveTrip ? routeStatusLabel : hasFlights ? 'Air-aware' : 'Timeline'}
-          detail={isDriveTrip ? liveDriveRoute.detail : hasFlights ? 'Flight records unlock airport windows and status checks.' : 'Add flight, rail, car, or drive details to improve movement intelligence.'}
-          tone={isDriveTrip ? routeStatusTone : hasFlights ? 'live' : 'neutral'}
+          value={isDriveTrip ? routeStatusLabel : hasFlights ? 'Flight records' : 'Timeline'}
+          detail={isDriveTrip ? liveDriveRoute.detail : hasFlights ? 'Saved flight records expose airport codes, timing, and airport operation links when available.' : 'Add flight, rail, car, or drive details to make the movement view more complete.'}
+          tone={isDriveTrip ? routeStatusTone : 'neutral'}
         />
         <TrustSignal
-          label="Weather truth"
-          value={weather.current ? 'Weather ready' : weather.isLoading ? 'Checking' : 'Needs refresh'}
-          detail={weather.current ? `${weather.current.condition}, ${weather.current.temperature}F at the trip area.` : 'RT2RP will show live or seasonal weather depending on the trip window.'}
+          label="Weather context"
+          value={weather.current ? 'Current weather' : weather.isLoading ? 'Checking' : 'Unavailable'}
+          detail={weather.current ? `${weather.current.condition}, ${weather.current.temperature}F at the trip area right now.` : 'Current destination weather is unavailable right now.'}
           tone={weather.current ? (weather.weatherAnalysis?.hasRain || weather.weatherAnalysis?.hasSnow ? 'setup' : 'live') : weather.isLoading ? 'cached' : 'neutral'}
         />
         <TrustSignal
           label="Cost control"
           value="Gated"
-          detail="Provider-backed calls are cached and only made when route or place context is specific enough to be useful."
+          detail="Route and place lookups use scoped caching or budget controls where those provider paths support it."
           tone="cached"
         />
       </section>
@@ -440,7 +440,7 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
           <OpsWindow
             icon={<Route className="h-5 w-5" />}
             title="Drive route"
-            detail={liveDriveRoute.status === 'live' ? 'Provider-backed distance and traffic timing are ready. Compare options before departure.' : liveDriveRoute.detail}
+            detail={liveDriveRoute.status === 'live' ? 'Provider-backed distance and traffic-aware timing are available for this travel window.' : liveDriveRoute.detail}
             badge={routeStatusLabel}
           >
             <div className="overflow-hidden rounded-xl border border-border/50 bg-muted/30">
@@ -497,7 +497,7 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
               </div>
               <div className="rounded-xl border border-border/50 bg-background/70 p-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  {liveDriveRoute.status === 'live' ? 'Live distance and timing' : 'Route distance and timing'}
+                  {liveDriveRoute.status === 'live' ? 'Provider distance and timing' : 'Route distance and timing'}
                 </p>
                 <p className="mt-1 text-sm font-semibold text-foreground">
                   {routeSummary
@@ -606,13 +606,13 @@ export function TravelOpsTab({ tripId, trip }: TravelOpsTabProps) {
         <OpsWindow
           icon={<TrainFront className="h-5 w-5" />}
           title="Local transit"
-          detail="Live transit can be cached when coordinates exist; outbound local station maps provide a credit-free fallback."
-          badge="3-min cache"
+          detail="Open local transit directions or nearby station searches in the map provider."
+          badge="Map handoff"
         >
           <div className="space-y-3">
             <div className="rounded-xl border border-border/50 bg-background/70 p-3">
-              <p className="text-sm font-semibold">Transit readiness</p>
-              <p className="text-xs text-muted-foreground">Use cached live data when available; otherwise open local agency and station maps.</p>
+              <p className="text-sm font-semibold">Transit handoff</p>
+              <p className="text-xs text-muted-foreground">Use the map links below to review public-transit directions and nearby stations.</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button asChild size="sm" className="rounded-full">

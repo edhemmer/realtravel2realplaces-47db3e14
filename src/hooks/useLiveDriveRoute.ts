@@ -8,6 +8,22 @@ import type { LocationRef } from '@/types/drive';
 
 export type LiveDriveRouteStatus = 'live' | 'estimate' | 'needs_origin' | 'needs_destination' | 'unavailable';
 
+const PROVIDER_ROUTE_LOOKAHEAD_DAYS = 14;
+
+function providerRouteWindowEligible(trip: Trip): boolean {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const start = new Date(`${trip.start_date}T00:00:00`);
+  const end = new Date(`${trip.end_date}T23:59:59`);
+  if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime())) return false;
+  if (end < today) return false;
+
+  const lookahead = new Date(today);
+  lookahead.setDate(lookahead.getDate() + PROVIDER_ROUTE_LOOKAHEAD_DAYS);
+  return start <= lookahead;
+}
+
 interface UseLiveDriveRouteResult {
   status: LiveDriveRouteStatus;
   route: RouteResult | null;
@@ -46,6 +62,7 @@ function departureIso(trip: Trip): string {
 
 export function useLiveDriveRoute(trip: Trip): UseLiveDriveRouteResult {
   const isDriveTrip = trip.transportation_mode === 'drive';
+  const providerWindowEligible = providerRouteWindowEligible(trip);
   const originLookup = useResolvedDriveHazardCoords({
     enabled: isDriveTrip && Boolean(trip.origin_address),
     routeAddress: trip.origin_address,
@@ -86,7 +103,7 @@ export function useLiveDriveRoute(trip: Trip): UseLiveDriveRouteResult {
       destination: destinationCoords!,
       departureTime: departureIso(trip),
     }),
-    enabled: isDriveTrip && Boolean(originCoords && destinationCoords),
+    enabled: isDriveTrip && providerWindowEligible && Boolean(originCoords && destinationCoords),
     staleTime: 15 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
     retry: 1,
@@ -101,7 +118,7 @@ export function useLiveDriveRoute(trip: Trip): UseLiveDriveRouteResult {
       originCoords,
       destinationCoords,
       isLoading: false,
-      detail: 'Live drive routing is available for driving trips.',
+      detail: 'Provider-backed drive routing is available for driving trips near their travel window.',
     };
   }
 
@@ -138,12 +155,18 @@ export function useLiveDriveRoute(trip: Trip): UseLiveDriveRouteResult {
       destinationCoords,
       isLoading: liveRoute.isLoading || originLookup.isLoading || destinationLookup.isLoading,
       detail: liveRoute.data.trafficDelayMinutes
-        ? `Live route includes about ${liveRoute.data.trafficDelayMinutes} minutes of traffic delay.`
-        : 'Live provider route is available and cached for cost control.',
+        ? `Provider route includes about ${liveRoute.data.trafficDelayMinutes} minutes of traffic-related delay.`
+        : 'Provider-backed route timing is available for this drive.',
     };
   }
 
   if (estimate?.summary) {
+    const providerDetail = !providerWindowEligible
+      ? trip.end_date < new Date().toISOString().slice(0, 10)
+        ? 'Using the saved route estimate because this trip has ended.'
+        : `Using a deterministic route estimate until the trip is within ${PROVIDER_ROUTE_LOOKAHEAD_DAYS} days of departure.`
+      : liveRoute.data?.degradedReason || liveRoute.error?.message || 'Using a deterministic route estimate because provider timing is unavailable.';
+
     return {
       status: 'estimate',
       route: estimate,
@@ -151,7 +174,7 @@ export function useLiveDriveRoute(trip: Trip): UseLiveDriveRouteResult {
       originCoords,
       destinationCoords,
       isLoading: liveRoute.isLoading || originLookup.isLoading || destinationLookup.isLoading,
-      detail: liveRoute.data?.degradedReason || liveRoute.error?.message || 'Using deterministic offline estimate until the live route provider responds.',
+      detail: providerDetail,
     };
   }
 
