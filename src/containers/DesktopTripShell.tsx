@@ -9,7 +9,6 @@
  * 
  * OWNS:
  * - Canonical trip state (dates, timeline, costs, weather) via useCanonicalTripState
- * - Travel alerts/intelligence via useTravelAlerts
  * - Access state (plan tier, feature flags)
  * - Shared raw data references (bookings, expenses, parking)
  * 
@@ -19,7 +18,6 @@
  * GUARDRAILS:
  * - React Query deduplicates raw data fetches by queryKey
  * - Canonical state computed once via useMemo, not per-tab
- * - Alerts computed once, shared across Summary and Alerts tab
  * - Stable context value via useMemo to prevent rerender cascades
  */
 
@@ -38,7 +36,7 @@ import {
   type CanonicalDateRange,
   type WeatherSnapshot,
 } from '@/hooks/useCanonicalTripState';
-import { useTravelAlerts, type TravelAlert } from '@/hooks/useTravelAlerts';
+import type { TravelAlert } from '@/hooks/useTravelAlerts';
 import { useFlightAirportRepair } from '@/hooks/useFlightAirportRepair';
 import { useBookingExpenseSync } from '@/hooks/useBookingExpenseSync';
 /**
@@ -113,9 +111,6 @@ export function DesktopTripShell({ tripId, trip, children }: DesktopTripShellPro
   const { data: expenses = [], isLoading: expensesLoading } = useExpenses(tripId);
   const { data: parkingList = [], isLoading: parkingLoading } = useParking(tripId);
 
-  // Temperature unit
-  const temperatureUnit = (userProfile?.temperature_unit as 'fahrenheit' | 'celsius') || 'fahrenheit';
-
   // Canonical trip state — computed ONCE for all tabs
   const {
     state: canonicalState,
@@ -131,13 +126,12 @@ export function DesktopTripShell({ tripId, trip, children }: DesktopTripShellPro
     weatherByKey,
   } = useCanonicalTripState(tripId, trip);
 
-  // Intelligence surface — alerts computed ONCE for all tabs
-  const {
-    alerts,
-    hasAlerts,
-    criticalCount,
-    weatherLoading: isAlertsLoading,
-  } = useTravelAlerts(trip, bookings, parkingList, temperatureUnit);
+  // Traveler-facing alert intelligence is intentionally withheld until
+  // monitoring, freshness, delivery and recovery are validated end-to-end.
+  const alerts: TravelAlert[] = [];
+  const hasAlerts = false;
+  const criticalCount = 0;
+  const isAlertsLoading = false;
 
   const isLoading = bookingsLoading || expensesLoading || parkingLoading;
 
