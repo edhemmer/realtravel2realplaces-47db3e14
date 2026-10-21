@@ -29,8 +29,11 @@ export interface NextStopEvent {
   id: string;
   /** Event type from canonical timeline */
   type: string;
-  /** Human-readable label */
+  /** Human-readable normalized label */
   displayName: string;
+  /** Original canonical title/subtitle for presentation consumers */
+  title?: string;
+  subtitle?: string;
   /** YYYY-MM-DD */
   eventLocalDate: string;
   /** HH:MM */
@@ -176,6 +179,8 @@ function toNextStopEvent(event: CanonicalTimelineEvent): (NextStopEvent & { _sor
     id: event.id,
     type: event.eventType,
     displayName: deriveDisplayName(event),
+    title: event.title,
+    subtitle: event.subtitle,
     eventLocalDate: localDate,
     eventLocalTime: localTime,
     address: event.address,
@@ -199,30 +204,24 @@ function toNextStopEvent(event: CanonicalTimelineEvent): (NextStopEvent & { _sor
  * @param tripState - Canonical trip state (from getCanonicalTripState)
  * @param nowLocal  - Optional override for "now" string (for testing). Defaults to getLocalNowString().
  */
-export function getNextStopFromCanonicalTimeline(
-  tripState: CanonicalTripState | null,
+export function getNextStopFromTimelineEvents(
+  timelineEvents: CanonicalTimelineEvent[],
   nowLocal?: string,
 ): NextStopResult {
   const EMPTY: NextStopResult = { currentStop: null, nextStop: null, hasUpcoming: false };
-
-  if (!tripState || tripState.timelineEvents.length === 0) return EMPTY;
+  if (timelineEvents.length === 0) return EMPTY;
 
   const nowStr = nowLocal ?? getLocalNowString();
-
-  // Build list of eligible, timed events
   const eligible: (NextStopEvent & { _sortKey: string })[] = [];
 
-  for (const ev of tripState.timelineEvents) {
+  for (const ev of timelineEvents) {
     const mapped = toNextStopEvent(ev);
     if (mapped) eligible.push(mapped);
   }
 
   if (eligible.length === 0) return EMPTY;
-
-  // Sort ascending by local datetime string
   eligible.sort((a, b) => a._sortKey.localeCompare(b._sortKey));
 
-  // Find currentStop (latest event <= now) and nextStop (earliest event > now)
   let currentStop: (NextStopEvent & { _sortKey: string }) | null = null;
   let nextStop: (NextStopEvent & { _sortKey: string }) | null = null;
 
@@ -234,7 +233,6 @@ export function getNextStopFromCanonicalTimeline(
     }
   }
 
-  // Strip internal _sortKey before returning
   const clean = (e: (NextStopEvent & { _sortKey: string }) | null): NextStopEvent | null => {
     if (!e) return null;
     const { _sortKey, ...rest } = e;
@@ -246,4 +244,14 @@ export function getNextStopFromCanonicalTimeline(
     nextStop: clean(nextStop),
     hasUpcoming: nextStop !== null,
   };
+}
+
+export function getNextStopFromCanonicalTimeline(
+  tripState: CanonicalTripState | null,
+  nowLocal?: string,
+): NextStopResult {
+  if (!tripState) {
+    return { currentStop: null, nextStop: null, hasUpcoming: false };
+  }
+  return getNextStopFromTimelineEvents(tripState.timelineEvents, nowLocal);
 }
