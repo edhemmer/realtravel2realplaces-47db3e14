@@ -146,11 +146,16 @@ async function deleteUserDatabaseRows(
     "accepted invite references cleanup",
     admin.from("trip_invites").delete().eq("accepted_by_user_id", userId),
   );
+  await assertDelete(
+    "invite creator references cleanup",
+    admin.from("trip_invites").delete().eq("inviter_user_id", userId),
+  );
 
   // Direct user-owned records.
   const userScopedTables = [
     "device_tokens",
     "email_ingestion_addresses",
+    "flight_status_usage",
     "notification_preferences",
     "notifications",
     "pending_imports",
@@ -202,6 +207,19 @@ Deno.serve(async (req) => {
     }
 
     const userId = claimsData.claims.sub as string;
+
+    // Revoke every refresh session before destructive cleanup so no new access
+    // tokens can be minted while the account is being removed. Existing access
+    // JWTs remain valid until their encoded expiry, per Supabase Auth semantics.
+    const { error: signOutError } = await authClient.auth.signOut({ scope: "global" });
+    if (signOutError) {
+      console.error("[delete-account] global sign-out failed:", signOutError);
+      return new Response(
+        JSON.stringify({ error: "Account session cleanup failed" }),
+        { status: 500, headers: corsJsonHeaders(req) },
+      );
+    }
+
     const admin = createClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false },
     });
