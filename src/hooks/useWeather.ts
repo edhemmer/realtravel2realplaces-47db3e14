@@ -52,7 +52,7 @@ function resolveUsState(state?: string): { code: string; name: string } | null {
   ) ?? null;
 }
 
-function selectGeocodingCandidate(
+export function selectGeocodingCandidate(
   results: OpenMeteoGeocodingCandidate[],
   country: string,
   state?: string,
