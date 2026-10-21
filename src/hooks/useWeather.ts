@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
+import { US_STATES } from '@/lib/location/usStates';
 interface WeatherData {
   current: {
     temperature: number;
@@ -20,6 +21,71 @@ interface GeocodingResult {
   latitude: number;
   longitude: number;
   name: string;
+}
+
+interface OpenMeteoGeocodingCandidate {
+  latitude: number;
+  longitude: number;
+  name: string;
+  admin1?: string;
+  country?: string;
+  country_code?: string;
+}
+
+function normalizeLocationToken(value?: string | null): string {
+  return (value || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function isUnitedStates(country: string): boolean {
+  const normalized = normalizeLocationToken(country);
+  return normalized === 'us' || normalized === 'usa' ||
+    normalized === 'unitedstates' || normalized === 'unitedstatesofamerica';
+}
+
+function resolveUsState(state?: string): { code: string; name: string } | null {
+  const normalized = normalizeLocationToken(state);
+  if (!normalized) return null;
+
+  return US_STATES.find((option) =>
+    normalizeLocationToken(option.code) === normalized ||
+    normalizeLocationToken(option.name) === normalized
+  ) ?? null;
+}
+
+function selectGeocodingCandidate(
+  results: OpenMeteoGeocodingCandidate[],
+  country: string,
+  state?: string,
+): OpenMeteoGeocodingCandidate | null {
+  if (results.length === 0) return null;
+
+  if (isUnitedStates(country)) {
+    const usResults = results.filter((result) =>
+      result.country_code?.toUpperCase() === 'US' ||
+      normalizeLocationToken(result.country) === 'unitedstates'
+    );
+
+    const resolvedState = resolveUsState(state);
+    if (state && !resolvedState) {
+      return null;
+    }
+
+    if (resolvedState) {
+      return usResults.find((result) =>
+        normalizeLocationToken(result.admin1) === normalizeLocationToken(resolvedState.name)
+      ) ?? null;
+    }
+
+    return usResults[0] ?? null;
+  }
+
+  const countryToken = normalizeLocationToken(country);
+  if (!countryToken) return results[0] ?? null;
+
+  return results.find((result) =>
+    normalizeLocationToken(result.country) === countryToken ||
+    normalizeLocationToken(result.country_code) === countryToken
+  ) ?? null;
 }
 
 // Weather code to condition mapping
@@ -46,66 +112,50 @@ const weatherCodeToCondition = (code: number): string => {
      return null;
    }
    
-  // Try city + state first for US locations, then fallback to city alone
-  const queries = state && country === 'USA' 
-    ? [`${city}, ${state}`, city]
+  const usState = isUnitedStates(country) ? resolveUsState(state) : null;
+  const queries = usState
+    ? [`${city}, ${usState.name}`, city]
     : [`${city}, ${country}`, city];
-  
-   try {
-     for (const query of queries) {
-       const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json`;
-       
-       let response: Response;
-       try {
-         response = await fetch(url);
-       } catch (fetchError) {
-         console.warn('[Weather] Geocoding fetch failed:', fetchError);
-         continue;
-       }
-       
-       if (!response.ok) {
-         console.warn(`[Weather] Geocoding API returned ${response.status}`);
-         continue;
-       }
-       
-       let data: { results?: Array<{ latitude: number; longitude: number; name: string; admin1?: string; country_code?: string }> };
-       try {
-         data = await response.json();
-       } catch (parseError) {
-         console.warn('[Weather] Failed to parse geocoding response:', parseError);
-         continue;
-       }
-       
-       if (data.results && data.results.length > 0) {
-         // For US locations with state, try to match the state
-         if (state && country === 'USA') {
-           const match = data.results.find((r) => 
-             r.admin1?.toLowerCase() === state.toLowerCase() || 
-             r.country_code === 'US'
-           );
-           if (match) {
-             return {
-               latitude: match.latitude,
-               longitude: match.longitude,
-               name: match.name,
-             };
-           }
-         }
-         // Return first result as fallback
-         const firstResult = data.results[0];
-         if (firstResult) {
-          return {
-             latitude: firstResult.latitude,
-             longitude: firstResult.longitude,
-             name: firstResult.name,
-          };
-        }
+
+  try {
+    for (const query of queries) {
+      const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=en&format=json`;
+
+      let response: Response;
+      try {
+        response = await fetch(url);
+      } catch (fetchError) {
+        console.warn('[Weather] Geocoding fetch failed:', fetchError);
+        continue;
+      }
+
+      if (!response.ok) {
+        console.warn(`[Weather] Geocoding API returned ${response.status}`);
+        continue;
+      }
+
+      let data: { results?: OpenMeteoGeocodingCandidate[] };
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.warn('[Weather] Failed to parse geocoding response:', parseError);
+        continue;
+      }
+
+      const candidate = selectGeocodingCandidate(data.results ?? [], country, state);
+      if (candidate) {
+        return {
+          latitude: candidate.latitude,
+          longitude: candidate.longitude,
+          name: candidate.name,
+        };
       }
     }
-   } catch (error) {
-     console.error('[Weather] Geocoding error:', error);
+  } catch (error) {
+    console.error('[Weather] Geocoding error:', error);
   }
-  
+
+  console.warn('[Weather] No unambiguous geocoding match', { city, state, country });
   return null;
 }
 
