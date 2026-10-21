@@ -139,7 +139,7 @@ export function useLiveDriveRoute(trip: Trip): UseLiveDriveRouteResult {
       isLoading: liveRoute.isLoading || originLookup.isLoading || destinationLookup.isLoading,
       detail: liveRoute.data.trafficDelayMinutes
         ? `Live route includes about ${liveRoute.data.trafficDelayMinutes} minutes of traffic delay.`
-        : 'Live provider route is available and cached for cost control.',
+        : 'Provider-backed route timing is available for this drive.',
     };
   }
 
@@ -151,7 +151,7 @@ export function useLiveDriveRoute(trip: Trip): UseLiveDriveRouteResult {
       originCoords,
       destinationCoords,
       isLoading: liveRoute.isLoading || originLookup.isLoading || destinationLookup.isLoading,
-      detail: liveRoute.data?.degradedReason || liveRoute.error?.message || 'Using deterministic offline estimate until the live route provider responds.',
+      detail: liveRoute.data?.degradedReason || liveRoute.error?.message || 'Using a deterministic route estimate because provider timing is unavailable.'
     };
   }
 
