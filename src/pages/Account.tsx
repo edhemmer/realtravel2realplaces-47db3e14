@@ -295,7 +295,7 @@ export default function Account() {
               Delete Account
             </CardTitle>
             <CardDescription>
-              Permanently delete your account and all associated data. This action cannot be undone.
+              Permanently delete your RT2RP account. This action cannot be undone.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -309,8 +309,7 @@ export default function Account() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete your account?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will permanently delete your account, trips, bookings, expenses, and all
-                    other data. You won't be able to recover any of it. Are you sure?
+                    This will permanently delete your RT2RP account. You won't be able to recover the account. Are you sure?
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -319,7 +318,7 @@ export default function Account() {
                     onClick={handleDeleteAccount}
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   >
-                    Yes, delete everything
+                    Yes, delete account
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
