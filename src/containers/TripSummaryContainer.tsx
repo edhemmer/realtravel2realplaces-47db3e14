@@ -64,8 +64,8 @@ export function TripSummaryContainer({ tripId, trip, onDrillThrough, maxVisibleA
         eyebrow="Today"
         title="Today"
         description="The current trip view: recorded alerts, timeline, travel context, receipts, and the next details you may need."
-        status={shell?.hasAlerts ? `${shell.criticalAlertCount} critical alerts` : 'Trip context'}
-        statusTone={shell?.criticalAlertCount ? 'cached' : 'neutral'}
+        status="Trip context"
+        statusTone="neutral"
       />
       <SummaryTab
         tripId={tripId}
