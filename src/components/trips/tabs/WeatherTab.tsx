@@ -1,11 +1,9 @@
 /**
  * v4.11.0: Weather Tab — Per-location weather intelligence
  *
- * Shows weather forecasts/seasonal data for every airport and lodging
- * location in the trip. Color-coded by data source:
- *   Emerald = Live forecast (≤7 days)
- *   Sky = Blended forecast + seasonal (8–14 days)
- *   Amber = Seasonal averages (>14 days)
+ * Shows provider forecasts and broad seasonal planning guidance for trip
+ * locations. Public labels must preserve the distinction between provider
+ * forecast data and bundled climate-zone estimates.
  *
  * v4.0.4: Offline degraded mode — shows cached weather snapshot when offline.
  *
@@ -281,7 +279,7 @@ function WeatherLocationCard({ location, trip, temperatureUnit }: WeatherLocatio
   const mode = resolveWeatherMode(location.dateStart);
   const shouldFetchForecast = mode !== 'SEASONAL_NORMALS' && online;
 
-  const { tripForecast, isLoading } = useTripWeather(
+  const { tripForecast, isLoading, dataUpdatedAt } = useTripWeather(
     shouldFetchForecast ? location.city : '',
     shouldFetchForecast ? location.country : '',
     location.dateStart,
@@ -298,9 +296,13 @@ function WeatherLocationCard({ location, trip, temperatureUnit }: WeatherLocatio
       startDate: location.dateStart,
       endDate: location.dateEnd,
       forecast: shouldFetchForecast && tripForecast.length > 0 ? tripForecast : undefined,
+      forecastAsOf:
+        shouldFetchForecast && tripForecast.length > 0 && dataUpdatedAt > 0
+          ? new Date(dataUpdatedAt).toISOString()
+          : undefined,
     };
     return resolveWeather(input);
-  }, [location, tripForecast, shouldFetchForecast]);
+  }, [dataUpdatedAt, location, tripForecast, shouldFetchForecast]);
 
   // v4.0.4: Save snapshot when online and weather resolves
   useEffect(() => {
@@ -372,6 +374,11 @@ function WeatherLocationCard({ location, trip, temperatureUnit }: WeatherLocatio
         {weather.weatherMode === 'FORECAST_BLEND' && (
           <p className="rounded-lg border border-sky-500/20 bg-sky-500/5 px-2.5 py-2 text-[10px] leading-relaxed text-muted-foreground">
             Provider forecast days are supplemented with broad seasonal guidance for dates outside forecast coverage.
+          </p>
+        )}
+        {weather.asOf && (
+          <p className="text-[10px] text-muted-foreground/80">
+            Forecast fetched {formatSnapshotTimestamp(Date.parse(weather.asOf))}.
           </p>
         )}
         {/* Summary row */}
