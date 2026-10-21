@@ -51,7 +51,7 @@ export default function Privacy() {
 
             <h2 className="text-xl font-semibold text-white mt-8 mb-4">Your Rights</h2>
             <p>
-              You can access, update, or delete your account and associated data through your account settings. If you have questions, contact us at the email below.
+              You can access or update your account through account settings, and you can permanently delete your account from the Account page. If you have questions, contact us at the email below.
             </p>
 
             <h2 className="text-xl font-semibold text-white mt-8 mb-4">Cookies</h2>

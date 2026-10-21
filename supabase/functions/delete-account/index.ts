@@ -56,6 +56,126 @@ async function deleteUserReceiptObjects(
   }
 }
 
+
+async function assertDelete(
+  label: string,
+  operation: PromiseLike<{ error: unknown }>,
+): Promise<void> {
+  const { error } = await operation;
+  if (error) {
+    console.error(`[delete-account] ${label} failed:`, error);
+    throw error;
+  }
+}
+
+async function deleteUserDatabaseRows(
+  admin: ReturnType<typeof createClient>,
+  userId: string,
+): Promise<void> {
+  const { data: ownedTrips, error: tripsLookupError } = await admin
+    .from("trips")
+    .select("id")
+    .eq("user_id", userId);
+
+  if (tripsLookupError) throw tripsLookupError;
+
+  const tripIds = (ownedTrips ?? []).map((row: { id: string }) => row.id);
+
+  let bookingIds: string[] = [];
+  if (tripIds.length > 0) {
+    const { data: ownedBookings, error: bookingLookupError } = await admin
+      .from("bookings")
+      .select("id")
+      .in("trip_id", tripIds);
+
+    if (bookingLookupError) throw bookingLookupError;
+    bookingIds = (ownedBookings ?? []).map((row: { id: string }) => row.id);
+  }
+
+  // Child/junction rows first. Do not rely on every historical foreign key
+  // having ON DELETE CASCADE; older RT2RP schema versions did not consistently
+  // attach auth-user cascades.
+  if (bookingIds.length > 0) {
+    await assertDelete(
+      "booking_companions cleanup",
+      admin.from("booking_companions").delete().in("booking_id", bookingIds),
+    );
+  }
+
+  if (tripIds.length > 0) {
+    const tripScopedTables = [
+      "ticket_reminders",
+      "stop_reminders",
+      "trip_engagements",
+      "engagements",
+      "trip_events",
+      "trip_notes",
+      "parking",
+      "packing_items",
+      "expenses",
+      "companions",
+      "bookings",
+      "trip_shares",
+      "trip_invites",
+      "trip_members",
+    ] as const;
+
+    for (const table of tripScopedTables) {
+      await assertDelete(
+        `${table} owned-trip cleanup`,
+        admin.from(table).delete().in("trip_id", tripIds),
+      );
+    }
+
+    await assertDelete(
+      "owned trips cleanup",
+      admin.from("trips").delete().eq("user_id", userId),
+    );
+  }
+
+  // References to this user on trips/accounts they do not own.
+  await assertDelete(
+    "guest memberships cleanup",
+    admin.from("trip_members").delete().eq("user_id", userId),
+  );
+  await assertDelete(
+    "shared trip references cleanup",
+    admin.from("trip_shares").delete().eq("shared_with_user_id", userId),
+  );
+  await assertDelete(
+    "accepted invite references cleanup",
+    admin.from("trip_invites").delete().eq("accepted_by_user_id", userId),
+  );
+  await assertDelete(
+    "invite creator references cleanup",
+    admin.from("trip_invites").delete().eq("inviter_user_id", userId),
+  );
+
+  // Direct user-owned records.
+  const userScopedTables = [
+    "device_tokens",
+    "email_ingestion_addresses",
+    "flight_status_usage",
+    "notification_preferences",
+    "notifications",
+    "pending_imports",
+    "places_usage",
+    "stop_reminders",
+    "support_tickets",
+    "ticket_reminders",
+    "upgrade_intents",
+    "user_roles",
+    "profiles",
+  ] as const;
+
+  for (const table of userScopedTables) {
+    await assertDelete(
+      `${table} user cleanup`,
+      admin.from(table).delete().eq("user_id", userId),
+    );
+  }
+}
+
 Deno.serve(async (req) => {
   const pre = handleCors(req);
   if (pre) return pre;
@@ -87,14 +207,28 @@ Deno.serve(async (req) => {
     }
 
     const userId = claimsData.claims.sub as string;
+
+    // Revoke every refresh session before destructive cleanup so no new access
+    // tokens can be minted while the account is being removed. Existing access
+    // JWTs remain valid until their encoded expiry, per Supabase Auth semantics.
+    const { error: signOutError } = await authClient.auth.signOut({ scope: "global" });
+    if (signOutError) {
+      console.error("[delete-account] global sign-out failed:", signOutError);
+      return new Response(
+        JSON.stringify({ error: "Account session cleanup failed" }),
+        { status: 500, headers: corsJsonHeaders(req) },
+      );
+    }
+
     const admin = createClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false },
     });
 
     try {
       await deleteUserReceiptObjects(admin, userId);
-    } catch (storageErr) {
-      console.error("[delete-account] receipt cleanup failed:", storageErr);
+      await deleteUserDatabaseRows(admin, userId);
+    } catch (cleanupErr) {
+      console.error("[delete-account] account data cleanup failed:", cleanupErr);
       return new Response(
         JSON.stringify({ error: "Account data cleanup failed" }),
         { status: 500, headers: corsJsonHeaders(req) },
