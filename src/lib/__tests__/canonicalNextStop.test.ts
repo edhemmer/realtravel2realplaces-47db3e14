@@ -2,7 +2,7 @@
  * v2.3.1: Unit tests for canonicalNextStop helper
  */
 import { describe, it, expect } from 'vitest';
-import { getNextStopFromCanonicalTimeline } from '../canonicalNextStop';
+import { getNextStopFromCanonicalTimeline, getNextStopFromTimelineEvents } from '../canonicalNextStop';
 import type { CanonicalTripState, CanonicalTimelineEvent } from '../canonicalTripState';
 
 /** Minimal stub for CanonicalTripState with only timelineEvents populated */
@@ -77,6 +77,24 @@ describe('getNextStopFromCanonicalTimeline', () => {
     expect(result.currentStop!.displayName).toBe('Flight');
     expect(result.nextStop!.displayName).toBe('Hotel A');
     expect(result.nextStop!.eventLocalTime).toBe('15:00');
+  });
+
+
+  it('timeline selector never returns an earlier-today event as next', () => {
+    const state = stubState([
+      { eventType: 'flight', eventLocalDateTime: '2030-06-15 08:00', title: 'Morning flight' },
+      { eventType: 'hotel_checkin', eventLocalDateTime: '2030-06-15 15:00', title: 'Hotel check-in' },
+      { eventType: 'activity_start', eventLocalDateTime: '2030-06-15 19:00', title: 'Dinner' },
+    ]);
+
+    const result = getNextStopFromTimelineEvents(
+      state.timelineEvents,
+      '2030-06-15 12:00',
+    );
+
+    expect(result.currentStop?.title).toBe('Morning flight');
+    expect(result.nextStop?.title).toBe('Hotel check-in');
+    expect(result.nextStop?.eventLocalTime).toBe('15:00');
   });
 
   it('untimed events are excluded', () => {
