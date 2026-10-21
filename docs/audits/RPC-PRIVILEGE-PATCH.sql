@@ -148,3 +148,42 @@ BEGIN
   END IF;
 END
 $$;
+
+
+-- Verify authenticated-only RPCs are not callable anonymously and remain
+-- executable by authenticated users. This intentionally does not alter RLS
+-- helper or trigger-function privileges; those require live-database testing.
+DO $$
+DECLARE
+  fn text;
+  authenticated_rpc_signatures text[] := ARRAY[
+    'public.is_admin()',
+    'public.admin_get_all_users()',
+    'public.admin_update_user_name(uuid,text,text)',
+    'public.admin_update_user_tier(uuid,subscription_tier)',
+    'public.admin_delete_user(uuid)',
+    'public.get_bookings_safe(uuid)',
+    'public.get_companions_safe(uuid)',
+    'public.get_trip_shares_safe(uuid)',
+    'public.get_my_pending_invites()',
+    'public.accept_trip_invite(text)',
+    'public.accept_trip_invite_by_id(uuid)',
+    'public.create_trip_invite(uuid,text,integer)',
+    'public.create_trip_invite(uuid,text,integer,boolean,boolean,boolean)'
+  ];
+BEGIN
+  FOREACH fn IN ARRAY authenticated_rpc_signatures LOOP
+    IF has_function_privilege('anon', fn, 'EXECUTE') THEN
+      RAISE EXCEPTION '% remains executable by anon', fn;
+    END IF;
+
+    IF NOT has_function_privilege('authenticated', fn, 'EXECUTE') THEN
+      RAISE EXCEPTION '% is no longer executable by authenticated', fn;
+    END IF;
+
+    IF NOT has_function_privilege('service_role', fn, 'EXECUTE') THEN
+      RAISE EXCEPTION '% is no longer executable by service_role', fn;
+    END IF;
+  END LOOP;
+END
+$$;
