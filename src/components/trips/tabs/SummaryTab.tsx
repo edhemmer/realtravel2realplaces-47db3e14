@@ -9,7 +9,6 @@ import { useExpenses } from '@/hooks/useExpenses';
 import { useEngagementEvents } from '@/hooks/useTripEvents';
 import { useCompanions } from '@/hooks/useCompanions';
 import { useBookingCompanionsByTrip } from '@/hooks/useBookingCompanions';
-import { useTravelAlerts } from '@/hooks/useTravelAlerts';
 import { useAccess } from '@/hooks/useAccess';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useDriveEngine } from '@/hooks/useDriveEngine';
@@ -25,7 +24,6 @@ import { Trip } from '@/types/database';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TripBriefSection } from '@/components/trips/TripBriefSection';
-import { TravelAlertsCard } from '@/components/trips/TravelAlertsCard';
 import { FlightSummaryCard } from '@/components/trips/FlightSummaryCard';
 import { DriveSummaryCard } from '@/components/trips/DriveSummaryCard';
 import { GasExpenseDialog } from '@/components/trips/GasExpenseDialog';
@@ -49,7 +47,7 @@ function DriveSummaryCardWrapper({ trip, onAddGasExpense }: { trip: Trip; onAddG
   return <DriveSummaryCard trip={trip as any} drivePlan={drivePlan} onAddGasExpense={onAddGasExpense} />;
 }
 
-export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onViewAllAlerts, onExploreTab }: SummaryTabProps) {
+export function SummaryTab({ tripId, trip, onDrillThrough, onExploreTab }: SummaryTabProps) {
   const navigate = useNavigate();
   const [gasDialogOpen, setGasDialogOpen] = useState(false);
   const { data: bookings = [] } = useBookings(tripId);
@@ -59,7 +57,6 @@ export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onV
   const { data: bookingCompanions = [] } = useBookingCompanionsByTrip(tripId);
   const { data: userProfile } = useUserProfile();
   const { data: engagementEvents = [] } = useEngagementEvents(tripId);
-  const temperatureUnit = (userProfile?.temperature_unit as 'fahrenheit' | 'celsius') || 'fahrenheit';
 
   const canonicalState = useMemo(() => {
     return getCanonicalTripState(trip, bookings, expenses, parkingList, engagementEvents);
@@ -72,7 +69,6 @@ export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onV
     return getOfflineTimelineWindow(canonicalState);
   }, [online, fullTimeline, canonicalState]);
 
-  const { alerts, hasAlerts } = useTravelAlerts(trip, bookings, parkingList, temperatureUnit);
   const { brief: tripBrief } = useTripReadiness(tripId, trip);
 
   const handleBriefAction = useCallback((target: string) => {
@@ -134,14 +130,6 @@ export function SummaryTab({ tripId, trip, onDrillThrough, maxVisibleAlerts, onV
     <div className="space-y-4 md:space-y-5">
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
         <section className="space-y-4">
-          {hasAlerts && (
-            <TravelAlertsCard
-              alerts={alerts}
-              maxVisible={maxVisibleAlerts}
-              onViewAllAlerts={onViewAllAlerts}
-            />
-          )}
-
           <Card className="rt-command-panel">
             <CardHeader className="border-b border-border/35 px-4 py-4 md:px-5">
               <CardTitle className="flex items-center gap-2 text-base font-bold">
