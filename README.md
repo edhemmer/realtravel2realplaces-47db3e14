@@ -137,6 +137,16 @@ npm run test
 
 ---
 
+## Supabase Hibernation & Reactivation
+
+The backend rebuild plan is versioned with this repository:
+
+- [Hibernation and reactivation runbook](docs/SUPABASE_REBUILD.md)
+- [Rebuild / clean-migration rehearsal script](scripts/rebuild-supabase.sh)
+- Source of truth: `supabase/migrations/`, `supabase/functions/`, `supabase/config.toml`
+
+Before any backend deletion, verify a clean migration replay, compare the hosted schema for drift, confirm security policies and functions, and document external secrets/settings securely. A source rebuild does **not** restore live records, Auth users, uploaded files, or credentials. A new Supabase project requires new credentials and redeploy/reconfiguration of clients. Rebuild readiness is **not yet verified**.
+
 ## Deployment
 
 - **Frontend**: Deployed from GitHub to Vercel
